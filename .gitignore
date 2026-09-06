@@ -1,0 +1,31 @@
+# ─── Lo que NO se publica ────────────────────────────────────────────────────
+# No es una cuestión de tamaño: es de derechos. Ver PUBLICAR.md.
+
+# El juego personal del autor. No forma parte de la biblioteca.
+Lumbre/
+
+# Almacén crudo de clones de terceros (14 GB). Se reconstruye, no se distribuye.
+GameMaker_Fuentes/
+
+# Espejo del manual oficial: es obra de YoYo Games y su copyright es suyo.
+# Cada lector lo genera en su máquina desde manual.gamemaker.io.
+09 - Manual oficial/
+
+# 608 repositorios de terceros (3,8 GB), cada uno con su licencia, más juegos
+# comerciales extraídos que NO son redistribuibles. Se clonan, no se copian.
+11 - Código descargado/
+
+# ─── Generados: salen del runtime instalado, no del repositorio ──────────────
+# Se regeneran con `python3 _indice/actualizar.py`, y así coinciden siempre con
+# la versión de GameMaker de quien clona.
+_indice/simbolos.json
+_indice/documentos.json
+_indice/enlaces-externos-muertos.txt
+
+# ─── Basura ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.DS_Store
+
+# Restos de sesiones de herramientas
+.playwright-mcp/

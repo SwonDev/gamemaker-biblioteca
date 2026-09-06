@@ -1,0 +1,55 @@
+Esta biblioteca tiene dos licencias, según qué parte uses.
+
+═══════════════════════════════════════════════════════════════════════════════
+1 · LAS HERRAMIENTAS (todo lo que hay en `_indice/`, `instalar.sh` y los .gml de
+    `06 - Assets y Scripts/`) — Licencia MIT
+═══════════════════════════════════════════════════════════════════════════════
+
+Copyright (c) 2026 Adrián Perera Delgado
+
+Por la presente se concede permiso, libre de cargos, a cualquier persona que
+obtenga una copia de este software y de los archivos de documentación asociados
+(el "Software"), a utilizar el Software sin restricción, incluyendo sin
+limitación los derechos a usar, copiar, modificar, fusionar, publicar,
+distribuir, sublicenciar y/o vender copias del Software, y a permitir a las
+personas a las que se les proporcione el Software a hacer lo mismo, sujeto a las
+siguientes condiciones:
+
+El aviso de copyright anterior y este aviso de permiso se incluirán en todas las
+copias o partes sustanciales del Software.
+
+EL SOFTWARE SE PROPORCIONA "COMO ESTÁ", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O
+IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A GARANTÍAS DE COMERCIALIZACIÓN,
+IDONEIDAD PARA UN PROPÓSITO PARTICULAR E INCUMPLIMIENTO. EN NINGÚN CASO LOS
+AUTORES O TITULARES DEL COPYRIGHT SERÁN RESPONSABLES DE NINGUNA RECLAMACIÓN,
+DAÑOS U OTRAS RESPONSABILIDADES, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O
+CUALQUIER OTRO MOTIVO, DERIVADAS DE, FUERA DE O EN CONEXIÓN CON EL SOFTWARE O SU
+USO U OTRO TIPO DE ACCIONES EN EL SOFTWARE.
+
+═══════════════════════════════════════════════════════════════════════════════
+2 · LA DOCUMENTACIÓN (las carpetas numeradas: 01, 02, 03, 04, 05, 07, 08, 10,
+    12, 13, y los archivos .md de la raíz) — Creative Commons BY-SA 4.0
+═══════════════════════════════════════════════════════════════════════════════
+
+Eres libre de compartirla y adaptarla, incluso comercialmente, siempre que des
+crédito y distribuyas tus cambios bajo esta misma licencia.
+
+Texto completo: https://creativecommons.org/licenses/by-sa/4.0/deed.es
+
+═══════════════════════════════════════════════════════════════════════════════
+3 · LO QUE NO SE DISTRIBUYE AQUÍ, Y POR QUÉ
+═══════════════════════════════════════════════════════════════════════════════
+
+Estas licencias cubren SOLO el trabajo propio. Quedan fuera del repositorio, y
+por tanto fuera de estas licencias:
+
+  · `09 - Manual oficial/` — es el manual de GameMaker, obra de YoYo Games.
+    Su copyright es suyo. Aquí no se redistribuye: se genera en tu máquina.
+
+  · `11 - Código descargado/` — 608 repositorios de terceros, cada uno con su
+    propia licencia, más código de juegos comerciales (Pizza Tower, Deltarune,
+    AM2R, Hotline Miami, Kirby) que NO es libre. Se clona, no se copia. Antes de
+    reutilizar código de cualquiera de ellos, lee su licencia.
+
+  · GameMaker, GML y el nombre YoYo Games son marcas de sus titulares. Este
+    proyecto no está afiliado a YoYo Games ni respaldado por ellos.

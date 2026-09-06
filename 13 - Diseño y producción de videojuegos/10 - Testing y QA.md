@@ -1,0 +1,1933 @@
+# 10 · Testing y QA
+
+> Cómo se prueba un juego hecho con GameMaker: qué se puede automatizar y qué no, cómo
+> escribir GML que se deje probar, un mini-framework de pruebas completo que ya compila
+> y corre con `gm-cli`, los frameworks que existen, y el trabajo humano que ninguna
+> máquina hace por ti — QA manual, playtesting y triaje de bugs.
+>
+> **Lo que NO cubre este documento** (porque ya está cubierto y sería duplicarlo):
+> el Debug Overlay, el Debugger del IDE, el recolector de basura y las vistas `dbg_*` están
+> en [`01 · 15 — Depuración y rendimiento`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md);
+> el catálogo comparado de frameworks de test está en
+> [`12 · 01 — Herramientas del flujo de trabajo`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) §4;
+> los requisitos de cada tienda están en
+> [`05 · 02 — Publicar y exportar`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md).
+
+**Todo el código de este documento se ha compilado y ejecutado de verdad** en un proyecto
+creado con `gm-cli init` sobre GameMaker LTS 2026.0 (runtime `2026.0.0.23`), el 6 de
+septiembre de 2026. Las salidas que verás son copias literales de la terminal.
+
+---
+
+## 1 · Los principios
+
+### 1.1 Un juego no es una aplicación de gestión
+
+La razón por la que el testing automático llegó tarde a los videojuegos no es pereza: es que
+**la mayor parte de lo que hace bueno a un juego no es una función pura**. «El salto se siente
+flotante», «el jefe es injusto», «no entiendo qué tengo que hacer» son defectos reales y
+ningún `assert` los detecta.
+
+Pero debajo de esa capa hay muchísimo código que **sí** es determinista y aburrido, y es
+justo donde se esconden los bugs que cuestan dinero: el cálculo de daño, la curva de
+experiencia, el guardado, el inventario, la generación de mazmorras, el parser de diálogos,
+la conversión de coordenadas de mundo a pantalla.
+
+| Se automatiza bien | Se automatiza mal o nada |
+|---|---|
+| Funciones puras: matemáticas, balance, parsers | Sensación de control («game feel») |
+| Serialización: guardar → cargar → comparar | Dificultad y curva de aprendizaje |
+| Máquinas de estado con transiciones definidas | Legibilidad de la interfaz y estética |
+| Generación procedural con semilla fija | Que el juego sea divertido |
+| Invariantes: «la vida nunca es negativa» | Bugs de driver gráfico y de mando concreto |
+| Que el proyecto **compile** y **arranque** en todos los targets | Rendimiento en hardware que no tienes |
+
+> 💡 La regla práctica: **si puedes escribir el resultado esperado como un número, un string o
+> un array, hazlo una prueba automática. Si solo puedes describirlo con un adjetivo, es
+> playtesting.**
+
+### 1.2 La pirámide, adaptada
+
+La pirámide de test clásica (muchas unitarias, pocas de integración, poquísimas de extremo a
+extremo) sirve, pero en GameMaker las capas se llaman de otra manera:
+
+```
+                    ┌───────────────────────┐
+                    │    5. PLAYTESTING     │   personas reales, sin ayuda
+                    │   (días, muy caro)    │   → mide diversión y comprensión
+                    ├───────────────────────┤
+                    │  4. QA MANUAL         │   plan de pruebas por sistema
+                    │  (horas, caro)        │   → mide plataformas y casos raros
+                    ├───────────────────────┤
+                    │  3. SMOKE TEST        │   ¿arranca y llega al menú?
+                    │  (1 min, barato)      │   → mide que el build no está muerto
+                    ├───────────────────────┤
+                    │  2. INTEGRACIÓN       │   objetos reales en una room de test
+                    │  (segundos)           │   → mide que los sistemas encajan
+                    ├───────────────────────┤
+                    │  1. UNITARIAS         │   funciones y structs sin instancias
+                    │  (milisegundos)       │   → mide la lógica pura
+                    └───────────────────────┘
+```
+
+Cada escalón hacia arriba es **más lento, más caro y más frágil**. La estrategia sensata es la
+misma que en cualquier otro oficio: empuja todo lo que puedas hacia abajo.
+
+En un proyecto GameMaker eso se traduce en: scripts `scr_pruebas_*` sobre funciones puras
+(capa 1) · una `rm_pruebas` con objetos reales y un objeto árbitro (capa 2) · `gm-cli run`
+comprobando que se llega al menú sin excepción (capa 3) · plan de pruebas y matriz de
+plataformas (capa 4) · sesiones grabadas con jugadores (capa 5).
+
+### 1.3 El coste de encontrar un fallo
+
+El mismo defecto cuesta órdenes de magnitud más según dónde lo encuentres: **Feather** lo
+señala en segundos y te dice la línea; una **prueba unitaria** lo señala en minutos y te dice
+la función; **QA manual** cuesta horas porque primero hay que reproducirlo; y **un jugador
+tras el lanzamiento** cuesta un parche, una nota y reseñas negativas. Automatizar no es
+elegancia: es mover el hallazgo hacia arriba de esa lista.
+
+---
+
+## 2 · Escribir GML que se deje probar
+
+Esto es el 80 % del trabajo. **Un framework de pruebas no arregla código imposible de probar.**
+
+### 2.1 Lógica pura fuera de las instancias
+
+Una función es *pura* si su resultado depende solo de sus argumentos y no toca nada de fuera.
+En GML eso significa: no lee `x`, `y`, `image_index`, `global.*` ni `instance_*`, y no dibuja.
+
+```gml
+// ❌ Imposible de probar sin montar media room — Step de obj_jugador
+if (keyboard_check(vk_right)) { hsp += aceleracion; }
+hsp = clamp(hsp, -vel_max, vel_max);
+if (!keyboard_check(vk_right) && !keyboard_check(vk_left)) { hsp *= friccion; }
+x += hsp;
+```
+
+```gml
+// ✅ La misma regla, extraída y comprobable en un milisegundo
+/// @param {Real}   _velocidad   Velocidad actual.
+/// @param {Real}   _direccion   -1 izquierda, 0 nada, 1 derecha.
+/// @param {Struct} _ajustes     {aceleracion, friccion, velocidad_maxima}
+/// @returns {Real}
+function calcular_velocidad_horizontal(_velocidad, _direccion, _ajustes)
+{
+    if (_direccion != 0)
+    {
+        _velocidad += _ajustes.aceleracion * sign(_direccion);
+        return clamp(_velocidad, -_ajustes.velocidad_maxima, _ajustes.velocidad_maxima);
+    }
+    _velocidad *= _ajustes.friccion;
+    return (abs(_velocidad) < 0.05) ? 0 : _velocidad;
+}
+
+// Step de obj_jugador — ahora es una línea de pegamento
+var _dir = keyboard_check(vk_right) - keyboard_check(vk_left);
+hsp = calcular_velocidad_horizontal(hsp, _dir, ajustes_movimiento);
+x += hsp;
+```
+
+De regalo, la regla es ahora **reutilizable** (el enemigo usa la misma) y **ajustable desde un
+struct de datos**, que es justo lo que quieres para tunear el movimiento sin recompilar.
+
+### 2.2 Inyecta lo que no controlas: azar, reloj y entrada
+
+Las tres fuentes de indeterminismo que rompen una prueba son siempre las mismas.
+
+```gml
+// ❌ Distinta cada vez que la llamas:
+//    function generar_botin(_nivel) { return (random(1) < 0.1) ? "legendario" : "comun"; }
+
+// ✅ El azar entra por la puerta: le pasas la fuente
+/// @desc Fuente de números aleatorios reproducible (congruencial lineal de 32 bits).
+///       Sirve tanto para el juego como para las pruebas, con la misma semilla.
+/// @param {Real} _semilla
+function AzarReproducible(_semilla) constructor
+{
+    estado = _semilla;
+
+    /// @returns {Real} Real en [0, 1).
+    static siguiente = function()
+    {
+        estado = (estado * 1103515245 + 12345) % 2147483648;
+        return estado / 2147483648;
+    }
+
+    /// @returns {Real} Entero en [0, _n].
+    static entero_hasta = function(_n)
+    {
+        return floor(siguiente() * (_n + 1));
+    }
+}
+
+/// @desc Decide el botín. Determinista para una misma fuente y semilla.
+/// @param {Real}   _nivel
+/// @param {Struct} _azar   Instancia de AzarReproducible.
+/// @returns {String}
+function generar_botin(_nivel, _azar)
+{
+    if (_azar.siguiente() < 0.1) { return "legendario"; }
+    return (_azar.entero_hasta(10) > 7) ? "raro" : "comun";
+}
+```
+
+Ahora la prueba es trivial: `generar_botin(3, new AzarReproducible(42))` devuelve **siempre**
+lo mismo, en tu máquina y en CI.
+
+> ⚠️ `random_set_seed()` también fija la secuencia global del motor y sirve para el juego, pero
+> **no aísla**: cualquier otra llamada a `random()` en el mismo frame desplaza la secuencia y
+> la prueba deja de ser reproducible. Para pruebas, una fuente propia inyectada es más segura.
+
+El mismo movimiento vale para el reloj y para la entrada: en vez de leer `current_time` o
+`keyboard_check()` dentro de la regla, se pasan como argumento.
+
+```gml
+// ❌ function esta_el_buff_activo(_buff)  { return current_time < _buff.fin; }
+// ✅
+function esta_el_buff_activo(_buff, _ahora) { return _ahora < _buff.fin; }
+
+// ❌ function decidir_accion()  { return keyboard_check(ord("Z")) ? "saltar" : "nada"; }
+// ✅ _entrada es un struct que en el juego rellena el lector de input y en la prueba, tú
+function decidir_accion(_entrada) { return _entrada.saltar ? "saltar" : "nada"; }
+```
+
+### 2.3 Separa calcular de dibujar
+
+Un evento `Draw` que además calcula es intestable por definición: para comprobar el resultado
+tendrías que leer píxeles. La regla de siempre — **el Step decide, el Draw pinta** — es, además
+de una regla de rendimiento, la que hace posible el testing.
+
+```gml
+/// @desc Geometría de una barra de vida. No dibuja nada: por eso se puede probar.
+/// @returns {Struct} {ancho_relleno, color}
+function calcular_barra_vida(_vida, _vida_maxima, _ancho_total)
+{
+    var _fraccion = (_vida_maxima <= 0) ? 0 : clamp(_vida / _vida_maxima, 0, 1);
+    return {
+        ancho_relleno: round(_ancho_total * _fraccion),
+        color:         (_fraccion > 0.5) ? c_lime : ((_fraccion > 0.2) ? c_yellow : c_red)
+    };
+}
+
+// Draw GUI — tonto a propósito
+var _b = calcular_barra_vida(vida, vida_maxima, 200);
+draw_set_colour(_b.color);
+draw_rectangle(20, 20, 20 + _b.ancho_relleno, 32, false);
+draw_set_colour(c_white);
+```
+
+
+> El razonamiento largo sobre dónde va cada responsabilidad está en
+> [`13 · 06 — Arquitectura de un proyecto GameMaker`](06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md). Aquí solo interesa la
+> consecuencia: **lo que no calcula el Draw, lo puedes probar.**
+
+### 2.4 La frontera: qué no vas a probar y está bien
+
+No intentes cubrir con unitarias el **dibujado** (un test que llama a `draw_*` fuera de un
+evento de dibujo o falla o no mide nada), los **eventos del motor** (`Create`, `Step`,
+`Alarm`: eso es integración y va en una room de test), el **audio** (comprueba que *decides*
+reproducir el sonido correcto, no que suene) ni la **red contra servidores reales** (prueba el
+serializador de paquetes).
+
+### 2.5 · Probar el audio
+
+La frontera de arriba dice qué NO probar; esto es lo que sí, y cómo. «No pruebes que suena» no
+significa «no pruebes nada»: hay tres piezas del audio que son código normal, deterministas, y
+caben en el mismo `scr_pruebas` de la sección siguiente.
+
+**1. Que la decisión de sonar se toma.** Extrae la decisión a una función pura, con el mismo
+movimiento de inyección que §2.2, y prueba ESA función, nunca la llamada real a `audio_play_sound`:
+
+```gml
+// ❌ No pruebes esto: llama al motor de audio de verdad
+// function reaccionar_a_golpe(_vida) { if (_vida <= 0) { audio_play_sound(snd_muerte, 100, false); } }
+
+// ✅ Separa la decisión de la ejecución
+function sonido_por_golpe(_vida_antes, _vida_despues)
+{
+    if (_vida_despues <= 0)           { return "muerte"; }
+    if (_vida_despues < _vida_antes)  { return "dano"; }
+    return undefined;
+}
+
+// La prueba no toca audio_play_sound en ningún momento
+probar("golpe letal decide sonido de muerte", function()
+{
+    afirmar_igual(sonido_por_golpe(10, 0), "muerte");
+});
+probar("golpe no letal decide sonido de daño", function()
+{
+    afirmar_igual(sonido_por_golpe(10, 6), "dano");
+});
+probar("sin cambio de vida no decide nada", function()
+{
+    afirmar_igual(sonido_por_golpe(10, 10), undefined);
+});
+```
+
+**2. Que no se supera el cupo de voces.** Esto ya usa audio de verdad —es una prueba de
+integración, en una room de test, no una unitaria pura— pero el resultado que compruebas es un
+número, no una percepción: reutiliza `sonar_limitado()` de
+[13 · 09 §3.3](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) y comprueba que el array de voces
+vivas nunca crece por encima del cupo:
+
+```gml
+probar("el cupo de voces nunca se supera", function()
+{
+    voces_iniciar();
+    for (var _i = 0; _i < 20; _i += 1) { sonar_limitado(snd_prueba_impacto, 4); }
+    afirmar_cierto(array_length(struct_get(global.voces, audio_get_name(snd_prueba_impacto))) <= 4,
+                   "el cupo de voces se ha saltado");
+});
+```
+
+**3. Que todo emisor se libera en su Clean Up.** También de integración: crea la instancia en una
+room de test, destrúyela, y comprueba con `audio_emitter_exists()` que el emisor ya no existe.
+Es la versión automatizada de la comprobación manual que ya pide
+[13 · 09 §10.1](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) con la ventana **Audio** del
+Debug Overlay:
+
+```gml
+probar("el emisor se libera al destruir la instancia", function()
+{
+    var _inst = instance_create_layer(0, 0, "Instances", obj_enemigo_con_emisor);
+    var _em   = _inst.em_pasos;              // el emisor creado en su Create
+    instance_destroy(_inst);                  // dispara su Clean Up de inmediato
+    afirmar_cierto(!audio_emitter_exists(_em), "el Clean Up no liberó el emisor");
+});
+```
+
+### La matriz de dispositivos de escucha
+
+La matriz de plataformas de [§9.2](#92-la-matriz-de-plataformas) prueba dónde corre el juego; esta
+es la misma idea aplicada a **cómo se oye**, y es la que de verdad encuentra bugs de mezcla:
+
+| Dispositivo | Qué revela |
+|---|---|
+| Altavoces de portátil (mono o casi-mono) | Si algo importante solo suena por un canal, aquí desaparece |
+| Auriculares baratos con cable | La referencia «normal»: donde jugará la mayoría |
+| Auriculares Bluetooth | Latencia añadida (§«Latencia» de [04 · 28 §3 bis](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md) si el juego es móvil) y compresión que se come agudos |
+| Altavoz del móvil o de una TV | Rango de graves casi nulo: si el impacto solo vive en los graves, aquí no se oye |
+| Volumen del sistema al mínimo | Confirma que **nada crítico** depende solo del audio ([13 · 09 §8](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md), accesibilidad) |
+| Sin ningún audio (mudo total) | La prueba de accesibilidad honesta: 10 minutos sin volumen, ver qué se deja de entender |
+
+> 💡 **Un bug de mezcla que solo aparece en un dispositivo de la matriz sigue siendo un bug.**
+> «Suena bien en mis auriculares de estudio» no es la vara de medir: la vara es esta matriz.
+
+### El protocolo de sesión larga
+
+[13 · 09 §10.1](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) ya deja el requisito en dos
+líneas de checklist («20-30 min de partida medidos» y «30 minutos seguidos sin que nada moleste»);
+esto es cómo ejecutarlo como parte de la sesión larga que ya haces en [§9.4](#94-la-sesión-larga-soak-test):
+
+1. **Arranca la sesión larga habitual de §9.4** (memoria, instancias, surfaces) y súmale el audio:
+   deja el juego corriendo 20-30 minutos de partida real, no en el menú.
+2. **Abre la ventana Audio del Debug Overlay** (`audio_debug()`) al principio y de nuevo al final.
+   Compara el número de voces activas en reposo: si sube con el tiempo, hay emisores o voces que
+   no se están liberando — el mismo síntoma que la memoria de §9.4, pero en el hilo de audio.
+3. **Mide loudness y pico** de una grabación de esos 20-30 minutos (§4.4 de 13 · 09): integrado
+   entre −23 y −18 LUFS, pico por debajo de −1 dBTP.
+4. **Escucha, no solo midas:** 30 minutos seguidos con auriculares baratos a volumen bajo. Lo que
+   cansa al oído en una sesión larga casi nunca se nota en una prueba de dos minutos —un *one-shot*
+   de ambiente demasiado frecuente, un *loop* con un clic al reiniciar— y es exactamente lo que
+   este protocolo existe para cazar.
+
+---
+
+## 3 · Un mini-framework de pruebas en un solo script de GML
+
+No necesitas una librería para empezar. Esto es todo lo que hace falta: **un script** de unas
+130 líneas contando JSDoc, cero dependencias, y una salida que un servidor de integración
+continua sabe leer.
+
+> Ojo, no confundas esto con el `assert()` de
+> [`05 · 04 — Convenciones y estilo GML`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §7:
+> aquel es una **guarda de producción** (grita en desarrollo, calla en release); estas
+> `afirmar_*` son **aserciones de prueba** que anotan el fallo y dejan continuar la tanda.
+
+### 3.1 El script `scr_pruebas`
+
+```gml
+// ═══════════════════════════════════════════════════════════════════════
+//  scr_pruebas — mini-framework de pruebas unitarias en GML
+//  Un solo script, sin dependencias. Pensado para correr con gm-cli.
+// ═══════════════════════════════════════════════════════════════════════
+
+/// @desc Prepara el estado del ejecutor. Llámalo una vez, antes del primer probar().
+function pruebas_iniciar()
+{
+    global.pruebas = {
+        total:          0,
+        fallidas:       0,
+        aserciones:     0,
+        fallos_actual:  [],
+        arranque:       get_timer()
+    };
+    show_debug_message("=== PRUEBAS ===");
+}
+
+/// @desc Anota un fallo en la prueba en curso. La usan las afirmaciones.
+/// @param {String} _texto
+function pruebas_anotar_fallo(_texto)
+{
+    array_push(global.pruebas.fallos_actual, _texto);
+}
+
+/// @desc Convierte lo capturado por catch en texto legible.
+///       Si el throw fue de un string, catch recibe el string, no un struct.
+/// @param {Any} _e
+/// @returns {String}
+function pruebas_describir_excepcion(_e)
+{
+    if (is_struct(_e) && struct_exists(_e, "message"))
+    {
+        return $"{_e.message} (en {_e.script})";
+    }
+    return string(_e);
+}
+
+/// @desc Ejecuta una prueba aislada. Captura la excepción para que un fallo no tumbe la tanda.
+/// @param {String}   _nombre  Nombre legible de la prueba.
+/// @param {Function} _cuerpo  Función sin argumentos con el cuerpo de la prueba.
+function probar(_nombre, _cuerpo)
+{
+    var _p = global.pruebas;
+    _p.total++;
+    _p.fallos_actual = [];
+
+    var _inicio = get_timer();
+    try
+    {
+        _cuerpo();
+    }
+    catch (_e)
+    {
+        pruebas_anotar_fallo("excepcion no esperada: " + pruebas_describir_excepcion(_e));
+    }
+    var _ms = (get_timer() - _inicio) / 1000;
+
+    if (array_length(_p.fallos_actual) == 0)
+    {
+        show_debug_message($"  ok    {_nombre}  ({string_format(_ms, 1, 2)} ms)");
+        exit;
+    }
+
+    _p.fallidas++;
+    show_debug_message($"  FALLO {_nombre}  ({string_format(_ms, 1, 2)} ms)");
+    for (var _i = 0; _i < array_length(_p.fallos_actual); _i++)
+    {
+        show_debug_message($"          {_p.fallos_actual[_i]}");
+    }
+}
+
+/// @desc Afirma que dos valores son iguales. Los arrays se comparan por contenido.
+function afirmar_igual(_obtenido, _esperado, _mensaje = "")
+{
+    global.pruebas.aserciones++;
+    var _ok = (is_array(_obtenido) && is_array(_esperado))
+            ? array_equals(_obtenido, _esperado)
+            : (_obtenido == _esperado);
+    if (!_ok)
+    {
+        pruebas_anotar_fallo($"esperaba {string(_esperado)}, obtuve {string(_obtenido)}. {_mensaje}");
+    }
+    return _ok;
+}
+
+/// @desc Afirma que una expresión es verdadera.
+function afirmar_cierto(_expresion, _mensaje = "")
+{
+    global.pruebas.aserciones++;
+    if (!_expresion)
+    {
+        pruebas_anotar_fallo($"esperaba true, obtuve {string(_expresion)}. {_mensaje}");
+    }
+    return _expresion;
+}
+
+/// @desc Afirma que la función lanza una excepción. Si no lanza, es un fallo.
+function afirmar_lanza(_cuerpo, _mensaje = "")
+{
+    global.pruebas.aserciones++;
+    var _lanzo = false;
+    try { _cuerpo(); } catch (_e) { _lanzo = true; }
+    if (!_lanzo)
+    {
+        pruebas_anotar_fallo($"esperaba una excepcion y no se lanzo. {_mensaje}");
+    }
+    return _lanzo;
+}
+
+/// @desc Cierra la tanda, imprime el resumen y termina con código 0 (verde) o 1 (rojo).
+function pruebas_terminar()
+{
+    var _p  = global.pruebas;
+    var _ms = (get_timer() - _p.arranque) / 1000;
+
+    show_debug_message("");
+    show_debug_message($"{_p.total} pruebas | {_p.aserciones} aserciones | {_p.fallidas} fallidas | {string_format(_ms, 1, 1)} ms");
+    show_debug_message(_p.fallidas == 0 ? "RESULTADO: OK" : "RESULTADO: FALLO");
+
+    game_end(_p.fallidas == 0 ? 0 : 1);
+}
+```
+
+**Tres detalles que no son obvios:**
+
+1. **`game_end([return_code])` sí acepta un código de salida**, opcional y con `0` por defecto.
+   La página **en español** del manual todavía muestra la firma vieja `game_end();`; la
+   **inglesa** y el `GmlSpec.xml` del runtime `2026.0.0.23` documentan `return_code`. Cuando
+   manual traducido y spec no coinciden, **gana el spec** ([`AGENTS.md`](../AGENTS.md) §1 bis).
+2. **`catch` no siempre recibe un struct.** Del runtime sí (`message`, `longMessage`, `script`,
+   `stacktrace`); de un `throw "texto"` recibe **el string tal cual** y `_e.message` reventaría.
+   Por eso existe `pruebas_describir_excepcion()`.
+3. `exit` dentro de `probar()` sale **de la función**, no del juego.
+
+### 3.2 Una tanda de pruebas real
+
+```gml
+// ═══════════ scr_pruebas_combate ═══════════
+
+/// @desc Daño final tras armadura y crítico. Lógica pura: no lee ni escribe instancias.
+/// @param {Real} _base       Daño bruto, >= 0.
+/// @param {Real} _armadura   Fracción absorbida, se recorta a 0..0.9.
+/// @param {Bool} _critico
+/// @returns {Real}
+function calcular_dano(_base, _armadura, _critico)
+{
+    if (!is_numeric(_base) || _base < 0) { throw $"dano base invalido: {_base}"; }
+    var _absorcion = clamp(_armadura, 0, 0.9);
+    var _dano = _base - (_base * _absorcion);
+    if (_critico) { _dano *= 2; }
+    return floor(_dano);
+}
+
+/// @desc Tanda de pruebas del cálculo de daño.
+function pruebas_de_combate()
+{
+    probar("sin armadura el dano es el base", function() {
+        afirmar_igual(calcular_dano(10, 0, false), 10);
+    });
+
+    probar("la armadura reduce el dano", function() {
+        afirmar_igual(calcular_dano(10, 0.5, false), 5);
+    });
+
+    probar("la armadura se recorta al 90 por ciento", function() {
+        afirmar_igual(calcular_dano(100, 5, false), 10);
+    });
+
+    probar("el critico dobla el dano", function() {
+        afirmar_igual(calcular_dano(10, 0, true), 20);
+    });
+
+    probar("el dano base negativo lanza", function() {
+        afirmar_lanza(function() { calcular_dano(-1, 0, false); });
+    });
+}
+```
+
+Y el objeto que lo lanza, en un `Create`:
+
+```gml
+// ─── Create de obj_ejecutor_pruebas ───
+pruebas_iniciar();
+pruebas_de_combate();
+pruebas_terminar();
+```
+
+> 🎯 **Esta tanda encontró un bug de verdad mientras se escribía este documento.** La primera
+> versión calculaba `_base * (1 - _absorcion)`. Con `_base = 100` y `_absorcion = 0.9`, en
+> coma flotante `1 - 0.9` da `0.09999999999999998`, y `floor(9.999999999999998)` es **9**, no
+> 10. La prueba dijo `esperaba 10, obtuve 9` y la corrección fue reordenar la expresión a
+> `_base - (_base * _absorcion)`. Ese es exactamente el tipo de fallo que ningún playtester
+> reporta y que desequilibra un juego en silencio.
+
+### 3.3 Ejecutarlo desde la terminal, de verdad
+
+Los recursos se crean con `gm-cli resourcetool eval "resource create type=script name=…"` y
+`"object event findorcreate …"` —**nunca editando el `.yy` a mano**— y el `.gml` con tu editor
+de siempre. Después:
+
+```sh
+gm-cli compile --errors-only   # puerta 1: ¿compila?
+gm-cli run                     # puerta 2: ¿pasan las pruebas?
+```
+
+Salida literal de `gm-cli run` con la tanda en verde (6 de septiembre de 2026, macOS,
+runtime `2026.0.0.23`):
+
+```
+│  === PRUEBAS ===
+│    ok    sin armadura el dano es el base  (0.01 ms)
+│    ok    la armadura reduce el dano  (0.00 ms)
+│    ok    la armadura se recorta al 90 por ciento  (0.00 ms)
+│    ok    el critico dobla el dano  (0.00 ms)
+│    ok    el dano base negativo lanza  (0.00 ms)
+│  5 pruebas | 5 aserciones | 0 fallidas | 0.3 ms
+│  RESULTADO: OK
+│  ###game_end###0
+```
+
+Con un fallo, las líneas cambian a `FALLO …`, `esperaba 21, obtuve 20.`, `RESULTADO: FALLO`
+y `###game_end###1`.
+
+### 3.4 ⚠️ `gm-cli run` NO devuelve el código de salida del juego
+
+Esto es lo más importante de toda la sección y no está escrito en ningún sitio:
+
+> **`gm-cli run` sale con `0` aunque el juego llame a `game_end(1)`.** Verificado en `gm-cli`
+> 2.3.0 el 6 de septiembre de 2026: con la tanda en rojo, `echo $?` devolvió `0`.
+
+Lo que **sí** puedes usar es que el runner imprime una línea con el código:
+
+```
+###game_end###1
+```
+
+Así que el envoltorio de CI tiene que leer la salida, no el código de salida. Este script está
+probado y devuelve `0` en verde y `1` en rojo:
+
+```sh
+#!/usr/bin/env bash
+# correr-pruebas.sh — devuelve 0 solo si el juego terminó con game_end(0).
+set -uo pipefail
+
+SALIDA="$(mktemp)"
+gm-cli run --target mac > "$SALIDA" 2>&1
+
+if grep -q '###game_end###0' "$SALIDA"; then
+    grep -E 'ok    |FALLO|pruebas \|' "$SALIDA" | sed 's/^│  //'
+    echo "PRUEBAS: OK"
+    rm -f "$SALIDA"
+    exit 0
+fi
+
+echo "PRUEBAS: FALLO"
+grep -E 'ok    |FALLO|pruebas \||###game_end###' "$SALIDA" | sed 's/^│  //'
+rm -f "$SALIDA"
+exit 1
+```
+
+Comprobado en las dos direcciones: en verde imprime la tanda y sale con `0`; con una prueba
+rota imprime `###game_end###1` y sale con `1`.
+
+Los *flags* reales de `gm-cli run` y `gm-cli compile` (comprobados con `--help` el 6 de
+septiembre de 2026) son exactamente estos —`--target`, `--toolchain`, `--runtime {vm|native}`,
+`--verbose`, `--errors-only`, `--license`, `--cache-dir`, `--config`, `--toolchain-options`—
+y **no hay ninguno para pasarle argumentos al juego**. `gm-cli package` añade `-o / --output`.
+No inventes otros: el detalle completo del CLI está en
+[`07 · 13 — GM CLI`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md).
+
+### 3.5 Encender el modo pruebas sin tocar el código
+
+Como no puedes pasarle argumentos al juego desde `gm-cli run`, la vía limpia es una
+**configuración del proyecto**. `os_get_config()` devuelve su nombre en tiempo de ejecución:
+
+```sh
+gm-cli resourcetool eval "config create name=Pruebas parent=Default"
+gm-cli run --config Pruebas
+```
+
+```gml
+// ─── Create de obj_ejecutor_pruebas ───
+if (os_get_config() != "Pruebas") { instance_destroy(); exit; }
+
+pruebas_iniciar();
+pruebas_de_combate();
+pruebas_terminar();
+```
+
+Verificado: con `gm-cli run --config Pruebas` la salida trae `CONFIG ACTIVA = Pruebas` y la
+tanda entera; con `gm-cli run` a secas trae `CONFIG ACTIVA = Default` y **ninguna prueba se
+ejecuta**. Es el interruptor más limpio que hay, porque no toca el código.
+
+Alternativa si prefieres no crear configuraciones: `environment_get_variable("MI_JUEGO_MODO")`
+lee una variable de entorno del proceso.
+
+> ⚠️ Verificado en este Mac: si el proyecto vive bajo `/private/tmp`, el runner de macOS
+> arranca, escribe `not in bundle` y **muere con SIGSEGV sin ejecutar nada**, mientras
+> `gm-cli run` sigue diciendo `Game exited` y devolviendo `0`. Copiado el mismo proyecto al
+> directorio del usuario, funcionó a la primera. Si tus pruebas «pasan» sin imprimir nada,
+> sospecha de la ruta antes que del código.
+
+---
+
+## 4 · Los frameworks que ya existen
+
+La tabla comparada de los siete frameworks (estrellas, licencia, fecha, ruta local) está en
+[`12 · 01 — Herramientas del flujo de trabajo`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) §4.
+**No la repito.** Aquí va lo que allí no cabe: cómo se usan los dos que importan.
+
+Todos están descargados; las rutas exactas salen de
+[`11 · _RUTAS.json`](../11%20-%20C%C3%B3digo%20descargado/_RUTAS.json):
+
+```sh
+find "11 - Código descargado" -iname "*TestFramework*"
+# → 11 - Código descargado/plantillas_y_ejemplos/GM-TestFramework
+```
+
+| Framework | Ruta local |
+|---|---|
+| GM-TestFramework | `11 - Código descargado/plantillas_y_ejemplos/GM-TestFramework` |
+| crispy | `11 - Código descargado/librerias/depuracion/crispy` |
+| gm-verrific | `11 - Código descargado/librerias/depuracion/gm-verrific` |
+| olympus | `11 - Código descargado/librerias/depuracion/olympus` |
+| ganary | `11 - Código descargado/librerias/depuracion/ganary` |
+| gms2-test | `11 - Código descargado/librerias/depuracion/gms2-test` |
+| GMBenchmark | `11 - Código descargado/librerias/depuracion/GMBenchmark` |
+
+### 4.1 GM-TestFramework — el oficial de YoYo Games
+
+Es **el framework interno del equipo del motor**, publicado para que la comunidad aporte tests
+que demuestren bugs. Se ejecuta en cada build de GameMaker y los resultados van a los equipos
+de QA y Core Tech. Ficha completa en
+[`07 · 01 — GitHub · organización YoYoGames`](../07%20-%20Ecosistema/01%20-%20GitHub%20-%20organizaci%C3%B3n%20YoYoGames.md).
+
+**Cómo está montado** (leído del repositorio clonado):
+
+```
+GM-TestFramework/
+  launcher.py       orquestador en Python: descarga runtime, lanza Igor, recoge resultados
+  tf_compare.py     compara dos tandas de resultados (regresión entre runtimes)
+  classes/ utils/   modelo de resultados, servidor de control remoto y utilidades, en Python
+  projects/xUnit/   ⬅ EL PROYECTO DE GAMEMAKER (100+ scripts)
+      scripts/Assert/ + AssertAPI/   la clase Assert y las funciones globales assert_* (942 líneas)
+      scripts/Test/ TestSuite/ TestFrameworkRun/   prueba, conjunto y tanda entera
+      scripts/Basic*TestSuite/       las suites reales: Maths, String, Array, Buffer, Json,
+                                     Surface, Shader, Handles, WeakRefs, Room, Network…
+```
+
+**Escribir una suite** es heredar de `TestSuite` y llamar a `addFact`:
+
+```gml
+// Tal cual está escrito en scripts/BasicMathsTestSuite/BasicMathsTestSuite.gml
+function BasicMathsTestSuite() : TestSuite() constructor {
+
+    addFact("abs_test #1", function() {
+        var numOne = 2;
+        var resOne = abs(numOne);
+        assert_equals(resOne, 2, "#1 Positive");
+    })
+}
+```
+
+Y registrarla en el `Create` de `objRunner`:
+
+```gml
+testFramework.addSuite(BasicMathsTestSuite);
+```
+
+Las aserciones son funciones globales que delegan en un singleton (`assert_get_singleton()`):
+`assert_equals`, `assert_not_equals`, `assert_greater`, `assert_greater_or_equal`,
+`assert_less`, `assert_less_or_equal`… más `addTheory` para pruebas guiadas por datos y
+`addTestAsync` para eventos asíncronos. La suite completa se configura con macros propios
+(`framework_timeout_millis`, `framework_bail_on_fail`, `framework_filter`…).
+
+**Cómo se ejecuta** (wiki oficial, página *Running The Project*):
+
+```sh
+python launcher.py igorRunTests --config-file '<ruta a tu config.json>'
+```
+
+El fichero de configuración lleva `access-key`, `user-folder`, `runners` (`"vm,yyc"`),
+`targets` (`"windows|Local"`), el `feed` RSS del runtime, `project-path` y `Logger.level`.
+
+> ⚠️ **Su lanzador oficial es solo Windows x64** y pide una *access key* de tu cuenta de
+> GameMaker (dice la wiki, página *Running The Project*, consultada el 6 de septiembre de
+> 2026). En macOS y Linux puedes abrir `projects/xUnit/xUnit.yyp` y ejecutarlo desde el IDE o
+> con `gm-cli run`, pero la automatización en Python está pensada para Windows. Si tu CI no
+> es Windows, o usas el mini-framework de §3, o miras a crispy.
+
+**Para qué te sirve de verdad, aunque no lo adoptes:** es la mejor colección pública de casos
+límite del motor. Antes de discutir si algo es un bug tuyo o del runtime, busca la función en
+`projects/xUnit/scripts/Basic*TestSuite/` y mira qué comportamiento da por bueno YoYo.
+
+### 4.2 crispy — el de la comunidad, xUnit clásico
+
+`crispy` v1.9.0 (MIT) es un framework unitario **escrito íntegramente en GML** para LTS 2022+.
+Se instala como paquete local (`.yymps`) desde *Tools → Import Local Package*.
+
+Su jerarquía es la de siempre: `TestRunner` → `TestSuite` → `TestCase`, todos heredando de
+`BaseTestClass`. Las aserciones (leídas de `scripts/TestCase/TestCase.gml`) son:
+
+| Aserción | Qué comprueba |
+|---|---|
+| `assertEqual(a, b, msg)` / `assertNotEqual` | Igualdad |
+| `assertTrue(expr, msg)` / `assertFalse` | Verdad |
+| `assertIsNoone` / `assertIsNotNoone` | `noone` |
+| `assertIsUndefined` / `assertIsNotUndefined` | `undefined` |
+| `assertRaises(fn, msg)` | Que la función lance |
+| `assertRaiseErrorValue(fn, valor, msg)` | Que lance **ese** error concreto |
+| `assertDoesNotThrow(fn, msg)` | Que **no** lance |
+
+Lo que lo hace cómodo es el **descubrimiento automático por prefijo**: escribes funciones
+sueltas que empiezan por un patrón y `discover()` las recoge sin que las registres una a una.
+Así está montado su proyecto de ejemplo (`objects/obj_test/Create_0.gml`, literal):
+
+```gml
+// Create TestRunner
+runner = new TestRunner("runner");
+
+hamburger_suite = new TestSuite("hamburger_suite");
+// Set up hamburger for tests
+hamburger_suite.setUp(function() {
+	var _ingredients = [new Ingredient("bun"), new Ingredient("patty"), new Ingredient("bun")];
+	hamburger = new Food("hamburger", _ingredients);
+});
+runner.addTestSuite(hamburger_suite);
+// Discovering hamburger tests
+runner.discover(hamburger_suite, "test_hamburger_");
+```
+
+Y las pruebas son funciones globales con ese prefijo (`scripts/food_tests`, literal):
+
+```gml
+function test_food_raise_error_value_when_passing_number_to_name() {
+	assertRaiseErrorValue(function() {
+		var _ = new Food(12, []);
+	}, "Food \"_name\" expected a string, received number.");
+}
+```
+
+`runner.output` es un método que puedes redefinir: en el ejemplo escribe a la ventana de
+Output **y** a una `ds_list` que se dibuja en pantalla. Es el gancho que necesitas para
+volcar los resultados a un fichero y que los lea CI.
+
+### 4.3 Cuál elegir
+
+| Situación | Qué usar |
+|---|---|
+| Empiezas hoy, quieres pruebas esta tarde | El mini-framework de §3. 100 líneas, cero dependencias |
+| Quieres `setUp`/`tearDown`, descubrimiento y aserciones ricas | **crispy** |
+| Quieres demostrar un bug del motor ante YoYo | **GM-TestFramework** (aporta la suite al repo) |
+| Necesitas medir cuánto tarda un trozo de código | **GMBenchmark** (§6) |
+| Ya usas el ecosistema Bscotch (Stitch) | **olympus** + **ganary** para regresión |
+
+---
+
+## 5 · Regresión, *golden files* y determinismo
+
+### 5.1 La idea del *golden file*
+
+Hay resultados que son largos y aburridos de escribir a mano: el mapa que genera tu algoritmo,
+el árbol de diálogo parseado, la tabla de balance completa. Para esos, la prueba no compara
+contra un valor escrito por ti, sino contra **una salida anterior que diste por buena** y que
+está guardada en disco. Se llama *golden file* o *snapshot*.
+
+El ciclo es: la primera vez **se acepta y se guarda**; a partir de ahí, cualquier diferencia
+es una regresión que tienes que justificar. Si el cambio es intencionado, borras el fichero
+dorado y se regenera.
+
+```gml
+// ═══════════ scr_pruebas_dorado ═══════════
+
+/// @desc Compara un valor con su copia dorada. Si no existe, la crea y la prueba pasa.
+/// @param {String} _nombre  Identificador estable. Será el nombre del fichero.
+/// @param {Any}    _valor   Cualquier cosa serializable a JSON.
+/// @returns {Bool}
+function afirmar_dorado(_nombre, _valor)
+{
+    var _ruta   = $"dorado_{_nombre}.json";
+    var _actual = json_stringify(_valor, true);
+
+    if (!file_exists(_ruta))
+    {
+        var _f = file_text_open_write(_ruta);
+        file_text_write_string(_f, _actual);
+        file_text_close(_f);
+        show_debug_message($"          [dorado creado] {_ruta} — revísalo y súbelo al repo");
+        return true;
+    }
+
+    var _g = file_text_open_read(_ruta);
+    var _esperado = "";
+    while (!file_text_eof(_g)) { _esperado += file_text_readln(_g); }
+    file_text_close(_g);
+
+    // readln devuelve la línea sin el salto: normalizamos ambos lados antes de comparar
+    if (string_replace_all(_actual, "\n", "") == string_replace_all(_esperado, "\n", ""))
+    {
+        return afirmar_cierto(true);
+    }
+
+    pruebas_anotar_fallo($"el dorado '{_nombre}' ha cambiado. Borra {_ruta} si el cambio es intencionado");
+    return afirmar_cierto(false);
+}
+```
+
+> ⚠️ Los ficheros dorados se escriben en el **directorio de guardado del juego**
+> (`game_save_id`), no en la carpeta del proyecto: hay que copiarlos al repositorio a mano la
+> primera vez. Y **súbelos a Git**: un dorado que no está versionado no detecta nada.
+
+### 5.2 Guardar y cargar: la prueba de ida y vuelta
+
+El bug de guardado es el peor de todos, porque destruye horas de partida ajena y aparece
+semanas después. La prueba es sencilla y hay que tenerla **desde el primer día**:
+
+```gml
+/// @desc Ida y vuelta: serializar → deserializar → comparar. Si no coincide, hay pérdida.
+function pruebas_de_guardado()
+{
+    probar("el guardado sobrevive a un ciclo completo", function()
+    {
+        var _original = {
+            version:  3,
+            nombre:   "Adrián",
+            vida:     87.5,
+            posicion: [320, 240],
+            mochila:  ["pocion", "llave_oxidada"],
+            banderas: { jefe_1: true, tutorial: false }
+        };
+
+        var _texto  = json_stringify(_original);
+        var _vuelta = json_parse(_texto);
+
+        afirmar_igual(_vuelta.version,  _original.version);
+        afirmar_igual(_vuelta.nombre,   _original.nombre);
+        afirmar_igual(_vuelta.vida,     _original.vida);
+        afirmar_igual(_vuelta.posicion, _original.posicion);   // arrays: por contenido
+        afirmar_igual(_vuelta.mochila,  _original.mochila);
+        afirmar_cierto(_vuelta.banderas.jefe_1);
+        afirmar_cierto(!_vuelta.banderas.tutorial);
+    });
+
+    probar("una partida de una version vieja no revienta el cargador", function()
+    {
+        var _vieja = json_parse(@'{"version":1,"nombre":"antiguo"}');
+        afirmar_cierto(is_struct(_vieja));
+        afirmar_cierto(!struct_exists(_vieja, "mochila"), "la v1 no tenia mochila");
+    });
+
+    probar("un fichero corrupto no tumba el juego", function()
+    {
+        afirmar_lanza(function() { json_parse("{esto no es json"); });
+    });
+}
+
+```
+
+Los tres casos son los tres que fallan de verdad: el ciclo completo, **la partida guardada con
+una versión anterior de tu juego** y el fichero corrupto. Ejecutados junto a los de §3.2 en el
+proyecto de prueba:
+
+```
+  ok    el guardado sobrevive a un ciclo completo  (0.12 ms)
+  ok    una partida de una version vieja no revienta el cargador  (0.00 ms)
+  ok    un fichero corrupto no tumba el juego  (0.09 ms)
+8 pruebas | 15 aserciones | 0 fallidas | 0.6 ms
+RESULTADO: OK
+```
+ El detalle del guardado seguro
+(escribir a temporal, validar, reemplazar) está en
+[`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md)
+y en [`05 · 04`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §7.
+
+### 5.3 Determinismo: la generación procedural con semilla
+
+Una mazmorra generada aleatoriamente es intestable… salvo que fijes la semilla. Con la fuente
+inyectable de §2.2, una semilla concreta produce **siempre** el mismo nivel, y eso convierte
+la generación en algo que puedes afirmar:
+
+```gml
+function pruebas_de_generacion()
+{
+    probar("la misma semilla produce el mismo nivel", function()
+    {
+        var _a = generar_mazmorra(new AzarReproducible(1234), 40, 30);
+        var _b = generar_mazmorra(new AzarReproducible(1234), 40, 30);
+        afirmar_igual(json_stringify(_a), json_stringify(_b));
+    });
+
+    probar("toda sala generada es alcanzable", function()
+    {
+        // Invariante: da igual la semilla, esto no puede fallar nunca
+        for (var _s = 0; _s < 50; _s++)
+        {
+            var _m = generar_mazmorra(new AzarReproducible(_s), 40, 30);
+            afirmar_cierto(salas_alcanzables(_m) == array_length(_m.salas),
+                           $"semilla {_s}: hay salas aisladas");
+        }
+    });
+}
+```
+
+La segunda es la más valiosa y se llama **prueba de invariante**: no dice qué mapa esperas,
+dice **qué no puede pasar nunca**, y lo comprueba contra cincuenta mapas distintos. Cuando
+falla, la propia prueba te da la semilla exacta para reproducirlo.
+
+> Los algoritmos de generación están en
+> [`04 · 05 — Roguelike y generación procedural`](../04%20-%20Recetas%20por%20g%C3%A9nero/05%20-%20Roguelike%20y%20generaci%C3%B3n%20procedural.md)
+> y el diseño de la generación, en [`13 · 07 — Generación procedural avanzada`](07%20-%20Generaci%C3%B3n%20procedural%20avanzada.md).
+
+---
+
+## 6 · Pruebas de rendimiento
+
+### 6.1 Medir con `get_timer()`
+
+`get_timer()` devuelve microsegundos desde el arranque del juego. Es lo único que necesitas
+para un micro-benchmark honesto:
+
+```gml
+/// @desc Mide una función repitiéndola. Devuelve microsegundos por iteración.
+/// @param {String}   _nombre
+/// @param {Function} _cuerpo        Recibe el número de iteraciones.
+/// @param {Real}     _iteraciones
+/// @returns {Real}
+function medir(_nombre, _cuerpo, _iteraciones = 100000)
+{
+    _cuerpo(1000);                      // calentamiento: descarta el primer coste
+    var _t0 = get_timer();
+    _cuerpo(_iteraciones);
+    var _us = (get_timer() - _t0) / _iteraciones;
+    show_debug_message($"  {_nombre}: {string_format(_us, 1, 4)} us/iter  ({_iteraciones} iter)");
+    return _us;
+}
+```
+
+Tres reglas para que el número signifique algo: **calienta antes de medir** (la primera pasada
+paga cachés y asignaciones), **repite lo suficiente** (medir una sola llamada mide el ruido del
+sistema operativo) y **compara dos alternativas en la misma tanda** — el número absoluto no es
+comparable entre máquinas, la relación entre dos versiones sí.
+
+### 6.2 GMBenchmark, cuando quieres comparar en serio
+
+[GMBenchmark](https://github.com/DragoniteSpam/GMBenchmark) (DragoniteSpam, MIT, ★34) hace eso
+mismo con interfaz, gráficas y agrupación por temas. Está descargado en
+`11 - Código descargado/librerias/depuracion/GMBenchmark`. Su API, leída de su `readme.md`:
+
+```gml
+// Un Benchmark agrupa TestCase. Cada TestCase recibe el número de iteraciones.
+new Benchmark("Variable access", [
+    new TestCase("dot operator", function(iterations) {
+        var struct = { x: 0 };
+        repeat (iterations) { var val = struct.x; }
+    }),
+    new TestCase("struct accessor", function(iterations) {
+        var struct = { x: 0 };
+        repeat (iterations) { var val = struct[$ "x"]; }
+    })
+]),   // …y así con cada alternativa que quieras comparar
+```
+
+`TestCase` admite además una función `init` opcional, que se ejecuta antes y **no cuenta** en
+el tiempo — para preparar el array de un millón de elementos sin contaminar la medida.
+
+### 6.3 El presupuesto por frame
+
+A 60 FPS cada frame dura **16,67 ms**. Ese es el presupuesto total, y lo reparten el Step, el
+Draw, el recolector de basura, la entrada y el sistema operativo. Un reparto razonable para
+un juego 2D:
+
+| Partida | Presupuesto orientativo |
+|---|---|
+| Lógica (Step de todas las instancias) | ≤ 4 ms |
+| Dibujado (Draw + Draw GUI) | ≤ 8 ms |
+| Recolector de basura | ≤ 1 ms (`gc_target_frame_time`) |
+| Margen para el sistema | el resto |
+
+Convertirlo en una prueba automática es fácil, y es la que más disgustos evita:
+
+```gml
+probar("generar un nivel entero cabe en un frame", function()
+{
+    var _t0 = get_timer();
+    generar_mazmorra(new AzarReproducible(7), 80, 60);
+    var _ms = (get_timer() - _t0) / 1000;
+    afirmar_cierto(_ms < 16, $"la generacion tardo {string_format(_ms, 1, 2)} ms");
+});
+```
+
+> ⚠️ Un presupuesto en una prueba es **un aviso, no un dogma**: en CI la máquina puede ir
+> cargada. Ponlo generoso (2× o 3× de lo que mides en tu máquina) y trátalo como detector de
+> regresiones gordas, no de milisegundos.
+
+### 6.4 Mide en YYC, no en VM
+
+`gm-cli run` y `gm-cli compile` usan **VM por defecto** (`--runtime vm`). El código compilado
+nativo (`--runtime native`, el YYC) puede ir **de 2 a 3 veces más rápido en lógica**, y los
+cuellos de botella no están en el mismo sitio en los dos.
+
+```sh
+gm-cli compile --runtime vm       # desarrollo: compila rápido
+gm-cli compile --runtime native   # medición y release: YYC
+```
+
+`code_is_compiled()` te dice en tiempo de ejecución en cuál estás. **Toda medición que vayas a
+usar para decidir una optimización tiene que hacerse en `native`**, o estarás optimizando un
+intérprete que no vas a distribuir. El análisis completo (Debug Overlay, ventana FPS con
+*Stacked*, texture swaps, GC) está en
+[`01 · 15 — Depuración y rendimiento`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) §6.
+
+---
+
+## 7 · Depuración reproducible
+
+Un bug que no sabes reproducir no está arreglado: está escondido. Estas cuatro herramientas
+convierten «me pasó una vez» en «pasa siempre».
+
+### 7.1 Grabar y reproducir la entrada
+
+El motor graba la entrada del jugador y la reproduce después. Es la forma más directa de
+capturar un bug de secuencia:
+
+```gml
+// Empezar a grabar (teclado + ratón)
+debug_input_record(debug_input_filter_keyboard | debug_input_filter_mouse);
+
+// ...jugar hasta que el bug ocurra...
+
+// Guardar lo grabado
+debug_input_save("bug_0042.data");
+
+// En otra sesión: reproducirlo exactamente
+debug_input_playback("bug_0042.data");
+```
+
+Las tres constantes del filtro son `debug_input_filter_keyboard`, `debug_input_filter_mouse` y
+`debug_input_filter_touch`, y se combinan con `|`.
+
+Del manual, tres cosas que conviene saber: durante la reproducción **la entrada real queda
+bloqueada por tipo** (si grabaste solo teclado, el ratón sigue respondiendo); al terminar se
+dispara el evento **Async System** con `async_load[? "event_type"] == "debug_input_playback_stopped"`,
+que es donde comparas el estado final con el esperado; y ⚠️ **son funciones de depuración: no
+las dejes en el juego final.**
+
+Un archivo de entrada grabado convierte un bug en una prueba de regresión de verdad: lo
+adjuntas al informe, lo metes en el repositorio, y cualquiera lo reproduce en 10 segundos.
+El contexto del Debugger del IDE está en
+[`01 · 15`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) §3.
+
+### 7.2 Un log con niveles que sobrevive al cierre
+
+`show_debug_message()` desaparece cuando se cierra el juego. Para un tester que no está a tu
+lado, el log tiene que estar en un fichero.
+
+```gml
+// ═══════════ scr_registro ═══════════
+enum NIVEL { DEPURAR, INFO, AVISO, ERROR }
+
+#macro NIVEL_MINIMO NIVEL.INFO
+#macro NIVEL_MINIMO_Release NIVEL.AVISO
+
+/// @desc Escribe una entrada de log a Output y a disco. Barata si el nivel no llega.
+/// @param {Real}   _nivel   Constante del enum NIVEL.
+/// @param {String} _texto
+function registrar(_nivel, _texto)
+{
+    if (_nivel < NIVEL_MINIMO) { exit; }
+
+    static etiquetas = ["DEPURAR", "INFO", "AVISO", "ERROR"];
+
+    var _d = date_current_datetime();
+    var _hora  = $"{date_get_hour(_d)}:{date_get_minute(_d)}:{date_get_second(_d)}";
+    var _linea = $"[{_hora}] [{etiquetas[_nivel]}] {_texto}";
+
+    show_debug_message(_linea);
+
+    var _f = file_text_open_append("partida.log");
+    file_text_write_string(_f, _linea);
+    file_text_writeln(_f);
+    file_text_close(_f);
+}
+```
+
+Dos claves: **`#macro NIVEL_MINIMO_Release`** aprovecha que GameMaker redefine un macro *por
+configuración* añadiendo `_NombreDeLaConfig` al nombre —compilando con `--config Release`,
+`NIVEL_MINIMO` pasa a `NIVEL.AVISO` sin tocar código—; y ⚠️ **abrir y cerrar el fichero en cada
+línea es lento**: vale para avisos y errores, pero si registras cada frame, acumula en un array
+y vuelca cada N segundos.
+
+Combínalo con `exception_unhandled_handler()` para tener también los cierres inesperados: el
+patrón completo, con `debug_get_callstack()`, está en
+[`01 · 15`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) §3 y §9. **No lo repito.**
+
+### 7.3 Capturas automáticas
+
+`screen_save(nombre)` guarda la pantalla en PNG dentro del directorio de guardado. Dispararlo
+solo cuando algo va mal te da pruebas gráficas sin llenar el disco:
+
+```gml
+/// @desc Guarda una captura con marca de tiempo. Devuelve el nombre del fichero.
+function capturar_incidencia(_motivo)
+{
+    var _d = date_current_datetime();
+    var _n = $"incidencia_{_motivo}_{date_get_hour(_d)}{date_get_minute(_d)}{date_get_second(_d)}.png";
+    screen_save(_n);
+    registrar(NIVEL.AVISO, $"captura guardada: {_n}");
+    return _n;
+}
+```
+
+Buenos momentos para dispararlo: cuando los FPS bajan de un umbral varios segundos seguidos,
+cuando el jugador muere en el mismo sitio por tercera vez, cuando una aserción de producción
+falla, y —siempre— con la tecla de «reportar bug» del modo QA.
+
+### 7.4 El modo QA: teclas ocultas que no llegan al jugador
+
+Un tester necesita saltarse el nivel 3 para probar el 4. La forma correcta de dárselo es una
+puerta cerrada con un macro de configuración:
+
+```gml
+// ═══════════ scr_modo_qa ═══════════
+#macro MODO_QA          true      // desarrollo
+#macro MODO_QA_Release  false     // el build de tienda
+
+/// @desc Atajos de QA. Llámalo desde el Step del controlador. En Release no compila nada.
+function modo_qa_paso()
+{
+    if (!MODO_QA) { exit; }
+
+    // F1 — invulnerabilidad
+    if (keyboard_check_pressed(vk_f1) && instance_exists(obj_jugador))
+    {
+        obj_jugador.invulnerable = !obj_jugador.invulnerable;
+        registrar(NIVEL.INFO, $"QA: invulnerable = {obj_jugador.invulnerable}");
+    }
+
+    // F2 — teletransporte al cursor
+    if (keyboard_check_pressed(vk_f2) && instance_exists(obj_jugador))
+    {
+        with (obj_jugador) { x = mouse_x; y = mouse_y; }
+        registrar(NIVEL.INFO, $"QA: teletransporte a ({mouse_x}, {mouse_y})");
+    }
+
+    // F3 — saltar al siguiente nivel
+    if (keyboard_check_pressed(vk_f3))
+    {
+        registrar(NIVEL.INFO, $"QA: salto de nivel desde {room_get_name(room)}");
+        room_goto_next();
+    }
+
+    // F4 — captura + log marcado, para adjuntar al informe de bug
+    if (keyboard_check_pressed(vk_f4)) { capturar_incidencia("tester"); }
+
+    // F5 — reiniciar la room sin perder el estado global
+    if (keyboard_check_pressed(vk_f5)) { room_restart(); }
+}
+```
+
+> 💡 `MODO_QA` como macro y no como variable **no es un detalle de estilo**: un `if (false)`
+> con un macro constante lo elimina el compilador, así que en el build de tienda ese código
+> ni existe. Con una variable global, seguiría ahí y alguien acabaría encontrándolo.
+>
+> ⚠️ Comprueba la lista de teclas antes de publicar. Más de un juego ha salido a la venta con
+> el «matar a todos los enemigos» todavía en F9.
+
+---
+
+## 8 · Compilar es la primera prueba
+
+### 8.1 La puerta obligatoria
+
+El [`CLAUDE.md`](../AGENTS.md) de esta biblioteca lo dice sin matices: **nada se da por
+terminado sin compilar y reportar la salida real.**
+
+```sh
+gm-cli compile --errors-only
+echo $?        # 0 = compila
+```
+
+`--errors-only` silencia todo menos los errores: si imprime algo, es un problema. Es justo lo
+que quieres en un *hook* de pre-commit. En el proyecto de prueba de este documento salió con
+**código 0 y sin una línea de salida**.
+
+> ⚠️ Ojo con la asimetría: **`gm-cli compile` sí devuelve un código de salida útil; `gm-cli
+> run` no** (§3.4). La puerta de compilación se puede automatizar con `$?`; la de pruebas hay
+> que leerla de la salida.
+
+### 8.2 Compilar para más de una plataforma
+
+El error de compilación específico de una plataforma aparece cuando compilas esa plataforma, y
+no antes. La matriz mínima para un juego de escritorio:
+
+```sh
+gm-cli compile --target windows --errors-only
+gm-cli compile --target mac     --errors-only
+gm-cli compile --target linux   --errors-only
+```
+
+Cada uno necesita su toolchain instalada; `gm-cli` descarga lo que puede. Qué targets soporta
+hoy el CLI y cuáles no, en
+[`05 · 02 — Publicar y exportar`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) §1.2.
+
+### 8.3 HTML5: el que siempre rompe algo
+
+Exportar a web es la prueba más barata de compartir con testers y, a la vez, la que más cosas
+rompe, porque HTML5 no tiene todo lo que tiene el escritorio. Lo que se cae, y cómo se detecta:
+
+| Qué falla en HTML5 | Cómo lo pruebas |
+|---|---|
+| **El Debug Overlay no existe** | Tu HUD de depuración tiene que ser propio |
+| **El recolector de basura es el de JavaScript** | `gc_get_stats()` devuelve ceros; no midas ahí |
+| `show_message`, `get_string`, `get_integer` | Se ignoran fuera de Windows: revisa que no los uses |
+| Ficheros y rutas | Persistencia distinta: prueba guardar y recargar en el navegador |
+| `game_end()` | Deja un lienzo en blanco: no lo llames en la versión web |
+
+```sh
+gm-cli package --target operagx -o build/juego-web.zip
+```
+
+Y ábrelo **en un servidor**, no con `file://`. Las trampas del export web están en
+[`01 · 16 — Exportar y publicar`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md).
+
+### 8.4 `gm-cli package`: probar lo que se instala el jugador
+
+```sh
+gm-cli package --target mac --runtime native --config Release -o build/juego.zip
+```
+
+**El paquete no es el `Run` del IDE.** El runner del IDE perdona cosas que el ejecutable no:
+rutas relativas, assets descartados por el compilador, permisos. La regla es sencilla y
+figura ya en [`05 · 04`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §8:
+**prueba el build empaquetado antes de cada entrega, no solo el Run.**
+
+---
+
+## 9 · QA manual: el trabajo que no se automatiza
+
+### 9.1 El plan de pruebas por sistema
+
+Un plan de pruebas es una tabla. Ni más ni menos. Una por sistema, versionada junto al código:
+
+```markdown
+## Plan de pruebas · Sistema de guardado · v0.4.2
+
+| # | Caso | Pasos | Resultado esperado | Plataformas | Estado |
+|---|---|---|---|---|---|
+| G1 | Guardado normal | Jugar 5 min → menú → Guardar | Aparece la ranura con fecha y nivel | Win/Mac/Linux | ✅ |
+| G2 | Carga normal | Guardar → salir → abrir → Cargar | Posición, vida e inventario idénticos | Win/Mac/Linux | ✅ |
+| G3 | Sobrescribir | Guardar en ranura 1 dos veces | La segunda sustituye a la primera, sin duplicar | Win | ✅ |
+| G4 | Partida de versión vieja | Copiar un `.sav` de la v0.3 y cargar | Migra o avisa; **nunca** cierra el juego | Win | ⚠️ avisa mal |
+| G5 | Fichero corrupto | Editar el `.sav` y romper el JSON | Mensaje claro y vuelta al menú | Win | ❌ BUG-118 |
+| G6 | Disco lleno | Llenar el volumen y guardar | Avisa y conserva la partida anterior | Win | ⬜ sin probar |
+| G7 | Cierre durante el guardado | Matar el proceso mientras guarda | La partida anterior sigue intacta | Win | ⬜ sin probar |
+```
+
+Cuatro reglas para que el plan sirva: los **pasos** tienen que ser ejecutables por alguien que
+no escribió el código («probar el guardado» no es un caso de prueba); el **resultado esperado**
+es una frase falsable («funciona bien» no lo es); cada caso tiene un **identificador estable**
+(`G4`) que citan los informes de bug; y los casos en rojo **enlazan al bug**, no lo describen.
+
+### 9.2 La matriz de plataformas
+
+El plan dice *qué* probar; la matriz dice *dónde*. Prueba siempre los **extremos**, no la
+media:
+
+| Eje | Extremos que hay que cubrir |
+|---|---|
+| Sistema | El más viejo que soportas y el más nuevo |
+| Resolución | La mínima declarada (¿cabe el HUD?) y 4K (¿se ve el pixel art?) |
+| Proporción | 16:9, 16:10, 21:9 y una vertical si vas a móvil |
+| Entrada | Teclado, mando Xbox, mando PlayStation, mando genérico barato |
+| Idioma | El más largo (alemán) y uno con caracteres no latinos, si localizas |
+| Hardware | El portátil integrado más flojo que tengas a mano |
+| Ventana | Ventana, pantalla completa, **cambiar entre ambas**, alt-tab, minimizar |
+
+> ⚠️ **Perder y recuperar el foco de la ventana es donde mueren las surfaces.** Está en la
+> checklist de [`05 · 04`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §8
+> y es el caso que más se olvida.
+
+### 9.3 *Monkey testing*: romperlo a lo bruto
+
+Consiste en hacer lo que ningún diseñador previó: pulsar todo a la vez, entrar y salir del menú
+cincuenta veces seguidas, mantener dos direcciones opuestas, pausar durante una cinemática,
+guardar mientras el jefe muere. Es sorprendentemente eficaz porque ataca **las transiciones**,
+que es donde vive el estado inconsistente.
+
+Se puede automatizar en parte con un objeto que pulse teclas al azar en una room de prueba —
+un mono de verdad— y dejarlo corriendo veinte minutos con `exception_unhandled_handler()`
+puesto. Si vuelves y hay un `crash.log`, has ganado el día.
+
+### 9.4 La sesión larga (*soak test*)
+
+Hay fallos que solo aparecen a la hora y media: fugas de memoria, contadores que desbordan,
+listas que crecen sin límite, precisión que se degrada. La prueba es dejar el juego corriendo
+en un bucle y **mirar la ventana Memory del Debug Overlay** al principio y al final.
+
+| Qué mirar | Síntoma malo |
+|---|---|
+| **Allocated memory** | Sube y nunca baja tras cambiar de room |
+| Número de instancias | Crece sin que aparezcan enemigos nuevos |
+| Estructuras de datos | Cada `ds_*_create()` sin su `ds_*_destroy()` |
+| Surfaces | Se recrean pero no se liberan |
+| FPS | Bajan poco a poco durante la sesión |
+
+La tabla de qué hay que destruir a mano —y por qué va en **Clean Up** y no en Destroy— está en
+[`01 · 15`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) §8. Es la
+primera parada cuando la memoria sube.
+
+### 9.5 La checklist de release
+
+La checklist de publicación (nombre de producto, icono, versión, config Release, YYC, texture
+groups, tamaño del paquete, portadas 16:9 para GX.games) está completa en
+[`05 · 02 — Publicar y exportar`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) §4.4
+y en [`01 · 16`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md); el calendario y las
+puertas del proyecto, en [`13 · 11 — Producción, alcance y lanzamiento`](11%20-%20Producci%C3%B3n%2C%20alcance%20y%20lanzamiento.md). **No lo repito.**
+Lo que añade QA por encima de aquello es solo esto:
+
+- [ ] Las teclas del **modo QA** están apagadas en la configuración de release.
+- [ ] Los **logs de depuración** no escriben a disco en cada frame en release.
+- [ ] Los **ficheros dorados** de prueba no se han empaquetado con el juego.
+- [ ] El plan de pruebas de cada sistema está **sin casos en rojo ni sin probar**.
+- [ ] El **build empaquetado** (no el Run) se ha jugado de principio a fin al menos una vez.
+
+---
+
+## 10 · Playtesting
+
+Aquí se acaba la ingeniería y empieza la observación. El playtesting no busca defectos de
+código: busca **defectos de comunicación** entre lo que diseñaste y lo que el jugador entiende.
+
+### 10.1 El protocolo — y dónde está explicado
+
+El protocolo completo —la postura de Valve («los diseños son hipótesis, los playtests son
+experimentos»), la regla de **no ayudar ni explicar**, qué preguntar y qué no, el
+*think-aloud*, la regla de los cinco usuarios de Nielsen y la tabla de registro por minuto—
+está desarrollado en [`13 · 01 — Diseño de juego`](01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md) §7. **No lo repito.**
+
+Lo que añade este documento son las dos cosas que allí no caben, porque son de QA y no de
+diseño:
+
+1. **Grábalo siempre.** La pantalla como mínimo; la cara y las manos si puedes. Un playtest sin
+   grabación es un playtest que solo existe en tus notas, y las notas están sesgadas por lo que
+   ya creías. Si además dejas puesto `debug_input_record()` (§7.1), tienes la sesión entera
+   reproducible dentro del propio motor.
+2. **Cuántos, según qué quieras saber.** ⚠️ La regla de los cinco de Nielsen sirve para
+   **descubrir problemas de usabilidad**, no para medir opiniones. Games User Research matiza
+   los números para videojuegos: **~6 jugadores para descubrir problemas**, **~12 para perfilar
+   tipos de jugador** y **~100 si quieres medir opiniones de forma cuantitativa**. Un juego es
+   bastante más complejo que la web sobre la que Nielsen hizo el estudio.
+
+### 10.2 Qué medir
+
+Anota **conducta observable**, no impresiones:
+
+| Métrica | Qué revela |
+|---|---|
+| Tiempo por nivel / por sala | Dónde se atasca |
+| Muertes por zona | Picos de dificultad |
+| Muertes en el mismo sitio ≥ 3 veces | Un problema de comunicación, no de dificultad |
+| Momento del abandono | Dónde se pierde el interés |
+| Menús abiertos y cerrados sin usar | Interfaz que no se entiende |
+| Mecánicas nunca usadas | O no las descubre, o no le sirven |
+| Frases espontáneas («¿y ahora qué?») | Oro puro; transcríbelas literales |
+| Dónde mira cuando está perdido | Qué esperaba que fuera la pista |
+
+### 10.3 De la observación a la tarea
+
+El error clásico es aceptar la solución que propone el jugador. **El jugador es un sensor
+excelente y un diseñador mediocre.** El proceso correcto tiene tres pasos:
+
+```
+OBSERVACIÓN   4 de 5 jugadores dieron vueltas >90 s en la sala 3 antes de encontrar la palanca
+      ↓
+DIAGNÓSTICO   La palanca no contrasta con el fondo y no hay ninguna pista que dirija la mirada
+      ↓
+TAREA         [ ] Iluminar la palanca de la sala 3 y añadir un rastro de partículas hacia ella
+              Criterio de aceptación: en la próxima tanda, ≥4 de 5 la encuentran en <30 s
+```
+
+Lo importante es el **criterio de aceptación**: sin él, la tarea no se puede cerrar y volverá
+en la siguiente tanda disfrazada de otra cosa. Y recuerda la regla de conteo de
+[`13 · 01`](01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md) §7.3 — *1 de 5 es ruido, 3 de 5 es el diseño*: no conviertas en tarea
+lo que le pasó a una sola persona.
+
+### 10.4 Telemetría mínima
+
+Valve instrumentó el juego para grabar automáticamente «position, health, weapons, time y
+cualquier actividad importante: guardar, morir, ser herido, resolver un puzle, luchar contra
+un monstruo». Eso lo puedes tener en GML en veinte líneas:
+
+```gml
+/// @desc Registra un suceso de telemetría en memoria. Barato: no toca disco.
+/// @param {String} _suceso
+/// @param {Struct} [_datos]
+function telemetria_anotar(_suceso, _datos = {})
+{
+    if (!variable_global_exists("telemetria")) { global.telemetria = []; }
+
+    array_push(global.telemetria, {
+        t:       get_timer() / 1000000,        // segundos desde el arranque
+        sala:    room_get_name(room),
+        suceso:  _suceso,
+        datos:   _datos
+    });
+}
+
+// Uso
+telemetria_anotar("muerte", { x: obj_jugador.x, y: obj_jugador.y, causa: "pinchos" });
+telemetria_anotar("nivel_completado", { intentos: intentos });
+```
+
+El volcado a JSON al terminar la sesión —y el resto del diseño de qué medir— está en
+[`13 · 01 — Diseño de juego`](01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md); aquí basta con saber que
+`json_stringify(global.telemetria, true)` escrito con `file_text_write_string()` te deja un
+fichero que abres en una hoja de cálculo.
+
+> ⚠️ Si vas a enviar telemetría por red, eso ya es tratamiento de datos personales: pide
+> consentimiento y no guardes nada que identifique a la persona.
+
+---
+
+## 11 · Bugs: informar, clasificar y saber de quién es
+
+### 11.1 La plantilla de un informe reproducible
+
+Un informe sin pasos de reproducción es una queja. La plantilla mínima:
+
+```markdown
+## BUG-118 · El juego se cierra al cargar una partida con el JSON roto
+
+**Gravedad:** Alta (pérdida de progreso)   **Frecuencia:** Siempre (5/5)
+**Versión:** 0.4.2 (build 214)   **Config:** Default   **Runtime:** vm
+**Plataforma:** macOS 26.0, Apple Silicon   **Entrada:** teclado
+
+### Pasos
+1. Jugar hasta el nivel 2 y guardar en la ranura 1.
+2. Cerrar el juego.
+3. Abrir `~/Library/Application Support/mijuego/save_1.json` y borrar la última `}`.
+4. Abrir el juego → Continuar.
+
+### Resultado esperado
+Mensaje «La partida está dañada» y vuelta al menú principal.
+
+### Resultado real
+Ventana de excepción no controlada y cierre. `partida.log` adjunto, línea 412:
+`json_parse :: unexpected end of input`.
+
+### Adjuntos
+`save_1.json` (el corrupto) · `partida.log` · `incidencia_tester_2317.png` ·
+`bug_0118.data` (grabación de entrada para `debug_input_playback`)
+
+### Notas
+No pasa con la ranura vacía. Regresión: en 0.4.0 sí avisaba; sospecho del cambio en
+`cargar_partida()` del commit a3f1e2.
+```
+
+Lo que hace que un informe sea bueno: **la versión y la plataforma exactas**, **pasos
+numerados que empiezan desde el arranque del juego**, **la diferencia entre esperado y real
+en dos frases**, y **adjuntos** — con la grabación de entrada de §7.1, el bug se reproduce
+solo.
+
+### 11.2 Triaje: gravedad × frecuencia
+
+No todos los bugs se arreglan, y desde luego no en el mismo orden. Se cruzan dos ejes:
+
+| | **Siempre** | **A veces** | **Raro** |
+|---|---|---|---|
+| **Bloqueante** (no se puede seguir jugando, se pierde la partida) | 🔴 P0 · ahora | 🔴 P0 · ahora | 🟠 P1 |
+| **Grave** (rompe un sistema, hay rodeo) | 🟠 P1 | 🟠 P1 | 🟡 P2 |
+| **Molesto** (feo, confuso, no bloquea) | 🟡 P2 | 🟡 P2 | 🟢 P3 |
+| **Cosmético** (un píxel, una tilde) | 🟢 P3 | 🟢 P3 | ⚪ backlog |
+
+Dos matices que la tabla no dice: **la pérdida de progreso siempre sube un escalón** (un bug
+de guardado «raro» sigue siendo P0) y **un bug visible en el primer minuto de juego también**,
+aunque sea cosmético — es lo primero que verá quien pruebe la demo.
+
+### 11.3 ¿Es mi bug o del runtime?
+
+Antes de pasar tres días peleándote con un comportamiento absurdo, comprueba si ya está
+reportado. El canal oficial es **[GameMaker-Bugs](https://github.com/YoYoGames/GameMaker-Bugs)**,
+el repositorio público de seguimiento al que envía el *bug reporter* del menú *Help* del IDE.
+Ficha en [`07 · 01`](../07%20-%20Ecosistema/01%20-%20GitHub%20-%20organizaci%C3%B3n%20YoYoGames.md).
+
+El protocolo para distinguirlos:
+
+1. **Busca en GameMaker-Bugs** el nombre de la función y el síntoma.
+2. **Búscalo en GM-TestFramework**: si YoYo tiene una suite para esa función
+   (`projects/xUnit/scripts/Basic*TestSuite/`), lee qué comportamiento da por correcto.
+3. **Reduce el caso** a un proyecto nuevo con lo mínimo que lo reproduce. Nueve de cada diez
+   veces el bug se evapora aquí, y ahí has aprendido que era tuyo.
+4. **Prueba en VM y en YYC** (`--runtime vm` y `--runtime native`). Que se comporte distinto
+   en los dos es una señal fuerte de bug del motor.
+5. Si sobrevive a todo: **repórtalo con el proyecto reducido adjunto**, y —si te apetece
+   ayudar— manda la suite de prueba como *pull request* a GM-TestFramework. Es literalmente
+   para lo que existe ese repositorio.
+
+---
+
+## 12 · Checklist
+
+```
+CÓDIGO TESTEABLE
+[ ] Las reglas están en funciones puras, fuera de los eventos; el Draw solo dibuja.
+[ ] El azar y el "ahora" entran por argumento, no por random() ni current_time.
+
+PRUEBAS AUTOMÁTICAS
+[ ] Existe una tanda que corre con un solo comando.
+[ ] Termina con game_end(0) en verde y game_end(1) en rojo.
+[ ] CI lee ###game_end###0 de la salida (gm-cli run NO devuelve el código).
+[ ] Hay prueba de ida y vuelta del guardado y de carga de una partida vieja.
+[ ] La generación procedural tiene prueba de determinismo por semilla.
+[ ] Hay al menos una prueba de invariante ("esto no puede pasar nunca").
+
+COMPILACIÓN
+[ ] gm-cli compile --errors-only sale con 0 antes de cada commit.
+[ ] Se compila para todas las plataformas objetivo, no solo la tuya.
+[ ] Se ha probado el paquete (gm-cli package), no solo el Run.
+[ ] Se ha medido en --runtime native, no en vm.
+
+DEPURACIÓN
+[ ] exception_unhandled_handler() volcando a fichero en los builds de tester.
+[ ] Log con niveles, y el nivel sube en la configuración Release.
+[ ] Modo QA detrás de un #macro por configuración, apagado en release.
+[ ] Se sabe grabar y reproducir input para adjuntarlo a los informes.
+
+QA MANUAL Y PLAYTESTING
+[ ] Cada sistema tiene su plan de pruebas en una tabla, versionado.
+[ ] La matriz cubre los extremos: resolución mínima, 4K, mando barato, alt-tab.
+[ ] Sesión larga mirando la ventana Memory al principio y al final.
+[ ] Al menos 5 personas que no habían visto el juego, observadas en silencio.
+[ ] Cada observación se convirtió en tarea con criterio de aceptación.
+```
+
+---
+
+## 13 · Errores clásicos y cómo evitarlos
+
+| Error | Por qué duele | Qué hacer |
+|---|---|---|
+| **Probar solo con el Run del IDE** | El runner perdona rutas, assets descartados y permisos que el ejecutable no | `gm-cli package` y jugar el paquete antes de cada entrega |
+| **Tests que dependen de `room_speed`** | `room_speed` está **obsoleta** en 2026 y además ata la prueba a los FPS | Usa `game_get_speed(gamespeed_fps)` en el juego y **pásale los pasos como argumento** a la función que pruebas |
+| **Tests que dibujan** | Fuera de un evento Draw no miden nada, y dentro no puedes afirmar sobre píxeles | Prueba la **geometría calculada** (§2.3), no el resultado dibujado |
+| **No resetear el estado global entre pruebas** | La prueba 7 pasa sola y falla en la tanda; una hora perdida | Un `setUp` que reinicializa `global.*`, o mejor: que las funciones no lean globales |
+| **No probar el guardado** | El bug más caro que existe: destruye partidas ajenas y aparece semanas después | La prueba de ida y vuelta de §5.2, desde el primer día |
+| **Fiarse del código de salida de `gm-cli run`** | Devuelve `0` aunque las pruebas fallen: tu CI estará verde siempre | Leer `###game_end###0` de la salida (§3.4) |
+| **Usar `random()` en una prueba** | Falla un día de cada veinte y nadie sabe por qué | Fuente de azar inyectada con semilla fija (§2.2) |
+| **Comparar reales con `==`** | `100 * (1 - 0.9)` no es `10`. Verificado en este documento | Compara con tolerancia, o reordena la expresión para no restar cerca de cero |
+| **Un solo tester: tú** | Ya sabes dónde está la palanca. No puedes perderte | Cinco personas que no han visto el juego |
+| **Ayudar durante el playtest** | Destruyes la única medida que te interesa | Silencio. Preguntas al final |
+| **Dejar las teclas de QA en el build final** | Un jugador encuentra el modo dios y lo cuenta | `#macro MODO_QA_Release false` |
+| **Escribir el log a disco cada frame** | Abre y cierra el fichero 60 veces por segundo | Acumula en un array y vuelca cada N segundos |
+| **Informes sin pasos** | «Se cierra a veces» no es un bug, es una sensación | La plantilla de §11.1, con versión, plataforma y adjuntos |
+
+---
+
+## 14 · Seguridad y anti-trampas
+
+Este documento ha hablado de probar que el juego funciona; esta sección habla de probar que
+**el jugador no lo está engañando**. Hoy el tema está repartido en tres sitios que no se
+citan entre sí: la ofuscación de guardados de
+[`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) §12,
+el «nunca confíes en el cliente» de
+[`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2,
+y nada sobre qué hace de verdad quien te quiere hacer trampa en un ranking. Esta sección los
+une y cierra el hueco: leaderboards de un jugador, edición de memoria, y qué defensa es real
+y cuál es teatro.
+
+### 14.1 El hecho del que se deriva todo lo demás
+
+**El cliente es territorio enemigo.** [`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2
+lo dice para el multijugador en tiempo real: el cliente envía intenciones, el servidor decide.
+El mismo principio se aplica sin cambiar una palabra a un **ranking de un jugador**: no hay
+otro jugador al que hacerle trampa, pero sí una tabla de clasificación compartida, y el
+cliente que envía su propia puntuación **es exactamente tan poco fiable** como el que envía
+"he matado a ese" en un shooter.
+
+La consecuencia práctica: cuánto inviertas en anti-trampas depende de si algo que ve **otra
+persona** depende del dato.
+
+| Tu juego tiene… | ¿Vale la pena invertir? |
+|---|---|
+| Solo progreso local, sin tabla compartida | No. El único perjudicado de hacerse trampa a sí mismo es el propio jugador |
+| Logros de plataforma (Steam, Game Center) | Poco: valida lo mínimo, la plataforma ya limita el daño |
+| **Tabla de clasificación pública** | Sí: es la única cara visible de tu juego a la que **todo el mundo** cree |
+| Multijugador competitivo | Sí, y no es opcional: ya está resuelto en 04/14 §2 |
+
+### 14.2 Antes de aceptar una puntuación: detectar lo imposible
+
+Un backend de leaderboard no necesita entender tu juego para rechazar la mitad de las
+trampas: le basta con saber qué es **físicamente imposible** dado el diseño.
+
+```gml
+// ═══════════ scr_validar_puntuacion ═══════════
+
+/// @func puntuacion_es_plausible(_puntuacion, _tiempo_segundos, _nivel)
+/// @desc Rechaza un envío evidentemente imposible ANTES de tocar el backend de verdad.
+///       No demuestra que la partida sea legítima — eso es 14.3 — pero descarta gratis
+///       la trampa perezosa: puntuaciones inventadas a mano o pegadas desde otra partida.
+/// @param {Real} _puntuacion
+/// @param {Real} _tiempo_segundos   Duración real de la partida, medida por el servidor.
+/// @param {Real} _nivel             Para comparar contra el máximo teórico de ESE nivel.
+/// @returns {Bool}
+function puntuacion_es_plausible(_puntuacion, _tiempo_segundos, _nivel)
+{
+    if (!is_numeric(_puntuacion) || _puntuacion < 0)   return false;
+    if (_tiempo_segundos <= 0)                         return false;
+
+    // Límite de diseño: nadie puede sacar más de N puntos por segundo aunque juegue perfecto.
+    var _maximo_por_segundo = 12;
+    if ((_puntuacion / _tiempo_segundos) > _maximo_por_segundo) return false;
+
+    // Límite absoluto: el nivel tiene un máximo teórico (todos los coleccionables + bonus).
+    var _maximo_del_nivel = nivel_puntuacion_maxima(_nivel);   // tu propia tabla de diseño
+    if (_puntuacion > _maximo_del_nivel)                       return false;
+
+    return true;
+}
+```
+
+**Otras señales que cuestan cero calcular** y descartan casi todo el ruido: un
+`_tiempo_segundos` menor que el tiempo mínimo humanamente posible para completar el nivel; una
+marca de tiempo de envío **anterior** a la de inicio de partida; el mismo identificador de
+partida enviado dos veces (reenvío del mismo paquete capturado); y una puntuación que no
+cambia nunca de las últimas cifras — señal de que alguien genera valores con una plantilla en
+vez de jugar.
+
+> ⚠️ Nada de esta sección **prueba** que la partida sea legítima: solo descarta lo obviamente
+> falso. Alguien que se toma la molestia de simular un ritmo de juego "razonable" pasa estos
+> filtros sin jugar ni un segundo. Para eso hace falta 14.3.
+
+### 14.3 Replay firmado: la única verificación real para un ranking de un jugador
+
+Sin otro jugador al que compararle el resultado en directo, la única forma de saber si una
+puntuación de un jugador es legítima es que el **servidor rejuegue la partida** y compruebe
+que le sale lo mismo. Esto no es una idea nueva de esta sección: es exactamente el mismo
+determinismo que ya exige la prueba de generación procedural de §5.3 — **mismo estado inicial
++ mismos inputs = mismo resultado** — aplicado a un marcador en vez de a un mapa.
+
+El cliente graba **intenciones**, nunca el resultado — la misma regla de
+[`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 —, y la
+puntuación final que el propio cliente afirma haber sacado va **junto** al replay, no en su
+lugar:
+
+```gml
+// ═══════════ scr_replay_firmado ═══════════
+
+/// @func replay_iniciar(_semilla)
+/// @desc Empieza a grabar una partida verificable. La semilla fija el azar (misma
+///       AzarReproducible de §2.2), así que el servidor puede reproducir exactamente
+///       la misma partida a partir de los mismos eventos.
+function replay_iniciar(_semilla)
+{
+    global.replay = { semilla: _semilla, eventos: [], frame: 0 };
+}
+
+/// @desc Anota una intención del jugador. Llamarlo solo cuando ocurre algo de verdad
+///       (una tecla, una decisión), nunca cada frame: el paquete sería enorme.
+/// @param {String} _accion
+function replay_anotar(_accion)
+{
+    array_push(global.replay.eventos, { frame: global.replay.frame, accion: _accion });
+}
+
+/// @func replay_cerrar(_puntuacion_declarada)
+/// @desc Cierra la grabación y la sella con un hash.
+///       ⚠️ El hash NO demuestra que la partida sea legítima: solo que el paquete no se
+///       corrompió ni se manipuló de camino al servidor. Quien lo demuestra es replay_verificar().
+/// @returns {Struct}
+function replay_cerrar(_puntuacion_declarada)
+{
+    var _r = global.replay;
+    _r.puntuacion = _puntuacion_declarada;
+    _r.hash = sha1_string_utf8(json_stringify(_r.eventos) + string(_r.semilla) + string(_r.puntuacion));
+    return _r;
+}
+
+/// @func replay_verificar(_replay, _estado_inicial, _simular_frame)
+/// @desc Comprueba el sello de integridad, rejuega el replay con la MISMA regla pura del
+///       juego (§2.1) y compara el resultado. Esto es lo que de verdad separa una
+///       puntuación real de una inventada.
+///       ⚠️ Antes esta función re-simulaba y comparaba la puntuación, pero nunca leía
+///       `_replay.hash`: el sello que calcula replay_cerrar() quedaba muerto y cualquier
+///       paquete corrupto o retocado en tránsito se daba por bueno. Ahora se compara.
+/// @param {Struct}   _replay          Lo recibido del cliente (semilla, eventos, puntuación, hash).
+/// @param {Function} _estado_inicial  (_azar) → estado de partida en el frame 0.
+/// @param {Function} _simular_frame   (_estado, _accion, _azar) → nuevo estado. Función pura,
+///                                    la misma que usarías en tus pruebas de §2.1-§2.2.
+/// @returns {Bool}
+function replay_verificar(_replay, _estado_inicial, _simular_frame)
+{
+    // 1. Integridad: el hash recibido debe coincidir con el que sale de recalcular la
+    //    MISMA fórmula que usó replay_cerrar(). Si no coincide, el paquete se corrompió
+    //    o se manipuló de camino al servidor: se rechaza sin gastar CPU en re-simular.
+    var _hash_esperado = sha1_string_utf8(json_stringify(_replay.eventos) + string(_replay.semilla) + string(_replay.puntuacion));
+    if (_hash_esperado != _replay.hash)
+    {
+        return false;
+    }
+
+    // 2. Autoridad: re-simular con la regla pura del juego y comprobar que la puntuación
+    //    declarada es la que de verdad sale de jugar esos eventos desde esa semilla.
+    var _azar   = new AzarReproducible(_replay.semilla);
+    var _estado = _estado_inicial(_azar);
+
+    for (var _i = 0; _i < array_length(_replay.eventos); _i++)
+    {
+        _estado = _simular_frame(_estado, _replay.eventos[_i].accion, _azar);
+    }
+
+    return (_estado.puntuacion == _replay.puntuacion);
+}
+```
+
+**Este servidor de verificación no necesita ser GameMaker.** Basta con que reimplemente la
+misma regla pura (`_simular_frame`) en el lenguaje que sea — es justo el tipo de función que
+§2.1 ya te pide extraer de las instancias, y por eso es portable sin arrastrar el motor entero.
+Si tu backend real ya es Colyseus ([`12 · 04`](../12%20-%20Utilidades%20e%20integraciones/04%20-%20Multijugador%20y%20red.md) §2),
+la re-simulación vive de forma natural en esa misma sala de Node.js.
+
+> ⚠️ Reejecutar el replay tiene un coste real de CPU en el servidor. Para un juego con miles
+> de envíos diarios, verifica solo una muestra aleatoria y los récords que entran en el
+> **top N** de la tabla — es donde de verdad importa que no haya trampa.
+
+### 14.4 Editar la memoria en caliente: qué hace de verdad un Cheat Engine
+
+Nada de lo anterior existe porque alguien vaya a **leer tu código GML**. Existe porque
+cualquiera puede abrir un editor de memoria y tocar los números en caliente, sin ver una sola
+línea de tu proyecto. Cheat Engine, la herramienta de referencia del género, se describe a sí
+misma así:
+
+> "Cheat Engine is a tool designed to help you with modifying single player games (…) It
+> comes with a memory scanner to quickly scan for variables used within a game and allow you
+> to change them, but it also comes with a debugger, disassembler, assembler, **speedhack**…"
+> — [cheatengine.org/aboutce.php](https://www.cheatengine.org/aboutce.php)
+
+El procedimiento habitual, y por qué funciona **da igual el lenguaje o motor**:
+
+1. **Primer escaneo**: busca en toda la memoria del proceso el valor exacto que ves en
+   pantalla (`vida = 100`).
+2. **Cambias algo en el juego** (pierdes vida: ahora `vida = 82`) y pides un **escaneo
+   siguiente** filtrando por ese nuevo valor, o simplemente por "ha bajado". Cada ronda reduce
+   los candidatos de miles a unos pocos.
+3. En dos o tres rondas queda **una dirección de memoria**. A partir de ahí, Cheat Engine
+   **escribe directamente en esa dirección** — se salta por completo tu lógica de GML: no hay
+   ninguna función que puedas llamar para impedirlo, porque no pasa por tu código.
+4. El **speedhack** hace algo distinto y más sutil: intercepta las funciones de reloj del
+   sistema operativo para que el juego **crea** que ha pasado más o menos tiempo del real. Un
+   cooldown de 10 segundos se vacía en 2; un `_tiempo_segundos` que tu propio servidor mide de
+   forma independiente (14.2) es la única defensa que el speedhack no puede tocar, porque el
+   reloj falseado es el del cliente, no el tuyo.
+
+**Por qué la ofuscación de guardados no toca este problema en absoluto:** `base64_encode()`
+de [`01 · 14`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) §12 ofusca el
+**fichero en disco**. Cheat Engine no lee el fichero: lee la **RAM en tiempo de ejecución**, y
+ahí tu variable `vida` es un `Real` de GameMaker con su valor en claro, exista o no
+codificación en el `.sav`. Son dos superficies de ataque completamente distintas, y proteger
+una no protege la otra.
+
+**Lo único que sube algo el coste** (no lo elimina): guardar valores sensibles con una
+transformación que cambie cada partida — por ejemplo, sumar un desplazamiento aleatorio de
+sesión y restarlo solo al leer, para que el número en RAM no coincida nunca literalmente con
+el que se ve en pantalla. Un jugador con Cheat Engine y algo de paciencia lo rompe igual
+(basta con seguir el puntero, no el valor), así que trátalo como un obstáculo para el curioso,
+no como una defensa — el mismo matiz que la propia ofuscación de guardados.
+
+### 14.5 Por qué la ofuscación de `01/14` §12 solo detiene al curioso
+
+El propio documento ya lo dice sin adornos:
+
+> "⚠️ base64 NO es seguridad. Solo evita la edición casual. Si necesitas proteger el guardado
+> de verdad, tendrás que añadir verificación en servidor." —
+> [`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) §12
+
+Vale la pena decir **por qué** exactamente: decodificar base64 no exige ni Cheat Engine ni
+saber programar — cualquier buscador con "decodificar base64" lo resuelve en la misma pestaña
+del navegador en la que se buscó. Lo único que impide es que alguien abra el `.sav` en un
+editor de texto normal y vea `"vida":100` en claro y lo cambie por accidente o curiosidad. Es
+la misma frontera que separa un guardado sin cifrar de uno con `md5_string_utf8()` de checksum
+(01/14 §12): detecta la edición casual, no a quien la busca a propósito.
+
+Es, de hecho, el mismo principio que 04/14 §2.2 aplicado a un fichero en vez de a un paquete
+de red: **cualquier dato que viva en la máquina del jugador —en disco o en RAM— está bajo su
+control total**, y ninguna cantidad de ofuscación cambia esa propiedad. Solo cambia cuánto
+esfuerzo hace falta para saltársela.
+
+### 14.6 La frase honesta
+
+En un juego **de un jugador**, el anti-trampas no es rentable: el único perjudicado de un
+guardado editado a mano es quien lo editó, y cada hora dedicada a ofuscarlo es una hora que no
+se dedicó al juego. En un juego **con ranking o multijugador**, la única defensa real es
+**el servidor**: validar lo imposible (14.2), re-simular lo dudoso (14.3), y decidir el
+resultado sin preguntarle nunca al cliente qué cree que pasó. Todo lo demás —ofuscación,
+variables desplazadas, anti-debug casero— no detiene a nadie decidido: solo sube el precio de
+entrada para quien no pensaba currárselo de todas formas.
+
+
+---
+
+## Ver también
+
+**En esta biblioteca**
+
+- [`01 · 15 — Depuración y rendimiento`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) — Feather, Debugger, Debug Overlay, vistas `dbg_*`, GC, limpieza de recursos. **La base de todo esto.**
+- [`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) — guardado, JSON, buffers.
+- [`01 · 16 — Exportar y publicar`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) — HTML5 y sus trampas.
+- [`04 · 05 — Roguelike y generación procedural`](../04%20-%20Recetas%20por%20g%C3%A9nero/05%20-%20Roguelike%20y%20generaci%C3%B3n%20procedural.md) — los algoritmos que hay que probar con semilla.
+- [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 — «nunca confíes en el cliente», la base de §14 de este documento.
+- [`05 · 02 — Publicar y exportar`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) §4.4 — checklist de release y CI.
+- [`05 · 04 — Convenciones y estilo GML`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §7 y §8 — aserciones de producción y checklist antes de compilar.
+- [`07 · 01 — GitHub · organización YoYoGames`](../07%20-%20Ecosistema/01%20-%20GitHub%20-%20organizaci%C3%B3n%20YoYoGames.md) — GM-TestFramework y GameMaker-Bugs.
+- [`07 · 13 — GM CLI`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md) — el CLI al completo.
+- [`12 · 01 — Herramientas del flujo de trabajo`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) §4 y §5 — tabla comparada de frameworks y de herramientas de depuración en runtime.
+- [`11 · _CATALOGO.md`](../11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) y [`_RUTAS.json`](../11%20-%20C%C3%B3digo%20descargado/_RUTAS.json) — dónde está cada repositorio clonado.
+- [`AGENTS.md`](../AGENTS.md) §4 y §5 — las prohibiciones duras y el flujo de desarrollo.
+
+**En esta misma carpeta**
+
+- [`13 · 01 — Diseño de juego`](01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md) — telemetría, métricas y volcado a JSON.
+- [`13 · 06 — Arquitectura de un proyecto GameMaker`](06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) — separación cálculo/dibujo, módulos y fronteras.
+- [`13 · 07 — Generación procedural avanzada`](07%20-%20Generaci%C3%B3n%20procedural%20avanzada.md) — semillas y algoritmos deterministas.
+- [`13 · 11 — Producción, alcance y lanzamiento`](11%20-%20Producci%C3%B3n%2C%20alcance%20y%20lanzamiento.md) — dónde encaja QA en el calendario del proyecto.
+
+---
+
+## Fuentes
+
+Todas consultadas o ejecutadas el **6 de septiembre de 2026**.
+
+**Primarias del motor**
+
+- Manual oficial LTS 2026, `game_end` (versión inglesa, que documenta `return_code`; la
+  española aún muestra la firma sin argumentos):
+  <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/General_Game_Control/game_end.htm>
+- Manual oficial LTS 2026, `try` / `catch` / `finally`:
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Overview/Language_Features/try_catch_finally.htm>
+- Manual oficial LTS 2026, `throw`:
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Overview/Language_Features/throw.htm>
+- Manual oficial LTS 2026, `debug_input_record` / `debug_input_playback` /
+  `exception_unhandled_handler`:
+  <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Debugging/debug_input_record.htm>
+- `gm-cli` 2.3.0 — `--help` de `run`, `compile`, `package`, `init` y
+  `resourcetool eval "help config"`, ejecutados en esta máquina; y la ejecución real de un
+  proyecto creado con `gm-cli init` (plantilla *Blank Pixel Game*, toolchain
+  `GMS2@2026.0.0.23`): `compile --errors-only` → 0, `run` en verde y en rojo,
+  `run --config Pruebas`.
+
+**Frameworks**
+
+- GM-TestFramework (YoYo Games): <https://github.com/YoYoGames/GM-TestFramework> · wiki
+  (*Home*, *Running The Project*, *Creating Suites And Tests*):
+  <https://github.com/YoYoGames/GM-TestFramework/wiki> · y el repositorio clonado en
+  `11 - Código descargado/plantillas_y_ejemplos/GM-TestFramework`.
+- crispy v1.9.0 (bfrymire, MIT): <https://github.com/bfrymire/crispy> · documentación:
+  <https://bfrymire.github.io/crispy> · código leído en
+  `11 - Código descargado/librerias/depuracion/crispy` (`scripts/TestCase`, `scripts/TestSuite`,
+  `scripts/TestRunner`, `objects/obj_test`, `scripts/food_tests`).
+- GMBenchmark (DragoniteSpam, MIT): <https://github.com/DragoniteSpam/GMBenchmark> ·
+  `readme.md` del repositorio clonado.
+- GameMaker-Bugs (canal oficial de reporte): <https://github.com/YoYoGames/GameMaker-Bugs>
+
+**Playtesting y QA**
+
+- Ken Birdwell, *The Cabal: Valve's Design Process for Creating Half-Life* (Game Developer,
+  1999): <https://www.gamedeveloper.com/design/the-cabal-valve-s-design-process-for-creating-i-half-life-i->
+- Jakob Nielsen, *Why You Only Need to Test with 5 Users* (Nielsen Norman Group):
+  <https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/>
+- Games User Research, *How many players do I need for a playtest?*:
+  <https://gamesuserresearch.com/how-many-players-do-i-need-for-a-playtest/>
+
+**Seguridad y anti-trampas (§14)**
+
+- Cheat Engine, *About Cheat Engine* (descripción oficial del escáner de memoria y el
+  *speedhack*, abierta con `curl` el 6 de septiembre de 2026):
+  <https://www.cheatengine.org/aboutce.php>
+- Manual oficial LTS 2026 — `sha1_string_utf8`, `md5_string_utf8`, `base64_encode` /
+  `base64_decode` (funciones de hash y codificación usadas en el replay firmado de §14.3):
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/File_Handling/Encoding_And_Hashing/sha1_string_utf8.htm>
+- [`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) §12
+  y [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 —
+  las dos secciones de esta biblioteca que §14 conecta.
