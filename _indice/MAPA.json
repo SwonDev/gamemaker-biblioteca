@@ -1,0 +1,1348 @@
+{
+  "proyecto": "Biblioteca de conocimiento de GameMaker en español",
+  "version_referencia": {
+    "lts": "2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23)",
+    "beta": "2026.100.0 (IDE 1139 / runtime 1090)",
+    "gmrt": "0.21",
+    "monthly": "discontinuado (último 2024.14.4)"
+  },
+  "regla_de_oro": "Antes de escribir cualquier función de GML, verificarla con: python3 \"_indice/buscar.py\" <simbolo>. Si no aparece, no existe en este runtime.",
+  "herramientas": {
+    "_indice/buscar.py": {
+      "que_hace": "Buscador offline. Ficha de un símbolo (firma, obsoleta, manual es/en, dónde se explica, dónde se usa de verdad) y búsqueda de texto en la biblioteca, el manual y 53569 archivos .gml.",
+      "modos": {
+        "<simbolo>": "ficha completa de una función, constante o variable",
+        "--listar <prefijo>": "todos los símbolos de una familia (audio_, draw_, layer_...)",
+        "--texto <frase>": "busca en los documentos en español",
+        "--manual <frase>": "busca en el manual oficial espejado",
+        "--codigo <frase>": "busca en el código GML descargado",
+        "--todo <frase>": "busca en TODO a la vez (símbolos, biblioteca, manual y código real), agrupado y priorizado por autoridad. El punto de entrada cuando no sabes de qué tipo es lo que buscas"
+      },
+      "aviso_de_caducidad": "En cada consulta compara el runtime instalado con el que generó el índice. Si no coinciden, avisa de que la ficha puede estar desfasada antes de darla. No confíes en una respuesta que venga precedida de «ÍNDICE CADUCADO»."
+    },
+    "_indice/verificar-enlaces.py": {
+      "que_hace": "Comprueba que todas las rutas internas citadas en los documentos existen. Lo llama actualizar.py; solo hace falta a mano para comprobar un cambio suelto."
+    },
+    "_indice/traduccion/": {
+      "que_hace": "Memoria de traducción para seguir traduciendo el manual. Ver su README."
+    },
+    "gm-cli": {
+      "que_hace": "CLI oficial: init, run, compile, package, manual read, resourcetool. NUNCA editar .yy ni .yyp a mano."
+    },
+    "_indice/actualizar.py": {
+      "que_hace": "EL ÚNICO comando de mantenimiento. Tras añadir, renombrar o borrar cualquier documento, ejecuta «python3 _indice/actualizar.py» y ya está: verifica los enlaces, regenera los índices, sincroniza este MAPA.json con el disco (documentos, títulos y recuentos) y revisa la ortografía española. Sale con 0 solo si no queda deuda; si algo necesita a una persona, lo dice.",
+      "cuando": "siempre que cambie el contenido de la biblioteca",
+      "sustituye_a": [
+        "_indice/verificar-enlaces.py",
+        "_indice/construir-indices.py",
+        "editar MAPA.json a mano"
+      ]
+    },
+    "_indice/construir-indices.py": {
+      "que_hace": "Regenera documentos.json y simbolos.json desde el disco y sincroniza MAPA.json. Lo llama actualizar.py: no suele hacer falta invocarlo aparte. Los símbolos se RE-DERIVAN del GmlSpec.xml del runtime instalado, no son una copia congelada: un runtime nuevo aparece solo, y el comando informa de los símbolos añadidos y retirados."
+    },
+    "_indice/probar-descubrimiento.py": {
+      "que_hace": "Simula tareas de LLM (hacer un salto con coyote time, una máquina de estados, publicar en web…) y comprueba que buscar.py devuelve lo que hace falta. Lo ejecuta actualizar.py; es la prueba de que el contenedor sirve de verdad."
+    },
+    "_indice/validar-codigo-gml.py": {
+      "que_hace": "Comprueba que NINGÚN bloque de código de la biblioteca llama a una función del runtime que no existe. Extrae cada `funcion(` de los bloques ```gml y la verifica contra GmlSpec.xml, las funciones propias y las de extensión descargadas. Distingue función propia de ejemplo (OK) de función del runtime inventada (error). Es la garantía anti-alucinación aplicada al propio código."
+    },
+    "_indice/validar-enlaces-externos.py": {
+      "que_hace": "Comprueba por HTTP que los enlaces externos (GitHub, itch.io, foro…) siguen vivos. Ignora placeholders, URLs en bloques de código y READMEs de terceros."
+    },
+    "_indice/validar-compilacion.sh": {
+      "que_hace": "La prueba de compilación DEFINITIVA: crea un proyecto GameMaker real, mete los 9 scripts reutilizables (scr_*) de la biblioteca y los compila con gm-cli contra el runtime instalado. Sale con 0 solo si el compilador oficial no da ni un error de GML. No es una afirmación: es el compilador oficial diciendo que el código vale.",
+      "cuando": "cuando quieras la prueba más fuerte de que el código reutilizable compila"
+    },
+    "_indice/validar-proyecto.py": {
+      "que_hace": "Recorre TODOS los .gml de un proyecto de GameMaker real y lista, por nombre y archivo, cada llamada a una función del runtime que no existe (con las parecidas que sí existen) y cada función obsoleta. Es el control anti-alucinación aplicado a un proyecto, no a la biblioteca. Ejecútalo antes de gm-cli compile.",
+      "uso": "python3 \"_indice/validar-proyecto.py\" <ruta-del-proyecto> [--todo] [--json]"
+    },
+    "_indice/skills/gamemaker-biblioteca/": {
+      "que_hace": "La skill que cargan Claude Code (~/.claude/skills) y Codex (~/.codex/skills) cuando desarrollan con GameMaker desde CUALQUIER proyecto: dice dónde está esta biblioteca, cómo verificar cada símbolo, en qué orden leer cada disciplina y qué está prohibido. references/indice-documentos.md se genera desde este MAPA.json; references/mapa-disciplinas.md se escribe a mano y _indice/sincronizar-skill.py comprueba sus rutas."
+    }
+  },
+  "ficheros_indice": {
+    "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
+    "_indice/documentos.json": "los 234 documentos con su título",
+    "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
+    "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
+  },
+  "carpetas": [
+    {
+      "titulo": "Fundamentos de GML",
+      "proposito": "Explicación conceptual de GameMaker desde cero, en español. El manual oficial reordenado con el «por qué» y las trampas marcadas.",
+      "usar_cuando": [
+        "no entiendo un concepto",
+        "vengo de otro motor",
+        "por qué mi código no se ejecuta cuando espero",
+        "qué es un handle",
+        "cómo funcionan structs, arrays, eventos, colisiones, cámaras, audio, persistencia",
+        "cómo exporto o publico mi juego"
+      ],
+      "no_usar_para": [
+        "buscar la firma exacta de una función (usa buscar.py)"
+      ],
+      "ruta": "01 - Fundamentos",
+      "documentos": [
+        {
+          "ruta": "01 - Fundamentos/01 - El IDE y el flujo de trabajo.md",
+          "titulo": "01 · El IDE y el flujo de trabajo"
+        },
+        {
+          "ruta": "01 - Fundamentos/02 - Tipos de datos y variables.md",
+          "titulo": "02 · Tipos de datos y variables"
+        },
+        {
+          "ruta": "01 - Fundamentos/03 - Handles - el cambio clave de 2026.md",
+          "titulo": "03 · Handles — el cambio clave de 2026"
+        },
+        {
+          "ruta": "01 - Fundamentos/04 - Structs y constructores (POO en GML).md",
+          "titulo": "04 · Structs y constructores (POO en GML)"
+        },
+        {
+          "ruta": "01 - Fundamentos/05 - Arrays y estructuras de datos.md",
+          "titulo": "05 · Arrays y estructuras de datos"
+        },
+        {
+          "ruta": "01 - Fundamentos/06 - Eventos y ciclo del juego.md",
+          "titulo": "06 · Eventos y ciclo del juego"
+        },
+        {
+          "ruta": "01 - Fundamentos/07 - Funciones, métodos y ámbito.md",
+          "titulo": "07 · Funciones, métodos y ámbito"
+        },
+        {
+          "ruta": "01 - Fundamentos/08 - Movimiento y colisiones.md",
+          "titulo": "08 · Movimiento y colisiones"
+        },
+        {
+          "ruta": "01 - Fundamentos/09 - Instancias, objetos y herencia.md",
+          "titulo": "09 · Instancias, objetos y herencia"
+        },
+        {
+          "ruta": "01 - Fundamentos/10 - Rooms, capas, cámaras y viewports.md",
+          "titulo": "10 · Rooms, capas, cámaras y viewports"
+        },
+        {
+          "ruta": "01 - Fundamentos/11 - Dibujo y renderizado.md",
+          "titulo": "11 · Dibujo y renderizado"
+        },
+        {
+          "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+          "titulo": "12 · Input — teclado, ratón y gamepad"
+        },
+        {
+          "ruta": "01 - Fundamentos/13 - Audio.md",
+          "titulo": "13 · Audio"
+        },
+        {
+          "ruta": "01 - Fundamentos/14 - Persistencia y archivos.md",
+          "titulo": "14 · Persistencia y archivos"
+        },
+        {
+          "ruta": "01 - Fundamentos/15 - Depuración y rendimiento.md",
+          "titulo": "15 · Depuración y rendimiento"
+        },
+        {
+          "ruta": "01 - Fundamentos/16 - Exportar y publicar.md",
+          "titulo": "16 · Exportar y publicar"
+        },
+        {
+          "ruta": "01 - Fundamentos/17 - GML Visual (Drag and Drop).md",
+          "titulo": "17 · GML Visual (Drag and Drop)"
+        },
+        {
+          "ruta": "01 - Fundamentos/_INDICE-FUNDAMENTOS.md",
+          "titulo": "Índice · Fundamentos de GML (GameMaker LTS 2026)"
+        }
+      ],
+      "n_documentos": 18
+    },
+    {
+      "titulo": "Novedades de 2026",
+      "proposito": "Qué cambió en LTS 2026 y qué rompe el código antiguo. Handles, GMRT, UI Layers, Flexpanels, partículas nuevas, buses de audio, Package Manager, Code Editor 2, roadmap.",
+      "usar_cuando": [
+        "portar un proyecto antiguo",
+        "el código de un tutorial no compila",
+        "quiero usar algo nuevo del motor",
+        "qué es GMRT"
+      ],
+      "no_usar_para": [],
+      "ruta": "02 - Novedades 2026",
+      "documentos": [
+        {
+          "ruta": "02 - Novedades 2026/01 - Resumen LTS 2026.0.md",
+          "titulo": "Resumen ejecutivo: GameMaker LTS 2026.0"
+        },
+        {
+          "ruta": "02 - Novedades 2026/02 - Cambios en GML 2026.md",
+          "titulo": "Cambios en GML en 2026 (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/03 - GMRT - El nuevo runtime.md",
+          "titulo": "GMRT — El nuevo runtime de GameMaker (codename Cronus)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/04 - UI Layers y Flexpanels.md",
+          "titulo": "UI Layers y Flexpanels (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/05 - Sistema de partículas nuevo.md",
+          "titulo": "El nuevo sistema de partículas (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/06 - Gráficos - SVG, SDF, FX y superficies.md",
+          "titulo": "Gráficos: SVG, SDF, FX, superficies y texturas (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/07 - Audio - buses y efectos.md",
+          "titulo": "Audio: buses, efectos y nuevas funciones (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/08 - Package Manager y Prefabs.md",
+          "titulo": "Package Manager y Prefabs (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/09 - Code Editor 2 y Feather.md",
+          "titulo": "Code Editor 2 y Feather (LTS 2026.0)"
+        },
+        {
+          "ruta": "02 - Novedades 2026/10 - Futuro - roadmap 2026-2028.md",
+          "titulo": "Futuro de GameMaker: roadmap 2026–2028"
+        },
+        {
+          "ruta": "02 - Novedades 2026/_INDICE-NOVEDADES.md",
+          "titulo": "Índice — Novedades de GameMaker 2026"
+        }
+      ],
+      "n_documentos": 11
+    },
+    {
+      "titulo": "Cursos de YouTube transcritos (origen en inglés)",
+      "proposito": "44 capítulos de curso transcritos, traducidos y reescritos: Sky LaRell Anderson (12), DragoniteSpam (26), PixelatedPope cámaras (4), plataformas oficial.",
+      "usar_cuando": [
+        "aprender haciendo, paso a paso",
+        "seguir un proyecto acumulativo",
+        "cámaras y resolución en profundidad"
+      ],
+      "no_usar_para": [],
+      "ruta": "03 - Cursos (YouTube)",
+      "documentos": [
+        {
+          "ruta": "03 - Cursos (YouTube)/01 - Curso 2026 - Sky LaRell Anderson - Parte 1 - El Espacio de Trabajo.md",
+          "titulo": "01 · El espacio de trabajo"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/02 - Curso 2026 - Sky LaRell Anderson - Parte 2 - Objetos, Sprites y Rooms.md",
+          "titulo": "02 · Objetos, sprites y rooms"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/03 - Curso 2026 - Sky LaRell Anderson - Parte 3 - Movimiento Básico y Colisiones.md",
+          "titulo": "03 · Movimiento básico y colisiones"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/04 - Curso 2026 - Sky LaRell Anderson - Parte 4 - Movimiento de Plataformas.md",
+          "titulo": "04 · Movimiento de plataformas"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/05 - Curso 2026 - Sky LaRell Anderson - Parte 5 - Raton y Menus.md",
+          "titulo": "05 · Ratón y menús"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/06 - Curso 2026 - Sky LaRell Anderson - Parte 6 - Disparar Proyectiles.md",
+          "titulo": "06 · Disparar proyectiles"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/07 - Curso 2026 - Sky LaRell Anderson - Parte 7 - Cámaras.md",
+          "titulo": "07 · Cámaras"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/08 - Curso 2026 - Sky LaRell Anderson - Parte 8 - Enemigos y Vida.md",
+          "titulo": "08 · Enemigos y puntos de vida"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/09 - Curso 2026 - Sky LaRell Anderson - Parte 9 - Sonidos y Música.md",
+          "titulo": "09 · Crear tus propios sonidos y música"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/10 - Curso 2026 - Sky LaRell Anderson - Parte 10 - Recursos de Arte.md",
+          "titulo": "10 · Crear tus propios recursos de arte"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/11 - Curso 2026 - Sky LaRell Anderson - Parte 11 - Animaciones y Tile Sets.md",
+          "titulo": "11 · Animaciones y conjuntos de baldosas (tile sets)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/12 - Curso 2026 - Sky LaRell Anderson - Parte 12 - Exportar y Publicar.md",
+          "titulo": "12 · Exportar y publicar"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/13 - DragoniteSpam - Getting Started - Primeros Pasos con GameMaker.md",
+          "titulo": "13 · DragoniteSpam — Primeros pasos con GameMaker (2025/2026)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/14 - DragoniteSpam - Getting Started - Fundamentos del Código.md",
+          "titulo": "14 · DragoniteSpam — Los fundamentos del código"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/15 - DragoniteSpam - Getting Started - Sprites y Objetos.md",
+          "titulo": "15 · DragoniteSpam — Sprites y objetos"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/16 - DragoniteSpam - Getting Started - Editor de Rooms, Tiles y Tile Sets.md",
+          "titulo": "16 · DragoniteSpam — El editor de rooms: tiles, tile sets y capas de sprites"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/17 - DragoniteSpam - Getting Started - Autotiles.md",
+          "titulo": "17 · DragoniteSpam — Autotiles"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/18 - DragoniteSpam - Getting Started - Baldosas Animadas.md",
+          "titulo": "18 · DragoniteSpam — Baldosas animadas"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/19 - DragoniteSpam - Getting Started - Pinceles de Baldosas.md",
+          "titulo": "19 · DragoniteSpam — Pinceles de baldosas (tile brushes)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/20 - DragoniteSpam - Getting Started - Viewports y Cámaras.md",
+          "titulo": "20 · DragoniteSpam — Viewports y cámaras"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/21 - DragoniteSpam - Getting Started - Crear Instancias de Objetos.md",
+          "titulo": "21 · DragoniteSpam — Crear instancias de objetos por código"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/22 - DragoniteSpam - Getting Started - Numeros Aleatorios.md",
+          "titulo": "22 · DragoniteSpam — Generar números aleatorios"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/23 - DragoniteSpam - Getting Started - Respaldos con YYZ.md",
+          "titulo": "23 · DragoniteSpam — Copias de seguridad con archivos YYZ"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/24 - DragoniteSpam - Getting Started - Control de Versiones con Git.md",
+          "titulo": "24 · DragoniteSpam — Control de versiones con Git"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/25 - DragoniteSpam - Getting Started - Bucle Repeat.md",
+          "titulo": "25 · DragoniteSpam — El bucle `repeat`"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/26 - DragoniteSpam - Getting Started - Bucle While.md",
+          "titulo": "26 · DragoniteSpam — El bucle `while`"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/27 - DragoniteSpam - Getting Started - Bucle For.md",
+          "titulo": "27 · DragoniteSpam — El bucle `for`"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/28 - DragoniteSpam - Getting Started - Bucle Do Until.md",
+          "titulo": "28 · DragoniteSpam — El bucle `do / until`"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/29 - DragoniteSpam - Getting Started - Colisiones Básicas.md",
+          "titulo": "29 · DragoniteSpam — Colisiones básicas"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/30 - DragoniteSpam - Getting Started - Move and Collide.md",
+          "titulo": "30 · DragoniteSpam — `move_and_collide()`"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/31 - DragoniteSpam - Getting Started - Dibujar Sprites.md",
+          "titulo": "31 · DragoniteSpam — Dibujar sprites"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/32 - DragoniteSpam - Getting Started - Dibujar Formas.md",
+          "titulo": "32 · DragoniteSpam — Dibujar formas"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/33 - DragoniteSpam - Getting Started - Dibujar Texto.md",
+          "titulo": "33 · DragoniteSpam — Dibujar texto"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/34 - DragoniteSpam - Getting Started - Usar Fuentes.md",
+          "titulo": "34 · DragoniteSpam — Usar fuentes"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/35 - DragoniteSpam - Getting Started - Evento Draw GUI.md",
+          "titulo": "35 · DragoniteSpam — El evento Draw GUI"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/36 - DragoniteSpam - Getting Started - Por Qué Todo se ve Borroso.md",
+          "titulo": "36 · DragoniteSpam — ¿Por qué todo se ve borroso?"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/37 - DragoniteSpam - Getting Started - Error Variable No Definida.md",
+          "titulo": "37 · DragoniteSpam — El temido «Variable Not Set Before Reading It»"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/38 - DragoniteSpam - Getting Started - Fechas y Horas.md",
+          "titulo": "38 · DragoniteSpam — Fechas y horas"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/39 - GameMaker Oficial - Tu Primer Plataformas en 15 Minutos.md",
+          "titulo": "39 · GameMaker oficial — Tu primer plataformas en 15 minutos"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/40 - GameMaker LTS 2026 - Novedades e Instalación.md",
+          "titulo": "40 · GameMaker LTS 2026 ya está aquí"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/41 - PixelatedPope - Cámaras y Resolución 2026 - Parte 1 - Principiante.md",
+          "titulo": "41 · Cámaras y resolución I — principiante (sin escribir código)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/42 - PixelatedPope - Cámaras y Resolución 2026 - Parte 2 - Intermedio.md",
+          "titulo": "42 · Cámaras y resolución II — intermedio (la cámara por código)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/43 - PixelatedPope - Cámaras y Resolución 2026 - Parte 3 - Avanzado.md",
+          "titulo": "43 · Cámaras y resolución III — avanzado (objetivos dinámicos, sacudida, zoom, pantalla completa)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/44 - PixelatedPope - Cámaras y Resolución 2026 - Parte 4 - Experto.md",
+          "titulo": "44 · Cámaras y resolución IV — experto (la capa GUI, dibujar en una caja, filtrado bilineal y el mito del escalado perfecto)"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/_DESCUBIERTAS.md",
+          "titulo": "Descubiertas — más cursos, canales y series de GameMaker"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/_ENLACES-ORIGINALES.md",
+          "titulo": "Índice maestro de enlaces originales"
+        },
+        {
+          "ruta": "03 - Cursos (YouTube)/_INDICE-CURSOS.md",
+          "titulo": "Índice de cursos de GameMaker (YouTube)"
+        }
+      ],
+      "n_documentos": 47
+    },
+    {
+      "titulo": "Recetas por género",
+      "proposito": "46 recetas: 15 géneros destripados sistema por sistema, el plano de un juego completo (00) y 30 transversales — game feel, señales, web, menús, ritmo, servicios de plataforma, localización, Box2D, IA de movimiento y de decisión, iluminación (básica y avanzada), opciones y rebinding, música adaptativa, accesibilidad, móvil, 3D, combate cuerpo a cuerpo y a distancia, daño y efectos de estado, enemigos y director, por turnos y táctico, habilidades, traversal, pathfinding avanzado, VFX, tutorial, transiciones y pausa, audio reactivo, modding, bullet heaven/autobattler/deckbuilder y géneros sin receta propia.",
+      "usar_cuando": [
+        "me piden hacer un juego de X género",
+        "qué sistemas necesito y en qué orden",
+        "game feel y juice",
+        "cómo publico mi juego en la web",
+        "una lista más larga que la pantalla",
+        "sincronizar la lógica con la música",
+        "un juego para móvil / táctil",
+        "hacer 3D o 2.5D en GameMaker",
+        "golpes con hitbox y hurtbox, combos",
+        "enemigos que deciden: árboles de comportamiento, utility, GOAP",
+        "daño por tipos, resistencias y efectos de estado",
+        "que los enemigos no ataquen todos a la vez",
+        "recarga, dispersión y disparo hitscan",
+        "pendientes, wall jump, escaleras, nadar",
+        "muchas unidades hacia un mismo destino",
+        "explosiones y efectos que no parezcan de asset gratis",
+        "tutorial y prompts de botón",
+        "menú de pausa y pantalla de carga",
+        "que el audio responda al mundo",
+        "permitir mods",
+        "sigilo, horror, granja o idle"
+      ],
+      "no_usar_para": [],
+      "ruta": "04 - Recetas por género",
+      "documentos": [
+        {
+          "ruta": "04 - Recetas por género/00 - Anatomía de un juego completo.md",
+          "titulo": "00 · Anatomía de un juego completo — de principio a fin"
+        },
+        {
+          "ruta": "04 - Recetas por género/01 - Plataformas 2D.md",
+          "titulo": "01 — Plataformas 2D"
+        },
+        {
+          "ruta": "04 - Recetas por género/02 - Top-Down _ Twin-Stick.md",
+          "titulo": "02 — Top-Down / Twin-Stick"
+        },
+        {
+          "ruta": "04 - Recetas por género/03 - Shoot em up (shmup).md",
+          "titulo": "03 — Shoot 'em up (shmup)"
+        },
+        {
+          "ruta": "04 - Recetas por género/04 - RPG _ Action RPG.md",
+          "titulo": "04 — RPG / Action RPG"
+        },
+        {
+          "ruta": "04 - Recetas por género/05 - Roguelike y generación procedural.md",
+          "titulo": "05 — Roguelike y generación procedural"
+        },
+        {
+          "ruta": "04 - Recetas por género/06 - Metroidvania.md",
+          "titulo": "06 — Metroidvania"
+        },
+        {
+          "ruta": "04 - Recetas por género/07 - Puzzle y Match-3.md",
+          "titulo": "07 — Puzzle / Match-3"
+        },
+        {
+          "ruta": "04 - Recetas por género/08 - Tower Defense.md",
+          "titulo": "08 — Tower Defense"
+        },
+        {
+          "ruta": "04 - Recetas por género/09 - Survival y crafting.md",
+          "titulo": "09 — Survival y crafting"
+        },
+        {
+          "ruta": "04 - Recetas por género/10 - Visual Novel y narrativa.md",
+          "titulo": "10 — Visual Novel y narrativa"
+        },
+        {
+          "ruta": "04 - Recetas por género/11 - Arcade y juegos de un botón.md",
+          "titulo": "11 — Arcade y juegos de un botón"
+        },
+        {
+          "ruta": "04 - Recetas por género/12 - Carreras y vehículos.md",
+          "titulo": "12 — Carreras y vehículos"
+        },
+        {
+          "ruta": "04 - Recetas por género/13 - Estrategia y gestión.md",
+          "titulo": "13 — Estrategia y gestión"
+        },
+        {
+          "ruta": "04 - Recetas por género/14 - Multijugador.md",
+          "titulo": "14 — Multijugador"
+        },
+        {
+          "ruta": "04 - Recetas por género/15 - Game feel y juice.md",
+          "titulo": "15 — Game feel y juice"
+        },
+        {
+          "ruta": "04 - Recetas por género/16 - Señales y desacoplamiento.md",
+          "titulo": "16 · Señales y desacoplamiento"
+        },
+        {
+          "ruta": "04 - Recetas por género/17 - Interoperabilidad con la web (HTML5).md",
+          "titulo": "17 · Interoperabilidad con la web (HTML5)"
+        },
+        {
+          "ruta": "04 - Recetas por género/18 - Menús con scroll y navegación.md",
+          "titulo": "18 · Menús con scroll y navegación"
+        },
+        {
+          "ruta": "04 - Recetas por género/19 - Programación rítmica (juegos de ritmo).md",
+          "titulo": "19 · Programación rítmica (juegos de ritmo)"
+        },
+        {
+          "ruta": "04 - Recetas por género/20 - Servicios de plataforma (logros, anuncios, compras).md",
+          "titulo": "20 · Servicios de plataforma: logros, anuncios, compras, leaderboards y nube"
+        },
+        {
+          "ruta": "04 - Recetas por género/21 - Localización e idiomas (con traducción por IA).md",
+          "titulo": "21 · Localización e idiomas — con traducción por IA"
+        },
+        {
+          "ruta": "04 - Recetas por género/22 - Físicas con Box2D.md",
+          "titulo": "22 · Físicas con Box2D"
+        },
+        {
+          "ruta": "04 - Recetas por género/23 - IA de enemigos y steering behaviors.md",
+          "titulo": "23 · IA de enemigos y steering behaviors"
+        },
+        {
+          "ruta": "04 - Recetas por género/24 - Iluminación 2D.md",
+          "titulo": "24 · Iluminación 2D"
+        },
+        {
+          "ruta": "04 - Recetas por género/25 - Menú de opciones y ajustes.md",
+          "titulo": "25 · Menú de opciones y ajustes"
+        },
+        {
+          "ruta": "04 - Recetas por género/26 - Música adaptativa por capas.md",
+          "titulo": "26 · Música adaptativa por capas"
+        },
+        {
+          "ruta": "04 - Recetas por género/27 - Accesibilidad.md",
+          "titulo": "27 · Accesibilidad"
+        },
+        {
+          "ruta": "04 - Recetas por género/28 - Juegos para móvil (táctil).md",
+          "titulo": "28 · Juegos para móvil (táctil)"
+        },
+        {
+          "ruta": "04 - Recetas por género/29 - 3D en GameMaker.md",
+          "titulo": "29 · 3D en GameMaker"
+        },
+        {
+          "ruta": "04 - Recetas por género/30 - Combate cuerpo a cuerpo - hitboxes, hurtboxes y combos.md",
+          "titulo": "30 · Combate cuerpo a cuerpo — hitboxes, hurtboxes y combos"
+        },
+        {
+          "ruta": "04 - Recetas por género/31 - IA de decisión - árboles de comportamiento, utility y GOAP.md",
+          "titulo": "31 · IA de decisión — árboles de comportamiento, utility y GOAP"
+        },
+        {
+          "ruta": "04 - Recetas por género/32 - Sistema de daño y efectos de estado.md",
+          "titulo": "32 · Sistema de daño y efectos de estado"
+        },
+        {
+          "ruta": "04 - Recetas por género/33 - Diseño de enemigos, encuentros y director de combate.md",
+          "titulo": "33 · Diseño de enemigos, encuentros y director de combate"
+        },
+        {
+          "ruta": "04 - Recetas por género/34 - Combate a distancia - armas, munición y balística.md",
+          "titulo": "34 · Combate a distancia — armas, munición y balística"
+        },
+        {
+          "ruta": "04 - Recetas por género/35 - Combate por turnos y táctico en rejilla.md",
+          "titulo": "35 · Combate por turnos y táctico en rejilla"
+        },
+        {
+          "ruta": "04 - Recetas por género/36 - Habilidades, enfriamientos y recursos de combate.md",
+          "titulo": "36 · Habilidades, enfriamientos y recursos de combate"
+        },
+        {
+          "ruta": "04 - Recetas por género/37 - Traversal en plataformas - pendientes, paredes, escaleras y bordes.md",
+          "titulo": "37 — Traversal en plataformas: pendientes, paredes, escaleras y bordes"
+        },
+        {
+          "ruta": "04 - Recetas por género/38 - Pathfinding avanzado - flow fields, JPS y plataformas.md",
+          "titulo": "38 · Pathfinding avanzado — flow fields, JPS y plataformas"
+        },
+        {
+          "ruta": "04 - Recetas por género/39 - VFX - diseño y catálogo de efectos.md",
+          "titulo": "39 · VFX — diseño y catálogo de efectos"
+        },
+        {
+          "ruta": "04 - Recetas por género/40 - Tutorial, onboarding y prompts en pantalla.md",
+          "titulo": "40 · Tutorial, onboarding y prompts en pantalla"
+        },
+        {
+          "ruta": "04 - Recetas por género/41 - Transiciones, carga y pausa.md",
+          "titulo": "41 · Transiciones, carga y pausa"
+        },
+        {
+          "ruta": "04 - Recetas por género/42 - Audio reactivo al mundo - materiales, zonas y estados de mezcla.md",
+          "titulo": "42 · Audio reactivo al mundo — materiales, zonas y estados de mezcla"
+        },
+        {
+          "ruta": "04 - Recetas por género/43 - Modding y contenido externo.md",
+          "titulo": "43 · Modding y contenido externo"
+        },
+        {
+          "ruta": "04 - Recetas por género/44 - Bullet heaven, autobattler y deckbuilder.md",
+          "titulo": "44 · Bullet heaven, autobattler y deckbuilder"
+        },
+        {
+          "ruta": "04 - Recetas por género/45 - Géneros sin receta propia - sigilo, horror, táctica, granja y idle.md",
+          "titulo": "45 · Géneros sin receta propia — sigilo, horror, táctica, granja y idle"
+        },
+        {
+          "ruta": "04 - Recetas por género/46 - Eje Z falso - altura, sombras y profundidad en un juego 2D.md",
+          "titulo": "46 · Eje Z falso — altura, sombras y profundidad en un juego 2D"
+        },
+        {
+          "ruta": "04 - Recetas por género/47 - Beat em up y brawler.md",
+          "titulo": "47 · Beat 'em up y brawler"
+        },
+        {
+          "ruta": "04 - Recetas por género/_INDICE-RECETAS.md",
+          "titulo": "Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)"
+        }
+      ],
+      "n_documentos": 49
+    },
+    {
+      "titulo": "Referencia rápida",
+      "proposito": "Tutoriales oficiales catalogados, publicación y exportación, glosario A-Z y convenciones de estilo GML.",
+      "usar_cuando": [
+        "cómo se llama esto en GameMaker",
+        "cómo publico en Steam/itch/móvil",
+        "qué convención de nombres uso"
+      ],
+      "no_usar_para": [],
+      "ruta": "05 - Referencia",
+      "documentos": [
+        {
+          "ruta": "05 - Referencia/01 - Tutoriales oficiales.md",
+          "titulo": "01 · Tutoriales oficiales de GameMaker"
+        },
+        {
+          "ruta": "05 - Referencia/02 - Publicar y exportar.md",
+          "titulo": "02 · Publicar y exportar un juego de GameMaker (2026)"
+        },
+        {
+          "ruta": "05 - Referencia/03 - Glosario GML.md",
+          "titulo": "03 · Glosario GML (A–Z)"
+        },
+        {
+          "ruta": "05 - Referencia/04 - Convenciones y estilo GML.md",
+          "titulo": "04 · Convenciones y estilo GML"
+        }
+      ],
+      "n_documentos": 4
+    },
+    {
+      "titulo": "Scripts GML propios listos para copiar",
+      "proposito": "9 scripts .gml reutilizables verificados: matemáticas, cámara, máquina de estados, tweens, guardado, pooling, A*, buffer de input, debug.",
+      "usar_cuando": [
+        "necesito un sistema base ya escrito y verificado"
+      ],
+      "no_usar_para": [
+        "librerías grandes de terceros (eso está en 11)"
+      ],
+      "ruta": "06 - Assets y Scripts",
+      "documentos": [
+        {
+          "ruta": "06 - Assets y Scripts/README.md",
+          "titulo": "06 · Assets y Scripts — Scripts GML reutilizables"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_audio.gml",
+          "titulo": "scr_audio — Gestor de audio completo: buses y emisores por categoría, mezcla"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_camera.gml",
+          "titulo": "scr_camera — Cámara 2D con seguimiento, deadzone, look-ahead, límites de sala y shake"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_debug.gml",
+          "titulo": "scr_debug — Utilidades de depuración: panel de variables en vivo, log en pantalla"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_grid_pathfinding.gml",
+          "titulo": "scr_grid_pathfinding — Pathfinding en rejilla. Dos implementaciones"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_input_buffer.gml",
+          "titulo": "scr_input_buffer — Input buffering y coyote time para juegos de plataformas"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_math_util.gml",
+          "titulo": "scr_math_util — Utilidades matemáticas y funciones de easing para GameMaker LTS 2026"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_pool.gml",
+          "titulo": "scr_pool — Object pooling: reutiliza instancias en vez de crearlas y destruirlas"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_save_load.gml",
+          "titulo": "scr_save_load — Guardado y carga de partidas con structs + JSON, escritura segura"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_state_machine.gml",
+          "titulo": "scr_state_machine — Máquina de estados finitos (FSM) implementada con structs, SIN objetos"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_tiempo.gml",
+          "titulo": "scr_tiempo — Tres piezas de tiempo que se reescriben en cada receta: un `Cooldown`"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_tween.gml",
+          "titulo": "scr_tween — Sistema de tweens (interpolaciones animadas) con structs, dirigido"
+        }
+      ],
+      "n_documentos": 12
+    },
+    {
+      "titulo": "El ecosistema alrededor del motor",
+      "proposito": "GitHub de YoYoGames, librerías, extensiones, proyectos de ejemplo, foro, itch.io, comunidades, blogs, GM CLI, estado de la IA.",
+      "usar_cuando": [
+        "qué existe ya para X",
+        "dónde pregunto",
+        "cómo uso gm-cli",
+        "buscar un tutorial escrito por la comunidad sobre un sistema concreto"
+      ],
+      "no_usar_para": [],
+      "ruta": "07 - Ecosistema",
+      "documentos": [
+        {
+          "ruta": "07 - Ecosistema/01 - GitHub - organización YoYoGames.md",
+          "titulo": "01 · GitHub — Organización YoYoGames"
+        },
+        {
+          "ruta": "07 - Ecosistema/02 - Librerías esenciales de la comunidad.md",
+          "titulo": "02 · Librerías esenciales de la comunidad"
+        },
+        {
+          "ruta": "07 - Ecosistema/03 - Extensiones oficiales y de terceros.md",
+          "titulo": "03 · Extensiones oficiales y de terceros"
+        },
+        {
+          "ruta": "07 - Ecosistema/04 - Proyectos de ejemplo para estudiar.md",
+          "titulo": "04 · Proyectos de ejemplo para estudiar"
+        },
+        {
+          "ruta": "07 - Ecosistema/05 - Scripts y utilidades GML.md",
+          "titulo": "05 · Scripts y utilidades GML"
+        },
+        {
+          "ruta": "07 - Ecosistema/06 - Plantillas y starters.md",
+          "titulo": "06 · Plantillas y starters"
+        },
+        {
+          "ruta": "07 - Ecosistema/07 - Foro oficial - hilos clave.md",
+          "titulo": "Foro oficial de GameMaker — estructura e hilos clave"
+        },
+        {
+          "ruta": "07 - Ecosistema/08 - itch.io - jams, assets y juegos.md",
+          "titulo": "itch.io — jams, assets y juegos hechos con GameMaker"
+        },
+        {
+          "ruta": "07 - Ecosistema/09 - Asset packs y recursos gráficos.md",
+          "titulo": "Asset packs y recursos gráficos, de audio y de niveles"
+        },
+        {
+          "ruta": "07 - Ecosistema/10 - Comunidades y dónde preguntar.md",
+          "titulo": "Comunidades y dónde preguntar"
+        },
+        {
+          "ruta": "07 - Ecosistema/11 - Blogs, newsletters y podcasts.md",
+          "titulo": "Blogs, newsletters y fuentes de información continua"
+        },
+        {
+          "ruta": "07 - Ecosistema/12 - Aprendizaje estructurado - cursos de pago y libros.md",
+          "titulo": "Aprendizaje estructurado — cursos de pago y libros"
+        },
+        {
+          "ruta": "07 - Ecosistema/13 - GM CLI - la línea de comandos.md",
+          "titulo": "13 · GM CLI — la línea de comandos de GameMaker"
+        },
+        {
+          "ruta": "07 - Ecosistema/14 - IA y GameMaker.md",
+          "titulo": "14 · IA y GameMaker (estado real en agosto de 2026)"
+        },
+        {
+          "ruta": "07 - Ecosistema/15 - Qué hacen de verdad los proyectos reales.md",
+          "titulo": "15 · Qué hacen de verdad los proyectos reales"
+        },
+        {
+          "ruta": "07 - Ecosistema/16 - Catálogo de la sección Tutorials del foro.md",
+          "titulo": "16 · Catálogo de la sección Tutorials del foro oficial"
+        },
+        {
+          "ruta": "07 - Ecosistema/17 - SnowState - máquinas de estado (guía en español).md",
+          "titulo": "17 · SnowState — máquinas de estado (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/18 - Scribble - texto rico (guía en español).md",
+          "titulo": "18 · Scribble — texto rico y con efectos (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/19 - Chatterbox - diálogos Yarn (guía en español).md",
+          "titulo": "19 · Chatterbox — diálogos ramificados con Yarn (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/20 - SNAP - datos y formatos (guía en español).md",
+          "titulo": "20 · SNAP — convertir datos entre formatos (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/21 - Vinyl - audio avanzado (guía en español).md",
+          "titulo": "21 · Vinyl — audio avanzado (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md",
+          "titulo": "22 · Crear una extensión nativa (guía en español)"
+        },
+        {
+          "ruta": "07 - Ecosistema/_INDICE-ECOSISTEMA.md",
+          "titulo": "Índice del ecosistema GameMaker"
+        }
+      ],
+      "n_documentos": 23
+    },
+    {
+      "titulo": "Referencia técnica de GML en español + la API completa",
+      "proposito": "19 documentos temáticos en español (dibujo, shaders, buffers, DS, strings, matemáticas...) MÁS el catálogo completo de la API extraído del GmlSpec.xml del runtime instalado.",
+      "usar_cuando": [
+        "la referencia técnica de un área completa",
+        "listar todas las funciones de una familia",
+        "comprobar si algo existe",
+        "una función no está en el manual: ¿existe o me la estoy inventando?",
+        "qué funciones del runtime están obsoletas o sin documentar"
+      ],
+      "no_usar_para": [],
+      "clave": "_API del runtime/gml-api.json es el volcado machine-readable: 2357 funciones con firma, tipo de retorno y flag de obsoleta.",
+      "ruta": "08 - Referencia GML completa",
+      "documentos": [
+        {
+          "ruta": "08 - Referencia GML completa/01 - Dibujo básico y sprites.md",
+          "titulo": "01 — Dibujo básico y sprites"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/02 - Dibujo de formas y primitivas.md",
+          "titulo": "02 — Dibujo de formas y primitivas"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/03 - Texto y fuentes.md",
+          "titulo": "03 — Texto y fuentes"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/04 - Color y blending.md",
+          "titulo": "04 — Color y blending"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/05 - Superficies.md",
+          "titulo": "05 — Superficies"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/06 - Shaders.md",
+          "titulo": "06 — Shaders"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/07 - Vertex buffers y formatos.md",
+          "titulo": "07 — Vertex buffers y formatos"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/08 - Texturas y grupos de texturas.md",
+          "titulo": "08 — Texturas y grupos de texturas"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/09 - Dibujo de tiles y tilemaps.md",
+          "titulo": "09 — Dibujo de tiles y tilemaps"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/10 - Matemáticas.md",
+          "titulo": "10 · Matemáticas y números en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/11 - Vectores, matrices y ángulos.md",
+          "titulo": "11 · Vectores, matrices y ángulos en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/12 - Strings.md",
+          "titulo": "12 · Strings en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/13 - Estructuras de datos (DS).md",
+          "titulo": "13 · Estructuras de datos (DS) en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/14 - Arrays.md",
+          "titulo": "14 · Arrays en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/15 - Structs - funciones.md",
+          "titulo": "15 · Structs y funciones de variables en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/16 - Buffers.md",
+          "titulo": "16 · Buffers en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/17 - Ficheros y directorios.md",
+          "titulo": "17 · Ficheros y directorios en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/18 - Fecha y hora.md",
+          "titulo": "18 · Fecha y hora en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/19 - Sistema, compilador y entorno.md",
+          "titulo": "19 · Sistema, compilador y entorno en GML"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/20 - Lo que el manual no documenta.md",
+          "titulo": "20 · Lo que existe en el runtime y el manual no documenta"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/21 - Constantes que el manual abrevia.md",
+          "titulo": "21 · Constantes que el manual abrevia"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/22 - Animación esqueletal (Spine).md",
+          "titulo": "22 · Animación esqueletal (Spine)"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/23 - Recetario de shaders de efecto.md",
+          "titulo": "23 — Recetario de shaders de efecto"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/24 - Audio avanzado - buffers, colas, sincronía y grabación.md",
+          "titulo": "24 · Audio avanzado — buffers, colas, sincronía y grabación"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/_API del runtime/API-constantes.md",
+          "titulo": "Referencia de la API de GML — constantes y enumeraciones"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/_API del runtime/API-funciones.md",
+          "titulo": "Referencia de la API de GML — funciones"
+        },
+        {
+          "ruta": "08 - Referencia GML completa/_API del runtime/API-variables.md",
+          "titulo": "Referencia de la API de GML — variables y structs incorporados"
+        }
+      ],
+      "n_documentos": 27
+    },
+    {
+      "titulo": "El manual oficial espejado (offline)",
+      "proposito": "3119 páginas en inglés y 3033 en español, en Markdown, con la estructura idéntica al manual web. Es la FUENTE DE VERDAD.",
+      "usar_cuando": [
+        "necesito la página oficial completa de una función",
+        "hay una contradicción entre fuentes"
+      ],
+      "no_usar_para": [],
+      "clave": "La traducción oficial está al 86%. 296 páginas más las ha traducido esta biblioteca (marca <!-- traducido-por-la-biblioteca -->). Si una página del espejo ES está en inglés, la misma ruta en manual-lts-2026-en/ la tiene completa.",
+      "ruta": "09 - Manual oficial",
+      "documentos": [
+        {
+          "ruta": "09 - Manual oficial/README.md",
+          "titulo": "09 · Manual oficial de GameMaker (espejo offline)"
+        },
+        {
+          "ruta": "09 - Manual oficial/manual-lts-2026-en/",
+          "titulo": "(3120 archivos)"
+        },
+        {
+          "ruta": "09 - Manual oficial/manual-lts-2026-es/",
+          "titulo": "(3034 archivos)"
+        }
+      ],
+      "n_documentos": 3
+    },
+    {
+      "titulo": "Todo el material de aprendizaje en castellano",
+      "proposito": "Investigación verificada de qué existe en español, con veredicto honesto, ruta de aprendizaje, y la TRANSCRIPCIÓN ESTRUCTURADA de los dos mejores vídeos.",
+      "usar_cuando": [
+        "aprender sin pasar por el inglés",
+        "consultar el curso de GML sin ver el vídeo"
+      ],
+      "no_usar_para": [],
+      "clave": "No existe ningún curso completo de GameMaker en español actualizado a 2026. Los documentos 06 y 07 son la transcripción completa de los dos mejores vídeos.",
+      "ruta": "10 - Cursos en español",
+      "documentos": [
+        {
+          "ruta": "10 - Cursos en español/01 - Academia de Hektor Profe.md",
+          "titulo": "01 · Academia de GameMaker — Hektor Profe (Escuela de Videojuegos)"
+        },
+        {
+          "ruta": "10 - Cursos en español/02 - Altair AML - GameMaker 2024.md",
+          "titulo": "02 · Altair_AML — GameMaker 2024 en español"
+        },
+        {
+          "ruta": "10 - Cursos en español/03 - Otros canales y series.md",
+          "titulo": "03 · Otros canales y series de GameMaker en español"
+        },
+        {
+          "ruta": "10 - Cursos en español/04 - Recursos escritos en español.md",
+          "titulo": "04 · Recursos escritos de GameMaker en español"
+        },
+        {
+          "ruta": "10 - Cursos en español/05 - Ruta de aprendizaje en español.md",
+          "titulo": "05 · Ruta de aprendizaje 100 % en español"
+        },
+        {
+          "ruta": "10 - Cursos en español/06 - Curso de GML en vídeo - transcripción estructurada.md",
+          "titulo": "06 · Curso de GML en vídeo (español) — transcripción estructurada"
+        },
+        {
+          "ruta": "10 - Cursos en español/07 - Curso de eventos en vídeo - transcripción estructurada.md",
+          "titulo": "07 · Los eventos de GameMaker, en vídeo y en español — transcripción estructurada"
+        },
+        {
+          "ruta": "10 - Cursos en español/08 - Plataformas estilo Megaman X - apuntes de la serie de Altair.md",
+          "titulo": "08 · Plataformas estilo Megaman X — apuntes técnicos"
+        },
+        {
+          "ruta": "10 - Cursos en español/09 - Plataformas para principiantes - apuntes de Alas de reptil 2025.md",
+          "titulo": "09 · Plataformas para principiantes — apuntes de la serie de Alas de reptil (2025)"
+        },
+        {
+          "ruta": "10 - Cursos en español/10 - Herramientas de la comunidad - Input y Scribble.md",
+          "titulo": "10 · Herramientas de la comunidad: Input y Scribble"
+        },
+        {
+          "ruta": "10 - Cursos en español/11 - El IDE de GameMaker en español - recorrido guiado.md",
+          "titulo": "11 · El IDE de GameMaker en español — recorrido guiado"
+        },
+        {
+          "ruta": "10 - Cursos en español/12 - Primer contacto - decisiones al empezar (2025-2026).md",
+          "titulo": "12 · Primer contacto: las decisiones al empezar (apuntes 2025-2026)"
+        },
+        {
+          "ruta": "10 - Cursos en español/_INDICE-CURSOS-ES.md",
+          "titulo": "10 · Cursos y materiales de GameMaker en español"
+        }
+      ],
+      "n_documentos": 13
+    },
+    {
+      "titulo": "314 repositorios con código GML real",
+      "proposito": "53569 archivos .gml de librerías, extensiones oficiales, juegos completos y plantillas. Organizado en 28 temas y catalogado en español.",
+      "usar_cuando": [
+        "cómo resuelve esto la gente de verdad",
+        "existe ya una librería para X",
+        "ver la estructura de un juego grande"
+      ],
+      "no_usar_para": [
+        "copiar código de los juegos comerciales extraídos (no son libres)"
+      ],
+      "clave": "_RUTAS.json mapea nombre de repositorio a ruta. _CATALOGO.md describe los 314 en español.",
+      "ruta": "11 - Código descargado",
+      "documentos": [
+        {
+          "ruta": "11 - Código descargado/_CATALOGO.md",
+          "titulo": "Catálogo del código descargado"
+        },
+        {
+          "ruta": "11 - Código descargado/extensiones_oficiales/",
+          "titulo": "(4998 archivos)"
+        },
+        {
+          "ruta": "11 - Código descargado/herramientas/",
+          "titulo": "(247 archivos)"
+        },
+        {
+          "ruta": "11 - Código descargado/juegos_y_motores/",
+          "titulo": "(37035 archivos)"
+        },
+        {
+          "ruta": "11 - Código descargado/librerias/",
+          "titulo": "(25423 archivos)"
+        },
+        {
+          "ruta": "11 - Código descargado/plantillas_y_ejemplos/",
+          "titulo": "(2257 archivos)"
+        }
+      ],
+      "n_documentos": 6
+    },
+    {
+      "titulo": "Lo que rodea al motor",
+      "proposito": "Herramientas de flujo de trabajo, extensiones nativas, integraciones con servicios, multijugador, pipeline de arte y audio, itch.io y dónde buscar.",
+      "usar_cuando": [
+        "qué herramienta uso para X",
+        "cómo integro Steam/Discord/Photon/Colyseus",
+        "pipeline de Aseprite o Tiled",
+        "dónde busco algo"
+      ],
+      "no_usar_para": [],
+      "ruta": "12 - Utilidades e integraciones",
+      "documentos": [
+        {
+          "ruta": "12 - Utilidades e integraciones/01 - Herramientas del flujo de trabajo.md",
+          "titulo": "01 · Herramientas del flujo de trabajo"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/02 - Extensiones nativas y del sistema.md",
+          "titulo": "02 · Extensiones nativas y del sistema"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/03 - Integraciones con servicios.md",
+          "titulo": "03 · Integraciones con servicios y plataformas"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/04 - Multijugador y red.md",
+          "titulo": "04 · Multijugador y red"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/05 - Pipeline de arte, audio y niveles.md",
+          "titulo": "05 · Pipeline de arte, audio y niveles"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/06 - itch.io - assets, herramientas y jams.md",
+          "titulo": "06 · itch.io — assets, herramientas y jams para GameMaker"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/07 - Dónde buscar - hubs y documentación.md",
+          "titulo": "07 · Dónde buscar: hubs, foros y documentación"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/08 - Tooling externo - CLI, parsers e ingeniería inversa.md",
+          "titulo": "08 · Tooling externo: CLI, parsers, TypeScript e ingeniería inversa"
+        },
+        {
+          "ruta": "12 - Utilidades e integraciones/_INDICE-UTILIDADES.md",
+          "titulo": "12 · Utilidades e integraciones para GameMaker"
+        }
+      ],
+      "n_documentos": 9
+    },
+    {
+      "titulo": "Diseño y producción de videojuegos",
+      "proposito": "El oficio que va antes y alrededor del código, en 24 documentos: diseño de juego, niveles, pixel art, animación, UI/UX, arquitectura, generación procedural, físicas y fluidos, sonido, testing, producción, narrativa, matemáticas, el documento de diseño (GDD), teoría del diseño, progresión, puzzles, combate y jefes, cámaras, negocio y ética, balance por simulación, mundo y exploración, patrones en GML, y voz y localización de audio.",
+      "usar_cuando": [
+        "me piden diseñar o planificar un juego, no solo programarlo",
+        "cómo se diseña un nivel / se equilibra una mecánica / se escribe un diálogo",
+        "qué resolución y paleta uso para pixel art",
+        "cómo estructuro el proyecto para que crezca",
+        "ruido, autómatas celulares, WFC, Poisson",
+        "muelles, Verlet, agua, fluidos sin Box2D",
+        "cómo pruebo el juego y cómo lo lanzo",
+        "qué matemáticas necesito para X",
+        "escribir el GDD o un documento que un agente pueda implementar",
+        "el canon teórico del diseño",
+        "árboles de habilidades y meta-progresión",
+        "diseñar puzzles y validarlos por búsqueda",
+        "decidir el combate y los jefes",
+        "qué cámara pide mi juego",
+        "cómo se paga el juego y con qué ética",
+        "comprobar el balance sin gastar playtests",
+        "diseñar el mundo y la exploración",
+        "traducir un patrón conocido a GML",
+        "grabar y localizar voces"
+      ],
+      "no_usar_para": [
+        "la firma de una función (usa _indice/buscar.py)",
+        "la receta completa de un género (usa 04 - Recetas por género)",
+        "la API de un sistema del motor (usa 01 - Fundamentos y 08 - Referencia GML completa)"
+      ],
+      "ruta": "13 - Diseño y producción de videojuegos",
+      "documentos": [
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+          "titulo": "01 · Diseño de juego — core loop, mecánicas, balance y dificultad"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/02 - Diseño de niveles.md",
+          "titulo": "02 · Diseño de niveles"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/03 - Pixel art y resolución.md",
+          "titulo": "03 · Pixel art y resolución"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/04 - Animación de sprites, Sequences y Animation Curves.md",
+          "titulo": "04 · Animación de sprites, Sequences y Animation Curves"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/05 - UI y UX de juego.md",
+          "titulo": "05 · UI y UX de juego"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md",
+          "titulo": "06 · Arquitectura de un proyecto GameMaker"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/07 - Generación procedural avanzada.md",
+          "titulo": "07 · Generación procedural avanzada"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/08 - Físicas a mano y fluidos.md",
+          "titulo": "08 · Físicas a mano y fluidos"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/09 - Diseño de sonido y mezcla.md",
+          "titulo": "09 · Diseño de sonido y mezcla"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/10 - Testing y QA.md",
+          "titulo": "10 · Testing y QA"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md",
+          "titulo": "11 · Producción, alcance y lanzamiento"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/12 - Diseño narrativo y diálogos.md",
+          "titulo": "12 · Diseño narrativo y diálogos"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md",
+          "titulo": "13 · Matemáticas aplicadas al juego"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/14 - El documento de diseño - del one-pager al GDD completo.md",
+          "titulo": "14 · El documento de diseño — del one-pager al GDD completo"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/15 - Teoría del diseño - el canon en una tarde.md",
+          "titulo": "15 · Teoría del diseño — el canon en una tarde"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/16 - Progresión - árboles de habilidades, desbloqueos y meta-progresión.md",
+          "titulo": "16 · Progresión: árboles de habilidades, desbloqueos y meta-progresión"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/17 - Diseño de puzzles.md",
+          "titulo": "17 · Diseño de puzzles"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/18 - Diseño de combate y de jefes.md",
+          "titulo": "18 · Diseño de combate y de jefes"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/19 - Cámaras de juego - encuadre, seguimiento y control.md",
+          "titulo": "19 · Cámaras de juego — encuadre, seguimiento y control"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/20 - Modelo de negocio, monetización y ética del diseño.md",
+          "titulo": "20 · Modelo de negocio, monetización y ética del diseño"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/21 - Balance por simulación - Monte Carlo, Machinations y estrategias dominantes.md",
+          "titulo": "21 · Balance por simulación: Monte Carlo, Machinations y estrategias dominantes"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/22 - Diseño de mundo y exploración.md",
+          "titulo": "22 · Diseño de mundo y exploración"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md",
+          "titulo": "23 · Catálogo de patrones en GML"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/24 - Voz, diálogo y localización de audio.md",
+          "titulo": "24 · Voz, diálogo y localización de audio"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
+          "titulo": "Diseño y producción de videojuegos — índice"
+        }
+      ],
+      "n_documentos": 25
+    }
+  ],
+  "puntos_de_entrada": {
+    "RUTA.md": {
+      "titulo": "🎓 Ruta completa: de cero a experto",
+      "proposito": "Itinerario maestro en 6 niveles (0 Cero → 5 Profesional) con competencias observables, material exacto por nivel y una prueba de nivel.",
+      "usar_cuando": [
+        "el usuario está aprendiendo y hay que situarlo",
+        "qué estudio ahora / por dónde sigo",
+        "cuánto me falta para X",
+        "no sé si estoy listo para hacer un juego comercial"
+      ],
+      "nota_para_agentes": "Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente."
+    },
+    "README.md": {
+      "titulo": "Biblioteca de conocimiento · GameMaker LTS 2026"
+    },
+    "AGENTS.md": {
+      "titulo": "AGENTS.md — cómo usar esta biblioteca si eres un agente de IA"
+    },
+    "_indice/COMO-BUSCAR.md": {
+      "titulo": "Árbol de decisión para encontrar cualquier cosa"
+    },
+    "CLAUDE.md": {
+      "titulo": "CLAUDE.md",
+      "proposito": "Arranque mínimo: las 5 reglas irrenunciables y el desvío a AGENTS.md (instrucciones completas) y a _indice/COMO-BUSCAR.md (cómo buscar). Deliberadamente corto: se carga en cada sesión.",
+      "usar_cuando": [
+        "empiezas una sesión en este repositorio",
+        "quieres las reglas antes de tocar nada"
+      ],
+      "no_usar_para": [
+        "entender la estructura completa (usa AGENTS.md o este MAPA.json)",
+        "buscar una función (usa _indice/buscar.py)"
+      ]
+    }
+  },
+  "total_documentos": 234,
+  "mantenimiento": {
+    "comando": "python3 _indice/actualizar.py",
+    "que_se_deduce_del_disco": [
+      "documentos de cada carpeta",
+      "títulos",
+      "recuentos",
+      "cruce símbolo → documento",
+      "puntos de entrada"
+    ],
+    "que_escribe_una_persona": [
+      "proposito",
+      "usar_cuando",
+      "no_usar_para",
+      "descripción de un punto de entrada nuevo"
+    ],
+    "nota": "Los documentos NO se añaden a mano a este archivo: los descubre actualizar.py. Lo único que pide una persona es describir una carpeta nueva, y el comando avisa por su nombre cuando ocurre.",
+    "runtime_nuevo": "actualizar.py lee el GmlSpec.xml del runtime instalado y reporta los cambios de API. Entre medias, buscar.py avisa en cada consulta de que el índice está caducado."
+  }
+}

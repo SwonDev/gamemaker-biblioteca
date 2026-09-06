@@ -1,0 +1,373 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""actualizar.py — el ÚNICO comando que hay que ejecutar tras tocar la biblioteca.
+
+    python3 _indice/actualizar.py
+
+Hace, en orden y parando al primer fallo real:
+
+  1. Verifica que todos los enlaces internos existen.
+  2. Regenera documentos.json y simbolos.json desde el disco.
+  3. Sincroniza MAPA.json: añade los documentos nuevos, actualiza títulos y
+     recuentos, y avisa de lo único que necesita una persona (describir una
+     carpeta nueva).
+  4. Comprueba que MAPA.json no apunta a nada inexistente.
+  5. Comprueba la ortografía española en los documentos nuevos.
+  … y varias comprobaciones más (cobertura, descubrimiento, código GML) hasta la 10:
+ 10. Regenera el índice de la skill `gamemaker-biblioteca` y comprueba sus rutas.
+ 11. Compara el espejo español del manual con el inglés (ver verificar-espejo.py):
+     páginas ausentes, incompletas o con literales de la API traducidos.
+
+Sale con 0 solo si todo está correcto. Cualquier otra cosa es trabajo pendiente
+y lo dice explícitamente.
+"""
+import os, re, subprocess, sys, json
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IND = os.path.join(RAIZ, "_indice")
+PY = sys.executable
+
+
+def paso(n, titulo):
+    print(f"\n\033[1m{n}. {titulo}\033[0m")
+
+
+def correr(script):
+    r = subprocess.run([PY, os.path.join(IND, script)],
+                       capture_output=True, text=True)
+    print(r.stdout.rstrip())
+    if r.stderr.strip():
+        print(r.stderr.rstrip(), file=sys.stderr)
+    return r.returncode
+
+
+# Palabras españolas escritas sin tilde.
+#
+# Solo entran las INEQUÍVOCAS: si la forma sin tilde también es una palabra
+# española válida, queda fuera aunque a veces sea un error. Un detector que
+# grita en falso se acaba ignorando, y «corregir» un falso positivo es peor
+# que no detectarlo: «Practica la navegación» es un imperativo correcto y
+# ponerle tilde lo estropea.
+#
+# Excluidas a propósito por ser también verbos: practica, publico, numero,
+# titulo, critico, calculo, continuo, domino, limite, termino, valido.
+SIN_TILDE = ["camara", "maquina", "posicion", "animacion", "configuracion",
+             "colision", "direccion", "rotacion", "interpolacion", "descripcion",
+             "informacion", "duracion", "creacion", "destruccion", "funcion",
+             "tamano", "matematicas", "minimo", "maximo", "ultimo",
+             "parametro", "parametros", "graficos", "automatico", "codigo",
+             "tambien", "segun", "deberia", "aqui", "asi", "facil", "rapido",
+             "pagina", "linea", "tecnica", "logica", "basico", "dinamico",
+             "angulo", "angulos", "metodo", "metodos", "modulo", "modulos",
+             "simbolo", "simbolos", "analisis", "fisica", "estatico", "unico",
+             "proximo", "arbol", "arboles", "catalogo", "clasico",
+             # la ñ sustituida por n: es la falta más fea y la más fácil de colar
+             "espanol", "ano", "anos", "nino", "ninos", "senal", "senales",
+             "diseno", "disenar", "companero", "manana", "sueno", "pequeno",
+             # sufijo -ción escrito -cion: familia entera, sin ambigüedad posible
+             "instalacion", "transcripcion", "documentacion", "informacion",
+             "configuracion", "integracion", "migracion", "traduccion",
+             "compilacion", "ejecucion", "depuracion", "explicacion",
+             "publicacion", "distribucion", "resolucion", "generacion",
+             "optimizacion", "programacion", "aplicacion", "comunicacion",
+             "introduccion", "conclusion", "revision", "gestion", "seccion",
+             "edicion", "iluminacion", "colision",  # el plural «colisiones» NO lleva tilde: el acento se desplaza
+             # «video» queda FUERA a propósito: la RAE admite «vídeo» y «video»,
+             # y además es prefijo de identificadores GML (video_open, video_draw).
+             "basicas", "basicos"]
+PAT_TILDE = re.compile(r"\b(" + "|".join(SIN_TILDE) + r")\b", re.I)
+
+# Zonas que NO se revisan, por orden de importancia:
+#  · bloques de código y acentos graves → ahí «funcion» puede ser un identificador
+#  · etiquetas de enlaces externos      → son títulos citados literalmente
+#    (un vídeo llamado «juego de naves basico» se cita tal cual: cambiarlo
+#     falsearía la fuente)
+COD = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+CITA = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+
+
+def revisar_ortografia():
+    malos = []
+    for raiz, dirs, files in os.walk(RAIZ):
+        dirs[:] = [d for d in dirs
+                   if d not in {".git", "09 - Manual oficial", "11 - Código descargado",
+                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes"}
+                   and not d.startswith(".")]
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            fp = os.path.join(raiz, f)
+            # Los volcados de _API del runtime son listados de identificadores
+            # ingleses generados desde GmlSpec.xml, no prosa española.
+            if "_API del runtime" in fp:
+                continue
+            try:
+                txt = open(fp, encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+            limpio = CITA.sub(" ", COD.sub(" ", txt))
+            hits = sorted({m.group(0) for m in PAT_TILDE.finditer(limpio)})
+            if hits:
+                malos.append((os.path.relpath(fp, RAIZ), hits[:6]))
+    return malos
+
+
+# Sin mínimo de longitud: «pi», «id», «x» y «y» también son símbolos de GML,
+# y exigir 3 caracteres hacía que «pi» pareciera indocumentada.
+TOK = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def revisar_cobertura():
+    """Símbolos del runtime que no aparecen EN NINGÚN SITIO.
+
+    Ni con página propia en el manual español, ni mencionados en el texto de
+    ninguna página, ni explicados por un documento de la biblioteca. Son los
+    que un LLM concluiría que no existen.
+
+    Es la métrica que convierte «alguien tendrá que documentarlo» en «el
+    comando dice exactamente qué falta, por su nombre».
+    """
+    simb = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))["simbolos"]
+    mencionados = set()
+    base = os.path.join(RAIZ, "09 - Manual oficial", "manual-lts-2026-es")
+    for raiz, _d, files in os.walk(base):
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                txt = open(os.path.join(raiz, f), encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+            for tk in set(TOK.findall(txt)):
+                if tk in simb:
+                    mencionados.add(tk)
+
+    invisibles, vigentes = [], 0
+    for nom, v in sorted(simb.items()):
+        if v.get("obsoleta"):
+            continue
+        vigentes += 1
+        if v.get("manual_es") or v.get("docs_es") or nom in mencionados:
+            continue
+        invisibles.append(nom)
+    return vigentes, invisibles
+
+
+def revisar_nombres():
+    """Los nombres de archivo también son texto en español: llevan tilde.
+
+    Se revisan aparte del contenido porque un nombre mal escrito no lo detecta
+    ningún corrector: sale en el índice, en el mapa y en la URL del enlace.
+    """
+    malos = []
+    for raiz, dirs, files in os.walk(RAIZ):
+        dirs[:] = [d for d in dirs
+                   if d not in {".git", "09 - Manual oficial", "11 - Código descargado",
+                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes",
+                                # informes de trabajo: nombres ASCII a propósito, como los índices
+                                "auditorias"}
+                   and not d.startswith(".")]
+        for f in files:
+            if not f.endswith((".md", ".gml")):
+                continue
+            base = os.path.splitext(f)[0]
+            # Los índices en MAYÚSCULAS son ASCII a propósito (COMO-BUSCAR.md,
+            # MAPA.json, README.md, AGENTS.md): se escriben así para poder
+            # teclearlos y citarlos sin acentos. No son una falta.
+            if base.isupper() or base.replace("-", "").replace("_", "").isupper():
+                continue
+            hits = sorted({m.group(0) for m in PAT_TILDE.finditer(base)})
+            if hits:
+                malos.append((os.path.relpath(os.path.join(raiz, f), RAIZ), hits))
+    return malos
+
+
+def revisar_cobertura_familias(umbral=8):
+    """Familias de símbolos (>=umbral, no obsoletas) que NINGÚN documento explica.
+
+    No todo símbolo necesita doc didáctico —los getters sueltos los cubre el
+    manual y buscar.py—, pero una FAMILIA grande sin ni un documento propio suele
+    ser un sistema entero sin cubrir. Informativo: señala dónde mirar, no falla.
+    """
+    import json as _json, collections as _c
+    simb = _json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))["simbolos"]
+    fam = _c.defaultdict(lambda: {"total": 0, "con": 0, "getters": 0, "vars": 0})
+    for n, v in simb.items():
+        if v.get("obsoleta"):
+            continue
+        p = n.split("_")
+        clave = "_".join(p[:2]) if len(p) > 1 else p[0]
+        fam[clave]["total"] += 1
+        if v.get("docs_es"):
+            fam[clave]["con"] += 1
+        # un getter/accessor no es un "sistema": es una consulta que resuelve el manual
+        if "_get_" in n or n.endswith("_get") or v.get("tipo") == "variable":
+            fam[clave]["getters"] += 1
+    huerf = []
+    for f, d in fam.items():
+        if d["total"] < umbral or d["con"] > 0:
+            continue
+        # si >60% de la familia son getters/variables, es una familia de accessors,
+        # no un sistema sin cubrir: el manual y buscar.py bastan
+        if d["getters"] / d["total"] > 0.6:
+            continue
+        huerf.append((d["total"], f))
+    huerf.sort(reverse=True)
+    return huerf
+
+
+def revisar_rutas_codigo():
+    """¿_RUTAS.json refleja los repos de 11 - Código descargado?
+
+    El catálogo de código se mantiene a mano; este chequeo avisa si se descargó
+    un repo nuevo y no se registró (o si una ruta ya no existe), para que no
+    quede fuera de la búsqueda por olvido.
+    """
+    import json as _json
+    base = os.path.join(RAIZ, "11 - Código descargado")
+    rutas_p = os.path.join(base, "_RUTAS.json")
+    if not os.path.isfile(rutas_p):
+        return []
+    d = _json.load(open(rutas_p, encoding="utf-8"))
+    avisos = []
+    catalogadas = {os.path.normpath(r) for r in d.values()}
+    for r in d.values():
+        if not os.path.isdir(os.path.join(base, r)):
+            avisos.append(f"_RUTAS.json apunta a un repo que ya no existe: {r}")
+    # repos con .yyp en disco no reflejados
+    for raiz, dirs, files in os.walk(base):
+        dirs[:] = [x for x in dirs if not x.startswith(".git")]
+        if any(f.endswith((".yyp", ".yyz")) for f in files):
+            rel = os.path.normpath(os.path.relpath(raiz, base))
+            if not any(rel == c or rel.startswith(c + os.sep) or c.startswith(rel + os.sep)
+                       for c in catalogadas):
+                avisos.append(f"repo en disco sin registrar en _RUTAS.json: {rel}")
+    return avisos
+
+
+def revisar_mapa():
+    m = json.load(open(os.path.join(IND, "MAPA.json"), encoding="utf-8"))
+    falta = []
+    for c in m["carpetas"]:
+        for d in c.get("documentos", []):
+            if not os.path.exists(os.path.join(RAIZ, d["ruta"])):
+                falta.append(d["ruta"])
+    for k in m.get("puntos_de_entrada", {}):
+        if not os.path.exists(os.path.join(RAIZ, k)):
+            falta.append(k)
+    return falta, sum(len(c.get("documentos", [])) for c in m["carpetas"])
+
+
+def main():
+    problemas = []
+
+    paso(1, "Enlaces internos")
+    if correr("verificar-enlaces.py") != 0:
+        print("→ hay enlaces rotos: corrígelos antes de seguir.")
+        return 1
+
+    paso(2, "Índices y MAPA.json")
+    if correr("construir-indices.py") != 0:
+        problemas.append("MAPA.json tiene entradas que hay que describir a mano")
+
+    paso(3, "Coherencia de MAPA.json y del catálogo de código con el disco")
+    for a in revisar_rutas_codigo():
+        print("  ⚠", a)
+        problemas.append("el catálogo de código (_RUTAS.json) no cuadra con el disco")
+    falta, total = revisar_mapa()
+    if falta:
+        problemas.append(f"{len(falta)} rutas de MAPA.json no existen")
+        for f in falta[:10]:
+            print("  ✗", f)
+    else:
+        print(f"{total} entradas, todas existen en el disco.")
+
+    paso(4, "Ortografía española")
+    malos = revisar_ortografia()
+    if malos:
+        problemas.append(f"{len(malos)} documentos con tildes ausentes")
+        for ruta, hits in malos[:10]:
+            print(f"  ✗ {ruta}\n      {', '.join(hits)}")
+        if len(malos) > 10:
+            print(f"  … y {len(malos) - 10} más")
+    else:
+        print("Sin palabras españolas escritas sin tilde.")
+
+    paso(5, "Cobertura de la API")
+    vigentes, invisibles = revisar_cobertura()
+    cubiertos = vigentes - len(invisibles)
+    print(f"{cubiertos} de {vigentes} símbolos vigentes son localizables "
+          f"({100 * cubiertos // vigentes} %).")
+    if invisibles:
+        print(f"  {len(invisibles)} no aparecen en el manual ni en la biblioteca:")
+        print("    " + ", ".join(invisibles[:20])
+              + (" …" if len(invisibles) > 20 else ""))
+        print("  → no es un error: es la lista de lo que queda por documentar.")
+
+    paso(6, "Nombres de archivo")
+    nombres = revisar_nombres()
+    if nombres:
+        problemas.append(f"{len(nombres)} archivos con tildes ausentes en el nombre")
+        for ruta, hits in nombres[:10]:
+            print(f"  ✗ {ruta}\n      {', '.join(hits)}")
+        print("  → renombrar exige actualizar los enlaces (van con %20): hazlo de una vez")
+    else:
+        print("Todos los nombres de archivo están bien escritos.")
+
+    paso(7, "Prueba de descubrimiento (¿un LLM encuentra lo que necesita?)")
+    r = subprocess.run([PY, os.path.join(IND, "probar-descubrimiento.py")],
+                       capture_output=True, text=True)
+    ultimas = [l for l in r.stdout.splitlines() if l.strip()]
+    print(ultimas[-1] if ultimas else "(sin salida)")
+    if r.returncode != 0:
+        for l in r.stdout.splitlines():
+            if l.startswith("✗") or l.strip().startswith("no apareció"):
+                print("  " + l)
+        problemas.append("hay tareas de ejemplo que la biblioteca no resuelve")
+
+    paso(8, "Cobertura por familias de símbolos (dónde falta doc didáctico)")
+    huerf = revisar_cobertura_familias()
+    if huerf:
+        print(f"  {len(huerf)} familias grandes sin documento propio (informativo, no es error):")
+        for total, f in huerf[:8]:
+            print(f"    {total:3}  {f}_*")
+        print("  → getters sueltos los cubre el manual; una familia grande suele ser un sistema.")
+    else:
+        print("  Todas las familias grandes de símbolos tienen algún documento propio.")
+
+    paso(9, "Código GML (¿inventa alguna función del runtime?)")
+    r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py")],
+                       capture_output=True, text=True)
+    for l in r.stdout.splitlines():
+        if "INVENTADAS" in l or "no inventa" in l or l.strip().startswith("✗"):
+            print("  " + l.strip())
+    if r.returncode != 0:
+        problemas.append("hay código que llama a funciones del runtime que no existen")
+
+    paso(10, "Skill para agentes (gamemaker-biblioteca): índice generado y rutas citadas")
+    r = subprocess.run([PY, os.path.join(IND, "sincronizar-skill.py")],
+                       capture_output=True, text=True)
+    print("\n".join("  " + l for l in r.stdout.splitlines()))
+    if r.returncode != 0:
+        problemas.append("la skill cita rutas que ya no existen (actualiza references/mapa-disciplinas.md)")
+
+    paso(11, "Espejo español del manual (¿va a la par del inglés?)")
+    r = subprocess.run([PY, os.path.join(IND, "verificar-espejo.py"), "--resumen"],
+                       capture_output=True, text=True)
+    print("  " + r.stdout.strip())
+    if r.returncode != 0:
+        problemas.append("el espejo español del manual tiene páginas ausentes, incompletas o con "
+                          "literales traducidos (python3 _indice/verificar-espejo.py para el detalle)")
+
+    print()
+    if problemas:
+        print("\033[1mQueda trabajo:\033[0m")
+        for p in problemas:
+            print("  ·", p)
+        return 1
+    print("\033[1mBiblioteca coherente.\033[0m Índices al día y sin deuda pendiente.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
