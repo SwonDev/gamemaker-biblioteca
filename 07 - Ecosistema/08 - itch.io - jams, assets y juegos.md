@@ -246,7 +246,7 @@ al proyecto:
 | gm(48) | <https://gm48.net/> | ✅ |
 | gm(48) calendario | <https://gm48.net/game-jam-schedule> | ✅ |
 | gm(48) proyectos open source | <https://gm48.net/open-source-gamemaker-projects> | ✅ |
-| GMTK Game Jam (oficial) | <https://gmtkgamejam.com/> | ✅ |
+| GMTK Game Jam (oficial) | <https://gmtkgamejam.com/> | 🔴 **no responde** (500 / timeout, comprobado 07-09-2026); usa la edición en itch.io de abajo o <https://gamemakerstoolkit.com/jam/> |
 | GMTK Game Jam 2026 (itch.io) | <https://itch.io/jam/gmtk-jam-2026> | ✅ finalizada |
 | Ludum Dare | <https://ludumdare.com/> | ✅ (fin anunciado en oct 2028) |
 | ~~ldjam.com~~ | ~~<https://ldjam.com>~~ | ❌ **no responde** |

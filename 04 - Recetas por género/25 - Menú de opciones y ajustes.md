@@ -21,6 +21,7 @@ ajustes = [
     { tipo: "slider",   clave: "volumen_musica", etiqueta: txt("op_musica"), val: 0.8, min: 0, max: 1 },
     { tipo: "slider",   clave: "volumen_sfx",    etiqueta: txt("op_sfx"),    val: 1.0, min: 0, max: 1 },
     { tipo: "toggle",   clave: "pantalla_completa", etiqueta: txt("op_fullscreen"), val: false },
+    { tipo: "toggle",   clave: "calidad_grafica", etiqueta: txt("op_calidad"), val: false },   // false = alta, true = baja (§2 bis)
     { tipo: "dropdown", clave: "idioma", etiqueta: txt("op_idioma"),
       val: 0, opciones: ["Español", "English", "Français"], codigos: ["es", "en", "fr"] },
     { tipo: "boton",    clave: "controles", etiqueta: txt("op_controles"), accion: abrir_rebinding },
@@ -72,6 +73,8 @@ function aplicar_ajuste(_w) {
             audio_group_set_gain(agrupo_sfx, _w.val, 0);     break;
         case "pantalla_completa":
             window_set_fullscreen(_w.val);                   break;
+        case "calidad_grafica":
+            global.calidad_baja = _w.val;                     break;   // §2 bis
         case "idioma":
             cambiar_idioma(_w.codigos[_w.val]);              break;   // ver receta 21
     }
@@ -85,6 +88,27 @@ function aplicar_ajuste(_w) {
 > 🔺 **`audio_group_set_gain(grupo, ganancia, tiempo)`** ajusta el volumen de un grupo de audio
 > entero (música, efectos) — mejor que `audio_master_gain`, que afecta a todo por igual. Ver
 > [13 · Audio](../01%20-%20Fundamentos/13%20-%20Audio.md).
+
+---
+
+## 2 bis · Calidad gráfica: conectar `global.calidad_baja` con algo real
+
+`global.calidad_baja` llevaba en la biblioteca desde
+[04 · 28 §6.3](./28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#63-lo-demás-que-se-paga-caro)
+como una variable que se **leía** (para bajar partículas y ajustar `display_set_sleep_margin` en
+móvil) pero que **nadie ponía a `true` desde ningún sitio del jugador**. El widget `toggle` de
+arriba (`calidad_grafica`) es ese sitio: un ajuste más de la lista, con el mismo ciclo de
+lectura/cambio/aplicado/guardado que el volumen o la pantalla completa — no hace falta un widget
+nuevo, `aplicar_ajuste()` ya lo cubre en el `switch` de más arriba.
+
+Lo que sí es nuevo es **a quién más afecta**, aparte de a
+[04 · 28 §6.3](./28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#63-lo-demás-que-se-paga-caro):
+`vfx_resolver()` de
+[04 · 39 §3.14](./39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#314-presupuesto-de-vfx-a-escala-de-juego)
+multiplica sus cupos por un factor cuando `global.calidad_baja` está activo — el mismo booleano,
+dos consumidores, sin duplicar el dato. Como con el volumen, **aplícalo en vivo** (el toggle ya lo
+hace, vía `aplicar_ajuste()`) y **cárgalo al arrancar** (§4, `cargar_ajustes()` en `rm_init`), no
+solo al abrir Opciones — si no, la primera explosión de la partida ignora el ajuste.
 
 ---
 

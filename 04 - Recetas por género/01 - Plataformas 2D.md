@@ -237,6 +237,13 @@ El jugador debe viajar con la plataforma. El patrón correcto es guardar la
 referencia y aplicar el *delta* de movimiento de la plataforma en **Begin
 Step**, antes de calcular nada más.
 
+> Una plataforma móvil en eje vertical **es** un ascensor: mismo código de §5.8, sin cambios,
+> solo con `move_dy`/`y_min`/`y_max` en vez de los horizontales. Se nombra aquí explícitamente
+> porque el otro caso de "ascensor" de la biblioteca —el *joint* prismático de Box2D en
+> [`04 · 22`](./22%20-%20Físicas%20con%20Box2D.md), línea 154— sí lleva la palabra en el
+> comentario, y este caso manual (mucho más habitual en un plataformas 2D sin motor de físicas)
+> no la llevaba: sin esta nota, buscar "ascensor" en la biblioteca solo encontraba el caso Box2D.
+
 ### 4.9 Cámara con deadzone
 
 Perseguir al jugador con `lerp` directo es cómodo pero produce dos problemas:

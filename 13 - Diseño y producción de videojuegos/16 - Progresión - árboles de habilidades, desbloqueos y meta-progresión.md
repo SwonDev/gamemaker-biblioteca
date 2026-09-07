@@ -145,8 +145,10 @@ combates o partidas con cada ruta candidata y comparando —el método de
 [13 · 01 §4.4-4.5](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#44--balance-por-fórmulas-con-números)
 (TTK, balancear en múltiplos) es el punto de partida; simular miles de combates con el `scr_pruebas`
 de [13 · 10 §3.1](./10%20-%20Testing%20y%20QA.md#31-el-script-scr_pruebas) para leer distribución
-en vez de un único cálculo a mano es el paso siguiente, aunque simularlo en serio con percentiles
-y detección de dominancia es un documento propio que esta biblioteca todavía no tiene.
+en vez de un único cálculo a mano es el paso siguiente, y simularlo en serio con percentiles y
+detección de dominancia ya tiene documento propio en
+[13 · 21 §3.6](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo%2C%20Machinations%20y%20estrategias%20dominantes.md#36--cazar-dominancia-tasa-de-uso-frente-a-tasa-de-victoria)
+(«Cazar dominancia: tasa de uso frente a tasa de victoria»).
 
 ### 1.7 Cuándo NO hace falta un grafo
 

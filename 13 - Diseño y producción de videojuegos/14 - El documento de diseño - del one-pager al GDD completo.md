@@ -197,25 +197,28 @@ enlaza y no se repite.
 | 2.5 | **Core loop y bucles anidados** | Los tres relojes (acción/sesión/meta), la frase del bucle, el diagrama de cinco casillas | La curva de dificultad (va en 2.8) | [13 · 01 §2](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#2--el-core-loop-y-los-bucles-anidados) |
 | 2.6 | **Mecánicas y verbos** | Los verbos (máximo 5), mecánicas frente a sistemas, la regla del segundo sistema | La ficha detallada de cada sistema (va en 2.7) | [13 · 01 §1.5](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#15--mecánicas-frente-a-sistemas) |
 | 2.7 | **Sistemas** | Una ficha por sistema (entradas, salidas, estado, reglas numeradas, parámetros de balance, casos borde, telemetría) | Los números finales de balance (viven en `balance.json`, no en el documento — 2.9) | [13 · 01 §8.2](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#82--ficha-por-sistema--plantilla) |
-| 2.8 | **Progresión y dificultad** | Forma de la curva, XP y niveles si aplica, DDA sí/no y por qué | Árboles de habilidades y meta-progresión con método propio (hueco de esta biblioteca hoy: solo hay implementación suelta en `04/05` y `04/06`, sin el documento de diseño) | [13 · 01 §3](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#3--progresión-y-curva-de-dificultad) |
-| 2.9 | **Economía y balance** | Fuentes, sumideros, convertidores; la regla de inflación; fórmulas con TTK y los números reales | La notación formal de economía tipo Machinations (hueco de esta biblioteca hoy) | [13 · 01 §4](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#4--economía-y-balance) |
+| 2.8 | **Progresión y dificultad** | Forma de la curva, XP y niveles si aplica, DDA sí/no y por qué | Árboles de habilidades y meta-progresión con método propio (va en el propio [13 · 16](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md), que ya cierra este hueco) | [13 · 01 §3](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#3--progresión-y-curva-de-dificultad) y [13 · 16](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md) para el árbol de habilidades y la meta-progresión entre partidas |
+| 2.9 | **Economía y balance** | Fuentes, sumideros, convertidores; la regla de inflación; fórmulas con TTK y los números reales | La simulación Monte Carlo y la caza de dominancia (van en el propio [13 · 21](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo%2C%20Machinations%20y%20estrategias%20dominantes.md), que ya cierra este hueco) | [13 · 01 §4](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#4--economía-y-balance) y [13 · 21](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo%2C%20Machinations%20y%20estrategias%20dominantes.md) para la notación formal de Machinations y la simulación |
 | 2.10 | **Niveles y mundo** | Tipo de estructura (lineal, hub, metroidvania…), la hoja de nivel por cada nivel | El pixel art de los tiles (va en 2.12) | [13 · 02](./02%20-%20Diseño%20de%20niveles.md), hoja de nivel en [§4](./02%20-%20Diseño%20de%20niveles.md#4--la-hoja-de-nivel-la-plantilla-que-se-rellena-antes-de-construir) |
 | 2.11 | **Personajes, mundo y narrativa** | Biblia del mundo de una página, ficha de personaje, mapa de ramas si hay elección | Diálogo línea por línea (vive en el guion, no en el GDD) | [13 · 12 §8](./12%20-%20Diseño%20narrativo%20y%20diálogos.md#8--plantillas) |
 | 2.12 | **Arte y dirección visual** | Paleta, resolución base, referencias visuales, hoja de estilo de animación | El pipeline técnico Aseprite → GameMaker (va en 2.15) | [13 · 03](./03%20-%20Pixel%20art%20y%20resolución.md) y [13 · 04](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) |
 | 2.13 | **Audio** | Categorías de sonido, presupuesto, referencias de mezcla, hoja de sonido | La configuración de buses en código (va en 2.15) | [13 · 09](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) |
 | 2.14 | **UI y UX** | Mapa de pantallas, taxonomía diegética, componentes necesarios | El nine-slice y el layout en píxeles (va en 2.15) | [13 · 05](./05%20-%20UI%20y%20UX%20de%20juego.md), mapa de pantallas en [§2.1](./05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada) |
 | 2.15 | **Técnica y arquitectura** | Capas del proyecto, dónde vive el estado, formato de los datos, qué motor de físicas | El código en sí (vive en `.gml`, no en el GDD) | [13 · 06](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) |
-| 2.16 | **Monetización y modelo de negocio** | Qué modelo (premium, F2P, DLC) y su efecto en el resto del diseño — **hueco de esta biblioteca**: hoy solo hay la implementación de la API, no el criterio de diseño | La integración con Steamworks/AdMob/IAP (sí está resuelta, es implementación) | ⚠️ Sin documento de diseño propio. Implementación en [04 · 20](../04%20-%20Recetas%20por%20género/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md); precio y regiones en [13 · 11 §6.7](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#67-fecha-precio-y-regiones) |
+| 2.16 | **Monetización y modelo de negocio** | Qué modelo (premium, F2P, DLC) y su efecto en el resto del diseño | La integración con Steamworks/AdMob/IAP (implementación, no diseño) | [13 · 20](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) para el criterio de diseño; implementación en [04 · 20](../04%20-%20Recetas%20por%20género/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md); precio y regiones en [13 · 11 §6.7](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#67-fecha-precio-y-regiones) |
 | 2.17 | **Marketing y lanzamiento** | Cuándo publicar la página de tienda, activos necesarios, press kit, wishlists | El texto final del press kit (se rellena con la plantilla, no se redacta aquí) | [13 · 11 §6](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#6--lanzamiento) y [§8.4](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#84-press-kit) |
 | 2.18 | **Calendario, alcance y equipo** | Fases con criterio de salida, la matriz de recorte, quién hace qué | La estimación día a día (vive en el tablero de `13/11 §3.1`, no en el GDD) | [13 · 11 §1-§3](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#1--alcance-el-único-problema-que-de-verdad-mata-juegos) |
 | 2.19 | **Anexos: glosario y registro de cambios** | Términos propios del proyecto que no son de GameMaker (p. ej. «piedad», «bolsa aleatoria» si los usas con un sentido concreto), y un `CHANGELOG` corto del propio documento | El registro de decisiones de diseño en sí (va en el ADR ligero de `13/11 §3.5`) | Nuevo por proyecto; formato libre |
 
-> ⚠️ **Las filas 2.16 (monetización) y parte de 2.8 (meta-progresión) están marcadas como hueco a
-> propósito.** La auditoría `_indice/auditorias/diseno-gdd.md` (I3-I6, D3-D4) ya lo señala: esta
-> biblioteca sabe **implementar** la API de compras y sabe programar un árbol de desbloqueos, pero
-> todavía no tiene el documento que enseña a **diseñar** ninguna de las dos cosas. Si tu proyecto
-> necesita esas secciones, complétalas con el criterio propio de tu equipo y márcalas ⚠️ en tu
-> documento igual que aquí, en vez de fingir que existe una plantilla que no existe.
+> **Las filas 2.16 (monetización) y 2.8 (meta-progresión) ya tienen documento de diseño propio.**
+> Cuando se escribió esta tabla (6-sep-2026) ambas eran huecos reales de la biblioteca, señalados
+> por la auditoría `_indice/auditorias/diseno-gdd.md` (I3-I6, D3-D4): la biblioteca sabía
+> **implementar** la API de compras y programar un árbol de desbloqueos, pero no tenía el
+> documento que enseña a **diseñar** ninguna de las dos cosas. Un día después,
+> [13 · 20](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) y
+> [13 · 16](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md)
+> cerraron los dos huecos por completo. Si tu proyecto necesita alguna de estas dos secciones, ve
+> directamente a esos documentos; el criterio de diseño ya no hay que improvisarlo.
 
 ### 2.5 · Público, plataformas y competencia: el método
 
@@ -273,12 +276,13 @@ problema distinto — la tabla los reúne por primera vez — y aquí se añaden
 | **Diagrama de estados del jugador** | Que cada estado tenga una salida definida, igual que las pantallas de UI | Nuevo — ver abajo |
 | **Tabla de interacción entre sistemas** | Detectar acoplamientos ocultos antes de que un cambio en un sistema rompa otro en silencio | Nuevo — ver abajo |
 
-> ⚠️ El diagrama de economía con la notación formal de Machinations (pool / source / drain /
-> gate / converter, ver Adams y Dormans, *Game Mechanics: Advanced Game Design*, cap. 5-6) es un
-> hueco real de esta biblioteca a fecha de hoy: existe el vocabulario correcto en `13/01 §4.1`,
-> pero no la notación gráfica ni la simulación asociada. La versión ASCII mínima de arriba cubre
-> lo esencial de un proyecto pequeño; para una economía con muchos convertidores, la notación
-> formal merece su propio documento y no se improvisa aquí.
+> El diagrama de economía con la notación formal de Machinations (pool / source / drain / gate /
+> converter, ver Adams y Dormans, *Game Mechanics: Advanced Game Design*, cap. 5-6) **ya tiene
+> documento propio**: [13 · 21 §2.1](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo%2C%20Machinations%20y%20estrategias%20dominantes.md#21--diagramar-antes-de-programar-la-notación-de-machinations)
+> desarrolla la notación completa (verificada contra `machinations.io/docs`) y la simulación
+> Monte Carlo asociada — cuando se escribió esta tabla (6-sep-2026) era un hueco real; se cerró
+> al día siguiente. La versión ASCII mínima de arriba sigue bastando para una economía pequeña
+> sin convertidores; para una con varios, usa la notación formal de `13 · 21`.
 
 **Grafo de gating / dependencias.** Un nodo por mecánica o zona, una flecha por «esto requiere
 aquello». Se dibuja **antes** de decidir el orden de los niveles, no después:
@@ -446,7 +450,7 @@ Mapa de pantallas:
 ## 10 · Técnica
 Motor de físicas, formato de datos, dónde vive el estado:
 
-## 11 · Monetización        ⚠️ sin plantilla propia en esta biblioteca — ver §2 fila 2.16
+## 11 · Monetización        (criterio de diseño en 13/20, ver §2 fila 2.16)
 ## 12 · Marketing y lanzamiento
 (remite a 13/11 §6 y a la plantilla de press kit de §8.4)
 
@@ -510,7 +514,7 @@ Registro de cambios de este documento:
 | **El documento describe el juego que se quiere hacer, no el que se está haciendo** | Nadie actualiza el documento cuando el código cambia de idea | ADR ligero en el mismo commit que el cambio (`13/11 §3.5`); ver [§1.5](#15--wiki-viva-frente-a-documento-congelado) |
 | **Pedirle a un LLM que implemente desde un GDD «bonito» pero ambiguo** | El documento se escribió para que lo lea una persona, con huecos que un compañero rellenaría preguntando | La versión para LLM de [§6](#6--la-versión-para-llm-qué-necesita-un-agente-para-implementar-sin-inventar): reglas numeradas, rangos, recorte explícito |
 | **Actualizar el `Note` del proyecto y que se quede con el contenido viejo** | `NOTE SETFILEPATH` no refresca un `Note` que ya tiene archivo asignado (verificado en [§3.2](#32--crear-y-actualizar-el-note-con-resourcetool-verificado-en-vivo)) | Borra el recurso y vuelve a crearlo en vez de repetir `SETFILEPATH` sobre el mismo `Note` |
-| **Monetización o meta-progresión copiadas de una plantilla que no existe** | Se asume que toda sección del cuadro de `13/01` tiene equivalente aquí | Marca ⚠️ la sección como hueco de la biblioteca y decide con criterio propio, en vez de inventar una plantilla |
+| **Inventar una plantilla para una sección que no tiene documento propio en la biblioteca** | Se asume que toda sección del cuadro de §2 tiene equivalente en otro documento sin comprobarlo | Sigue el enlace de la columna «Dónde está desarrollado» de §2; si de verdad no hay documento (compruébalo con `buscar.py --texto`), marca ⚠️ la sección y decide con criterio propio en vez de inventar una plantilla. Monetización y meta-progresión, que eran el ejemplo clásico de este error, ya tienen documento propio en [13 · 20](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) y [13 · 16](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md) |
 
 ---
 
@@ -677,17 +681,146 @@ código GML en sí — eso lo escribe el agente, verificando cada símbolo con `
 
 ---
 
+## 7 · Del GDD al proyecto: la lista de tareas y el árbol de recursos
+
+El §6 resuelve **un** sistema aislado a la perfección: con la plantilla mínima y el ejemplo de
+«Luz de Ámbar», un agente sabe implementar «Movimiento y salto» sin inventar nada. Lo que ese
+ejemplo no responde —porque un GDD de tres sistemas no lo necesita, y uno de quince sí— son dos
+preguntas que aparecen en cuanto el documento crece: **¿en qué orden se construyen los sistemas
+de la ficha?** y **¿qué recursos concretos de GameMaker derivan de cada campo de una ficha ya
+escrita?** `13 · 18 §4.1` ya contesta la segunda pregunta, pero **solo para combate**; esta
+sección generaliza ese mismo patrón a cualquier sistema de `13 · 01 §8.2`, y añade la pieza que
+falta del todo: el orden entre sistemas y el paso de la ficha al tablero de `13 · 11 §3.1`.
+
+### 7.1 · De cualquier ficha de sistema a los recursos de GameMaker
+
+La ficha de `13 · 01 §8.2` tiene ocho campos. Cada uno apunta a un tipo de recurso distinto —la
+tabla es el mismo ejercicio que `13 · 18 §4.1` hizo para combate, aplicado a los ocho campos en
+vez de a una lista de sistemas concretos:
+
+| Campo de la ficha (`13 · 01 §8.2`) | Qué recurso de GameMaker deriva | Regla para decidir |
+|---|---|---|
+| **Para qué existe** | Ninguno directamente — es la prueba con la que se descarta un sistema entero antes de crear nada (§1.3 de este documento, la pregunta «¿sirve al pilar?») | — |
+| **Entradas** | Normalmente ninguno nuevo: casi siempre es otro sistema ya construido, o `keyboard_check`/`gamepad_*` | Si la entrada no existe todavía como sistema, es una **dependencia**: va antes en el orden de §7.2 |
+| **Salidas** | Un evento de [04 · 16 — Señales](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md) si otros sistemas lo consumen sin acoplarse; una variable directa si solo lo lee un objeto concreto | Más de un sistema escuchando → señal. Uno solo, siempre el mismo → variable de instancia |
+| **Estado que mantiene** | `obj_*` nuevo con variables de instancia (estado **por entidad**: vida, posición, temporizador propio) · `scr_*` + struct en `global.*` (estado **compartido**: inventario, progreso de nivel) · `balance.json`/archivo (estado que sobrevive a cerrar el juego) | La pregunta que decide: ¿existe más de una instancia con este estado a la vez? Si sí, `obj_`. Si es uno solo para todo el juego, `global.*` |
+| **Reglas numeradas R1-Rn** | El `.gml` real: casi siempre un evento (`Create`/`Step`/`Collision`) del `obj_` de la fila de arriba, o una función en un `scr_` si no hay estado por instancia | Una regla que empieza por «al detectar X…» casi siempre es un evento; una que empieza por «calcular Y a partir de…» casi siempre es una función pura en un `scr_` |
+| **Parámetros de balance** | `#macro` en `scr_config` si no va a tocarse en caliente; entrada en `balance.json` si sí (criterio completo en [13 · 01 §9.1](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#91--dónde-vive-cada-decisión-de-diseño), no se repite aquí) | — |
+| **Interacciones con otros sistemas** | Nada nuevo por sí solo — es la fila que rellena la **tabla de interacción entre sistemas** de [§2.20](#220--el-catálogo-de-diagramas-de-diseño), la entrada de §7.2 | — |
+| **Feedback al jugador** | `spr_*`/`snd_*` nuevos, o una entrada más en el catálogo de VFX ya existente ([04 · 39](../04%20-%20Recetas%20por%20género/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md)) | Antes de pedir un asset nuevo, comprueba si el catálogo de `04 · 39` ya resuelve el efecto |
+| **Casos borde** | Ninguno — no generan recurso, generan **tarea de verificación** en el tablero (§7.3) | — |
+| **Cómo se prueba** | Ninguno — es el criterio de aceptación de la tarjeta de tablero que cierra el sistema (§7.3) | — |
+| **Telemetría** | Una llamada a `telemetria_registrar()` ([13 · 01 §9.5](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#95--telemetría-contar-muertes-por-sala-y-volcarlas-a-json)), nunca un sistema de registro propio | — |
+
+> 💡 **`obj_` nuevo frente a extender uno que ya existe.** La tabla de arriba dice cuándo hace
+> falta un objeto, pero no distingue «uno nuevo» de «una variable más en el `obj_jugador` que ya
+> tienes» — esa es la pregunta de composición de
+> [13 · 06 §3.6](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md#36-composición-frente-a-herencia),
+> y esta sección no la repite: la ficha de sistema te dice **que** hace falta estado nuevo; ese
+> otro documento te dice **dónde** debe vivir dentro de la jerarquía de objetos que ya tienes.
+
+**Antes de crear nada, verifica que no exista.** El mapa de decisión de `AGENTS.md §2` («¿qué
+librería/extensión existe para X?») aplica con más fuerza aquí que en ningún otro sitio: antes de
+crear un `obj_` para el sistema nuevo, `python3 "_indice/buscar.py" --texto "<el sistema>"` —
+puede que ya exista una receta entera en `04 - Recetas por género/` que resuelva ese sistema de
+la ficha sin escribir una línea.
+
+### 7.2 · El orden entre sistemas de un GDD completo
+
+`13 · 06 §2` ya da el orden de **montaje del esqueleto vacío** (Git, `scr_config`, `obj_game`,
+guardado con versión) — eso pasa **una vez**, al principio del proyecto, antes de que exista
+ningún sistema de diseño. Esta sección es la pieza siguiente: dado un GDD con quince sistemas ya
+fichados (`13 · 01 §8.2` por cada uno), **¿en qué orden se implementan?**
+
+**El método es el mismo que ya usa `13 · 14 §2.20` para detectar acoplamientos, aplicado a la
+pregunta de secuencia en vez de a la de riesgo.** Rellena la tabla de interacción entre sistemas
+—una fila por cada par que se toca de verdad, no una matriz NxN vacía— y lee las flechas como un
+grafo de dependencia: si el campo «Entradas» de un sistema B nombra algo que produce el sistema
+A, hay una arista `A → B`, y A va antes. Es exactamente el mismo ejercicio que el **grafo de
+gating** de `§2.20` aplicado a sistemas de código en vez de a mecánicas de contenido — y si al
+dibujarlo aparece un ciclo (A necesita a B y B necesita a A), el diseño tiene un problema real
+que es mucho más barato encontrar en esta tabla que a mitad de implementar los dos.
+
+Sin necesidad de dibujar el grafo cada vez, la dependencia real entre **tipos** de sistema sigue
+casi siempre el mismo orden, porque son las mismas categorías las que producen las entradas de
+las demás en cualquier proyecto:
+
+| Orden | Categoría de sistema | Por qué va ahí, no antes ni después |
+|---|---|---|
+| 1 | **Núcleo de movimiento y colisión** | Todo lo demás lee `x`/`y` o un estado derivado de ellas — es la única categoría sin ninguna entrada que dependa de otro sistema de diseño |
+| 2 | **Cámara** | Necesita la posición del jugador del paso 1 para seguir algo; no tiene sentido antes |
+| 3 | **El sistema que sostiene el pilar principal** | Es la razón de ser del juego (§1.3): si el pilar es «el salto preciso», es el propio movimiento del paso 1; si es «el sigilo», es aquí donde entra la percepción de `04 · 31`/`04 · 45` |
+| 4 | **Combate/enemigos, si el juego lo tiene** | Necesita el movimiento (para golpear algo que se mueve) y a menudo la cámara (para encuadrar el combate); casi nunca lo necesita nadie de los pasos 1-3 |
+| 5 | **UI/HUD** | Por definición **muestra** el estado de otro sistema (vida, munición, gemas) — construirlo antes es adivinar qué campos va a necesitar leer |
+| 6 | **Guardado** | Necesita que exista estado real que guardar; guardarlo antes de tenerlo es guardar structs vacíos que habrá que migrar en cuanto cambien (`13 · 06 §3.10`) |
+| 7 | **Audio** | Reacciona a eventos que los sistemas anteriores ya disparan (golpe, salto, gema recogida) — construirlo antes es adivinar qué eventos van a existir |
+| 8 | **Pulido** (*juice*, [04 · 15](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md)) | Por construcción, pulir es la última capa sobre sistemas que ya funcionan — pulir algo que todavía va a cambiar es trabajo que se tira |
+
+> ⚠️ **Esta tabla es el orden por defecto, no una ley.** Si la tabla de interacción entre
+> sistemas de tu GDD concreto muestra una dependencia distinta —un HUD que necesita existir antes
+> que el combate porque el combate lo consulta para saber si mostrar un aviso, por ejemplo—, gana
+> la tabla de interacción real, no esta lista genérica. La lista sirve para el 90 % de los
+> proyectos que no tienen una razón concreta para desviarse, y para dar un punto de partida
+> cuando construir la tabla completa de `§2.20` sería desproporcionado para un GDD pequeño.
+
+**Ejemplo, sobre el mismo GDD de `§6.3`.** «Luz de Ámbar» tiene tres sistemas fichados:
+Movimiento y salto, Muerte y respawn, Gemas y HUD. La tabla de interacción entre sistemas de
+`§2.20` ya los cruza: *Movimiento → Cámara* (no fichada aparte: es la del propio `04 · 01`),
+*Muerte → Checkpoints* (el respawn lee la posición del checkpoint, no al revés) y *Gemas → HUD*
+(el HUD escucha, no cuenta por sí solo). Aplicando la tabla de categorías de arriba: **Movimiento
+y salto** (categoría 1, y además el pilar principal — categorías 1 y 3 coinciden porque P1 de
+ese GDD *es* el salto) primero; **Muerte y respawn** después, porque depende de que el jugador
+pueda ya moverse y colisionar con `obj_peligro`; **Gemas y HUD** al final, porque el HUD necesita
+que exista algo que mostrar (gemas ya recogibles) antes de dibujar su contador — el mismo orden
+en que el propio documento de `§6.3` los numeró (§5, §6, §7), que no fue casualidad: se escribió
+ya siguiendo esta regla.
+
+### 7.3 · De cada fila de la ficha a las tarjetas del tablero
+
+El puente final: `13 · 11 §3.2` pide tareas de un día, con la tabla de ejemplo «Hacer el sistema
+de combate» → seis tarjetas. Esa tabla no explica **de dónde** salen esas seis tarjetas; salen,
+sistemáticamente, de la misma ficha de `§8.2` que ya escribiste para ese sistema:
+
+| Campo de la ficha | Se convierte en… |
+|---|---|
+| Cada regla `R1…Rn` | Una tarjeta, o el núcleo de una — una regla compleja (```R1``` con varias condiciones) puede partirse en 2-3 tarjetas si no cabe en un día |
+| **Feedback al jugador** | Una tarjeta aparte, casi siempre la última del sistema — necesita que la mecánica ya funcione para saber cómo se ve/suena de verdad |
+| Cada **caso borde** listado | Una tarjeta de verificación propia, no una nota al margen de otra tarjeta — si no tiene su propia tarjeta, se olvida |
+| **Cómo se prueba** | No es una tarjeta: es el criterio de aceptación que cierra **todas** las tarjetas del sistema — la misma función que el criterio de aceptación de `§6.3` para un agente, aplicada a una persona con el tablero |
+
+Aplicado a «Movimiento y salto» de `§6.3` (R1-R4, un caso borde de *input buffer* y uno de morir
+al aterrizar sobre un peligro):
+
+| Backlog (extracto) |
+|---|
+| Salto con coyote time (R1, R2) |
+| Gravedad con tope de velocidad (R3) |
+| Detección de suelo y reseteo de `vspeed` (R4) |
+| Input buffer: salto pulsado hasta 4 frames antes de tocar suelo |
+| Aterrizar sobre `obj_peligro` mata en el mismo frame, no en el siguiente |
+| Squash & stretch del salto (feedback, `04 · 15`) |
+
+Seis tarjetas de un GDD de 15 líneas para un solo sistema — la misma densidad que ya mostraba el
+ejemplo de `13 · 11 §3.2` para combate, ahora con la trazabilidad explícita de qué campo de qué
+ficha produjo cada una. El sistema se da por **terminado** cuando las seis están en «Hecho» **y**
+se cumple «Cómo se prueba» de la ficha — no antes, y no con menos.
+
+---
+
 ## Ver también
 
 - [13 · 01 — Diseño de juego](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md) — el GDD de una página y la ficha por sistema que este documento no repite (§8); MDA, bucle, economía y balance que alimentan los pilares y las secciones 2.5-2.9
 - [13 · 02 — Diseño de niveles](./02%20-%20Diseño%20de%20niveles.md) — la hoja de nivel que rellena la sección 2.10 y el ejemplo de §6.3
 - [13 · 03 — Pixel art y resolución](./03%20-%20Pixel%20art%20y%20resolución.md) · [13 · 04 — Animación](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) — lo que llena la sección 2.12
 - [13 · 05 — UI y UX de juego](./05%20-%20UI%20y%20UX%20de%20juego.md) — el mapa de pantallas del catálogo de diagramas (§2.20) y la sección 2.14
-- [13 · 06 — Arquitectura de un proyecto GameMaker](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) — el Asset Browser donde vive la carpeta `Diseño` de §3.3, y la sección técnica 2.15
+- [13 · 06 — Arquitectura de un proyecto GameMaker](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) — el Asset Browser donde vive la carpeta `Diseño` de §3.3, la sección técnica 2.15, el orden de montaje del esqueleto vacío (§2) y composición frente a herencia (§3.6) que §7.1-7.2 usan sin repetir
 - [13 · 09 — Diseño de sonido y mezcla](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) — la sección 2.13
-- [13 · 11 — Producción, alcance y lanzamiento](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md) — ADR ligero y diario de desarrollo (§1.5, §3.3), herramientas de wiki viva, calendario y alcance (2.18), lanzamiento y press kit (2.17)
+- [13 · 11 — Producción, alcance y lanzamiento](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md) — ADR ligero y diario de desarrollo (§1.5, §3.3), herramientas de wiki viva, calendario y alcance (2.18), lanzamiento y press kit (2.17), el tablero de cuatro columnas y las tareas de un día (§3.1-3.2) que §7.3 convierte en tarjetas concretas
+- [13 · 18 — Diseño de combate y de jefes](./18%20-%20Diseño%20de%20combate%20y%20de%20jefes.md) §4.1 — el patrón «campo de la ficha → recurso de GameMaker», aplicado a combate; §7.1 lo generaliza a cualquier sistema
 - [13 · 12 — Diseño narrativo y diálogos](./12%20-%20Diseño%20narrativo%20y%20diálogos.md) — biblia del mundo, fichas de personaje y mapa de ramas de la sección 2.11 y del catálogo de diagramas
-- [04 · 20 — Servicios de plataforma](../04%20-%20Recetas%20por%20género/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md) — la implementación a la que remite la sección 2.16, marcada como hueco de diseño
+- [13 · 20 — Modelo de negocio, monetización y ética del diseño](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) — el criterio de diseño de la sección 2.16
+- [13 · 16 — Progresión: árboles de habilidades, desbloqueos y meta-progresión](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md) — el criterio de diseño de la meta-progresión de la sección 2.8
+- [04 · 20 — Servicios de plataforma](../04%20-%20Recetas%20por%20género/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md) — la implementación a la que remite la sección 2.16
 - [04 · 28 — Juegos para móvil (táctil)](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md) — lo que cambia el diseño en la fila «móvil» de §2.5
 - [07 · 13 — GM CLI, la línea de comandos](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20línea%20de%20comandos.md) — `resourcetool`, los 17 tipos de recurso y el comando `NOTE SETFILEPATH` verificado en §3.2
 - [09 - Manual oficial/manual-lts-2026-es/The_Asset_Editors/Notes.md](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Notes.md) — el editor de notas, fuente oficial de §3.1
@@ -751,9 +884,13 @@ Todas consultadas y reverificadas en vivo el **2026-09-06**.
   y este documento la reutiliza sin volver a citarla entera
 
 **Marcado con ⚠️ en el texto.** Las secciones de monetización (2.16) y de meta-progresión dentro
-de progresión (2.8) están señaladas como huecos de esta biblioteca a fecha de hoy — la auditoría
-`_indice/auditorias/diseno-gdd.md` (I3-I6, D3-D4) ya lo documenta con más detalle, y no se rellenan
-aquí con una plantilla inventada. La distinción entre pitch de venta y pitch de diseño en §1.4 es
+de progresión (2.8), que la auditoría `_indice/auditorias/diseno-gdd.md` (I3-I6, D3-D4) señalaba
+como huecos de esta biblioteca, se cerraron un día después con
+[13 · 20](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) y
+[13 · 16](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md)
+(verificado por la auditoría `_indice/auditorias/r4-combate-colisiones-gdd.md`, 7-sep-2026); ya no
+hacen falta plantillas inventadas para ninguna de las dos. La distinción entre pitch de venta y
+pitch de diseño en §1.4 es
 síntesis propia a partir de Fullerton y de la práctica del oficio, no una cita literal de un
 artículo que trace esa línea con esas palabras. El diagrama de economía con notación formal
 (Machinations) queda fuera de alcance y se marca así en §2.20, en vez de improvisar una notación.

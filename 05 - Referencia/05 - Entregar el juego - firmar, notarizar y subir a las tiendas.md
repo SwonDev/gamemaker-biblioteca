@@ -8,6 +8,10 @@
 > [13 · 11 §6](<../13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md#6--lanzamiento>).
 > Tampoco repite `butler`/itch.io, ya resuelto en
 > [07 · 08 §2.2](<../07 - Ecosistema/08 - itch.io - jams, assets y juegos.md#22-subir-con-butler-cli--recomendable-para-builds-grandes-e-iterativas>).
+> **Ninguna de las cinco tiendas de este documento es una consola**: el trámite de acceso a
+> Nintendo, PlayStation y Xbox, con sus propios términos (*lotcheck*, TRC, XR) y su propia
+> certificación, es su hermano
+> [06 · Publicar en consolas](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md).
 
 ---
 
@@ -811,6 +815,7 @@ Dos límites reales que ninguna receta de YAML sortea:
 
 ## Ver también
 
+- [05 · 06 — Publicar en consolas: Nintendo, PlayStation y Xbox](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md) — el trámite de acceso, licencia y certificación de las tres consolas; ninguna de ellas es una tienda de las que cubre este documento
 - [05 · 02 — Publicar y exportar](./02%20-%20Publicar%20y%20exportar.md) — cómo se compilan y empaquetan los builds que este documento firma y sube
 - [13 · 11 §6 — Lanzamiento](<../13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md#6--lanzamiento>) — el calendario de marketing y el día 1, con este documento como su paso técnico
 - [13 · 11 §9 — Legal y administrativo mínimo](<../13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md#9--legal-y-administrativo-mínimo>) — licencias, privacidad, clasificación por edades e impuestos de las tiendas

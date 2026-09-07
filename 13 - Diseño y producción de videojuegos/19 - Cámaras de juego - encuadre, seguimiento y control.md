@@ -91,6 +91,7 @@ la biblioteca.
 | `cinematic-paths` | Trayectos cinemáticos | La cámara suspende el control normal para mostrar algo con intención narrativa, y luego lo devuelve | §3.11 |
 | `camera-path` | Trayecto predefinido | Recorrido fijo que la cámara sigue con `path_get_x`/`path_get_y`, típico de niveles con progresión lineal marcada (*Klonoa*) | §3.11 |
 | `auto-scroll` | Scroll automático | El jugador no controla el scroll en absoluto: avanza sin él | `04 · 03` (shmups; fuera del alcance de este documento) |
+| `lock-on-target` ⚠️ *no es de Keren* | Bloqueo de objetivo | Extensión propia de esta biblioteca: cámara y movimiento del jugador se enganchan a un enemigo concreto (*Z-targeting* de *Ocarina of Time*, *Dark Souls*, *Sekiro*); el eje "adelante" del jugador pasa a ser relativo a la línea jugador-objetivo | §3.12 |
 
 ### 1.4 Qué cámara pide cada género
 
@@ -106,14 +107,14 @@ combinación de técnicas de Keren que mejor les sienta, y dónde está cada pie
 | Top-down / *twin-stick* | `position-locking` con *deadzone* pequeña + `target-focus` hacia el disparo | `dual-forward-focus` si el personaje gira 180° | `04 · 02`, aquí §3.8 |
 | *Shoot 'em up* | `auto-scroll` | `edge-snapping` a los límites del cañón de scroll | `04 · 03` |
 | Carreras / vehículos | `projected-focus` por velocidad/ángulo + `zoom-to-fit` dinámico | `camera-path` en circuitos con curvas cerradas | `04 · 12`, aquí §3.7/§3.11 |
-| RPG / Action RPG | `position-locking` con *deadzone* amplia | `cue-focus` en NPCs y `region-focus` en salas de jefe | `04 · 04`, aquí §3.5/§3.6 |
+| RPG / Action RPG | `position-locking` con *deadzone* amplia | `cue-focus` en NPCs, `region-focus` en salas de jefe y `lock-on-target` en combate 1 contra 1 | `04 · 04`, aquí §3.5/§3.6/§3.12 |
 | Puzzle / Match-3 | `region-focus` (la sala de puzzle define el encuadre) | `zoom-to-fit` al tamaño del tablero | `04 · 07`, aquí §3.5 |
 | Roguelike | `region-based-anchors` por sala procedural | `cue-focus` en cofres y enemigos únicos | `04 · 05`, aquí §3.5/§3.6 |
 | Tower Defense / estrategia | Cámara manual (*pan*/zoom del jugador), sin seguimiento automático | `region-focus` al iniciar una oleada | `04 · 08`, `04 · 13` |
 | Survival / crafting (mundo abierto) | `position-locking` con *deadzone* grande | `cue-focus` en eventos del mundo | `04 · 09`, aquí §3.6 |
 | Visual novel | Cámara estática, o `cinematic-paths` puros | — | `04 · 10`, aquí §3.11 |
 | Multijugador local (co-op / *versus*) | `position-averaging` + `zoom-to-fit` dinámico por caja envolvente | *Tether* si un jugador se aleja | `04 · 14`, aquí §3.10 |
-| Combate cuerpo a cuerpo / *brawler* | *Camera-window* horizontal (estilo *Street Fighter*) | `gesture-focus` en golpes fuertes (*hit-stop* + *shake*) | `04 · 30`, `04 · 15` |
+| Combate cuerpo a cuerpo / *brawler* | *Camera-window* horizontal (estilo *Street Fighter*) | `gesture-focus` en golpes fuertes (*hit-stop* + *shake*); `lock-on-target` si el combate es 1 contra 1 orientable | `04 · 30`, `04 · 15`, aquí §3.12 |
 | Rítmico | Cámara fija, o `auto-scroll` sincronizado al patrón | `cue-focus` en el *beat* | `04 · 19` |
 | 3D (primera/tercera persona, orbital) | Fuera del marco de Keren (es 2D); ver la cámara 3D nativa | — | `04 · 29` |
 
@@ -981,6 +982,398 @@ cam_x = path_get_x(pth_cinematica_intro, _t);
 cam_y = path_get_y(pth_cinematica_intro, _t);
 ```
 
+### 3.12 *Lock-on-target*: bloquear la cámara sobre un enemigo
+
+> ⚠️ **`lock-on-target` no es un término de Keren.** *Scroll Back* es un marco para *scrollers*
+> 2D con cámara libre; el bloqueo sobre un enemigo concreto —*Z-targeting* de *The Legend of
+> Zelda: Ocarina of Time* (1998), y su forma moderna en *Dark Souls* y *Sekiro: Shadows Die
+> Twice*— es una **extensión propia de esta biblioteca** para el hueco de combate 1 contra 1
+> orientable que la tabla de §1.4 ya apuntaba (fila *RPG / Action RPG* y fila *Combate cuerpo a
+> cuerpo*). Se documenta aquí, con el mismo vocabulario de Keren donde encaja
+> (`cue-focus`, `zoom-to-fit`, `position-averaging`), porque es lo que un juego de combate acaba
+> necesitando en cuanto el jugador puede enfrentarse a un enemigo concreto en vez de a «lo que
+> hay delante».
+
+Un lock-on completo toca **cuatro sistemas** a la vez: selección de objetivo (matemáticas de
+§2.4 de `13 · 13`), cámara (este documento), movimiento del jugador (una decisión de diseño, no
+solo de cámara) y combate (`04 · 30`, `04 · 36`). Las cuatro piezas se documentan aquí porque
+viven en el mismo objeto controlador — pero el movimiento del jugador se declara explícitamente
+como lo que es: **una decisión de diseño de movimiento**, no un efecto secundario de la cámara.
+
+```gml
+/// obj_camara_director — Create  (añadido)
+objetivo_lock         = noone;   // instancia de obj_enemigo fijada, o `noone` si no hay lock
+lock_activo           = false;
+lock_alcance_inicial  = 320;     // px: radio de búsqueda al activar el lock
+lock_semiangulo       = 50;      // grados a cada lado del frente del jugador
+lock_alcance_ruptura  = 480;     // px: por encima de esto, el lock se suelta solo
+lock_vision_timer     = 0;       // cuenta atrás en fotogramas para el siguiente chequeo de muros
+lock_stick_neutro     = true;    // flanco de subida del eje del stick derecho (cambio de objetivo)
+lock_angulo_vista     = 0;       // grados; inclinación de estilo OPCIONAL — ver el punto 5
+```
+
+**1) Selección de objetivo.** No es una técnica nueva: es el **mismo patrón** de producto
+escalar vía `point_distance()` / `point_direction()` / `angle_difference()` con `with` anidado
+que ya usa esta biblioteca para conos — `objetivo_en_cono()` en
+[`04 · 30 §4.9`](../04%20-%20Recetas%20por%20g%C3%A9nero/30%20-%20Combate%20cuerpo%20a%20cuerpo%20-%20hitboxes%2C%20hurtboxes%20y%20combos.md#49-selección-de-objetivo-en-cono)
+y `habilidad_objetivo_resolver()` en
+[`04 · 36 §3.5`](../04%20-%20Recetas%20por%20g%C3%A9nero/36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md#35-objetivo-válido-uno-mismo-aliado-enemigo-en-cono-área)
+— y el `dot_product_normalised()` de
+[`13 · 13 §2.4`](./13%20-%20Matemáticas%20aplicadas%20al%20juego.md#24--cono-de-visión-con-el-ángulo-de-verdad)
+es la versión de esa misma comprobación por coseno en vez de por ángulo. **No se repite ninguna
+de las tres aquí.** La diferencia real de un lock-on frente a esas dos: `objetivo_en_cono()`
+asume orientación binaria izquierda/derecha (`sign(image_xscale)`, propia de un *brawler* de
+scroll lateral) y `habilidad_objetivo_resolver()` va acoplada al struct `ObjetivoHabilidad` del
+sistema de habilidades. El lock-on necesita un objetivo de 360° independiente de ambos sistemas
+— así que esta función es la misma comprobación, **extraída a una utilidad autónoma**:
+
+```gml
+/// @func objetivo_lock_buscar(_x, _y, _direccion_frente, _alcance, _semiangulo, _objeto)
+/// @desc El más cercano de `_objeto` dentro de un cono frente a (_x, _y). Mismo
+///       patrón que 04 · 30 §4.9 y 04 · 36 §3.5, sin atarse a orientación binaria
+///       ni al sistema de habilidades.
+/// @param {Real} _x
+/// @param {Real} _y
+/// @param {Real} _direccion_frente  Grados: hacia dónde mira el jugador.
+/// @param {Real} _alcance           Radio máximo en píxeles.
+/// @param {Real} _semiangulo        Grados a cada lado del frente.
+/// @param {Asset.GMObject} _objeto  Objeto padre de los enemigos (`obj_enemigo`).
+/// @returns {Id.Instance}           `noone` si no hay nadie válido.
+function objetivo_lock_buscar(_x, _y, _direccion_frente, _alcance, _semiangulo, _objeto)
+{
+    var _mejor      = noone;
+    var _mejor_dist = infinity;
+
+    with (_objeto)
+    {
+        // Mismo filtro de «ya está muerto» que 04 · 30 §4.9: si tu enemigo no
+        // expone `combate.vida`, esta línea no descarta a nadie.
+        if (variable_instance_exists(id, "combate") && combate.vida <= 0) continue;
+
+        var _dist = point_distance(_x, _y, x, y);
+        if (_dist > _alcance || _dist >= _mejor_dist) continue;
+
+        var _dir = point_direction(_x, _y, x, y);
+        if (abs(angle_difference(_dir, _direccion_frente)) > _semiangulo) continue;
+
+        _mejor      = id;
+        _mejor_dist = _dist;
+    }
+
+    return _mejor;
+}
+```
+
+```gml
+/// obj_camara_director — Step  (activar/desactivar el lock; cualquier estado)
+var _pulsa_lock = keyboard_check_pressed(vk_tab)
+    || gamepad_button_check_pressed(global.gamepad_slot, gp_stickr);
+
+if (_pulsa_lock)
+{
+    if (!lock_activo)
+    {
+        var _candidato = objetivo_lock_buscar(obj_jugador.x, obj_jugador.y,
+            obj_jugador.image_angle, lock_alcance_inicial, lock_semiangulo, obj_enemigo);
+
+        if (_candidato != noone)
+        {
+            objetivo_lock     = _candidato;
+            lock_activo       = true;
+            lock_vision_timer = 0;
+        }
+        // Si no hay candidato, no pasa nada: sigue en movimiento libre — no
+        // hay «lock fallido» que mostrar, simplemente no hay nadie que fijar.
+    }
+    else
+    {
+        lock_activo   = false;
+        objetivo_lock = noone;
+    }
+}
+```
+
+> 💡 En un juego sin `image_angle` propio (un top-down con `vel_x`/`vel_y` pero sin variable de
+> orientación separada), sustituye `obj_jugador.image_angle` por
+> `point_direction(0, 0, obj_jugador.vel_x, obj_jugador.vel_y)` — la dirección del último
+> movimiento — o por una variable `mirando` propia si ya la tienes (`04 · 01` §5.1 la llama
+> `facing`, pero esa es binaria; para 360° necesitas grados reales).
+
+**2) Cambio de objetivo.** Cíclalo en la dirección que pide el jugador — stick derecho o un par
+de teclas — buscando, entre los enemigos visibles, el que esté más cerca en ángulo respecto al
+objetivo actual **en el semiplano que pide el input**. No es una comprobación de cono (el
+objetivo nuevo puede estar detrás del actual): es una comparación angular sobre
+`angle_difference()`, con el criterio de signos de
+[`13 · 13 §1.1`](./13%20-%20Matemáticas%20aplicadas%20al%20juego.md#11--y-hacia-abajo-ángulos-antihorario)
+(Y hacia abajo, ángulos antihorario: un `_diff` negativo cae a la derecha de la cámara).
+
+```gml
+/// @func objetivo_lock_siguiente(_objetivo_actual, _cam_x, _cam_y, _direccion_stick, _alcance, _objeto)
+/// @desc El candidato más próximo angularmente, visto desde la cámara, en el
+///       lado que pide `_direccion_stick` respecto al objetivo actual.
+/// @param {Id.Instance} _objetivo_actual
+/// @param {Real} _cam_x
+/// @param {Real} _cam_y
+/// @param {Real} _direccion_stick  1 = buscar hacia la derecha, -1 = izquierda.
+/// @param {Real} _alcance
+/// @param {Asset.GMObject} _objeto
+/// @returns {Id.Instance}  El propio `_objetivo_actual` si no hay nadie mejor.
+function objetivo_lock_siguiente(_objetivo_actual, _cam_x, _cam_y, _direccion_stick, _alcance, _objeto)
+{
+    var _ang_actual = instance_exists(_objetivo_actual)
+        ? point_direction(_cam_x, _cam_y, _objetivo_actual.x, _objetivo_actual.y)
+        : 0;
+
+    var _mejor      = _objetivo_actual;
+    var _mejor_diff = infinity;
+
+    with (_objeto)
+    {
+        if (id == _objetivo_actual) continue;
+        if (point_distance(_cam_x, _cam_y, x, y) > _alcance) continue;
+
+        var _ang  = point_direction(_cam_x, _cam_y, x, y);
+        var _diff = angle_difference(_ang, _ang_actual);
+
+        if (_direccion_stick > 0 && _diff >= 0) continue;   // pide derecha: solo diff < 0
+        if (_direccion_stick < 0 && _diff <= 0) continue;   // pide izquierda: solo diff > 0
+
+        if (abs(_diff) < _mejor_diff)
+        {
+            _mejor_diff = abs(_diff);
+            _mejor      = id;
+        }
+    }
+
+    return _mejor;
+}
+```
+
+```gml
+/// obj_camara_director — Step  (solo si lock_activo)
+if (lock_activo)
+{
+    var GP_UMBRAL = 0.5;
+    var _eje_h = gamepad_axis_value(global.gamepad_slot, gp_axisrh);
+
+    var _cambio = 0;
+    if (_eje_h > GP_UMBRAL && lock_stick_neutro)       { _cambio = 1;  lock_stick_neutro = false; }
+    else if (_eje_h < -GP_UMBRAL && lock_stick_neutro) { _cambio = -1; lock_stick_neutro = false; }
+    else if (abs(_eje_h) < GP_UMBRAL)                  { lock_stick_neutro = true; }
+
+    if (_cambio == 0)
+    {
+        _cambio = keyboard_check_pressed(ord("E")) - keyboard_check_pressed(ord("Q"));
+    }
+
+    if (_cambio != 0)
+    {
+        objetivo_lock = objetivo_lock_siguiente(objetivo_lock, cam_x, cam_y, _cambio,
+            lock_alcance_ruptura, obj_enemigo);
+    }
+}
+```
+
+**3) Ruptura del lock.** Dos condiciones, cada una con su coste: la distancia se comprueba cada
+fotograma (una resta y una comparación); la línea de visión usa `collision_line()` —ya verificado
+en esta biblioteca en
+[`13 · 13 §6.8`](./13%20-%20Matemáticas%20aplicadas%20al%20juego.md#68--collision_line-cuándo-basta-y-cuándo-no)—
+que es más caro, así que se revisa cada pocos fotogramas, no en cada uno.
+
+```gml
+/// @func objetivo_lock_en_linea_de_vision(_ox, _oy, _tx, _ty, _obj_pared)
+/// @desc Envoltorio de una sola línea sobre collision_line(): ¿hay algo sólido
+///       entre el jugador y el objetivo?
+/// @param {Real} _ox
+/// @param {Real} _oy
+/// @param {Real} _tx
+/// @param {Real} _ty
+/// @param {Asset.GMObject} _obj_pared  Objeto sólido genérico del proyecto.
+/// @returns {Bool}
+function objetivo_lock_en_linea_de_vision(_ox, _oy, _tx, _ty, _obj_pared)
+{
+    return (collision_line(_ox, _oy, _tx, _ty, _obj_pared, false, true) == noone);
+}
+```
+
+```gml
+/// obj_camara_director — Step  (antes que el resto: decide si el lock sigue vivo)
+if (lock_activo)
+{
+    if (!instance_exists(objetivo_lock))
+    {
+        lock_activo   = false;
+        objetivo_lock = noone;
+    }
+    else if (point_distance(obj_jugador.x, obj_jugador.y, objetivo_lock.x, objetivo_lock.y)
+             > lock_alcance_ruptura)
+    {
+        lock_activo   = false;
+        objetivo_lock = noone;
+    }
+    else
+    {
+        lock_vision_timer -= 1;
+        if (lock_vision_timer <= 0)
+        {
+            lock_vision_timer = 10;   // cada ~10 fotogramas: collision_line no es gratis
+            if (!objetivo_lock_en_linea_de_vision(obj_jugador.x, obj_jugador.y,
+                    objetivo_lock.x, objetivo_lock.y, obj_muro))
+            {
+                lock_activo   = false;
+                objetivo_lock = noone;
+            }
+        }
+    }
+}
+```
+
+> ⚠️ **El input tiene que enterarse de la ruptura en el MISMO fotograma.** Si `obj_jugador` lee
+> `obj_camara_director.lock_activo` una sola vez al principio de su `Step` y el lock se rompe
+> **después**, ese fotograma orbita sobre un objetivo que ya no existe. Con el orden de eventos
+> de GameMaker (`Step` de todas las instancias antes de `Draw`), lo seguro es que
+> `obj_camara_director` resuelva la ruptura en su propio `Step` con prioridad alta (o que
+> `obj_jugador` vuelva a comprobar `lock_activo` justo antes de aplicar el movimiento, no al
+> principio de su `Step`) — es el primer error de la tabla de §5.
+
+**4) Cómo cambia el movimiento del personaje — decisión de diseño, no solo de cámara.** Mientras
+el lock está activo, el jugador **deja de tener movimiento libre**: el eje "adelante" deja de
+ser hacia donde apunta el input (o hacia donde mira la cámara) y pasa a ser la **línea
+jugador→objetivo**. Adelante/atrás avanza o retrocede sobre esa línea; izquierda/derecha
+**orbita** alrededor del objetivo en vez de girar el personaje sobre sí mismo — es el "*strafe*"
+de *Ocarina of Time*, *Dark Souls* y *Sekiro*. El combate de
+[`04 · 30`](../04%20-%20Recetas%20por%20g%C3%A9nero/30%20-%20Combate%20cuerpo%20a%20cuerpo%20-%20hitboxes%2C%20hurtboxes%20y%20combos.md)
+no cubre esto: su modelo asume orientación binaria (`image_xscale`) propia de un *brawler* de
+scroll lateral, y el lock-on orbital exige orientación libre de 360°. Esta sección **generaliza**
+ese modelo de movimiento; si tu combate ya es de scroll lateral puro, no lo necesitas: `04 · 30`
+te basta.
+
+```gml
+/// obj_jugador — Step  (sustituye el movimiento libre SOLO mientras lock_activo)
+if (obj_camara_director.lock_activo)
+{
+    var _obj = obj_camara_director.objetivo_lock;
+    var _dir_al_objetivo = point_direction(x, y, _obj.x, _obj.y);
+
+    // El personaje SIEMPRE mira al objetivo mientras dura el lock: es lo que
+    // hace legible el combate orbital. Si tu jugador usa una variable de
+    // orientación propia en vez de image_angle, asígnala aquí en su lugar.
+    image_angle = _dir_al_objetivo;
+
+    var _ix = keyboard_check(vk_right) - keyboard_check(vk_left);   // órbita: -1..1
+    var _iy = keyboard_check(vk_up)    - keyboard_check(vk_down);   // avance:  -1..1 (1 = acercarse)
+
+    var _dir_avance  = _dir_al_objetivo;        // "adelante" = hacia el objetivo
+    var _dir_lateral = _dir_al_objetivo + 90;    // perpendicular = órbita
+
+    vel_x = lengthdir_x(SPEED, _dir_avance) * _iy + lengthdir_x(SPEED, _dir_lateral) * _ix;
+    vel_y = lengthdir_y(SPEED, _dir_avance) * _iy + lengthdir_y(SPEED, _dir_lateral) * _ix;
+}
+// else: el movimiento libre normal del proyecto (04 · 01, 04 · 02...) sigue
+// exactamente igual — esta rama solo se activa con lock_activo.
+```
+
+> 💡 `SPEED` es el macro de velocidad que ya define tu objeto jugador (mismo patrón que
+> [`04 · 02`](../04%20-%20Recetas%20por%20g%C3%A9nero/02%20-%20Top-Down%20_%20Twin-Stick.md), que
+> también construye `vel_x`/`vel_y` con `lengthdir_x`/`lengthdir_y`). Si tu jugador acelera con
+> `lerp()` en vez de fijar la velocidad de golpe (§3.2 de `04 · 02`), interpola hacia este
+> resultado en vez de asignarlo directamente — la órbita se siente igual de blanda o de rígida
+> que el resto de tu movimiento, no es un sistema aparte.
+
+**5) Cómo afecta al encuadre.** La técnica primaria es **reencuadrar**, no rotar: el mismo
+`zoom-to-fit` + `position-averaging` de
+[§3.10](#310-cámara-multijugador-con-zoom-dinámico) — aquí con **dos** puntos en vez de un grupo
+de jugadores, así que se calcula la caja a mano en vez de llamar a `camara_grupo_bbox()` (esa
+función recorre **todas** las instancias de un mismo objeto; jugador y objetivo casi nunca son
+el mismo objeto). Reutiliza las variables `zoom_view_w_base`, `zoom_view_h_base`, `zoom_min`,
+`zoom_max`, `zoom_margen` y `zoom_actual` que ya creó §3.10 — si tu proyecto no tiene cámara
+multijugador, copia solo ese bloque `Create` de §3.10, no hace falta el resto de esa sección.
+
+```gml
+/// obj_camara_director — Step  (solo si lock_activo; sustituye el empuje de ventana de §3.2)
+if (lock_activo)
+{
+    var _izq = min(obj_jugador.x, objetivo_lock.x) - zoom_margen;
+    var _der = max(obj_jugador.x, objetivo_lock.x) + zoom_margen;
+    var _arr = min(obj_jugador.y, objetivo_lock.y) - zoom_margen;
+    var _aba = max(obj_jugador.y, objetivo_lock.y) + zoom_margen;
+
+    cam_x = lerp(cam_x, (_izq + _der) / 2, 0.1);
+    cam_y = lerp(cam_y, (_arr + _aba) / 2, 0.1);
+
+    var _zoom_x = zoom_view_w_base / max(_der - _izq, 1);
+    var _zoom_y = zoom_view_h_base / max(_aba - _arr, 1);
+    var _zoom_deseado = clamp(min(_zoom_x, _zoom_y), zoom_min, zoom_max);
+    zoom_actual = lerp(zoom_actual, _zoom_deseado, 0.05);
+
+    camera_set_view_size(cam, round(zoom_view_w_base / zoom_actual),
+                               round(zoom_view_h_base / zoom_actual));
+}
+```
+
+Sobre `camera_set_view_angle()` —firma verificada `camera_set_view_angle(camera_id, angle)`—:
+**la mayoría de juegos 2D con lock-on NO rotan la cámara.** Rotar la vista de la room gira
+también el pixel art y el HUD dibujado en capa de mundo; para un lock-on legible casi siempre
+basta con el reencuadre de arriba. El único uso que se sostiene es un **toque de estilo muy
+sutil** —unos pocos grados de inclinación hacia el lado del objetivo, no una orientación
+completa hacia él— y solo si tu dirección de arte ya lo pide:
+
+```gml
+/// @func camara_objetivo_inclinar(_angulo_actual, _lock_activo, _signo_lateral, _angulo_max, _velocidad)
+/// @desc Toque de estilo OPCIONAL: inclina unos pocos grados con
+///       camera_set_view_angle(), clampado a +-_angulo_max (eje de Comfort,
+///       §1.2 — un giro grande de cámara marea). Vuelve a 0 al soltar el lock.
+/// @param {Real} _angulo_actual  El devuelto por la llamada anterior (o 0 al iniciar).
+/// @param {Bool} _lock_activo
+/// @param {Real} _signo_lateral  sign(objetivo.x - jugador.x): -1, 0 o 1.
+/// @param {Real} _angulo_max     Tope en grados (3-6 es sutil; más marea).
+/// @param {Real} _velocidad      Factor de lerp, 0..1.
+/// @returns {Real}  El nuevo ángulo — guárdalo para la siguiente llamada.
+function camara_objetivo_inclinar(_angulo_actual, _lock_activo, _signo_lateral, _angulo_max, _velocidad)
+{
+    var _objetivo_ang = _lock_activo ? (_signo_lateral * _angulo_max) : 0;
+    return lerp(_angulo_actual, _objetivo_ang, _velocidad);
+}
+```
+
+```gml
+/// obj_camara_director — Step  (después del reencuadre de arriba; en cualquier estado)
+var _signo_lateral = lock_activo ? sign(objetivo_lock.x - obj_jugador.x) : 0;
+lock_angulo_vista = camara_objetivo_inclinar(lock_angulo_vista, lock_activo, _signo_lateral, 5, 0.08);
+camera_set_view_angle(cam, lock_angulo_vista);
+```
+
+**6) Indicador visual sobre el objetivo.** Un marcador dibujado en espacio de mundo (no en la
+capa GUI: tiene que moverse con la room, no con la pantalla) sobre `objetivo_lock`. Un temporizador
+propio para el pulso — **no** `current_time`, por la razón ya documentada en
+[`13 · 13 §9.2`](./13%20-%20Matemáticas%20aplicadas%20al%20juego.md#92--movimiento-sinusoidal-y-por-qué-no-se-usa-current_time).
+
+```gml
+/// obj_camara_director — Create  (añadido)
+lock_marca_t = 0;
+```
+
+```gml
+/// obj_camara_director — Step  (cualquier estado; avanza el pulso solo si hay lock)
+if (lock_activo) { lock_marca_t += 0.1; }
+```
+
+```gml
+/// obj_camara_director — Draw   (espacio de mundo, NO Draw GUI)
+if (lock_activo && instance_exists(objetivo_lock))
+{
+    var _pulso = 1 + 0.15 * sin(lock_marca_t);
+    draw_sprite_ext(spr_marca_objetivo, 0, objetivo_lock.x, objetivo_lock.y - objetivo_lock.sprite_height,
+        _pulso, _pulso, lock_marca_t * 40, c_yellow, 1);
+}
+```
+
+> ⚠️ `spr_marca_objetivo` es un placeholder de proyecto (como `pth_cinematica_intro` en §3.11):
+> un retículo, una flecha invertida o un rombo, con el origen centrado. Si tu proyecto no tiene
+> `sprite_height` fiable en el enemigo (algunos usan un *bounding box* distinto al sprite),
+> sustitúyelo por un desplazamiento fijo en píxeles ajustado a tus enemigos, o por
+> `objetivo_lock.bbox_top`.
+
 ---
 
 ## 4 · Checklist
@@ -1006,6 +1399,12 @@ cam_y = path_get_y(pth_cinematica_intro, _t);
       función nueva de este documento, no solo en el `cam_update()` original.
 - [ ] Ninguna `surface` de transición (§3.9 Variante B) queda viva entre transiciones: se libera
       con `surface_free()` en cuanto `progreso` llega a 1.
+- [ ] Si hay *lock-on* (§3.12), la ruptura por distancia o por línea de visión se resuelve
+      **antes** de que `obj_jugador` aplique el movimiento orbital ese mismo fotograma — no
+      después, o el jugador orbita un objetivo que ya no existe.
+- [ ] Todo *lock-on* tiene las tres salidas probadas de verdad, no solo previstas: el jugador
+      pulsa para soltarlo, el enemigo objetivo muere, y el jugador se aleja lo bastante — las tres
+      devuelven el control y el movimiento a "libre" sin dejar `lock_activo` a medias.
 
 ---
 
@@ -1023,6 +1422,9 @@ cam_y = path_get_y(pth_cinematica_intro, _t);
 | La cinemática no se puede saltar y hay que reiniciar el juego para probarla | Se programó el recorrido de cámara sin la comprobación de salto desde el primer commit | `keyboard_check_pressed` en el `Step`, §3.11 — y probarlo de verdad, no solo "está previsto" |
 | `camera_set_view_target()` pelea con el `tween_to()` de la cinemática | No se puso `camera_set_view_target(cam, noone)` antes de tomar control manual | §3.11, y la nota ya existente en `03 · 42` §10 |
 | Fuga de memoria al hacer transición pantalla-a-pantalla muchas veces seguidas | La `surface` de la Variante B (§3.9) no se libera si la transición se interrumpe a medio camino | Comprobar `surface_exists()` y liberar en cualquier punto de salida, no solo en el camino feliz |
+| El lock-on se rompe pero el input sigue orbitando al enemigo | `obj_jugador` leyó `lock_activo` al principio de su `Step`, antes de que `obj_camara_director` resolviera la ruptura ese mismo fotograma | Resolver la ruptura con prioridad alta en `obj_camara_director`, o releer `lock_activo` justo antes de aplicar el movimiento — §3.12 punto 3 |
+| El objetivo elegido está detrás de una pared y el lock no se rompe nunca | Solo se comprobó la distancia al fijar el objetivo; no hay chequeo de línea de visión mientras el lock sigue activo | `objetivo_lock_en_linea_de_vision()` con `collision_line()`, revisado cada pocos fotogramas — §3.12 punto 3 |
+| El personaje "resbala" al orbitar, como si patinara alrededor del objetivo | Se asignó `vel_x`/`vel_y` directamente sin pasar por la misma aceleración/fricción que el movimiento libre | Interpola hacia el resultado orbital con el mismo `lerp()`/`ACCEL` que ya usa tu jugador — §3.12 punto 4 |
 
 ---
 
@@ -1041,6 +1443,8 @@ cam_y = path_get_y(pth_cinematica_intro, _t);
 - [`04 · 00 — Anatomía de un juego completo`](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md) §4 — por qué toda cinemática scriptada debe ser saltable
 - [`13 · 04 — Animación de sprites, Sequences y Animation Curves`](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) — Sequences por código, para animar UI o sprites durante una cinemática
 - [`03 · 41-44 — PixelatedPope, Cámaras y Resolución 2026`](../03%20-%20Cursos%20%28YouTube%29/) — los cuatro capítulos completos sobre cámara, resolución y la distorsión de píxel al hacer zoom (§17 del capítulo 3)
+- [`04 · 53 — Souls-like: lock-on, hoguera y pérdida de recursos al morir`](../04%20-%20Recetas%20por%20género/53%20-%20Souls-like%20-%20lock-on%2C%20hoguera%20y%20pérdida%20de%20recursos%20al%20morir.md) — el diseño completo del *lock-on* como mecánica de combate (recursos, riesgo, muerte), del que §3.12 cubre solo la parte de cámara y movimiento
+- [`04 · 30 — Combate cuerpo a cuerpo`](../04%20-%20Recetas%20por%20género/30%20-%20Combate%20cuerpo%20a%20cuerpo%20-%20hitboxes%2C%20hurtboxes%20y%20combos.md#49-selección-de-objetivo-en-cono) §4.9 · [`04 · 36 — Habilidades, enfriamientos y recursos de combate`](../04%20-%20Recetas%20por%20género/36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md#35-objetivo-válido-uno-mismo-aliado-enemigo-en-cono-área) §3.5 — el patrón de selección de objetivo en cono (`point_distance`/`point_direction`/`angle_difference`) que extiende §3.12
 
 ---
 
@@ -1070,17 +1474,27 @@ otros, `camera_create`, `camera_destroy`, `camera_get_view_width`, `camera_get_v
 `abs`, `min`, `max`, `infinity`, `instance_number`, `surface_create`, `surface_copy`,
 `surface_free`, `surface_exists`, `application_surface`, `draw_surface`, `display_get_gui_width`,
 `display_get_gui_height`, `path_get_x`, `path_get_y`, `array_push`, `array_length`,
-`keyboard_check_pressed`, `vk_space`, `delta_time`, `room_goto`, `is_undefined`— se comprobaron
-uno a uno con `python3 "_indice/buscar.py" <símbolo>` contra el runtime instalado antes de
-escribirse. Ninguno está marcado como obsoleto. Las funciones que **no** son del runtime
-—`camara_ventana_empujar`, `zona_camara_detectar`, `atractor_crear`,
-`camara_atraccion_evaluar`, `camara_proyeccion`, `camara_grupo_bbox`, `zoom_cuantizar`,
-`transicion_pantalla_iniciar`, `cinematica_encolar`, `cinematica_reproducir`,
-`cinematica_siguiente_plano`, `cinematica_terminar`— son código propio de este documento,
-definidas explícitamente en sus propios bloques (no inventan ninguna familia del runtime:
-`camara_*` en español no coincide con la familia reservada `camera_*`, y `zona_*`/`atractor_*`/
-`cinematica_*`/`zoom_*`/`transicion_*` no son prefijos de ninguna familia nativa). Las
-funciones `cam_set_bounds`, `cam_get_data`, `tween_to`, `tween_update`, `ease_linear`,
+`keyboard_check_pressed`, `vk_space`, `delta_time`, `room_goto`, `is_undefined`, y —para el
+*lock-on-target* de §3.12— `camera_set_view_angle`, `collision_line`, `point_direction`,
+`angle_difference`, `instance_nearest`, `instance_exists`, `variable_instance_exists`, `noone`,
+`round`, `keyboard_check`, `ord`, `vk_tab`, `vk_up`, `vk_down`, `vk_left`, `vk_right`,
+`gamepad_button_check_pressed`, `gamepad_axis_value`, `gp_stickr`, `gp_axisrh`, `draw_sprite_ext`,
+`sin`, `c_yellow`— se comprobaron uno a uno con `python3 "_indice/buscar.py" <símbolo>` contra el
+runtime instalado antes de escribirse. Ninguno está marcado como obsoleto (`instance_nearest` se
+cita en §3.12 punto 1 como alternativa más simple a `objetivo_lock_buscar()` cuando no hace falta
+cono, no se usa directamente en el código: se deja constancia de que también está verificada).
+Las funciones que **no** son del runtime —`camara_ventana_empujar`, `zona_camara_detectar`,
+`atractor_crear`, `camara_atraccion_evaluar`, `camara_proyeccion`, `camara_grupo_bbox`,
+`zoom_cuantizar`, `transicion_pantalla_iniciar`, `cinematica_encolar`, `cinematica_reproducir`,
+`cinematica_siguiente_plano`, `cinematica_terminar`, `objetivo_lock_buscar`,
+`objetivo_lock_siguiente`, `objetivo_lock_en_linea_de_vision`, `camara_objetivo_inclinar`— son
+código propio de este documento, definidas explícitamente en sus propios bloques (no inventan
+ninguna familia del runtime: `camara_*` en español no coincide con la familia reservada
+`camera_*`, y `zona_*`/`atractor_*`/`cinematica_*`/`zoom_*`/`transicion_*`/`objetivo_*` no son
+prefijos de ninguna familia nativa). `objetivo_lock_buscar()` y `objetivo_lock_siguiente()`
+extienden —no repiten— el patrón ya verificado de `objetivo_en_cono()` (`04 · 30` §4.9) y
+`habilidad_objetivo_resolver()` (`04 · 36` §3.5): ver la explicación completa en §3.12 punto 1.
+Las funciones `cam_set_bounds`, `cam_get_data`, `tween_to`, `tween_update`, `ease_linear`,
 `ease_in_out_sine`, `ease_out_quad`, `ease_in_quad` ya existen y están verificadas en
 `06/scr_camera.gml`, `06/scr_tween.gml` y `06/scr_math_util.gml`: no se repiten aquí, se dan
 por dependencia.

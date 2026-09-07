@@ -179,6 +179,10 @@ Qué cambió en LTS 2026 y qué rompe el código antiguo. Handles, GMRT, UI Laye
 - `04 - Recetas por género/50 - Juego de lucha.md` — 50 · Juego de lucha
 - `04 - Recetas por género/51 - Colonia y constructor de bases - trabajadores autónomos.md` — 51 · Colonia y constructor de bases — trabajadores autónomos
 - `04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md` — 52 · Live-ops técnico (config remota, versión mínima, mensajes del juego)
+- `04 - Recetas por género/53 - Souls-like - lock-on, hoguera y pérdida de recursos al morir.md` — 53 · Souls-like — hoguera y pérdida de recursos al morir
+- `04 - Recetas por género/54 - Metajuego transversal - logros, galería, speedrun y espectador.md` — 54 · Metajuego transversal — logros, galería, speedrun y espectador
+- `04 - Recetas por género/55 - Party games, minijuegos y creación casual.md` — 55 · Party games, minijuegos y creación casual
+- `04 - Recetas por género/56 - Combate no letal - pacifismo, aturdir, huir y negociar.md` — 56 · Combate no letal — pacifismo, aturdir, huir y negociar
 - `04 - Recetas por género/_INDICE-RECETAS.md` — Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)
 
 
@@ -193,6 +197,7 @@ Tutoriales oficiales catalogados, publicación y exportación, glosario A-Z y co
 - `05 - Referencia/03 - Glosario GML.md` — 03 · Glosario GML (A–Z)
 - `05 - Referencia/04 - Convenciones y estilo GML.md` — 04 · Convenciones y estilo GML
 - `05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md` — 05 · Entregar el juego: firmar, notarizar y subir a las tiendas
+- `05 - Referencia/06 - Publicar en consolas - Nintendo, PlayStation y Xbox.md` — 06 · Publicar en consolas: Nintendo, PlayStation y Xbox
 
 
 ## `06 - Assets y Scripts` — Scripts GML propios listos para copiar
@@ -346,6 +351,7 @@ Herramientas de flujo de trabajo, extensiones nativas, integraciones con servici
 - `12 - Utilidades e integraciones/06 - itch.io - assets, herramientas y jams.md` — 06 · itch.io — assets, herramientas y jams para GameMaker
 - `12 - Utilidades e integraciones/07 - Dónde buscar - hubs y documentación.md` — 07 · Dónde buscar: hubs, foros y documentación
 - `12 - Utilidades e integraciones/08 - Tooling externo - CLI, parsers e ingeniería inversa.md` — 08 · Tooling externo: CLI, parsers, TypeScript e ingeniería inversa
+- `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — 09 · Manual del agente de IA — operar GameMaker con `gm-cli`
 - `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` — 12 · Utilidades e integraciones para GameMaker
 
 
@@ -383,4 +389,5 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/24 - Voz, diálogo y localización de audio.md` — 24 · Voz, diálogo y localización de audio
 - `13 - Diseño y producción de videojuegos/25 - Legal de terceros - marcas, fan games y parodia.md` — 25 · Legal de terceros: marcas, fan games y parodia
 - `13 - Diseño y producción de videojuegos/26 - Comunidad propia - Discord, moderación y gestión de crisis.md` — 26 · Comunidad propia: Discord, moderación y gestión de crisis
+- `13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md` — 27 · Formatos de producción especiales
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice

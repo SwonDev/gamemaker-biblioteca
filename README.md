@@ -16,9 +16,14 @@ cd gamemaker-biblioteca
 ./instalar.sh
 ```
 
-Eso instala la skill en **Claude Code**, **Codex**, `~/.agents/skills` (Copilot CLI y Gemini CLI)
-y opencode, y genera los índices contra tu GameMaker. A partir de ahí tu agente la activa solo al
-hablar de GameMaker, GML o `.yyp`.
+Eso instala la skill (formato `SKILL.md`, el mismo que usa Claude Code) en cada CLI de IA que
+tengas instalado — **Claude Code, Codex, opencode, Qwen Code, Kimi Code CLI**, más
+`~/.agents/skills` (el estándar abierto [Agent Skills](https://agentskills.io) que además leen
+**GitHub Copilot CLI, Gemini CLI y Cursor CLI**) — y genera los índices contra tu GameMaker. Si
+detecta **Cline**, también lo instala en su carpeta de skills. Salta sin tocar nada los que no
+tengas. A partir de ahí, cada agente la activa solo al hablar de GameMaker, GML o `.yyp` — no hace
+falta invocarla a mano. Detalle completo, con fuentes, en
+[«Qué CLI están soportados»](#qué-cli-de-ia-están-soportados) más abajo.
 
 ```sh
 python3 _indice/buscar.py draw_sprite_ext     # firma exacta, ¿obsoleta?, manual, uso real
@@ -68,7 +73,7 @@ Proyecto independiente, sin relación con YoYo Games.
 > **Puerta de entrada única** a toda la base de conocimiento de GameMaker de este repositorio.
 > Última ampliación: **1 de septiembre de 2026** · **160 documentos propios en español**,
 > **6 152 páginas de manual oficial espejado**, **la API completa del runtime** y
-> **314 repositorios con 53 554 archivos `.gml`**. 422 MB · UTF-8.
+> **608 repositorios con 61 846 archivos `.gml`**. 3,8 GB · UTF-8.
 > Versión de referencia: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · GMS2 Runtime 2026.0.0.23) ·
 > Beta **2026.100.0** (IDE 1139 / runtime 1090) · **GMRT** en Beta 0.21.
 
@@ -96,7 +101,7 @@ Contiene:
 - 🆕 **El manual oficial entero, sin conexión** — 3 119 páginas en inglés y 3 033 en español, en Markdown.
 - 🆕 **La API completa del runtime** — 2 357 funciones, 886 constantes, 210 variables y 33 structs,
   extraídas del `GmlSpec.xml` del runtime instalado. Si algo no está ahí, **no existe**.
-- 🆕 **314 repositorios descargados** — 53 554 archivos `.gml` reales, organizados por tema y catalogados en español.
+- 🆕 **608 repositorios descargados** — 61 846 archivos `.gml` reales, organizados por tema y catalogados en español.
 - 🆕 **Cursos y recursos en español** — investigados, verificados uno a uno y con veredicto honesto.
 - 🆕 **Utilidades e integraciones** — itch.io, extensiones nativas, Steam, Discord, Photon, Colyseus, pipeline de arte.
 - 🆕 **Un buscador offline** — `_indice/buscar.py` cruza símbolo ↔ manual ↔ documentación ↔ código real.
@@ -139,18 +144,18 @@ respetan **en inglés** (son la API real). Las explicaciones y los comentarios e
 | [02 - Novedades 2026](./02%20-%20Novedades%202026/_INDICE-NOVEDADES.md) | 11 | LTS 2026.0, cambios de GML, GMRT, UI Layers, partículas, gráficos, audio, Package Manager, Code Editor 2, roadmap | **Qué ha cambiado y hacia dónde va.** Imprescindible si vienes de 2023 o antes |
 | [03 - Cursos (YouTube)](./03%20-%20Cursos%20%28YouTube%29/_INDICE-CURSOS.md) | 47 | 44 capítulos de curso transcritos + índice, enlaces originales y descubiertas | **Aprender haciendo.** Sky LaRell Anderson (12), DragoniteSpam (26), PixelatedPope cámaras (4), más el plataformas oficial |
 | [04 - Recetas por género](./04%20-%20Recetas%20por%20g%C3%A9nero/_INDICE-RECETAS.md) | 53 | 15 géneros destripados sistema por sistema, el plano de un juego completo y 16 recetas transversales: game feel, señales, web, menús, ritmo, servicios, localización, Box2D, IA y árboles de comportamiento, luz, opciones, música, accesibilidad, móvil, 3D, combate cuerpo a cuerpo | **Cómo se construye tu juego.** De plataformas a multijugador, y de 2D a 3D |
-| [05 - Referencia](./05%20-%20Referencia/) | 5 | Tutoriales oficiales (106 catalogados), publicar y exportar, **glosario A–Z**, **convenciones de estilo** | **Consulta rápida.** Lo que miras una vez y no memorizas |
+| [05 - Referencia](./05%20-%20Referencia/) | 6 | Tutoriales oficiales (106 catalogados), publicar y exportar, entregar el juego (firma/notarización/tiendas), 🆕 **publicar en consolas** (Nintendo/PlayStation/Xbox), **glosario A–Z**, **convenciones de estilo** | **Consulta rápida.** Lo que miras una vez y no memorizas |
 | [06 - Assets y Scripts](./06%20-%20Assets%20y%20Scripts/README.md) | 11 `.gml` | Scripts reutilizables: matemáticas, cámara, FSM, tweens, guardado, pooling, A\*, input, debug | **Código para copiar.** Cada función verificada contra el manual |
 | [07 - Ecosistema](./07%20-%20Ecosistema/_INDICE-ECOSISTEMA.md) | 23 | GitHub de YoYoGames, librerías, extensiones, proyectos de ejemplo, foro, itch.io, comunidades, blogs, GM CLI, IA | **El mundo alrededor del motor.** Qué usar, qué evitar y qué está abandonado |
 | [08 - Referencia GML completa](./08%20-%20Referencia%20GML%20completa/) | 24 + API | Dibujo, formas, texto, color, superficies, shaders, vertex buffers, texturas, tiles, matemáticas, vectores, strings, DS, arrays, structs, buffers, ficheros, fecha, sistema · **+ el catálogo completo de la API** | **La referencia técnica en español**, tema por tema |
 | 🆕 [09 - Manual oficial](./09%20-%20Manual%20oficial/README.md) | **6 152** | El manual oficial entero espejado: **3 119 páginas en inglés** y **3 033 en español, sin una sola página sin traducir** | **La fuente de verdad, sin conexión.** Cuando algo contradice a un tutorial, manda esto |
 | 🆕 [10 - Cursos en español](./10%20-%20Cursos%20en%20espa%C3%B1ol/_INDICE-CURSOS-ES.md) | 6 | Todo el material de aprendizaje en castellano que existe, verificado con `yt-dlp`, con veredicto honesto y ruta de aprendizaje | **Aprender sin pasar por el inglés** |
-| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **314 repos** | **53 554 archivos `.gml`** reales: 228 librerías por tema, 44 extensiones oficiales, 21 juegos y motores, 18 plantillas, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
+| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **608 repos** | **61 846 archivos `.gml`** reales: 325 librerías por tema, 212 plantillas y ejemplos, 44 extensiones oficiales, 24 juegos y motores, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
 | 🆕 [12 - Utilidades e integraciones](./12%20-%20Utilidades%20e%20integraciones/_INDICE-UTILIDADES.md) | 8 | Herramientas de flujo de trabajo, extensiones nativas, Steam/Discord/Twitch, Photon y Colyseus, pipeline de arte y audio, itch.io, dónde buscar | **Lo que rodea al motor y te hace ir más rápido** |
 | 🆕 [13 - Diseño y producción de videojuegos](./13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/_INDICE-DISENO.md) | 26 | Diseño de juego (core loop, balance, dificultad, GDD), niveles, pixel art y resolución, animación (Sequences, Animation Curves), UI/UX, arquitectura del proyecto, generación procedural avanzada, físicas a mano y fluidos, sonido y mezcla, testing y QA, producción y lanzamiento, narrativa, matemáticas aplicadas | **El oficio de hacer juegos, no solo el motor.** Lo que va antes y alrededor del código, con GML verificado |
-| 🆕 [_indice](./_indice/) | 5 + skill + memoria | `buscar.py` (buscador offline), `validar-proyecto.py` (valida el GML de un proyecto real), `actualizar.py` (mantenimiento en un comando), `simbolos.json` (3 486 símbolos), `documentos.json`, la skill [`skills/gamemaker-biblioteca/`](./_indice/skills/gamemaker-biblioteca/SKILL.md) para Claude Code y Codex, y [`traduccion/`](./_indice/traduccion/README.md) (memoria de 4 503 frases y 2 009 celdas con la que se completó el manual en español) | **La forma rápida de encontrar cualquier cosa, desde aquí o desde otro proyecto** |
+| 🆕 [_indice](./_indice/) | 5 + skill + memoria | `buscar.py` (buscador offline), `validar-proyecto.py` (valida el GML de un proyecto real), `actualizar.py` (mantenimiento en un comando), `simbolos.json` (3 486 símbolos), `documentos.json`, la skill [`skills/gamemaker-biblioteca/`](./_indice/skills/gamemaker-biblioteca/SKILL.md) — instalable en nueve CLI de IA distintos, ver [«Qué CLI están soportados»](#qué-cli-de-ia-están-soportados) —, y [`traduccion/`](./_indice/traduccion/README.md) (memoria de 4 503 frases y 2 009 celdas con la que se completó el manual en español) | **La forma rápida de encontrar cualquier cosa, desde aquí o desde otro proyecto** |
 
-**Total: 244 documentos propios en español + 6 152 páginas de manual + 314 repositorios.**
+**Total: 256 documentos propios en español + 6 152 páginas de manual + 608 repositorios.**
 
 ### El buscador: úsalo antes que nada
 
@@ -159,7 +164,7 @@ python3 "_indice/buscar.py" move_and_collide       # ficha completa de un símbo
 python3 "_indice/buscar.py" --listar audio_        # toda una familia de funciones
 python3 "_indice/buscar.py" --texto "coyote time"  # busca en la biblioteca en español
 python3 "_indice/buscar.py" --manual "surface"     # busca en el manual oficial
-python3 "_indice/buscar.py" --codigo "state"       # busca en 53 554 archivos .gml reales
+python3 "_indice/buscar.py" --codigo "state"       # busca en 61 846 archivos .gml reales
 ```
 
 La ficha de un símbolo te da la **firma exacta**, si está **obsoleta**, la **página del
@@ -177,6 +182,7 @@ manual en español y en inglés**, los **documentos de esta biblioteca** que lo 
 | …saber si algo existe ya en GameMaker | `gm-cli manual read "<tema>"` |
 | …una librería para input / texto / audio | [Librerías de la comunidad](./07%20-%20Ecosistema/02%20-%20Librer%C3%ADas%20esenciales%20de%20la%20comunidad.md) |
 | …publicar en Steam / itch.io / móvil | [Publicar y exportar](./05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) |
+| …publicar en Nintendo Switch, PlayStation o Xbox | [Publicar en consolas](./05%20-%20Referencia/06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md) |
 | …un término que no entiendo | [Glosario GML](./05%20-%20Referencia/03%20-%20Glosario%20GML.md) |
 | …las reglas de estilo de mi propio código | [Convenciones y estilo GML](./05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) |
 
@@ -500,7 +506,7 @@ reglas que hacen que funcione:
    python3 "_indice/buscar.py" --codigo "coyote"
    ```
 
-   Hay 53 554 archivos `.gml` de 314 repositorios reales.
+   Hay 61 846 archivos `.gml` de 608 repositorios reales.
 
 ### 🚫 Lo que el agente NO debe hacer nunca
 
@@ -546,12 +552,54 @@ Para fijar el runtime de esta biblioteca: `--toolchain GMS2@2026.0.0.23`.
 
 ### Desde otro proyecto: la skill `gamemaker-biblioteca`
 
-Claude Code y Codex cargan la skill `gamemaker-biblioteca` (en `_indice/skills/gamemaker-biblioteca/`,
-enlazada desde `~/.claude/skills` y `~/.codex/skills`) cuando la tarea huele a GameMaker.
-La skill les dice dónde está esta biblioteca, cómo verificar cada símbolo, en qué orden leer
-cada disciplina (`references/mapa-disciplinas.md`) y qué está prohibido. Su índice de
-documentos se regenera con `actualizar.py`, que además comprueba que ninguna ruta citada se
-haya roto.
+Cada CLI de la tabla de abajo carga la skill `gamemaker-biblioteca` (en
+`_indice/skills/gamemaker-biblioteca/`, instalada por `./instalar.sh` en la carpeta de skills de
+cada uno) cuando la tarea huele a GameMaker. La skill les dice dónde está esta biblioteca, cómo
+verificar cada símbolo, en qué orden leer cada disciplina (`references/mapa-disciplinas.md`) y qué
+está prohibido. Su índice de documentos se regenera con `actualizar.py`, que además comprueba que
+ninguna ruta citada se haya roto.
+
+### Qué CLI de IA están soportados
+
+Investigado en vivo contra documentación oficial el 07-09-2026 (no contra memoria de un modelo:
+cada fila cita su fuente). Casi todos convergen hoy en el mismo formato de Claude Code —
+una carpeta con `SKILL.md` (frontmatter YAML `name` + `description`) que el CLI descubre y activa
+solo cuando la tarea encaja — así que `./instalar.sh` instala de más sin que moleste: cada CLI
+decide cuándo usarla.
+
+| CLI | Directorio de skills que instala `./instalar.sh` | Fuente |
+|---|---|---|
+| **Claude Code** | `~/.claude/skills/` | [code.claude.com/docs/en/skills](https://code.claude.com/docs/en/skills) |
+| **Codex** (OpenAI) | `~/.codex/skills/` (funciona; un mantenedor de OpenAI la describe como *legacy*) y `~/.agents/skills/` (ruta **canónica** documentada hoy) | [developers.openai.com/codex/skills](https://developers.openai.com/codex/skills) |
+| **opencode** | `~/.config/opencode/skills/` — además lee `~/.claude/skills` y `~/.agents/skills` directamente, sin copiarlos | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) |
+| **Qwen Code** (Alibaba) | `~/.qwen/skills/` | [github.com/QwenLM/qwen-code · docs/users/features/skills.md](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md) |
+| **Kimi Code CLI** (Moonshot) | `~/.kimi-code/skills/` (además lee `~/.agents/skills`) | [moonshotai.github.io/kimi-code/…/skills.html](https://moonshotai.github.io/kimi-code/en/customization/skills.html) |
+| **Gemini CLI** (Google) | `~/.gemini/skills/` (alias `~/.agents/skills`) | [github.com/google-gemini/gemini-cli/docs/cli/skills.md](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md) |
+| **GitHub Copilot CLI** | `~/.copilot/skills/` (alias `~/.agents/skills`) | [docs.github.com/…/copilot-cli/…/add-skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills) |
+| **Cursor CLI** (`cursor-agent`) | `~/.cursor/skills/` (alias `~/.agents/skills`; también lee `~/.claude/skills` y `~/.codex/skills`) | [cursor.com/docs/skills](https://cursor.com/docs/skills) |
+| **Cline** (CLI oficial) | `~/.cline/skills/` | [docs.cline.bot/customization/skills](https://docs.cline.bot/customization/skills) |
+
+`~/.agents/skills/` es el directorio genérico del estándar abierto
+[Agent Skills](https://agentskills.io) (origen Anthropic): una sola copia ahí sirve para varios
+CLI a la vez, incluso los que instales más adelante.
+
+**Quedan fuera, investigados y sin soporte de skills instalable:**
+
+- **GLM / Zhipu (Z.ai)** no tiene un CLI de terminal propio y dedicado. Su «GLM Coding Plan» se
+  usa *dentro* de Claude Code, Codex, Cline u opencode (apuntando su endpoint a la API de
+  Zhipu) — herramientas ya cubiertas arriba, con independencia del modelo que tengan detrás. Su
+  producto propio, **ZCode**, es una app de escritorio Electron con terminal embebida, no un
+  binario de terminal: fuera del alcance de este script.
+- **Aider** no tiene directorio de skills propio (solo un paquete de terceros no oficial) ni
+  confirma leer `AGENTS.md` en su documentación oficial. Si `./instalar.sh` lo detecta instalado,
+  no le toca ningún archivo: te señala el `AGENTS.md` generado (ver abajo) para que lo referencies
+  a mano con la clave `read:` de tu `.aider.conf.yml`.
+
+**Si tu CLI solo entiende `AGENTS.md`** en la raíz de un proyecto (y no un directorio de skills):
+`_indice/sincronizar-skill.py` deriva automáticamente
+[`_indice/skills/gamemaker-biblioteca/AGENTS.md`](./_indice/skills/gamemaker-biblioteca/AGENTS.md)
+del cuerpo real de `SKILL.md` — nunca se escribe a mano, así que no se desincroniza. Cópialo o
+enlázalo como `AGENTS.md` en la raíz de ese proyecto de GameMaker.
 
 ### Cómo pedirle trabajo al agente
 

@@ -1,6 +1,6 @@
 # Diseño y producción de videojuegos — índice
 
-> **El oficio que va antes y alrededor del código.** 26 documentos. Las otras carpetas explican el motor;
+> **El oficio que va antes y alrededor del código.** 27 documentos. Las otras carpetas explican el motor;
 > esta explica cómo se diseña, se estructura, se prueba y se lanza un juego, y cómo cada
 > decisión se traduce a GameMaker LTS 2026 con GML verificado contra el runtime
 > `2026.0.0.23`. Cada documento va del principio (por qué) al método (cómo) y al código
@@ -41,6 +41,7 @@
 | [24](<./24 - Voz, diálogo y localización de audio.md>) | **Voz y localización de audio** | Proceso de grabación, convención de nombres que encaja con la clave de localización, audio groups por idioma, subtítulos de efectos con dirección, lip-sync básico, voces procedurales, QA de voz | el juego tiene voces, o subtítulos que van más allá del diálogo |
 | [25](<./25 - Legal de terceros - marcas, fan games y parodia.md>) | **Legal de terceros: marcas, fan games y parodia** | ⚠️ Información legal orientativa, no asesoramiento jurídico. Marca frente a derecho de autor, por qué la mecánica no se protege y el nombre/aspecto sí, fan games como zona gris, parodia por jurisdicción (EE. UU., UE, España) con casos verificados y fecha (Nintendo, Take-Two/OpenIV, Sega), uso nominativo de marcas de terceros (consola, motor), música con derechos, y qué hacer si llega una reclamación (DMCA) | te piden «un homenaje a X» o «como Y pero…», o vas a nombrar una consola/motor en tu ficha |
 | [26](<./26 - Comunidad propia - Discord, moderación y gestión de crisis.md>) | **Comunidad propia: Discord, moderación y crisis** | Canales mínimos de un Discord de estudio pequeño, por qué un solo canal de bugs ahorra soporte, reglas de moderación básicas, recoger opinión sin ahogarte, el plan de tres pasos ante una crisis con casos verificados (No Man's Sky, Digital Homicide) y qué NO hacer nunca | ya tienes jugadores y necesitas un canal de comunidad, o te ha llegado una oleada de reseñas negativas |
+| [27](<./27 - Formatos de producción especiales.md>) | **Formatos de producción especiales** | Kiosco/exposición (*attract mode*, sin teclado, sin pantalla de guardado), educativos y *serious games* (currículo fijado, medición de aprendizaje), publicitarios (*advergames*, sesión <3 min, WebGL), la mitad de *diseño* que faltaba para juegos infantiles junto al marco legal ya escrito en `13 · 11`, y streamers (HUD a 720p, música sin copyright, la extensión oficial de Twitch) | te encargan un juego para un contexto de producción concreto, no un género |
 
 ## Recetas hermanas en `04 - Recetas por género`
 

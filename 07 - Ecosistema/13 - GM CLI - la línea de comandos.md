@@ -310,8 +310,8 @@ Verificado leyendo el código del propio binario, no la documentación:
 
 | Versión | Targets aceptados por `run` / `compile` / `package` |
 |---|---|
-| **2.2.0** (instalada) | `mac`, `windows`, `linux`, `operagx` |
-| **2.3.0** (última) | `mac`, `windows`, `linux`, `operagx`, **`android`** |
+| **2.2.0** | `mac`, `windows`, `linux`, `operagx` |
+| **2.3.0** (instalada y última, verificado 07-09-2026) | `mac`, `windows`, `linux`, `operagx`, **`android`** |
 
 Cualquier otro valor lanza un error antes de compilar:
 
@@ -325,8 +325,8 @@ Support for target 'reddit' is coming soon to GameMaker CLI.
 ```
 
 > **Importante**: Reddit/Devvit **sí** existe como target en el IDE 2026.0, pero **todavía no** en
-> el CLI. Consolas, iOS, tvOS, HTML5 y el resto: tampoco. En el CLI 2.2.0 sólo puedes compilar
-> para escritorio (Windows/macOS/Linux) y GX.games.
+> el CLI. Consolas, iOS, tvOS, HTML5 y el resto: tampoco. En el CLI 2.3.0 (la instalada) puedes
+> compilar para escritorio (Windows/macOS/Linux), GX.games y Android; en la 2.2.0, sin Android.
 
 ---
 
@@ -831,6 +831,9 @@ En CI conviene cachear `.gmcache` (es exactamente lo que hacen los workflows gen
 ---
 
 ## 10. Actualizar a la 2.3.0
+
+> ✅ **Ya hecho en este Mac** (verificado 07-09-2026): `gm-cli --version` devuelve `2.3.0`. Esta
+> sección queda como guía para cuando exista una versión más nueva o para otra máquina.
 
 El propio CLI lo sugiere con npm:
 

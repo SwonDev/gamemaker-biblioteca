@@ -37,10 +37,10 @@ hunden el frame rate en cuanto no caben todos en cámara.
 
 ### 1.3 · Qué NO cubre este documento
 
-- **Precio dinámico y comercio con NPC.** Sigue siendo un hueco de la biblioteca (temas 26, 27,
-  31 del informe r3); el encargo de ese trozo es para
-  [`13 · 01`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md)
-  §4, no para aquí.
+- **Precio dinámico y comercio con NPC.** No es el encargo de este documento:
+  [`13 · 01` §4.6-§4.7](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md#46--precio-dinámico-oferta-y-demanda)
+  ya lo resuelve (oferta/demanda con `scr_economia_dinamica`, y la tienda de un NPC con margen y
+  stock que se agota y repone).
 - **Cosecha y ganado.** Fuera de alcance: son el encargo de
   [`04 · 45`](./45%20-%20Géneros%20sin%20receta%20propia%20-%20sigilo%2C%20horror%2C%20táctica%2C%20granja%20y%20idle.md)
   §5, que ya tiene el calendario y los cultivos por celda sobre los que montarlos.

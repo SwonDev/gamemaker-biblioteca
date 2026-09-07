@@ -250,6 +250,33 @@ línea de tiro está despejada, y el esqueleto de la IA que busca y usa un punto
   directo?) es un nodo más del árbol o la utilidad de `04/31`. Lo que aporta este documento es
   la pieza que falta entre los dos: **dónde** está el punto de cobertura válido más cercano.
 
+### 4.6 Calor como recurso de disparo
+
+Cargador/reserva (§4.1) y munición (§5.0) son el primer arquetipo de recurso de disparo:
+finito, se recarga a mano. Hay un segundo arquetipo, el de un arma de energía sin munición que
+se dispara mientras no se sobrecaliente — el arma de plasma de *Halo: Combat Evolved* (Bungie,
+2001) es la referencia que popularizó el patrón: dispara sin límite mientras el jugador vigile
+el medidor de calor, y castiga con un bloqueo largo a quien lo ignora, en vez de con la gestión
+de inventario de una recarga (fuente verificada en [§9](#9-fuentes), 2026-09-07).
+
+**No hace falta inventar la estructura.** El arquetipo «sube con la acción, baja con el tiempo»
+ya es exactamente lo que resuelve `RecursoCombate` de
+[04 · 36 §3.2](./36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md#32-recursocombate-el-pool-genérico-y-sus-tres-variantes)
+con `regen_por_frame` **negativo** — el mismo mecanismo que ya usa la furia de esa sección para
+decaer sola. El calor solo cambia lo que pasa al llegar al tope: en vez de habilitar una
+habilidad (como la furia), **bloquea el disparo**, y con un enfriamiento forzado más largo que
+la pausa entre dos disparos normales — porque el bloqueo no se levanta al bajar un poco del
+tope, sino al vaciarse del todo, mientras que entre disparo y disparo el calor solo baja una
+fracción antes del siguiente. El código está en §5.8.
+
+> 🔗 **Atasco de arma (*jam*).** `04 · 45 §3.2` ya tiene código real y verificado para el
+> encasquillado —`arma_intentar_disparo()`, que se llama antes de restar munición y falla con
+> una probabilidad ajustable (`PROBABILIDAD_ENCASQUILLE`)— pero vive solo en el documento de
+> horror, como mecánica de tensión. Es una opción general de sensación de arma, no exclusiva de
+> ese género: engánchalo aquí igual que se engancha allí, delante de
+> [`WeaponAmmoState`](#51-weaponammostate--cargador-recarga-y-recarga-activa) de §5.1, sin
+> reescribir el código que ya existe.
+
 ---
 
 ## 5. Código base
@@ -955,6 +982,89 @@ estado_cobertura = "agachado";
 alarm[0] = 90 + irandom(60);
 ```
 
+### 5.8 Arma de calor, sobre `RecursoCombate` de `04·36 §3.2`
+
+No es una estructura nueva: es `RecursoCombate` con `regen_por_frame` negativo, envuelto para
+que el bloqueo por sobrecalentamiento sea explícito en vez de comprobarlo a mano cada disparo.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_arma_calor
+// Verificado: los únicos símbolos nuevos son las macros; RecursoCombate ya
+// está verificado en 04 · 36 §3.2 (clamp, max, min).
+// ---------------------------------------------------------------------------
+#macro CALOR_MAXIMO                 100
+#macro CALOR_POR_DISPARO            14     // ~7 disparos antes de sobrecalentar
+#macro CALOR_ENFRIAMIENTO_POR_FRAME 0.45   // ritmo de enfriado normal, sin disparar
+
+/// @func ArmaCalor(_maximo, _enfriamiento_por_frame, _coste_por_disparo)
+/// @desc Envoltorio de RecursoCombate (04 · 36 §3.2) para el arquetipo "sube
+///       al disparar, baja con el tiempo, bloquea al llegar al tope": el
+///       arma de plasma de Halo (§4.6, Fuentes). El calor decae solo porque
+///       regen_por_frame es NEGATIVO — el mismo mecanismo que la furia de
+///       04 · 36 §3.2, aplicado a un recurso que castiga en vez de habilitar.
+function ArmaCalor(_maximo, _enfriamiento_por_frame, _coste_por_disparo) constructor
+{
+    calor     = new RecursoCombate(_maximo, -_enfriamiento_por_frame, 0);
+    coste     = _coste_por_disparo;
+    bloqueada = false;   // sobrecalentada: no se libera hasta enfriar del TODO,
+                         // no solo por debajo del tope — eso es lo que hace el
+                         // enfriamiento forzado más largo que la pausa normal
+                         // entre dos disparos (que solo baja una fracción).
+
+    /// @desc Un tic por fotograma, dispares o no.
+    static tick = function()
+    {
+        calor.tick();
+        if (bloqueada && calor.actual <= 0) bloqueada = false;
+    };
+
+    /// @desc Llamar en cada intento de disparo. Gasta calor y devuelve si sale.
+    /// @returns {Bool}
+    static intentar_disparo = function()
+    {
+        if (bloqueada) return false;
+
+        calor.ganar(coste);
+        if (calor.actual >= calor.maximo) bloqueada = true;   // se sobrecalienta
+        return true;   // el disparo que provoca el sobrecalentamiento SÍ sale
+    };
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objPlayer — Create (arma de calor; alternativa a WeaponAmmoState de §5.1
+// para un arma sin munición)
+// ---------------------------------------------------------------------------
+arma_calor = new ArmaCalor(CALOR_MAXIMO, CALOR_ENFRIAMIENTO_POR_FRAME, CALOR_POR_DISPARO);
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objPlayer — Step
+// ---------------------------------------------------------------------------
+arma_calor.tick();   // SIEMPRE, dispares o no — igual que cualquier RecursoCombate
+
+if (mouse_check_button(mb_left) && arma_calor.intentar_disparo())
+{
+    disparar_arma_avanzado(point_direction(x, y, mouse_x, mouse_y));   // §5.3
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objHUD — Draw GUI (medidor de calor)
+// ---------------------------------------------------------------------------
+var _frac = objPlayer.arma_calor.calor.actual / objPlayer.arma_calor.calor.maximo;
+var _color = objPlayer.arma_calor.bloqueada ? c_red : merge_color(c_yellow, c_red, _frac);
+draw_healthbar(20, 60, 220, 76, _frac * 100, c_black, c_dkgray, _color, 1, true, true);
+```
+
+> `draw_healthbar` ya está verificado en este mismo documento, §5.2 (barra de progreso de la
+> recarga); el medidor de calor es la misma función con otra fuente de datos. `merge_color`
+> está verificado en `04 · 45` y `13 · 05`.
+
 ---
 
 ## 6. Checklist
@@ -978,6 +1088,11 @@ alarm[0] = 90 + irandom(60);
       `objSolid`: una cobertura no sustituye a un muro real.
 - [ ] Un enemigo `agachado` no dispara ni puede ser alcanzado por hitscan — si tu IA lo deja
       disparar desde ese estado, la cobertura no está haciendo nada.
+- [ ] `ArmaCalor.tick()` (§5.8) se llama todos los Steps, dispares o no — si solo se llama al
+      disparar, el calor nunca baja mientras el jugador no aprieta el gatillo.
+- [ ] El bloqueo por sobrecalentamiento (`bloqueada`) solo se levanta al llegar a `calor == 0`,
+      no al bajar un poco del tope — si no, el enfriamiento forzado deja de sentirse distinto
+      del enfriamiento normal entre disparos.
 
 ---
 
@@ -993,6 +1108,7 @@ alarm[0] = 90 + irandom(60);
 | Asistencia de puntería sin comprobar el interruptor de accesibilidad | El jugador que la desactivó en Opciones la sigue notando | `aim_assist_corregir()` devuelve `_dir_cruda` sin tocar si el ajuste está apagado |
 | Cobertura que solo comprueba `objCobertura` | Un enemigo "a cubierto" detrás de un parapeto sigue siendo alcanzable a través de la pared de al lado | Comprobar también `objSolid` en la misma línea de tiro |
 | Punto de resguardo calculado desde el propio buscador, no desde la amenaza | El enemigo se cubre del lado equivocado del parapeto | `point_direction(_amenaza_x, _amenaza_y, x, y)`, no al revés |
+| Llamar `arma_calor.tick()` solo dentro de `intentar_disparo()` | El calor nunca baja mientras el jugador no dispara | `tick()` va en el Step, siempre, aparte de `intentar_disparo()` (§5.8) |
 
 ---
 
@@ -1041,6 +1157,11 @@ sueltos en el jugador, estás listo para que un enemigo dispare con el mismo
   cuerpo; `take_damage()` que este documento invoca sigue las mismas reglas.
 - [04 · 31 — IA de decisión](./31%20-%20IA%20de%20decisión%20-%20árboles%20de%20comportamiento%2C%20utility%20y%20GOAP.md) —
   dónde vive la decisión de *cuándo* buscar cobertura o disparar.
+- [04 · 36 — Habilidades, enfriamientos y recursos de combate](./36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md) —
+  `RecursoCombate`, que §4.6/§5.8 instancian para el calor del arma en vez de reescribirlo.
+- [04 · 45 — Géneros sin receta propia](./45%20-%20Géneros%20sin%20receta%20propia%20-%20sigilo%2C%20horror%2C%20táctica%2C%20granja%20y%20idle.md) §3.2 —
+  `arma_intentar_disparo()`, el atasco de arma que §4.6 adopta como opción general en vez de
+  repetir su código.
 - [13 · 13 — Matemáticas aplicadas al juego](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md) —
   `girar_hacia` (§3.2), `en_cono_vision` y `dot_product_normalised` (§2.4), `cortan_segmentos`
   (§6.5) y los límites de `collision_line` (§6.8) que este documento resuelve con
@@ -1073,3 +1194,10 @@ sueltos en el jugador, estás listo para que un enemigo dispare con el mismo
   recoil de videojuego, así que no se cita para nada de bloom/patrones) —
   https://en.wikipedia.org/wiki/Recoil
 - `_indice/auditorias/combate-enemigos.md` — propuesta P3, el encargo de este documento.
+- Halopedia — *Plasma Rifle* (consultado 2026-09-07 con `WebFetch`) — confirma el mecanismo
+  citado en §4.6: el arma "se ve obligada a disparar ráfagas cortas y controladas o arriesgar el
+  sobrecalentamiento"; al sobrecalentarse "el arma queda inoperante e inútil" hasta que se
+  disipa el calor; y tiene "un pequeño medidor de temperatura" visual — el mismo indicador que
+  propone el HUD de §5.8 — https://www.halopedia.org/Plasma_Rifle
+- `_indice/auditorias/r4-combate-colisiones-gdd.md` — hueco B13 (calor como recurso) y B12
+  (atasco de arma enterrado en el documento de horror), el encargo de §4.6.

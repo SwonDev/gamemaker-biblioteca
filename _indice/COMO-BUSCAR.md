@@ -95,7 +95,7 @@ nada; luego baja al género concreto en «B».
 
 ```
 1. 12 - Utilidades e integraciones/_INDICE-UTILIDADES.md
-2. 11 - Código descargado/_CATALOGO.md   ← 314 repos descritos en español
+2. 11 - Código descargado/_CATALOGO.md   ← 608 repos descritos en español
 3. 07 - Ecosistema/                       ← el contexto y qué está abandonado
 ```
 

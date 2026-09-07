@@ -173,8 +173,8 @@ Es decir: **`extgen` es la vía oficial para envolver cualquier librería nativa
 | **Crochet** | [FaultyFunctions/Crochet](https://github.com/FaultyFunctions/Crochet) | **Editor visual de diálogo** para Chatterbox. Windows/macOS/Ubuntu + versión web | MIT | 2026-05-28 | 121 |
 | **LineAudio** | [WangleLine/LineAudio](https://github.com/WangleLine/LineAudio) | Motor de audio pequeño (*wrapper*) | MIT | 2026-07-25 | 5 |
 | **Unic** | [TabularElf/Unic](https://github.com/TabularElf/Unic) | Implementación del **estándar Unicode** para GameMaker (lo usa lexicon para fechas, números y monedas) | MIT | 2026-03-29 | 8 |
-| **GMSentry** | Marketplace ([asset 7917](https://marketplace.yoyogames.com/assets/7917/gmsentry)) | Integración con **Sentry** (reporte de errores). Citado por Juju Adams como alternativa a Snitch | ⚠️ Revisar | — | — |
-| **Quack Dialogue System** | Marketplace ([asset 8789](https://marketplace.yoyogames.com/assets/8789/quack-dialogue-system)) | Sistema de diálogo. Citado por Juju Adams | ⚠️ Revisar | — | — |
+| **GMSentry** | Marketplace ([asset 7917](https://marketplace.gamemaker.io/assets/7917/gmsentry)) | Integración con **Sentry** (reporte de errores). Citado por Juju Adams como alternativa a Snitch | ⚠️ Revisar | — | — |
+| **Quack Dialogue System** | Marketplace ([asset 8789](https://marketplace.gamemaker.io/assets/8789/quack-dialogue-system)) | Sistema de diálogo. Citado por Juju Adams | ⚠️ Revisar | — | — |
 
 ### 4.2 Inactivas (sin push en más de un año) — úsalas bajo tu responsabilidad
 
@@ -185,7 +185,7 @@ Es decir: **`extgen` es la vía oficial para envolver cualquier librería nativa
 | **PXLUI** | [1pxlchibs/PXLUI](https://github.com/1pxlchibs/PXLUI) | 2024-06-25 | 19 | MIT |
 | **SimpleUI** | [evolutionleo/SimpleUI](https://github.com/evolutionleo/SimpleUI) | 2024-05-07 | 9 | MIT |
 | **Sonus** | [tabularelf/Sonus](https://github.com/tabularelf/Sonus) | 2024-05-26 | 5 | MIT |
-| **Emu** | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 2026-02-18 | 43 | ⚠️ **sin licencia** |
+| **Emu** | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 2026-02-18 | 43 | MIT (desde 2020) |
 | **Input-Dog** | [messhof/Input-Dog](https://github.com/messhof/Input-Dog) | **2016-05-19** | 39 | MIT — ⚠️ **abandonada** |
 
 ### 4.3 No son extensiones (y conviene saberlo)

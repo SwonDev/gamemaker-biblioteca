@@ -337,7 +337,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | Repositorio | Qué es | ★ | Licencia | Último cambio | `.gml` |
 |---|---|---:|---|---|---:|
 | `GMRoomLoader` [↗](https://github.com/GlebTsereteli/GMRoomLoader) | Carga rooms como si fueran prefabs, en tiempo de ejecución y en cualquier posición. Base para generación procedural con piezas dibujadas a mano. | 128 | MIT | 2026-08-17 | 74 |
-| `LDtkParser` [↗](https://github.com/evolutionleo/LDtkParser) | Analizador de niveles **.ldtk** para GameMaker. LDtk es hoy el mejor editor de niveles externo para 2D. | 63 | MIT | 2025-08-14 | 9 |
+| `LDtkParser` [↗](https://github.com/evolutionleo/LDtkParser) | Analizador de niveles **.ldtk** para GameMaker. LDtk es hoy el mejor editor de niveles externo para 2D. ⚠️ Más de un año sin *push* (reverificado 2026-09-07) — sigue siendo la mejor opción viva, pero revisa antes de depender de ella. | 63 | MIT | 2025-08-14 | 9 |
 | `random-level-gen-gms2` [↗](https://github.com/GameMakerDiscord/random-level-gen-gms2) | Ejemplo de **generación aleatoria de niveles** al estilo *Nuclear Throne*. | 57 | MIT | 2018-03-03 | 12 |
 | `gms2-destructible-terrain` [↗](https://github.com/niksudan/gms2-destructible-terrain) | **Terreno destructible** y con colisión, usando superficies y rejillas. | 31 | MIT | 2023-04-17 | 7 |
 | `GM-RoomInspector` [↗](https://github.com/heygleeson/GM-RoomInspector) | Vuelca los datos de una room a **JSON** para leerlos fuera del IDE. | 10 | MIT | 2022-01-05 | 9 |
@@ -690,6 +690,17 @@ El detalle de las herramientas de IA está en [`07 · IA y GameMaker §6 bis.2`]
 |---|---|---|
 | [`Butterscotch`](https://github.com/ButterscotchRunner/Butterscotch) | Reimplementación open-source del runner de GM:Studio (351★) | AGPL-3.0 |
 | [`OpenGM`](https://github.com/misternebula/OpenGM) | Runner de juegos GameMaker en .NET/OpenTK (44★) | MIT |
+| [`Project-Sunshine-Native/cinnamon`](https://github.com/Project-Sunshine-Native/cinnamon) | *Fork* de Butterscotch: runner GML en C para **Nintendo 3DS y Wii U homebrew** (390★, *push* 2026-09-05, verificado 2026-09-07). El propio README avisa de que el desarrollo activo se mudó a `cinnamon-latest` (fila siguiente) | MPL-2.0 |
+| [`Grayforz2468/cinnamon-latest`](https://github.com/Grayforz2468/cinnamon-latest) | Continuación activa de `cinnamon` — mismo runner para 3DS/Wii U (0★, *push* 2026-09-06, verificado 2026-09-07) | AGPL-3.0 |
+| [`Ralcactus/GameMaker-Anywhere`](https://github.com/Ralcactus/GameMaker-Anywhere) | Port del runner GML a **varias consolas homebrew** vía devkitpro/C++ (convierte GML a C, no lo interpreta); 69★, *push* 2026-08-31, verificado 2026-09-07 | ⚠️ sin licencia declarada — revisa el repo antes de reutilizar código |
+
+> 🕹️ Los tres de arriba son proyectos de **modding/porting**: ejecutan juegos GameMaker ya
+> compilados en hardware homebrew no oficial (3DS, Wii U). No son herramientas de desarrollo
+> para hacer un juego nuevo — misma distinción que ya aplica a Butterscotch/OpenGM frente al
+> IDE oficial. **Para qué le sirve a alguien hoy**: casi para nada salvo curiosidad técnica o
+> preservación — solo interesa si quieres ejecutar tus propios juegos GameMaker (u otros ya
+> compilados) en una 3DS o Wii U con homebrew, un caso de uso muy de nicho. No aporta nada al
+> desarrollo normal de un juego nuevo.
 
 > ⚠️ Licencias `NOASSERTION` / `sin licencia`: revisa el `LICENSE` real del repo antes de
 > redistribuir. `gml_lsp` está **archivado** (referencia, no producción). Muchos son de 2026 con

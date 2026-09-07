@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 244 documentos con su título",
+    "_indice/documentos.json": "los 251 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -663,11 +663,27 @@
           "titulo": "52 · Live-ops técnico (config remota, versión mínima, mensajes del juego)"
         },
         {
+          "ruta": "04 - Recetas por género/53 - Souls-like - lock-on, hoguera y pérdida de recursos al morir.md",
+          "titulo": "53 · Souls-like — hoguera y pérdida de recursos al morir"
+        },
+        {
+          "ruta": "04 - Recetas por género/54 - Metajuego transversal - logros, galería, speedrun y espectador.md",
+          "titulo": "54 · Metajuego transversal — logros, galería, speedrun y espectador"
+        },
+        {
+          "ruta": "04 - Recetas por género/55 - Party games, minijuegos y creación casual.md",
+          "titulo": "55 · Party games, minijuegos y creación casual"
+        },
+        {
+          "ruta": "04 - Recetas por género/56 - Combate no letal - pacifismo, aturdir, huir y negociar.md",
+          "titulo": "56 · Combate no letal — pacifismo, aturdir, huir y negociar"
+        },
+        {
           "ruta": "04 - Recetas por género/_INDICE-RECETAS.md",
           "titulo": "Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)"
         }
       ],
-      "n_documentos": 54
+      "n_documentos": 58
     },
     {
       "titulo": "Referencia rápida",
@@ -699,9 +715,13 @@
         {
           "ruta": "05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md",
           "titulo": "05 · Entregar el juego: firmar, notarizar y subir a las tiendas"
+        },
+        {
+          "ruta": "05 - Referencia/06 - Publicar en consolas - Nintendo, PlayStation y Xbox.md",
+          "titulo": "06 · Publicar en consolas: Nintendo, PlayStation y Xbox"
         }
       ],
-      "n_documentos": 5
+      "n_documentos": 6
     },
     {
       "titulo": "Scripts GML propios listos para copiar",
@@ -1179,11 +1199,15 @@
           "titulo": "08 · Tooling externo: CLI, parsers, TypeScript e ingeniería inversa"
         },
         {
+          "ruta": "12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md",
+          "titulo": "09 · Manual del agente de IA — operar GameMaker con `gm-cli`"
+        },
+        {
           "ruta": "12 - Utilidades e integraciones/_INDICE-UTILIDADES.md",
           "titulo": "12 · Utilidades e integraciones para GameMaker"
         }
       ],
-      "n_documentos": 9
+      "n_documentos": 10
     },
     {
       "titulo": "Diseño y producción de videojuegos",
@@ -1321,11 +1345,15 @@
           "titulo": "26 · Comunidad propia: Discord, moderación y gestión de crisis"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md",
+          "titulo": "27 · Formatos de producción especiales"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 27
+      "n_documentos": 28
     }
   ],
   "puntos_de_entrada": {
@@ -1368,7 +1396,7 @@
       "no_usar_para": []
     }
   },
-  "total_documentos": 244,
+  "total_documentos": 251,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

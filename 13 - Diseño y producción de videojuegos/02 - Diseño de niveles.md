@@ -350,6 +350,26 @@ if (tilemap_get_at_pixel(mapa_solido, x, y + 1) & BIT_DANINO) { recibir_dano(1);
 > ⚠️ Si un tile es **más pequeño que la caja de colisión**, el personaje puede colarse entre las cuatro esquinas.
 > Solución oficial: añadir comprobaciones en el punto medio de cada lado.
 
+**Tilemap frente a instancia por pared: la tabla de decisión.** Las dos vías de arriba resuelven
+la colisión de un tile *individual*; esta tabla responde a la pregunta previa — ¿el sólido de un
+nivel entero se pinta como tilemap o se coloca como instancias de `objSolid`? — cruzando memoria,
+precisión y coste, que hoy viven repartidos en tres documentos distintos.
+
+| | **Tilemap** (Vía A/B de arriba) | **Instancia por pared** (`objSolid`) |
+|---|---|---|
+| **Memoria** | Fija por celda de la rejilla del tile layer, la tengas rellena o vacía — un `int32` por celda (el «blob», [`01 · 10` §4](../01%20-%20Fundamentos/10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md#4--tile-maps-y-tile-sets)); un nivel de 200×50 celdas pesa lo mismo tenga 10 o 5 000 tiles sólidos | Proporcional al **número de instancias**: cada una carga su `id`, posición, máscara de colisión y variables propias — una pared larga hecha de 40 instancias de 1 tile pesa 40 veces más que la misma pared como una franja de tilemap |
+| **Precisión de la forma** | Rejilla fija: cada celda es del tamaño del tile (normalmente 16-32 px), sin rotación ni forma libre por celda | Cualquier forma que admita una máscara de sprite (rotada, `Precise`, `Diamond`…) y cualquier tamaño, no atado a la rejilla |
+| **Coste de colisión** | Casi nulo por sólido comprobado: `tilemap_get_at_pixel()` es una lectura de array, no una prueba de máscara contra N instancias (`01 · 15` Paso 6) | Crece con el número de instancias — con **cientos** comprobando entre sí, el coste sube al **cuadrado** si no hay particionado espacial ([`13 · 08` §4](./08%20-%20Físicas%20a%20mano%20y%20fluidos.md#4--particionado-espacial-colisiones-cuando-hay-cientos-de-cosas)); con **una sola** instancia estática contra el jugador, el coste es insignificante |
+| **Comportamiento individual** | Todas las celdas del mismo tile índice se comportan igual — para que una celda concreta reaccione distinto hace falta leer sus bits libres (Vía B, arriba) | Cada instancia tiene su propio Step, sus propias variables y puede reaccionar de forma única (una puerta que se abre, un pincho que se activa) |
+| **Editar en vivo** | Reconstruir el tile layer (pincel del Room Editor, `§3.3`) | Mover/crear/destruir la instancia como cualquier objeto |
+
+**La regla práctica**: tilemap para el 95 % de la geometría sólida de un nivel —suelo, paredes,
+techos, cualquier cosa que no necesite lógica propia—, e instancias solo donde el **comportamiento
+individual** o una **forma que no cabe en la rejilla** lo exigen de verdad: una puerta que se abre,
+un pincho que se activa y desactiva, una plataforma rotada. Mezclar los dos no cuesta nada —
+`move_and_collide()` acepta un array `[objSolid, tilemap_suelo]` en la misma llamada— así que la
+decisión es por **elemento**, no por nivel entero.
+
 ### 3.5 Parallax: decisiones de diseño
 
 El código (`layer_x()` / `layer_y()` contra `camera_get_view_x()` en **End Step**) ya está en [`01 · 10`](../01%20-%20Fundamentos/10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md) §3; aquí solo lo que decide el

@@ -433,6 +433,60 @@ Las armas de área (auras, explosiones periódicas) no comprueban colisión cont
 y aplican `dano_resolver()` de `04 · 32 §5.1` a toda la lista de una vez, en vez de un bucle
 `with (obj_enemigo)` que recorre TODOS los enemigos vivos aunque estén lejos.
 
+#### 1.4.7 · Legibilidad a escala: qué te está matando
+
+§1.4.5-1.4.6 resuelven el **coste** de tener cientos de enemigos en pantalla. Ninguna de las dos
+dice cómo **lee** el jugador esa pantalla — y con cientos de proyectiles y enemigos superpuestos,
+«¿qué me está matando?» es una pregunta real que el juego tiene que responder en menos de un
+vistazo, no solo mantener a 60 fps.
+
+**Silueta reservada para lo peligroso.** El shader de contorno de
+[08 · 06 §6.2](<../08 - Referencia GML completa/06 - Shaders.md#62-contorno-outline>) ya existe
+para dar relieve a un sprite — aquí se usa distinto: un `u_color_borde` que **ningún elemento
+decorativo del juego use nunca** (magenta puro, `make_color_rgb(255, 0, 255)`, es la elección
+clásica precisamente porque no aparece en paletas naturales) reservado en exclusiva para el
+proyectil o el ataque que hace daño de verdad. Todo lo demás — enemigos de fondo, decoración,
+partículas ambientales — se queda sin ese color, sin excepción.
+
+```gml
+// obj_proyectil_enemigo — Draw: el contorno es la señal, no la decoración
+shader_set(sh_outline);
+shader_set_uniform_f(u_texel, texture_get_texel_width(_tex), texture_get_texel_height(_tex));
+shader_set_uniform_f(u_color_borde, 1.0, 0.0, 1.0);   // magenta: EXCLUSIVO de "esto te mata"
+shader_set_uniform_f(u_grosor, 1.5);
+draw_self();
+shader_reset();
+```
+
+**Regla de exclusividad cromática, no solo de proyectiles.** El mismo principio se aplica a toda
+la jerarquía visual: si el jugador usa un color para su barra de vida, ningún enemigo se tiñe con
+él; si un enemigo de élite se marca con un color propio, ningún efecto ambiental lo repite. Con
+200 sprites en pantalla, el color deja de ser estética y pasa a ser el único canal que sigue
+funcionando cuando ya no hay tiempo de leer formas.
+
+**Atribuir el daño: `ultimo_atacante`.** El número flotante de
+[04 · 15 §5.6](<./15 - Game feel y juice.md#56-flash-de-impacto-y-texto-flotante>) dice CUÁNTO
+dolió; con 40 enemigos disparando a la vez no dice QUIÉN. Guardarlo es una variable, no un
+sistema nuevo — añádelo donde tu pipeline de daño ya conozca el origen del golpe, sin tocar la
+firma de `hit_complete()` (04 · 15 §5.7):
+
+```gml
+// obj_jugador — guarda quién causó el último golpe
+ultimo_atacante = _origen;
+```
+
+```gml
+// fx_floating_text() (04 · 15 §5.6) etiqueta la fuente sin tocar su firma
+var _texto = string(_dano);
+if (instance_exists(ultimo_atacante)) _texto += " (" + object_get_name(ultimo_atacante.object_index) + ")";
+fx_floating_text(x, y - 16, _texto, c_yellow);
+```
+
+> 💡 Con cientos de enemigos genéricos —el propio género de este documento— etiquetar CADA golpe
+> recibido sería ruido, no lectura. `ultimo_atacante` vale más para el jefe o el enemigo especial
+> que se esconde entre la masa («me está matando ESE, no el enjambre») que para el enjambre en
+> sí.
+
 ### 1.5 · Código base
 
 #### 1.5.0 · Catálogo de armas y struct de estado
@@ -1380,6 +1434,219 @@ function generar_recompensa_cartas(_rareza_pool, _rng)
   vuelve peor en promedio (más cartas irrelevantes que robar); "no gracias" tiene que ser una
   opción tan válida como elegir una carta.
 
+### 3.6 · TCG competitivo (PvP)
+
+El deckbuilder de `§3.1`-`§3.4` asume, sin decirlo hasta ahora explícitamente, **un jugador
+contra una IA**: la propia biblioteca ya lo advertía en `§3.1` al descartar la Card Game
+Template de GameMaker por no traer "combate, maná ni recompensas entre partidas". Un TCG
+competitivo (*Hearthstone*, *MTG Arena*, *Legends of Runeterra*) cambia esa premisa por completo:
+el rival ya no es un script que decide su jugada en el mismo *frame* en el que se resuelve —
+es **otro jugador real**, conectado por red, cuya mano nadie más que él puede ver. Esta
+subsección **no reescribe** `Mazo()`, `CartaDef`, `CartaInstancia`, `resolver_efecto()` ni
+`jugar_carta()` de `§3.4.1`-`§3.4.3`: los reutiliza tal cual y añade solo lo que cambia al pasar
+de un bando con energía a dos, y de una IA sin secretos a un rival con mano oculta.
+
+#### 3.6.1 · Qué cambia frente al deckbuilder de un jugador
+
+| Aspecto | `§3` (un jugador contra IA) | `§3.6` (TCG competitivo, PvP) |
+|---|---|---|
+| **Mano rival** | La IA no tiene mano que ocultar: decide su jugada con un script que el propio motor ejecuta, información perfecta para el juego | Información imperfecta: solo se conoce la **cantidad** de cartas del rival, nunca su contenido, hasta que se juegan |
+| **Energía** | Un solo bando la tiene (el jugador; `§3.4.4`) | **Los dos bandos** tienen su propia energía, cada turno |
+| **Turnos** | El jugador juega hasta pasar; la IA enemiga resuelve aparte | Turnos alternos entre **dos jugadores reales**, arbitrados por el servidor |
+| **Quién resuelve `jugar_carta()`** | El propio cliente: no hay a quién engañar | Solo el **servidor** (`§3.6.5`); ningún cliente la ejecuta en local |
+| **RNG del combate** | `RNG()` de `§3.4.2`, con semilla propia | La misma `RNG()`, pero corriendo **una sola vez, en el servidor** — nunca una tirada distinta por cliente (`§3.6.7`) |
+
+#### 3.6.2 · Mano rival: un número, nunca un array de cartas
+
+La mano oculta es el rasgo que define al género frente a cualquier IA de tablero con
+información perfecta. [04 · 31 §10 bis — Búsqueda adversarial: minimax y poda
+alfa-beta](./31%20-%20IA%20de%20decisión%20-%20árboles%20de%20comportamiento%2C%20utility%20y%20GOAP.md#10-bis--búsqueda-adversarial-minimax-y-poda-alfa-beta)
+es justo la técnica contraria: minimax **exige** que ambos bandos vean el estado completo del
+otro para explorar su árbol de jugadas, y ese mismo documento ya señala por qué un TCG con mano
+oculta queda fuera de su alcance — haría falta *Perfect Information Monte Carlo*,
+*Counterfactual Regret Minimization*, o, más simple, reglas/*utility* sobre lo que sí es
+visible (el tablero de `§3.6.3`). Aquí no hace falta ninguna de las dos: la regla es más básica
+y de red, no de IA — ningún cliente, ni el motor del servidor hacia el cliente equivocado,
+puede filtrar el contenido de la mano rival.
+
+Que la mano sea información oculta mientras el resto del estado es público no es una convención
+inventada para este documento: las reglas oficiales de *Magic: The Gathering* tratan la mano
+explícitamente como *hidden zone* — regla 101.4a, citada en `§ Fuentes`. La consecuencia para
+GameMaker es literal: el servidor **nunca serializa** el array de `CartaInstancia` de la mano
+rival hacia el cliente contrario, solo su longitud.
+
+```gml
+/// @func BandaCombatePvp(_net_id, _mazo, _energia_maxima)
+/// @desc Un bando del combate. Reutiliza el Mazo() de §3.4.1 sin cambios y le
+///       añade lo que en un jugador contra IA no hacía falta: DE QUIÉN es
+///       (net_id, nunca el id de instancia — §2.4 de 04 · 14) y su propia
+///       energía, porque ahora hay dos bandos con energía, no uno.
+function BandaCombatePvp(_net_id, _mazo, _energia_maxima) constructor
+{
+    net_id          = _net_id;
+    mazo            = _mazo;               // Mazo() de §3.4.1, sin reescribir
+    energia         = 0;
+    energia_maxima  = _energia_maxima;
+    cartas_en_juego = [];                  // CartaInstancia ya jugadas: público para ambos
+}
+```
+
+```gml
+// obj_combate — Create (extensión PvP sobre §3.2; NO sustituye su Create de un jugador)
+banda = [
+    new BandaCombatePvp(net_id_jugador_a, new Mazo(baraja_jugador_a), 3),
+    new BandaCombatePvp(net_id_jugador_b, new Mazo(baraja_jugador_b), 3)
+];
+rng             = new RNG(global.semilla_combate);   // §3.4.2: una sola RNG, compartida
+turno_de_net_id = banda[0].net_id;                    // el servidor decide quién empieza
+```
+
+#### 3.6.3 · Tablero y maná: lo que sí es público
+
+Una vez una carta se juega, deja de ser secreto: en cualquier TCG de mesa o digital, las
+criaturas o hechizos ya resueltos sobre el tablero, la vida de cada bando y la energía
+disponible de ambos son información visible para los dos jugadores — lo único oculto es la
+mano. El paquete que el servidor manda a cada cliente tras cualquier cambio de estado refleja
+exactamente esa frontera:
+
+```gml
+/// @func tablero_serializar_para_cliente(_banda_propia, _banda_rival)
+/// @desc "Propia" y "rival" son relativas a quién va a recibir el paquete: el
+///       servidor llama a esto una vez por cliente, intercambiando qué banda
+///       es cuál. La mano propia va completa (es SUYA); la del rival, solo
+///       su longitud. El tablero y la energía de ambos bandos van completos.
+function tablero_serializar_para_cliente(_banda_propia, _banda_rival)
+{
+    return {
+        energia_propia         : _banda_propia.energia,
+        energia_maxima_propia  : _banda_propia.energia_maxima,
+        energia_rival          : _banda_rival.energia,                    // público: es del tablero
+        mano_propia            : _banda_propia.mazo.mano,                  // completa: es SUYA
+        mano_rival_cantidad    : array_length(_banda_rival.mazo.mano),     // solo el número
+        tablero_propio         : _banda_propia.cartas_en_juego,
+        tablero_rival          : _banda_rival.cartas_en_juego,             // jugada = pública
+        turno_de_net_id        : obj_combate.turno_de_net_id
+    };
+}
+```
+
+El envío real de este struct como paquete de red —convertirlo a buffer y mandarlo por el
+socket— es exactamente el formato de
+[04 · 14 §4.2 — Buffers: el formato de los paquetes](./14%20-%20Multijugador.md) y la recepción
+del snapshot de
+[04 · 14 §5.5 — Recibir el snapshot e interpolar](./14%20-%20Multijugador.md); no se repite
+aquí. La única diferencia real frente a un shooter en red es **qué campos se omiten** para el
+bando equivocado, no el mecanismo de transporte.
+
+#### 3.6.4 · Turnos alternos entre dos jugadores reales
+
+`§3.3` resuelve el turno con un único booleano implícito ("es el turno del jugador o no"). En
+PvP hacen falta **dos** "en turno", uno por bando, y solo el servidor decide cuál vale — nunca
+un campo que mande el propio cliente:
+
+```gml
+/// @func es_mi_turno()
+/// @desc Se ejecuta en el CLIENTE, solo para decidir si mostrar los controles
+///       activos (arrastrar cartas, botón de pasar turno). NO autoriza nada:
+///       la autoridad real está en el servidor (§3.6.5). global.net_id_local
+///       lo asigna el servidor al conectar, igual que cualquier net_id de
+///       §2.4 de 04 · 14.
+function es_mi_turno()
+{
+    return (obj_combate.turno_de_net_id == global.net_id_local);
+}
+
+/// @func avanzar_turno_pvp()
+/// @desc Solo la ejecuta el SERVIDOR, al final de cada turno. Alterna qué
+///       bando manda y le da su fase de inicio de turno — el mismo paso 2
+///       de §3.3, ahora una vez por bando en vez de una vez por partida.
+function avanzar_turno_pvp()
+{
+    var _indice_siguiente = (obj_combate.turno_de_net_id == obj_combate.banda[0].net_id) ? 1 : 0;
+    var _banda            = obj_combate.banda[_indice_siguiente];
+
+    _banda.energia = _banda.energia_maxima;              // §3.3 paso 2, un bando a la vez
+    _banda.mazo.robar(1, obj_combate.rng);                // §3.4.1, sin cambios; 1 carta por turno
+
+    obj_combate.turno_de_net_id = _banda.net_id;
+}
+```
+
+#### 3.6.5 · Autoridad del servidor: reutilizar `jugar_carta()` sin reescribirla
+
+[04 · 14 §2.2 — Nunca confíes en el cliente](./14%20-%20Multijugador.md) se aplica aquí carta a
+carta: el cliente manda la **intención** ("quiero jugar la carta N contra ese objetivo"), y solo
+el servidor la resuelve. El problema práctico es que `jugar_carta()` (`§3.4.3`) fue escrita
+pensando en un único bando: lee `obj_combate.mazo`, `obj_combate.energia` y `obj_combate.jugador`
+directamente, sin recibir de qué bando se trata como parámetro. Reescribirla para aceptar dos
+bandos violaría la regla de no tocar `§3.4.3` — la alternativa, sin cambiar una sola línea de
+`jugar_carta()`, es apuntar esos tres campos al bando que tiene el turno **antes** de llamarla:
+
+```gml
+/// @func resolver_jugada_pvp_en_servidor(_net_id_autor, _indice_mano, _objetivo)
+/// @desc Solo se ejecuta en el SERVIDOR. Comprueba que quien pide la jugada
+///       es quien de verdad tiene el turno (comparado contra el net_id de
+///       quien mandó el paquete, no contra un campo que el cliente afirme
+///       ser él) y solo entonces apunta obj_combate a su bando y llama a
+///       jugar_carta() (§3.4.3) sin tocarla.
+function resolver_jugada_pvp_en_servidor(_net_id_autor, _indice_mano, _objetivo)
+{
+    if (_net_id_autor != obj_combate.turno_de_net_id) return false;   // no es su turno: se ignora
+
+    var _banda = (obj_combate.banda[0].net_id == _net_id_autor) ? obj_combate.banda[0] : obj_combate.banda[1];
+    obj_combate.mazo    = _banda.mazo;      // struct: es una referencia — jugar_carta() muta el original
+    obj_combate.jugador = _banda.jugador;   // ídem: sin copia, sin necesidad de devolverlo
+    obj_combate.energia = _banda.energia;   // número: se copia por VALOR, no por referencia
+
+    var _jugada_valida = jugar_carta(_indice_mano, _objetivo);   // §3.4.3, sin cambios
+
+    _banda.energia = obj_combate.energia;   // el número no se actualiza solo: hay que devolverlo a mano
+    return _jugada_valida;
+}
+```
+
+La distinción entre `mazo`/`jugador` (structs, referencias — se mutan solos) y `energia` (un
+número, copiado por valor — hay que reescribirlo a mano tras la jugada) es la misma que
+`§3.4.2` ya advierte con `variable_clone`: en GML, olvidar si algo es referencia o valor es la
+fuente más repetida de bugs de este bloque entero.
+
+#### 3.6.6 · Síncrono o asíncrono
+
+Todo lo anterior asume un modelo **síncrono**: los dos jugadores conectados a la vez sobre el
+mismo socket persistente de `04 · 14` (su `objNetManager` y su evento asíncrono de red, `§5.4`
+de ese documento). Es el modelo correcto para una partida en vivo, y el que recomienda la tabla
+de [04 · 14 §2.1](./14%20-%20Multijugador.md) para cualquier juego competitivo: autoridad del
+servidor, nunca P2P.
+
+Muchos TCG competitivos ofrecen además un modo **asíncrono** ("juega tu turno cuando puedas",
+partidas que duran horas o días) sobre peticiones HTTP en vez de un socket persistente: un
+jugador manda su jugada, el servidor la valida y la guarda, el otro la recibe la próxima vez
+que abre la app. [04 · 17 §5 — Comunicarte con tu propio servidor](./17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md)
+ya cubre la pieza de transporte (`http_post_string`, la respuesta en el evento *Async - HTTP*),
+pero ⚠️ **esta biblioteca no tiene todavía un documento dedicado al diseño de una cola de
+turnos pendientes** (qué se guarda entre peticiones, cómo se notifica al otro jugador, qué pasa
+si nunca vuelve a abrir la partida). Si tu TCG lo necesita, esa es la pieza que falta — no la
+inventes a partir de este documento: es contenido para un documento futuro sobre turnos
+asíncronos, no algo que `§3.6` resuelva por extensión.
+
+#### 3.6.7 · Errores clásicos del PvP que `§3.5` no cubre
+
+- **Mandar el array completo de `CartaInstancia` de la mano rival "por si acaso".** Aunque el
+  cliente no lo pinte en pantalla, cualquiera puede leerlo con un inspector de paquetes o un
+  editor de memoria — la regla de `§3.6.2` no es solo de diseño, es de seguridad: lo que el
+  servidor no manda, no se puede robar.
+- **Dejar que cada cliente tire su propio dado para un efecto aleatorio de carta** ("inflige
+  entre 2 y 6 de daño"). Si cada cliente resuelve el azar por su cuenta, los dos bandos ven un
+  resultado distinto y el estado diverge. El único que tira es el servidor, con la `RNG()` única
+  de `§3.6.1`, y difunde el resultado ya resuelto — el mismo problema de determinismo que
+  [04 · 14 §2.1](./14%20-%20Multijugador.md) resuelve para el lockstep, aplicado carta a carta.
+- **Comprobar el turno con un campo que manda el propio cliente** ("soy_yo: true"). El servidor
+  compara siempre contra el `net_id` de quien envió el paquete (`§3.6.5`), nunca contra un dato
+  que el mensaje afirme sobre sí mismo.
+- **Confundir "deshabilitar el botón en la UI" con "validar el turno".** Un cliente modificado
+  puede mandar el paquete igual aunque el botón esté gris — `resolver_jugada_pvp_en_servidor()`
+  es la única barrera real.
+
 ---
 
 ## 4 · Checklist transversal
@@ -1405,6 +1672,10 @@ function generar_recompensa_cartas(_rareza_pool, _rng)
       `§3.4.3`.
 - [ ] **[Deckbuilder]** "No elegir ninguna recompensa" es una opción real en la UI, no solo en
       la teoría — `§3.4.5`.
+- [ ] **[Deckbuilder PvP]** La mano rival nunca se serializa hacia el cliente contrario: el
+      servidor solo manda `array_length(...)`, nunca el array de `CartaInstancia` — `§3.6.2`.
+- [ ] **[Deckbuilder PvP]** `jugar_carta()` solo se ejecuta en el servidor, y solo tras comprobar
+      que el `net_id` que pide la jugada coincide con `turno_de_net_id` — `§3.6.5`.
 
 ---
 
@@ -1452,6 +1723,19 @@ function generar_recompensa_cartas(_rareza_pool, _rng)
 - [04 · 02 — Top-Down / Twin-Stick](<./02 - Top-Down _ Twin-Stick.md>) —
   el disparo apuntado manualmente que `§1.1` usa como contraste con las armas automáticas de
   *bullet heaven*.
+- [04 · 14 — Multijugador](./14%20-%20Multijugador.md) §2 y §2.2 — el modelo de autoridad del
+  servidor y la regla «nunca confíes en el cliente» que `§3.6.5` aplica carta a carta; también
+  §2.4 (la regla del `net_id`) que `§3.6.4` reutiliza para saber de quién es el turno, y §4.2 y
+  §5.5 (formato de paquetes y recepción del snapshot) a los que `§3.6.3` engancha su struct de
+  estado visible sin repetir el transporte.
+- [04 · 17 §5 — Comunicarte con tu propio servidor](./17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) —
+  las peticiones HTTP asíncronas (`http_post_string`) que `§3.6.6` cita como la pieza de
+  transporte de un TCG asíncrono, honesto sobre lo que esta biblioteca no cubre todavía (la cola
+  de turnos pendientes).
+- [04 · 31 §10 bis — Búsqueda adversarial: minimax y poda alfa-beta](./31%20-%20IA%20de%20decisión%20-%20árboles%20de%20comportamiento%2C%20utility%20y%20GOAP.md#10-bis--búsqueda-adversarial-minimax-y-poda-alfa-beta) —
+  la técnica de información perfecta que `§3.6.2` usa como contraste directo con la mano oculta
+  de un TCG; ese mismo documento ya cita este bloque para explicar por qué el deckbuilder de
+  `§3` no es candidato a minimax.
 
 ---
 
@@ -1505,4 +1789,18 @@ function generar_recompensa_cartas(_rareza_pool, _rng)
 - ⚠️ **Dota Auto Chess** y **Dota Underlords**: citados solo por su papel histórico en el
   género (`§2.1`), sin verificación de mecánica concreta — Underlords está retirado de Steam y
   su ficha ya no sirve como fuente primaria viva.
+- **Wizards of the Coast**, *Magic: The Gathering Comprehensive Rules* (edición del
+  19-08-2026) — <https://media.wizards.com/2026/downloads/MagicCompRules%2020260819.txt>
+  (consultado 2026-09-07; regla **101.4a**: *"If an effect has each player choose a card in a
+  hidden zone, such as their hand or library, those cards may remain face down as they're
+  chosen"* — confirma la mano como *hidden zone* frente al resto del estado del juego, la base
+  de `§3.6.2`).
+- ⚠️ **Hearthstone** (Blizzard) y **Legends of Runeterra** (Riot Games): citados en `§3.6` solo
+  como ejemplos del género para orientar al lector, sin cifra ni cita textual propia —
+  `hearthstone.blizzard.com` y `playruneterra.com` no resolvieron por DNS al intentarlo con
+  `curl` ni con `WebFetch` el 2026-09-07, y la ficha de Steam de *Legends of Runeterra*
+  (`app/1364780`) devolvió la página de otro juego. Ningún dato concreto de estos dos títulos se
+  usa en `§3.6`: el patrón de mano oculta / tablero visible se sostiene con la regla 101.4a de
+  Magic (arriba) y con las piezas ya verificadas de la biblioteca (`Mazo()`, `CartaDef` de
+  `§3.4.1`-`§3.4.3`).
 - `_indice/auditorias/diseno-gdd.md` — propuesta 7, el encargo de este documento.

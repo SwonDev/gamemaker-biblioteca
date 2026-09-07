@@ -434,6 +434,77 @@ Estas tres pruebas resuelven **una pareja**. Cuando hay cientos de entidades y t
 chocar entre sí, el problema deja de ser la prueba y pasa a ser *cuántas veces la haces*: eso
 lo resuelve el §4.
 
+### 3.4 Orden de resolución con varias colisiones a la vez
+
+`separacion_minima()` de §3.2 resuelve **una** pareja. El problema aparece cuando hay tres
+cuerpos o más tocándose en el mismo frame: resolver A-B y luego B-C puede **reintroducir** el
+solapamiento A-B que acabas de arreglar, porque el empujón de B-C mueve a B de vuelta hacia A.
+Con una sola pasada por frame el resultado es estable a simple vista casi siempre — el error se
+corrige solo en el frame siguiente — pero con más de dos cuerpos moviéndose a la vez (una pila
+de cajas, una multitud empujándose) esa corrección de un frame se nota como un tembleque o un
+salto de posición.
+
+**La solución estándar es la misma que usa `move_and_collide()` por dentro**: no una pasada,
+varias. El parámetro `num_iterations` de `move_and_collide()` (por defecto 4, ya cubierto en
+§3.3) hace exactamente esto para **un** cuerpo en movimiento contra el mundo estático; aquí se
+generaliza el mismo principio —resolver, volver a comprobar, resolver otra vez— a **varios**
+cuerpos dinámicos que se empujan entre sí:
+
+```gml
+/// @func resolver_colisiones_multiples(_obj, _iteraciones)
+/// @desc Resuelve el solapamiento de TODAS las instancias de _obj entre sí,
+///       en varias pasadas dentro del mismo frame. Reutiliza separacion_minima()
+///       de §3.2; no reescribe la prueba de solapamiento.
+/// @returns {undefined}
+function resolver_colisiones_multiples(_obj, _iteraciones = 3)
+{
+    repeat (_iteraciones)
+    {
+        var _huecos = 0;   // pares que se movieron en esta pasada
+        with (_obj)
+        {
+            var _lista = ds_list_create();
+            var _n = instance_place_list(x, y, _obj, _lista, false);
+            for (var _i = 0; _i < _n; _i++)
+            {
+                var _o = _lista[| _i];
+                if (_o == id || _o < id) continue;   // cada pareja se procesa una sola vez
+
+                var _s = separacion_minima(bbox_left, bbox_top, bbox_right, bbox_bottom,
+                                           _o.bbox_left, _o.bbox_top, _o.bbox_right, _o.bbox_bottom);
+                if (_s[0] != 0 || _s[1] != 0)
+                {
+                    x    += _s[0] * 0.5;
+                    y    += _s[1] * 0.5;
+                    _o.x -= _s[0] * 0.5;
+                    _o.y -= _s[1] * 0.5;
+                    _huecos++;
+                }
+            }
+            ds_list_destroy(_lista);
+        }
+        if (_huecos == 0) break;   // convergió antes de gastar todas las pasadas: no sigas
+    }
+}
+```
+
+**Ejemplo: tres cajas en fila empujándose.** `obj_caja` A, B y C están pegadas en horizontal
+(A-B-C) y algo las empuja desde la izquierda contra A. En una sola pasada de §3.2:
+`separacion_minima()` separa A de B (A retrocede, B avanza hacia C), pero el bucle ya pasó por
+la pareja B-C antes de que B se moviera — así que B queda solapada con C hasta el frame
+siguiente, un frame en el que C también "salta" de golpe. Con `resolver_colisiones_multiples`
+(3 iteraciones), la segunda pasada del mismo frame ya ve el nuevo solapamiento B-C que generó la
+primera y lo corrige antes de dibujar nada: las tres cajas se acomodan en el mismo frame en el
+que se tocaron, sin el salto visible.
+
+**Cuándo compensa iterar y cuándo no.** La mayoría de juegos 2D **no lo necesitan**: si solo el
+jugador empuja objetos estáticos (paredes, `objSolid`), `move_and_collide()` con su
+`num_iterations` de siempre ya basta — ahí solo hay un cuerpo en movimiento. Este patrón hace
+falta específicamente cuando **varios cuerpos dinámicos se empujan entre sí a la vez**: una pila
+de cajas de sokoban empujadas en cadena, un grupo de unidades de una multitud, ragdolls que se
+amontonan. Con 2-4 cuerpos, 3 iteraciones convergen visualmente; con decenas, súbelas o combina
+con el particionado espacial del §4 para no comparar todos contra todos cada pasada.
+
 ---
 
 ## 4 · Particionado espacial: colisiones cuando hay cientos de cosas
@@ -1373,13 +1444,22 @@ function agua_actualizar(_agua)
 }
 
 /// @func agua_salpicar(_agua, _px, _fuerza)
-/// @desc Mete velocidad en la columna más cercana a `_px`. Es TODO el splash:
-///       la propagación se encarga de convertirlo en ondas.
+/// @desc Mete velocidad en la columna más cercana a `_px`. Es TODO el splash DE OLA — la
+///       propagación se encarga de convertirlo en ondas. Si quieres también gotas visibles,
+///       la línea de abajo las conecta con las que ya existen para la lluvia.
 function agua_salpicar(_agua, _px, _fuerza)
 {
     var _n = array_length(_agua.columnas);
     var _i = clamp(round((_px - _agua.x0) / _agua.paso), 0, _n - 1);
     _agua.columnas[_i].vel += _fuerza;
+
+    // Conecta con pt_splash — YA existe para la lluvia en
+    // 04 · 39 §3.5 (Lluvia con salpicadura), lanzado aquí hacia arriba desde el punto de
+    // impacto en vez de desde el techo. No hace falta un tipo de partícula nuevo.
+    if (instance_exists(obj_clima))
+    {
+        part_particles_create(obj_clima.ps_clima, _px, _agua.nivel, obj_clima.pt_splash, abs(_fuerza) * 2);
+    }
 }
 
 /// @func agua_altura_en(_agua, _px)
@@ -1985,6 +2065,7 @@ COLISIONES
 [ ] ¿Reconstruyo la rejilla cada frame con array_resize(a, 0), no con `= []`?
 [ ] ¿Destruyo las ds_list que creo para collision_*_list()?
 [ ] ¿Separo el solapamiento por el eje de menor penetración, no por los dos?
+[ ] Con tres o más cuerpos dinámicos empujándose a la vez: ¿itero 2-4 pasadas (§3.4), o confío en una sola y acepto el tembleque de un frame?
 [ ] ¿El rebote comprueba que el objeto se acerca (dot < 0) antes de reflejar?
 [ ] ¿Hay umbral de reposo para que no tiemble eternamente?
 
@@ -2015,6 +2096,7 @@ RENDIMIENTO
 | Integrar con Euler explícito | El muelle oscila cada vez más hasta reventar | Velocidad antes que posición (§1.2) |
 | `vel *= 0.9` sin corregir por `dt` | El personaje frena distinto según los FPS | `power(0.9, _dt * 60)` o paso fijo |
 | Colisionar después de mover, sin separar | El personaje se queda clavado dentro de la pared | `separacion_minima()` tras detectar (§3.2) |
+| Resolver A-B y luego B-C en una sola pasada, con 3+ cuerpos dinámicos | El último cuerpo de la cadena "salta" un frame por detrás | Iterar 2-4 pasadas con `resolver_colisiones_multiples()` (§3.4) |
 | Comparar todas las entidades contra todas | A partir de 200 el Step se come el frame | Spatial hash (§4) |
 | Vaciar la rejilla con `cubo = []` cada frame | El recolector de basura sube y el juego da tirones | `array_resize(cubo, 0)` (§4.1) |
 | `collision_*_list()` con `prec = true` por defecto | Mucho más lento sin necesitarlo | `false` salvo que exijas precisión de píxel |

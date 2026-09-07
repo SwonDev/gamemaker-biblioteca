@@ -185,6 +185,7 @@ Alternativas citadas por el propio autor: [Bard Audio](https://github.com/gl326/
 ### Otras
 
 - **FMOD** (oficial de YoYoGames): <https://github.com/YoYoGames/GMEXT-FMOD> · Apache-2.0 · escritorio, móvil y consolas.
+- **flingos-MIDI** (de nicho): <https://github.com/flingoXD/flingos-MIDI> · **3 ★** · MIT · push 2026-08-18 (verificado 2026-09-07). Extensión de reproducción **MIDI** para GameMaker — cierra un hueco real (no había ninguna opción libre de MIDI en el catálogo), pero con tracción mínima. Revísala antes de recomendarla como primera opción para un proyecto serio.
 
 ---
 
@@ -239,6 +240,11 @@ if (is_struct(_empuje))
 - **Compañero imprescindible:** el addon de Blender <https://github.com/blueburncz/BBMOD-Blender> para exportar assets.
 - **Demos oficiales:** Sponza, Vehicle Demo, Zombie Demo (enlazados desde el README).
 
+> 🕰️ **Xtreme3D** (<https://github.com/xtreme3d/xtreme3d>, 50★, `NOASSERTION`, push
+> 2026-08-17, verificado 2026-09-07): motor 3D nativo (DLL) de la era **GM8/Studio 1.x**, con
+> actividad residual. **BBMOD sigue siendo la recomendación moderna** para LTS 2026; Xtreme3D
+> solo interesa para proyectos heredados que ya lo usan.
+
 ### Otras de Juju Adams (3D)
 
 | Librería | Enlace | ★ | Lic. | Push | Para qué |
@@ -247,6 +253,13 @@ if (is_struct(_empuje))
 | GMD3D11 | [JujuAdams/GMD3D11](https://github.com/JujuAdams/GMD3D11) | 0 | CC0-1.0 | 2026-07-14 | Funciones D3D11 |
 | basic-quaternions | [JujuAdams/basic-quaternions](https://github.com/JujuAdams/basic-quaternions) | 16 | MIT | 2026-07-08 | Cuaterniones |
 | Ugg | [JujuAdams/Ugg](https://github.com/JujuAdams/Ugg) | 3 | MIT | **2025-11-13** | Primitivas 3D — ⚠️ **estancada** |
+
+> 💸 **GMPhysX** (bytecauldron, itch.io) — *bridge* real a **NVIDIA PhysX** para físicas de
+> cuerpo rígido más allá de Box2D nativo y Bonk. De pago, en **alfa** y **solo Windows**
+> (verificado 2026-09-07 vía itch.io e issues de `bytecauldron/gmphysx-bugs`, push
+> 2026-08-16). No sustituye a Box2D nativo (`04/22`, con partículas de fluido) ni a Bonk: es
+> una opción de nicho para quien necesite físicas AAA y pueda asumir el coste y la limitación
+> de plataforma.
 
 ---
 
@@ -258,10 +271,15 @@ if (is_struct(_empuje))
 | **YUI** | shdwcat | [shdwcat/YUI](https://github.com/shdwcat/YUI) | 66 | MIT | 2026-08-24 | v0.6.7. **La más completa**: ficheros de texto declarativos, *live reload*, *data binding*, plantillas, temas, animaciones, drag & drop. Extensión de VS Code. |
 | **LimeUI** | Limekys | [Limekys/LimeUI](https://github.com/Limekys/LimeUI) | 36 | MIT | 2026-08-29 | Framework con **flexpanels**. Muy activa. |
 | **GMUI** | erkan612 | [erkan612/GMUI](https://github.com/erkan612/GMUI) | 30 | MIT | 2026-08-10 | UI **en modo inmediato** (estilo Dear ImGui). |
-| **Emu** | DragoniteSpam | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 43 | — | 2026-02-18 | Pensada para **herramientas y aplicaciones**, no para juegos. Documentación en la wiki de DragoniteSpam. |
+| **Emu** | DragoniteSpam | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 43 | MIT (desde 2020) | 2026-02-18 | Pensada para **herramientas y aplicaciones**, no para juegos. Documentación en la wiki de DragoniteSpam. |
 | **pfb-UserInterface** | YoYoGames | [pfb-UserInterface](https://github.com/YoYoGames/pfb-UserInterface) | 3 | MIT | 2026-07-02 | Prefabs oficiales: Button, Checkbox, Dropdown, Infobox, ProgressBar, ScrollBar, Slider, Spinner, Textbox, Toggle, Slot. |
 
 Alternativas que cita el propio Juju Adams: [PXLUI](https://github.com/1pxlchibs/PXLUI), [SimpleUI](https://github.com/evolutionleo/SimpleUI).
+
+> **MajorGUI_GML** (erkan612, mismo autor que GMUI): <https://github.com/erkan612/MajorGUI_GML>
+> · **9 ★** · MIT · push 2026-04-15 (verificado 2026-09-07). UI en **modo retenido** (frente al
+> modo inmediato de GMUI). Mención breve como alternativa, no sustituye a Bento/YUI/LimeUI/GMUI
+> como recomendación principal — tracción mucho menor.
 
 ---
 
@@ -333,6 +351,12 @@ DoLater(30, function(_mensaje) {
 | **STANNcam** | stann-co | [stann-co/STANNcam](https://github.com/stann-co/STANNcam) | 43 | MIT | 2026-08-21 | v2.4.0. Cámara *pixel-perfect* con hasta 8 cámaras, zonas, zoom, **shake**, resoluciones de juego y GUI independientes. |
 | **GML-OOP** | Mtax | [Mtax-Development/GML-OOP](https://github.com/Mtax-Development/GML-OOP) | 34 | **NOASSERTION** ⚠️ | 2026-08-29 | Constructores que envuelven las funcionalidades nativas de GameMaker. Revisa la licencia antes de usarlo en comercial. |
 
+> 💸 **REZOL** (FoxyOfJungle, itch.io) — cámara *pixel-perfect* + escalado GUI + *split-screen*
+> + HDR, más completa que STANNcam pero **de pago** (sin repo GitHub público que comparar,
+> verificado 2026-09-07). Mismo tratamiento que otras herramientas de pago de FoxyOfJungle
+> citadas en `12/05`: mención como alternativa, no sustituye a STANNcam como recomendación
+> gratuita por defecto.
+
 ```gml
 // ── GMRoomLoader: cargar una room dentro de la actual ────────────────────
 // Ejemplos del README oficial:
@@ -372,6 +396,12 @@ vista_jefe = RoomLoader.Tilemaps().Sprites().ScreenshotSprite(rm_jefe);
 - **Soporta:** GameMaker: Studio, GMS2 (formatos pre-2.3 y 2.3) y soporte limitado para proyectos legacy (≤ 8.1).
 - **Ojo:** se ejecuta **junto al IDE**, no lo sustituye. Hay formas de lanzar el juego desde el propio GMEdit (documentado en su wiki).
 
+### renderdoc-gms2-kit — depurar el pipeline gráfico con RenderDoc (de nicho)
+
+- **Enlace:** <https://github.com/odditica/renderdoc-gms2-kit> · **25 ★** · **MIT** · push **2022-08-18** ⚠️ (parado hace más de 3 años, verificado 2026-09-07).
+- **Qué problema resuelve:** genera la configuración necesaria para depurar el *pipeline* gráfico de un proyecto GMS2 con **RenderDoc** (captura de *draw calls*, inspección de shaders y texturas frame a frame). Es un generador de ajustes, no código GML — hueco real: 0 menciones de RenderDoc en el resto de la biblioteca.
+- **Estado honesto:** sin actividad desde 2022 y no verificado contra LTS 2026. Al limitarse a generar configuración (no depender de la API interna del runtime), probablemente sigue funcionando, pero pruébalo antes de apoyarte en él para un proyecto real.
+
 ### Otras utilidades de Juju Adams (activas en 2026)
 
 | Librería | ★ | Lic. | Push | Para qué |
@@ -404,6 +434,7 @@ vista_jefe = RoomLoader.Tilemaps().Sprites().ScreenshotSprite(rm_jefe);
   - Requisito declarado: **GameMaker 2024.11 / 2022.0.3 LTS o superior** → compatible con LTS 2026.
   - Versiones por rama: v2.3.0 para GMS 2.3.0–2.3.7 · v2.0.0 para GMS ≤ 2.2 · [GMLinear Legacy](https://github.com/dicksonlaw583/gmlinear-legacy) para GMS 1.4.
   - ⚠️ El repo antiguo <https://github.com/dicksonlaw583/gmlinear> está **archivado** (2019).
+- **BigInt** (MedicV2, de nicho): <https://github.com/MedicV2/BigInt> · **2 ★** · `NOASSERTION` ⚠️ · push 2026-08-05 (verificado 2026-09-07). Enteros de **precisión arbitraria** — GML no tiene *bigint* nativo y no hay ninguna otra librería equivalente ya catalogada, pero con 2 ★ y sin licencia SPDX clara conviene leer el código antes de confiar en él para algo serio. Apunta explícitamente a GameMaker LTS 2026.
 
 ---
 

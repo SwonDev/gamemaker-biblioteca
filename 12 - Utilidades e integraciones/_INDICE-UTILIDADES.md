@@ -21,6 +21,7 @@
 | 06 | [itch.io — assets, herramientas y jams](./06%20-%20itch.io%20-%20assets%2C%20herramientas%20y%20jams.md) | Qué hay realmente en itch.io para GameMaker, con precios |
 | 07 | [Dónde buscar: hubs, foros y documentación](./07%20-%20D%C3%B3nde%20buscar%20-%20hubs%20y%20documentaci%C3%B3n.md) | awesome-gamemaker, GameMaker Kitchen, Marketplace, foros, gm(48) |
 | 08 | [Tooling externo: CLI, parsers e ingeniería inversa](./08%20-%20Tooling%20externo%20-%20CLI%2C%20parsers%20e%20ingenier%C3%ADa%20inversa.md) | Ecosistema npm/PyPI: Stitch (@bscotch) y su **`gml-parser` con ejemplos reales**, @bscotch/yy, **TS→GML (`gmts`) con ejemplo de código**, **gml-linter con sus 17 reglas**, MCP, UndertaleModTool para estudiar juegos compilados |
+| 09 | [Manual del agente de IA — operar GameMaker con gm-cli](./09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md) | **El documento que usa un agente de IA para desarrollar un juego de punta a punta**: las cuatro trampas verificadas (plantillas que fallan, `resourcetool`/`compile` colgados bajo sandbox, bugs de numeración de eventos, el compilador que no detecta funciones inventadas), el ciclo completo, la tabla exacta de qué `.gml` va en qué archivo por evento, el inventario de las 80 herramientas del MCP, la frontera de lo que un agente puede depurar solo, assets sin artista y los errores típicos de un LLM con GameMaker |
 
 ---
 

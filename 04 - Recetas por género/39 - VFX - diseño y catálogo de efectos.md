@@ -894,6 +894,17 @@ draw_sprite_general(spr_origen, subimg_origen,
 > que se destruyen en menos de dos segundos, `draw_sprite_general()` sobre el sprite original —
 > sin crear nada nuevo — es la vía barata y la que se recomienda por defecto.
 
+> **Vidrio o cristal roto — no hace falta receta nueva.** Es exactamente `romper_en_escombros()`
+> de más arriba: sube `_fuerza` (el cristal vuela más lejos y más rápido que un cajón de madera)
+> y baja la `grav` de `obj_escombro` tras crearlo (los fragmentos flotan un poco antes de caer —
+> convierte ese `0.35` fijo del Create en un parámetro si vas a reutilizar el objeto con
+> materiales distintos). Súmale sonido en capas — transitorio agudo del estallido + cuerpo grave
+> del golpe del marco, el mismo patrón de capas de
+> [13 · 09 §3.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#31-transitorio-cuerpo-y-cola) —
+> y, si quieres un paso previo de «grieta» antes de romper del todo, el shader de disolución de
+> [08 · 06 §6.3](../08%20-%20Referencia%20GML%20completa/06%20-%20Shaders.md#63-disolución-dissolve)
+> con el umbral bajo ya dibuja ese avance, sin escribir nada nuevo.
+
 ### 3.12 Presupuesto medido y culling de emisores
 
 ```gml
@@ -924,6 +935,382 @@ principal de tirones. `part_particles_count()` es la forma de comprobarlo en viv
 adivinarlo; `part_emitter_enable(false)` en emisores fuera de cámara es la forma más barata de
 mantenerte por debajo del límite sin tocar el diseño del efecto.
 
+### 3.13 Efectos compuestos
+
+Los tres efectos que ninguna combinación de piezas existentes resolvía por sí sola: necesitan una
+técnica que esta biblioteca no tenía, no solo ensamblar lo que ya hay.
+
+#### 3.13.1 Electricidad y rayo encadenado
+
+La silueta de un rayo **no** es una línea recta ni una curva suave: es una polilínea quebrada,
+generada por **desplazamiento de punto medio** (*midpoint displacement*, ver Fuentes) — parte de
+un segmento recto y, en cada iteración, desplaza el punto medio de cada tramo perpendicularmente
+por una cantidad aleatoria que se reduce a la mitad en la siguiente pasada.
+
+```gml
+/// @func fx_rayo_generar(_x1, _y1, _x2, _y2, _desplazamiento, _iteraciones)
+/// @desc Devuelve un array de puntos [x, y] para un rayo entre dos puntos, por
+///       desplazamiento de punto medio recursivo (la técnica estándar del género).
+function fx_rayo_generar(_x1, _y1, _x2, _y2, _desplazamiento, _iteraciones)
+{
+    var _puntos = [[_x1, _y1], [_x2, _y2]];
+
+    repeat (_iteraciones)
+    {
+        var _nuevos = [_puntos[0]];
+
+        for (var _i = 0; _i < array_length(_puntos) - 1; _i++)
+        {
+            var _a = _puntos[_i];
+            var _b = _puntos[_i + 1];
+            var _mx = (_a[0] + _b[0]) * 0.5;
+            var _my = (_a[1] + _b[1]) * 0.5;
+
+            // desplaza el punto medio PERPENDICULAR al tramo, no en cualquier dirección
+            var _ang_perp = point_direction(_a[0], _a[1], _b[0], _b[1]) + 90;
+            var _offset   = random_range(-_desplazamiento, _desplazamiento);
+            _mx += lengthdir_x(_offset, _ang_perp);
+            _my += lengthdir_y(_offset, _ang_perp);
+
+            array_push(_nuevos, [_mx, _my]);
+            array_push(_nuevos, _b);
+        }
+
+        _puntos         = _nuevos;
+        _desplazamiento *= 0.5;   // cada pasada es más fina: el detalle converge
+    }
+
+    return _puntos;
+}
+```
+
+```gml
+// obj_rayo — Create
+puntos_rayo   = fx_rayo_generar(x, y, objetivo.x, objetivo.y, 24, 4);
+timer_temblor = 0;
+
+// obj_rayo — Step: redibuja cada 2-3 frames — es lo que vende el "temblor eléctrico",
+// no la forma en sí. Redibujarlo cada frame se lee como ruido; nunca, como una línea muerta.
+timer_temblor++;
+if (timer_temblor >= 2)
+{
+    puntos_rayo   = fx_rayo_generar(x, y, objetivo.x, objetivo.y, 24, 4);
+    timer_temblor = 0;
+}
+
+// obj_rayo — Draw: dos pasadas aditivas, un núcleo blanco fino sobre un halo de color
+gpu_set_blendmode(bm_add);
+
+draw_primitive_begin(pr_linestrip);
+for (var _i = 0; _i < array_length(puntos_rayo); _i++)
+{
+    draw_vertex_colour(puntos_rayo[_i][0], puntos_rayo[_i][1], c_aqua, 0.7);
+}
+draw_primitive_end();
+
+draw_primitive_begin(pr_linestrip);
+for (var _i = 0; _i < array_length(puntos_rayo); _i++)
+{
+    draw_vertex_colour(puntos_rayo[_i][0], puntos_rayo[_i][1], c_white, 0.9);
+}
+draw_primitive_end();
+
+gpu_set_blendmode(bm_normal);
+```
+
+**Salto entre objetivos (rayo encadenado):** el mismo generador, aplicado tramo a tramo entre una
+cadena de enemigos encontrados con `collision_circle_list()` — el patrón de barrido ya está en
+[13 · 08 §4.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/08%20-%20Físicas%20a%20mano%20y%20fluidos.md#43-cuándo-compensa-y-cuándo-no),
+aquí solo cambia qué se hace con la lista.
+
+```gml
+/// @func fx_rayo_buscar_cadena(_origen_x, _origen_y, _saltos_max, _radio_salto)
+/// @desc Encuentra hasta _saltos_max enemigos, cada uno dentro de _radio_salto del anterior,
+///       sin repetir ninguno. Devuelve el array de instancias en el orden de la cadena — dibuja
+///       un fx_rayo_generar() entre cada eslabón consecutivo y aplica tu propio pipeline de
+///       daño (04 · 32 §5.7) a cada una por separado.
+function fx_rayo_buscar_cadena(_origen_x, _origen_y, _saltos_max, _radio_salto)
+{
+    var _cadena = [];
+    var _px = _origen_x, _py = _origen_y;
+
+    repeat (_saltos_max)
+    {
+        var _lista = ds_list_create();
+        var _n = collision_circle_list(_px, _py, _radio_salto, obj_enemigo, false, true, _lista, true);
+
+        var _siguiente = noone;
+        for (var _i = 0; _i < _n; _i++)
+        {
+            var _cand = _lista[| _i];
+            if (!array_contains(_cadena, _cand)) { _siguiente = _cand; break; }   // ordered=true: el más cercano primero
+        }
+        ds_list_destroy(_lista);
+
+        if (_siguiente == noone) break;   // no queda ningún enemigo nuevo a alcance
+        array_push(_cadena, _siguiente);
+        _px = _siguiente.x;
+        _py = _siguiente.y;
+    }
+
+    return _cadena;
+}
+```
+
+#### 3.13.2 Portal / vórtice dimensional
+
+Dos piezas que ya existen, combinadas de una forma que no estaba escrita: un anillo que **gira**
+en vez de crecer (la forma `pt_shape_ring` de `pt_onda`, §3.1, pero con `part_type_orientation`
+en vez de `size_incr`) sobre un **hueco que distorsiona lo que hay detrás**, recortado a un
+círculo con el búfer de stencil de
+[08 · 04](../08%20-%20Referencia%20GML%20completa/04%20-%20Color%20y%20blending.md#búfer-de-stencil).
+
+```gml
+/// @func fx_portal_crear(_x, _y, _radio)
+/// @desc Vórtice: anillo aditivo que rota sobre sí mismo (part_type_orientation, no
+///       size_incr) + una surface del tamaño del propio portal para la distorsión.
+///       Se destruye con fx_portal_destruir().
+function fx_portal_crear(_x, _y, _radio)
+{
+    var _ps        = part_system_create_layer("Effects", true);
+    var _pt_anillo = part_type_create();
+
+    part_type_shape(_pt_anillo, pt_shape_ring);
+    part_type_size(_pt_anillo, _radio / 32, _radio / 32, 0, 0);   // tamaño FIJO: no crece
+    part_type_orientation(_pt_anillo, 0, 359, 6, 0, false);        // gira sobre sí mismo, 6°/paso
+    part_type_colour1(_pt_anillo, c_aqua);
+    part_type_alpha1(_pt_anillo, 0.6);
+    part_type_blend(_pt_anillo, true);
+    part_type_life(_pt_anillo, 1, 1);   // se recrea cada Step: no envejece de verdad
+
+    return {
+        ps: _ps, pt_anillo: _pt_anillo,
+        x: _x, y: _y, radio: _radio,
+        copia: surface_create(_radio * 2, _radio * 2),
+        tiempo: 0
+    };
+}
+
+/// @func fx_portal_step(_portal)
+function fx_portal_step(_portal)
+{
+    part_particles_create(_portal.ps, _portal.x, _portal.y, _portal.pt_anillo, 1);
+    _portal.tiempo += 1;
+}
+
+/// @func fx_portal_destruir(_portal)
+function fx_portal_destruir(_portal)
+{
+    part_type_destroy(_portal.pt_anillo);
+    part_system_destroy(_portal.ps);
+    if (surface_exists(_portal.copia)) surface_free(_portal.copia);
+}
+```
+
+```gml
+// obj_portal — Draw (en una capa que se dibuja DESPUÉS del fondo y los personajes)
+if (!surface_exists(fx_portal.copia)) fx_portal.copia = surface_create(fx_portal.radio * 2, fx_portal.radio * 2);
+
+// 1 · copia lo que YA está dibujado detrás del portal — solo esa región cae dentro de
+//     la surface pequeña; el resto del application_surface queda fuera y no se copia
+surface_copy(fx_portal.copia, -(fx_portal.x - fx_portal.radio), -(fx_portal.y - fx_portal.radio),
+            application_surface);
+
+// 2 · recorta al círculo del portal con el stencil (receta de 08 · 04 «Máscara con stencil»)
+gpu_set_stencil_enable(true);
+gpu_set_stencil_func(cmpfunc_always);
+gpu_set_stencil_pass(stencilop_replace);
+gpu_set_stencil_ref(1);
+draw_clear_stencil(0);
+draw_circle_color(fx_portal.x, fx_portal.y, fx_portal.radio, c_white, c_white, false);
+
+gpu_set_stencil_func(cmpfunc_equal);
+gpu_set_stencil_pass(stencilop_keep);
+
+// 3 · el hueco distorsionado — la variante «distorsión de pantalla» del shader de onda
+//     de 08 · 06 §6.5 (el mismo sh_onda, con el desplazamiento movido al fragment shader)
+shader_set(sh_onda_superficie);
+shader_set_uniform_f(u_tiempo, fx_portal.tiempo / 60);
+shader_set_uniform_f(u_amplitud, 0.015);
+draw_surface(fx_portal.copia, fx_portal.x - fx_portal.radio, fx_portal.y - fx_portal.radio);
+shader_reset();
+
+gpu_set_stencil_enable(false);
+```
+
+> ⚠️ `sh_onda_superficie` **es** el `sh_onda` de
+> [08 · 06 §6.5](../08%20-%20Referencia%20GML%20completa/06%20-%20Shaders.md#65-onda-wave-de-distorsión),
+> en su variante «distorsión de pantalla» (el fragment shader al final de esa sección, el que
+> desplaza la coordenada de muestreo en vez del vértice) — no la dupliques aquí, crea el asset
+> citando esa sección.
+
+#### 3.13.3 Humo con volumen falso
+
+Ni raymarch ni geometría 3D: **2-3 capas del mismo sprite de niebla de §3.7**, cada una con su
+propio offset, velocidad y escala, dibujadas con `bm_add` suave. Ninguna capa por separado lee
+como volumen; las tres moviéndose a ritmos distintos, sí — el mismo principio que ya usa §3.7
+para la niebla de toda la pantalla, aplicado aquí a un punto local.
+
+```gml
+/// @func fx_humo_volumen_crear(_x, _y, _n_capas)
+/// @desc _n_capas capas de spr_niebla (§3.7) con offset/velocidad/escala DISTINTOS: el
+///       parallax entre capas es lo que lee como volumen, no ninguna capa por sí sola.
+function fx_humo_volumen_crear(_x, _y, _n_capas = 3)
+{
+    var _capas = [];
+    for (var _i = 0; _i < _n_capas; _i++)
+    {
+        array_push(_capas, {
+            offset_x  : random_range(-6, 6),
+            offset_y  : random_range(-4, 4),
+            velocidad : random_range(0.15, 0.35) * (_i + 1),   // cada capa sube a su ritmo
+            escala    : 0.5 + _i * 0.3,                         // las capas de detrás, más grandes
+            alfa      : 0.30 - _i * 0.07
+        });
+    }
+    return { x: _x, y: _y, capas: _capas };
+}
+```
+
+```gml
+// obj_humo_volumen — Draw, de la capa 0 (más cercana) a la última (más lejana y grande)
+gpu_set_blendmode(bm_add);
+var _t = current_time / 1000;
+for (var _i = 0; _i < array_length(fx_humo.capas); _i++)
+{
+    var _c = fx_humo.capas[_i];
+    draw_sprite_ext(spr_niebla, 0,
+                    fx_humo.x + _c.offset_x + sin(_t * _c.velocidad) * 6,
+                    fx_humo.y + _c.offset_y - _t * _c.velocidad * 5,
+                    _c.escala, _c.escala, 0, c_white, _c.alfa);
+}
+gpu_set_blendmode(bm_normal);
+```
+
+### 3.14 Presupuesto de VFX a escala de juego
+
+§3.12 mide y recorta partículas **dentro de un sistema**. Cuando 40 enemigos explotan a la vez,
+el problema es otro: **qué efectos se descartan enteros**, no cuántas partículas tiene cada uno.
+Es el mismo problema que
+[04 · 42 §3.4](./42%20-%20Audio%20reactivo%20al%20mundo%20-%20materiales%2C%20zonas%20y%20estados%20de%20mezcla.md#34-el-sistema-de-importancia-de-overwatch-puntuar-agrupar-en-cubos-y-resolver-por-frame)
+ya resolvió para el audio con el sistema de importancia de *Overwatch* — los mismos tres factores
+(daño, cercanía, visibilidad), los mismos cubos, el mismo `array_sort` con `sign()`. Aquí es el
+MISMO patrón, con el canal cambiado.
+
+```gml
+// ═══════════ scr_vfx_presupuesto — el mismo patrón de 04 · 42 §3.4, canal VFX ═══════════
+
+global.cola_vfx = [];
+
+/// scr_vfx_presupuesto · vfx_calcular(_dano, _dist, _dist_max, _visible)
+/// @desc  0-100. Los MISMOS pesos que importancia_calcular() de 04 · 42 §3.4 — ajústalos
+///        a tu juego igual que allí, no son una cifra publicada.
+function vfx_calcular(_dano, _dist, _dist_max, _visible)
+{
+    var _por_dano  = clamp(_dano / 10, 0, 1)              * 50;
+    var _por_cerca = clamp(1 - (_dist / _dist_max), 0, 1) * 30;
+    var _por_ver   = _visible ? 20 : 0;
+    return _por_dano + _por_cerca + _por_ver;
+}
+
+/// scr_vfx_presupuesto · vfx_bucket(_score)
+/// @return {String}  "alto" | "normal" | "bajo" | "descartado"
+function vfx_bucket(_score)
+{
+    if (_score >= 65) return "alto";
+    if (_score >= 35) return "normal";
+    if (_score >= 12) return "bajo";
+    return "descartado";
+}
+
+/// scr_vfx_presupuesto · vfx_solicitar(_fn_crear, _px, _py, _dano, _dist_max, _visible)
+/// @desc  Llamar en vez de crear el efecto directamente. `_fn_crear` es una función SIN
+///        argumentos (una closure con los datos ya capturados, ver
+///        01 · 07 §7 «Closures») que crea/dibuja el efecto de verdad — solo se ejecuta si
+///        vfx_resolver() le da cupo este frame.
+function vfx_solicitar(_fn_crear, _px, _py, _dano, _dist_max, _visible)
+{
+    var _dist  = point_distance(obj_camara.x, obj_camara.y, _px, _py);   // o el jugador, según tu juego
+    var _score = vfx_calcular(_dano, _dist, _dist_max, _visible);
+    array_push(global.cola_vfx, { crear: _fn_crear, score: _score });
+}
+
+/// scr_vfx_presupuesto · vfx_resolver()  — llamar UNA vez, desde obj_fx_manager · End Step,
+///                        después de que todos los Step del frame hayan podido pedir turno.
+function vfx_resolver()
+{
+    if (array_length(global.cola_vfx) == 0) return;
+
+    // ⚠️ mismo aviso que 04 · 42 §3.4: array_sort() con función personalizada trunca a 0
+    // una diferencia menor que 1 — envuelve la resta en sign().
+    array_sort(global.cola_vfx, function(_a, _b) { return sign(_b.score - _a.score); });
+
+    // El multiplicador es la conexión con el ajuste de calidad gráfica de 04 · 25 §2 bis
+    var _mult   = global.calidad_baja ? 0.4 : 1.0;
+    var _cupos  = { alto: round(6 * _mult), normal: round(3 * _mult), bajo: round(1 * _mult) };
+    var _usados = { alto: 0, normal: 0, bajo: 0 };
+
+    for (var _i = 0; _i < array_length(global.cola_vfx); _i += 1)
+    {
+        var _c      = global.cola_vfx[_i];
+        var _bucket = vfx_bucket(_c.score);
+        if (_bucket == "descartado") continue;
+        if (struct_get(_usados, _bucket) >= struct_get(_cupos, _bucket)) continue;
+
+        struct_set(_usados, _bucket, struct_get(_usados, _bucket) + 1);
+        _c.crear();   // solo AHORA se crea el efecto de verdad
+    }
+
+    global.cola_vfx = [];
+}
+```
+
+```gml
+// obj_enemigo — al morir, en vez de fx_explosion_completa(x, y, 1) directo
+var _ex = x, _ey = y;   // captura por valor: la instancia puede destruirse antes de que resuelva
+var _visible = true;    // sustituye por la comprobación de cámara de §3.12 si la necesitas
+vfx_solicitar(function() { fx_explosion_completa(_ex, _ey, 1); },
+             _ex, _ey, /*dano*/ 20, /*dist_max*/ 480, _visible);
+```
+
+> 💡 **`global.calidad_baja` deja de ser una variable suelta.**
+> [04 · 28 §6.3](./28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#63-lo-demás-que-se-paga-caro)
+> ya la leía para bajar partículas y ajustar `display_set_sleep_margin`;
+> [04 · 25 §2 bis](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md) es quien de verdad la pone a
+> `true`/`false` desde un ajuste real del menú de Opciones. Inicialízala en `rm_init` —
+> `cargar_ajustes()` de 04 · 25 §4 ya lo hace — antes de que `vfx_resolver()` la lea.
+
+### 3.15 Afinar sin recompilar: `dbg_slider` también sirve para VFX
+
+[01 · 15 §4](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#vistas-de-depuración-personalizadas-muy-potente)
+documenta la familia `dbg_*` del Debug Overlay, y
+[13 · 06 §3.14 c](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md#314-depuración-estructurada)
+ya la usa para afinar el volumen de un gestor de audio en vivo — el mismo mecanismo sirve para un
+parámetro de partículas o un uniform de shader, y ninguna receta de este documento lo usaba hasta
+ahora.
+
+```gml
+// objFx — Create (solo en DEV; la vida de la llama ya se fija en §3.1 con part_type_life)
+if (DEV)
+{
+    pt_fuego_vida_max = 28;   // el mismo valor que ya usa part_type_life(pt_fuego, 18, 28)
+
+    dbg_view("VFX", false);
+    dbg_section("Fuego");
+    dbg_slider(ref_create(self, "pt_fuego_vida_max"), 10, 60, "Vida de la llama");
+}
+
+// objFx — Step: reaplica el parámetro cada frame mientras el slider lo mueve
+if (DEV) part_type_life(pt_fuego, 18, pt_fuego_vida_max);
+```
+
+Sin recompilar, sin salir del juego: mueve el slider, mira el fuego cambiar, anota el valor que
+se vea bien y pásalo al `part_type_life()` fijo de §3.1 cuando lo decidas. La misma idea vale
+para cualquier uniform de shader: guarda el valor en una variable de instancia, expórtalo con
+`dbg_slider`, y aplícalo en el `shader_set_uniform_f()` del Draw en vez de un número fijo — hay
+un ejemplo ya montado en
+[08 · 23 §3.1](../08%20-%20Referencia%20GML%20completa/23%20-%20Recetario%20de%20shaders%20de%20efecto.md#31-hit-flash--el-parpadeo-al-recibir-daño).
+
 ---
 
 ## 4 · Checklist
@@ -946,6 +1333,9 @@ Antes de dar un efecto por terminado:
       (§3.11)?
 - [ ] ¿Mediste `part_particles_count()` con el efecto más exigente del juego activo a la vez?
 - [ ] ¿Los emisores continuos fuera de cámara están desactivados (`part_emitter_enable`)?
+- [ ] Si es electricidad, portal o humo con volumen falso: ¿usaste §3.13, o reinventaste la técnica?
+- [ ] ¿Los efectos que compiten por recursos en un mismo frame pasan por `vfx_solicitar()` (§3.14), o se crean todos sin arbitrar?
+- [ ] ¿Puedes afinar los parámetros clave del efecto con `dbg_slider` sin recompilar (§3.15)?
 
 ---
 
@@ -963,6 +1353,9 @@ Antes de dar un efecto por terminado:
 | Una surface de decals del tamaño de la room sin límite ni desvanecimiento | Crece sin fin y puede consumir decenas de MB de VRAM sin que se note hasta que ya es tarde | Límite de entradas + desvanecimiento por antigüedad + reconstrucción tras perder la surface (§3.10) |
 | Citar el espejo español del manual para nombres de FX (`fx_create("...")`) | 25 de 28 identificadores están traducidos y no crean nada: `fx_create()` recibe una cadena literal | Cita siempre `manual-lts-2026-en` para los identificadores de FX (§3.6, §3.9.3) |
 | Subir el número de partículas para "arreglar" un efecto que se ve pobre | Cuesta más CPU y casi nunca se ve mejor | El problema casi siempre es de diseño (falta capa, falta timing, falta rampa de color), no de cantidad (§1.5) |
+| Dibujar un rayo con una línea recta o una curva suave fija | Se lee como láser, no como electricidad | Desplazamiento de punto medio, redibujado cada 2-3 frames (§3.13.1) |
+| Crear decenas de explosiones completas a la vez sin arbitrar | Caída de frames y saturación visual: no se lee ninguna | `vfx_solicitar()`/`vfx_resolver()` reparte cupos por importancia (§3.14) |
+| Cambiar un parámetro de partícula o un uniform solo en el código, recompilando en cada prueba | Cada ajuste cuesta un ciclo completo de compilación | `dbg_slider` + `ref_create` en DEV, reaplicado cada Step (§3.15) |
 
 ---
 
@@ -989,6 +1382,10 @@ Antes de dar un efecto por terminado:
   el `obj_sangre_decal` original que amplía §3.10
 - [04 · 27 — Accesibilidad](./27%20-%20Accesibilidad.md) — antes de encadenar destellos aditivos
   y ondas expansivas, revisa el límite de fotosensibilidad (<3 flashes/s)
+- [04 · 42 — Audio reactivo al mundo §3.4](./42%20-%20Audio%20reactivo%20al%20mundo%20-%20materiales%2C%20zonas%20y%20estados%20de%20mezcla.md#34-el-sistema-de-importancia-de-overwatch-puntuar-agrupar-en-cubos-y-resolver-por-frame) — el sistema de importancia del que §3.14 copia el patrón, aplicado allí al audio
+- [04 · 25 — Menú de opciones y ajustes](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md) — dónde se pone `global.calidad_baja` de verdad (§2 bis), que §3.14 lee
+- [01 · Fundamentos 15 §4 — Vistas de depuración personalizadas](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#vistas-de-depuración-personalizadas-muy-potente) y [13 · 06 §3.14 c](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md#314-depuración-estructurada) — el mecanismo `dbg_slider`/`ref_create` que reutiliza §3.15
+- [01 · Fundamentos 07 §7 — Closures](../01%20-%20Fundamentos/07%20-%20Funciones%2C%20métodos%20y%20ámbito.md) — por qué `vfx_solicitar()` puede recibir una función anónima con los datos ya capturados (§3.14)
 
 ---
 
@@ -1025,3 +1422,4 @@ Antes de dar un efecto por terminado:
 - Código real descargado (`11 - Código descargado/librerias/particulas/Burrn/BurrnParticleEngine`)
   — confirma en la práctica el truco de recalcular `part_type_direction()` antes de cada
   partícula individual, usado en `fx_carga_magica()` (§3.4)
+- Wikipedia (ES) — *Algoritmo de desplazamiento de punto medio* (precursor del algoritmo diamante-cuadrado; la técnica detrás de `fx_rayo_generar()` en §3.13.1) — consultado 2026-09-07 con WebFetch, <https://en.wikipedia.org/wiki/Diamond-square_algorithm>. ⚠️ La aplicación concreta a rayos/relámpagos de videojuego es práctica estándar y consolidada del género (confirmada por varios resultados de búsqueda de la sesión: Steve Losh, *Terrain Generation with Midpoint Displacement*; Burlington/diva-portal, *Procedurally Generated Lightning Bolts Using Tessellation*), pero no se abrió una fuente primaria de gamedev específica con WebFetch — los dos blogs de referencia no resolvieron DNS en esta sesión.

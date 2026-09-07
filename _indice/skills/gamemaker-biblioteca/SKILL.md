@@ -1,6 +1,6 @@
 ---
 name: gamemaker-biblioteca
-description: Fuente fidedigna para desarrollar con GameMaker LTS 2026 y GML. Úsala antes de escribir o revisar GML, ante cualquier duda de API (¿existe esta función?, firma, obsoleta, manual), y al planificar o construir un juego con GameMaker en cualquiera de sus disciplinas: diseño de juego y GDD, niveles, mundo, pixel art, animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura y patrones, generación procedural, físicas y fluidos, combate y enemigos, IA, pathfinding, progresión, sonido y voz, testing, producción, negocio, narrativa, matemáticas, móvil y 3D. Dispara con GameMaker, GML, gm-cli, archivos .yyp/.yy/.gml, «hazme un juego», y con «no compila» o «se comporta raro» en un proyecto GameMaker.
+description: Fuente fidedigna para desarrollar con GameMaker LTS 2026 y GML. Úsala antes de escribir o revisar GML, ante cualquier duda de API (¿existe esta función?, firma, obsoleta, manual), y al planificar o construir un juego con GameMaker en cualquiera de sus disciplinas: diseño de juego y GDD, niveles, mundo, pixel art, animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura y patrones, generación procedural, físicas y fluidos, combate y enemigos, IA, pathfinding, progresión, sonido y voz, testing, producción, negocio, narrativa, matemáticas, móvil y 3D; y para publicar: firmar, notarizar, subir a Steam, Play, App Store y consolas (Nintendo, PlayStation, Xbox). Dispara con GameMaker, GML, gm-cli, resourcetool, archivos .yyp/.yy/.gml, «hazme un juego», «publicar mi juego», y con «no compila» o «se comporta raro» en un proyecto GameMaker.
 ---
 
 # GameMaker · biblioteca fidedigna
@@ -44,8 +44,38 @@ sobre una carpeta suelta de `.gml` sin `.yyp`; en ese caso dilo en el reporte, p
 compilación que lo confirme.
 
 ```sh
-python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto
+python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 ```
+
+**Usa `--todo`.** Sin ese flag, el validador solo falla con nombres que llevan prefijo de familia
+del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
+`aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
+
+## Las cuatro trampas que hacen fracasar a un agente
+
+Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
+el primer comando; el detalle y las tablas completas están en
+`12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md`.
+
+1. **`resourcetool` y `compile` se cuelgan bajo el sandbox del Bash de Claude Code.** La causa es
+   la capa `npx` interna que descarga del registro de GameMaker. Si un comando se queda colgado
+   sin salida, no es que tarde: ejecútalo con el sandbox desactivado, o invoca el binario
+   `ResourceTool` cacheado directamente (responde en 0,3 s).
+2. **9 de las 18 plantillas de `gm-cli init` fallan en macOS** con `PREFABS RESTORE exited with
+   code 1`, y actualizar no lo arregla. Usa una de las que funcionan —*Space Rocks*, *Blank Pixel
+   Game*, *Tower Defense*, *RPG Starter Pack*—; la tabla completa está en `12/09`.
+3. **El ResourceTool numera mal dos eventos**: pedir «GUI Begin»/«GUI End» crea *Draw Begin*/*Draw
+   End*, y pedir «Room End» crea *Game End*. Sin ningún error. Comprueba siempre el `.yy` después
+   de crear un evento, o escribe el archivo con el número correcto de la tabla de `12/09`.
+4. **El compilador NO detecta funciones inventadas ni variables sin declarar.** Compila con
+   `exit 0` y revienta al ejecutar. Por eso `validar-proyecto.py --todo` **no es opcional**: es
+   quien caza lo que el compilador deja pasar.
+
+**Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
+`1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
+(`a ? x : (b ? y : z)`) · `const` no existe (es `#macro`) · y `function Hijo() : Padre()
+constructor {}` con el padre no definido **no da error: crashea el compilador entero** y se traga
+los errores de todo lo que venga después.
 
 ## Comandos
 
@@ -82,7 +112,11 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 | «No compila» o «se comporta raro» con código antiguo | `01 - Fundamentos/03 - Handles - el cambio clave de 2026.md` → `02 - Novedades 2026/02 - Cambios en GML 2026.md` → `buscar.py` (¿obsoleta?) → github.com/YoYoGames/GameMaker-Bugs |
 | Qué librería, extensión o herramienta usar | `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` → `11 - Código descargado/_CATALOGO.md` → `07 - Ecosistema/` |
 | Assets libres (arte, audio, tiles, fuentes) | `07 - Ecosistema/09 - Asset packs y recursos gráficos.md` |
-| Publicar, exportar, tiendas | `05 - Referencia/02 - Publicar y exportar.md` → `13 - …/11 - Producción, alcance y lanzamiento.md` |
+| **Operar GameMaker siendo un agente** (crear recursos, eventos, compilar, depurar sin ver la pantalla) | `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` |
+| Publicar, exportar, tiendas | `05 - Referencia/02 - Publicar y exportar.md` → `05 - Referencia/05 - Entregar el juego…` (firmar, notarizar, `steamcmd`, Play, App Store) → `13 - …/11 - Producción, alcance y lanzamiento.md` |
+| Publicar en **consola** (Nintendo, PlayStation, Xbox) | `05 - Referencia/06 - Publicar en consolas…` — trámite, licencia, *lotcheck*, TRC/XR, y dónde empieza el NDA |
+| Marcas, *fan games*, EULA, menores | `13 - …/25 - Legal de terceros…` y `13 - …/20 - Modelo de negocio…` |
+| No tengo sprites ni sonidos | `12 - …/09 §7` (gráficos) y `13 - …/09 §8 bis` (sonido sintetizado por código) |
 | Qué cambió en 2026, qué versión usar | `02 - Novedades 2026/01 - Resumen LTS 2026.0.md` → `README.md` §2 |
 | Enseñar a alguien que aprende | `RUTA.md`: sitúa el nivel por lo que sabe hacer y da solo material de su nivel y el siguiente |
 | No sé por dónde empezar | `_indice/COMO-BUSCAR.md` |
@@ -124,8 +158,10 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
    diálogos, audio, guardado y UI ya están resueltos por terceros.
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
-6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala.
-7. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar`.
+6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala. Recuerda que
+   compilar limpio **no** significa que el código sea correcto (trampa 4).
+7. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
+   `05/05 - Entregar el juego` (firmar y subir) → `05/06` si va a consola.
 
 ## Convenciones del código que generes
 

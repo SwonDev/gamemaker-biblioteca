@@ -516,6 +516,32 @@ clic derecho ni rueda (el zoom es *pinch*), nada de esquinas de 1 px para arrast
 texto de 8 px — si no se lee a un brazo de distancia, no está. Contraste y tamaño mínimo, en
 [27 · Accesibilidad](./27%20-%20Accesibilidad.md).
 
+### 5.7 Feedback consciente del dedo y silencioso por defecto
+
+Dos reglas de §1 que el resto de §5 nunca terminó de aplicar al feedback en sí (solo al layout
+de botones, §5.1, y a la vibración como canal aparte, §8.2): **el dedo tapa lo que toca**, y
+**una parte real de los jugadores juega sin sonido**.
+
+- **La confirmación de un toque se dibuja lejos del punto de contacto**, nunca debajo del dedo:
+  un borde que se ilumina en el HUD, un contador que sube en una esquina, un marco que
+  parpadea — no un destello justo donde está el pulgar, porque ahí no lo ve nadie hasta que lo
+  levanta.
+  [`fx_floating_text()`](./15%20-%20Game%20feel%20y%20juice.md#56-flash-de-impacto-y-texto-flotante)
+  de 04 · 15 §5.6 sirve igual en móvil, con un desplazamiento en Y mayor (24-32 px en vez de los
+  16 de escritorio) para que el texto salga de debajo del dedo desde el primer fotograma
+  visible.
+- **Todo feedback crítico tiene equivalente visual Y háptico, nunca solo sonoro por defecto.**
+  El toggle de vibración (§8.2) y el de sonido de
+  [04 · 25](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md) son ajustes independientes: un
+  jugador puede tener los dos desactivados a la vez sin que el juego deje de decirle si acertó,
+  falló o subió de nivel. Diséñalo asumiendo volumen cero desde el primer prototipo — pruébalo
+  con el móvil en silencio, no lo compruebes al final como una comprobación de accesibilidad
+  aparte.
+
+Las dos son la misma restricción que §1.1 ya aplica al layout (nada interactivo en la esquina
+que el pulgar no alcanza): el dedo y el silencio son propiedades del dispositivo, no casos
+límite que se resuelven después.
+
 ---
 
 ## 6 · Rendimiento y batería

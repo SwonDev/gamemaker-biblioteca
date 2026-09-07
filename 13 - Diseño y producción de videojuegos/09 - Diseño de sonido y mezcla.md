@@ -729,6 +729,80 @@ Bfxr, jsfxr, Bosca Ceoil, Freesound) y
 > 🔺 **Lleva la hoja de créditos desde el primer sonido** (fichero, autor, URL, licencia).
 > Reconstruirla con 300 ficheros dentro es una tarde perdida y un riesgo legal real.
 
+### 8 bis · Un agente sin archivo de audio: la escalera de prioridad
+
+La pregunta que responde esta sección no es «¿de dónde saco sonido?» (eso es la tabla de arriba
+y [07 · 09](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gráficos.md)): es
+**«necesito un efecto AHORA MISMO, y no tengo ningún archivo — ¿qué hago sin salir de la
+biblioteca?»** Es el caso real de un agente de IA construyendo un juego sin artista de sonido, y
+la respuesta ya estaba escrita en
+[08 · 24 §3](../08%20-%20Referencia%20GML%20completa/24%20-%20Audio%20avanzado%20-%20buffers%2C%20colas%2C%20sincronía%20y%20grabación.md#3--buffer-sounds-síntesis-y-audio-procedural-en-tiempo-real),
+sin que nada apuntara a ella desde aquí.
+
+**El orden, de lo que un agente puede hacer siempre a lo que depende de herramientas externas:**
+
+1. **Sintetizar con `audio_create_buffer_sound()`** — cero dependencias, cero archivos, cero
+   conexión a internet: solo GML. `tono_generar()` y `ruido_generar()` de 08 · 24 §3 ya están
+   escritas y probadas; lo único que falta es saber que **cubren el catálogo básico de un juego
+   entero**, no solo el ejemplo de una explosión con el que se presentaron.
+2. **Generador externo (jsfxr, Bfxr, ChipTone)** si el agente tiene acceso a shell o navegador —
+   tabla completa en [07 · 09 §8](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gráficos.md)
+   y paso a paso en
+   [03 · 09](../03%20-%20Cursos%20%28YouTube%29/09%20-%20Curso%202026%20-%20Sky%20LaRell%20Anderson%20-%20Parte%209%20-%20Sonidos%20y%20Música.md).
+   Da más control tímbrico que la síntesis en runtime, a cambio de un paso fuera de GameMaker.
+3. **`PLACEHOLDERS.md` extendido a audio** si ninguna de las dos anteriores es aceptable ahora
+   mismo (por ejemplo, un sonido que de verdad necesita grabación real, como una voz). El patrón
+   de placeholder de
+   [13 · 11 §5](./11%20-%20Producción%2C%20alcance%20y%20lanzamiento.md#5--assets-y-pipeline)
+   («nombre definitivo desde el principio, se lista en `PLACEHOLDERS.md`, se vacía en beta») hoy
+   solo se aplica a arte — extiéndelo tal cual: un sonido silencioso o sintetizado con el nombre
+   de asset definitivo (`snd_jugador_muerte` con un `ruido_generar()` de 08 · 24 §3 en vez de
+   una grabación), listado en la misma tabla.
+
+**Qué se puede sintetizar razonablemente, y qué no.** `audio_create_buffer_sound()` genera **PCM
+puro** — sin instrumentos, sin voz, sin timbre grabado — así que lo que suena bien es lo que ya
+suena a «señal», no a «objeto del mundo real»:
+
+| Se sintetiza razonablemente bien | No razonable por síntesis — busca un archivo de verdad |
+|---|---|
+| Disparo, láser, hechizo (tono corto y agudo) | Voz humana o diálogo — usa [13 · 24](./24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md) |
+| Salto, rebote (tono corto con pitch alto) | Foley realista: pasos sobre grava, tela, agua |
+| Recogible, moneda, «ding» de acierto | Instrumentación con melodía o música completa |
+| Impacto, golpe, explosión pequeña (ruido con caída) | Ambientes con textura orgánica (bosque, ciudad, multitud) |
+| Clic, confirmar, cancelar, error de UI | Cualquier sonido que el jugador deba reconocer como «grabado de la realidad» |
+
+**El catálogo mínimo**, con `tono_generar(_frecuencia_hz, _duracion_seg)` y
+`ruido_generar(_duracion_seg)` de 08 · 24 §3 tal cual, sin modificarlas:
+
+```gml
+// Disparo / láser: agudo y muy corto — la brevedad vende "energía", no el timbre
+var _disparo = tono_generar(1200, 0.08);
+audio_play_sound(_disparo.sonido, 60, false);
+
+// Salto: un tono corto con el pitch subido en la reproducción, no en la síntesis
+var _salto     = tono_generar(440, 0.10);
+var _id_salto  = audio_play_sound(_salto.sonido, 50, false);
+audio_sound_pitch(_id_salto, 1.3);
+
+// Moneda / recogible: dos tonos en rápida sucesión — el "ding-ding" clásico
+var _moneda_a = tono_generar(988,  0.05);   // Si5
+var _moneda_b = tono_generar(1319, 0.08);   // Mi6, una quinta por encima
+audio_play_sound(_moneda_a.sonido, 40, false);
+alarm_set(0, 3);                             // el segundo tono, 3 frames después (01 · 06)
+
+// Impacto / golpe: ruido_generar() ya está pensado exactamente para esto
+var _impacto = ruido_generar(0.12);
+audio_play_sound(_impacto.sonido, 70, false);
+
+// Interfaz (clic, confirmar, cancelar): muy corto, casi sin cuerpo
+var _clic = tono_generar(1600, 0.03);
+audio_play_sound(_clic.sonido, 30, false);
+```
+
+> ⚠️ No olvides `audio_free_buffer_sound()` + `buffer_delete()` cuando el sonido termine (08 · 24
+> §3, tabla de errores clásicos) — cada llamada de la lista de arriba crea un buffer nuevo, y
+> sin liberarlo se acumula igual que cualquier otra fuga de memoria.
+
 **Accesibilidad.** Todo lo que el sonido comunica **en exclusiva** es información que no recibe quien
 es sordo o juega sin volumen —y jugar sin volumen es mucho más común que la sordera.
 

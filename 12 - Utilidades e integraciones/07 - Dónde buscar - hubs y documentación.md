@@ -21,8 +21,8 @@ Antes de abrir el navegador:
 | El manual desde el CLI oficial | `gm-cli manual read "<tema>"` |
 
 **Tienes offline:** 3 119 páginas del manual en inglés, 3 033 en español, la API completa del
-runtime (2 357 funciones), 141 documentos propios en español y **41 602 archivos `.gml`** de
-314 repositorios reales.
+runtime (2 357 funciones), 256 documentos propios en español y **61 846 archivos `.gml`** de
+608 repositorios reales.
 
 ---
 
@@ -135,7 +135,7 @@ Organización de GitHub donde la comunidad del Discord oficial publica sus herra
 
 | Recurso | Qué es | Estado |
 |---|---|---|
-| **Esta biblioteca** | 141 documentos + manual espejado + API + 314 repos | ✅ Al día (LTS 2026) |
+| **Esta biblioteca** | 256 documentos + manual espejado + API + 608 repos | ✅ Al día (LTS 2026) |
 | [Manual oficial en español](https://manual.gamemaker.io/lts/es/) | 3 033 páginas | 🟡 86 % traducido, texto de 2021-2022 |
 | [Escuela de Videojuegos](https://hektorprofe.github.io/escueladevideojuegos/) | 100 lecciones, CC BY 4.0 | 🔴 GameMaker 1.4 |
 | [Aprende Game Maker](https://www.aprendegamemaker.com/) | +100 artículos | 🟡 Última entrada: julio de 2023 |
