@@ -350,9 +350,11 @@ if (!is_undefined(global.rebind)) {
                    _r.foco_confirmacion == 1 ? c_white : c_gray,
                    _r.foco_confirmacion == 1 ? c_white : c_gray, 1);
     } else {
+        // GML no encadena ternarios sin paréntesis (ver 01/If_Else_and_Conditional_Operators
+        // §Operadores ternarios): el segundo `?:` va envuelto en su propio paréntesis.
         var _msg = (_r.campo == "teclado") ? txt("rebind_pulsa_tecla")
-                 : (_r.campo == "mando")   ? txt("rebind_pulsa_boton")
-                                           : txt("rebind_mueve_eje");
+                 : ((_r.campo == "mando")  ? txt("rebind_pulsa_boton")
+                                           : txt("rebind_mueve_eje"));
         draw_text(_gw/2, _gh/2 - 10, _msg);
         draw_text(_gw/2, _gh/2 + 20, txt("rebind_cancelar_esc"));
     }
@@ -706,6 +708,119 @@ copia.
 > entender el mecanismo para poder depurarlo. Ver también
 > [12 · Input](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md).
 
+### 5.8 Perfiles de input por jugador: local co-op
+
+Todo el §5 hasta aquí asume **un jugador, un `global.controles`**: la pestaña "Mando 1"/"Mando
+2" de §5.4 cambia de qué ranura física se lee, pero sigue escribiendo en el **mismo** mapa de
+verbos — como ya avisa esa sección, **no es splitscreen**. Un splitscreen de verdad necesita
+que cada jugador tenga su propio mapa, independiente del de los demás: si el Jugador 2 remapea
+"saltar" a otro botón, el Jugador 1 no debe enterarse.
+
+La reestructuración es mínima porque la forma de datos de §5.1 ya está verificada: en vez de
+**un** `global.controles`, un **array de structs idénticos**, uno por jugador.
+
+```gml
+// ============================================================================
+// global.controles_jugador — un global.controles (§5.1) por cada jugador.
+// Verificado: array_create, array_length, struct_exists
+// ============================================================================
+
+/// @func controles_jugador_iniciar(_num_jugadores)
+/// @desc Llamar UNA vez, en vez de controles_iniciar() (04/40 §3.5), cuando el juego
+///       soporta co-op local. Cada jugador arranca con sus valores de fábrica en un
+///       STRUCT PROPIO: reasignar el del Jugador 2 no toca el del 1.
+function controles_jugador_iniciar(_num_jugadores) {
+    global.controles_jugador = array_create(_num_jugadores);
+    for (var _j = 0; _j < _num_jugadores; _j++) {
+        // Mismos verbos que controles_iniciar() (04/40 §3.5); el teclado solo se ofrece
+        // al Jugador 0 por convención — el resto entra siempre con mando. No es una
+        // limitación de GameMaker: si tu juego SÍ reparte el teclado entre dos jugadores,
+        // dale a cada acción un vk_* distinto por jugador en vez de vk_nokey.
+        global.controles_jugador[_j] = {
+            saltar:      { teclado: (_j == 0) ? vk_space : vk_nokey, mando: gp_face1 },
+            dash:        { teclado: (_j == 0) ? vk_shift : vk_nokey, mando: gp_shoulderr },
+            atacar:      { teclado: (_j == 0) ? ord("F") : vk_nokey, mando: gp_face3 },
+            interactuar: { teclado: (_j == 0) ? ord("E") : vk_nokey, mando: gp_face2 },
+        };
+    }
+}
+
+/// @func control_tecla_jugador(_jugador, _accion)
+/// @desc Misma lectura defensiva que control_tecla() (04/40 §3.5), indexada por jugador.
+function control_tecla_jugador(_jugador, _accion) {
+    var _c = global.controles_jugador[_jugador];
+    return struct_exists(_c, _accion) ? _c[$ _accion].teclado : vk_nokey;
+}
+
+/// @func control_boton_mando_jugador(_jugador, _accion)
+function control_boton_mando_jugador(_jugador, _accion) {
+    var _c = global.controles_jugador[_jugador];
+    return struct_exists(_c, _accion) ? _c[$ _accion].mando : -1;
+}
+```
+
+El segundo cambio es de dónde sale la **ranura física** de cada jugador: no de
+`global.mando_slot` (singular, §5.4), sino del array `mandos_por_jugador` que ya resuelve
+[01 · 12 §4 — "Varios mandos, uno por jugador (co-op local)"](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md) —
+esa sección asigna qué `pad_index` físico le toca a cada número de jugador; esta añade **qué
+significa cada botón** para ese mismo jugador. Las dos piezas encajan sin que ninguna repita a
+la otra:
+
+```gml
+/// @func input_mover_x_jugador(_jugador)
+/// @desc Eje horizontal del JUGADOR indicado: su teclado (solo Jugador 0, ver arriba) y
+///       su propio slot de mando, leído de mandos_por_jugador (01 · 12 §4). Nombre distinto
+///       a propósito de input_mover_x() (01 · 12 §8, sin parámetro): son dos scripts para
+///       dos escenarios —un jugador frente a varios—, y coexistir con el mismo nombre
+///       reescribiría la función de uno de los dos en cuanto se importaran los dos scripts
+///       al mismo proyecto.
+function input_mover_x_jugador(_jugador) {
+    if (_jugador == 0) {
+        var _teclado = keyboard_check(ord("D")) - keyboard_check(ord("A"));
+        if (_teclado != 0) return _teclado;
+    }
+
+    var _slot = obj_input_manager.mandos_por_jugador[_jugador];   // 01 · 12 §4
+    if (_slot == -1) return 0;                                    // este jugador aún sin mando
+
+    var _eje = gamepad_axis_value(_slot, gp_axislh);
+    return (abs(_eje) > 0.25) ? _eje : 0;                         // zona muerta axial (01 · 12 §4)
+}
+
+/// @func input_saltar_pulsado_jugador(_jugador)
+function input_saltar_pulsado_jugador(_jugador) {
+    var _slot         = obj_input_manager.mandos_por_jugador[_jugador];
+    var _boton_mando  = control_boton_mando_jugador(_jugador, "saltar");
+    var _mando        = (_slot != -1) && gamepad_button_check_pressed(_slot, _boton_mando);
+    var _tecla        = (_jugador == 0)
+                      && keyboard_check_pressed(control_tecla_jugador(0, "saltar"));
+
+    return _mando || _tecla;
+}
+```
+
+```gml
+// ═══════════ obj_jugador · Create ═══════════
+numero_jugador = 0;   // 0 o 1; lo fija el creador de instancia al colocar al Jugador 2
+
+// ═══════════ obj_jugador · Step ═══════════
+var _dx = input_mover_x_jugador(numero_jugador);
+if (input_saltar_pulsado_jugador(numero_jugador) && en_suelo) { vel_y = vel_salto; }
+```
+
+> ⚠️ **Esto NO trae rebinding completo de fábrica.** §5.2-§5.3 (captura, conflictos) siguen
+> siendo válidos por jugador, pero cada pantalla de rebinding tiene que operar sobre
+> `global.controles_jugador[_jugador]` en vez de sobre `global.controles` — la misma mecánica,
+> indexada una vez más. Fuera del alcance de este ejemplo mínimo: monta primero el rebinding
+> completo con un solo jugador (§5.2-§5.6) y solo entonces multiplica la forma de datos.
+>
+> 💡 **Persistencia**: `controles_guardar()`/`controles_cargar()` (§5.6) se adaptan igual — una
+> sección de INI por jugador (`$"controles_j{jugador}"`), o un array entero serializado a JSON
+> en una sola clave. No hace falta ningún símbolo nuevo, solo un bucle exterior más.
+
+Símbolos verificados: `array_create`, `array_length`, `struct_exists`, `keyboard_check`,
+`keyboard_check_pressed`, `gamepad_axis_value`, `gamepad_button_check_pressed`, `abs`.
+
 ---
 
 ## Las trampas
@@ -734,3 +849,5 @@ copia.
 - [13 · 05 §2.3](<../13 - Diseño y producción de videojuegos/05 - UI y UX de juego.md#23-ratón-táctil-y-mando-a-la-vez-manda-el-último-dispositivo-usado>) — `icono_boton()` y la marca de mando que dibuja el icono correcto tras el rebinding
 - [13 · 06 §3.10](<../13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md#310-estado-global-guardado-y-migraciones>) — por qué el rebinding va a `ajustes.ini` y no al guardado de partida
 - [27 · Accesibilidad](./27%20-%20Accesibilidad.md#4--accesibilidad-motriz) — por qué el rebinding completo es imprescindible para mandos adaptados
+- [01 · 12 §4](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md) — asignación de ranura física por jugador (`mandos_por_jugador`) que §5.8 usa para el local co-op, y la sección de vsync y latencia de input
+- [02 · Top-Down / Twin-Stick §8](./02%20-%20Top-Down%20_%20Twin-Stick.md#8-cómo-escalarlo) y [14 · Multijugador § Antes de empezar, en serio](./14%20-%20Multijugador.md#antes-de-empezar-en-serio) — dónde encaja el local co-op de §5.8 en el arco de un proyecto

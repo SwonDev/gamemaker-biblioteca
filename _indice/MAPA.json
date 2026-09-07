@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 234 documentos con su título",
+    "_indice/documentos.json": "los 244 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -643,11 +643,31 @@
           "titulo": "47 · Beat 'em up y brawler"
         },
         {
+          "ruta": "04 - Recetas por género/48 - Aventura gráfica y point and click.md",
+          "titulo": "48 · Aventura gráfica y point and click"
+        },
+        {
+          "ruta": "04 - Recetas por género/49 - Deportes y física de mesa.md",
+          "titulo": "49 · Deportes y física de mesa"
+        },
+        {
+          "ruta": "04 - Recetas por género/50 - Juego de lucha.md",
+          "titulo": "50 · Juego de lucha"
+        },
+        {
+          "ruta": "04 - Recetas por género/51 - Colonia y constructor de bases - trabajadores autónomos.md",
+          "titulo": "51 · Colonia y constructor de bases — trabajadores autónomos"
+        },
+        {
+          "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+          "titulo": "52 · Live-ops técnico (config remota, versión mínima, mensajes del juego)"
+        },
+        {
           "ruta": "04 - Recetas por género/_INDICE-RECETAS.md",
           "titulo": "Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)"
         }
       ],
-      "n_documentos": 49
+      "n_documentos": 54
     },
     {
       "titulo": "Referencia rápida",
@@ -675,9 +695,13 @@
         {
           "ruta": "05 - Referencia/04 - Convenciones y estilo GML.md",
           "titulo": "04 · Convenciones y estilo GML"
+        },
+        {
+          "ruta": "05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md",
+          "titulo": "05 · Entregar el juego: firmar, notarizar y subir a las tiendas"
         }
       ],
-      "n_documentos": 4
+      "n_documentos": 5
     },
     {
       "titulo": "Scripts GML propios listos para copiar",
@@ -842,11 +866,15 @@
           "titulo": "22 · Crear una extensión nativa (guía en español)"
         },
         {
+          "ruta": "07 - Ecosistema/23 - Arte generado por IA (pixel art y assets 2D).md",
+          "titulo": "23 · Arte generado por IA (pixel art y assets 2D)"
+        },
+        {
           "ruta": "07 - Ecosistema/_INDICE-ECOSISTEMA.md",
           "titulo": "Índice del ecosistema GameMaker"
         }
       ],
-      "n_documentos": 23
+      "n_documentos": 24
     },
     {
       "titulo": "Referencia técnica de GML en español + la API completa",
@@ -1285,11 +1313,19 @@
           "titulo": "24 · Voz, diálogo y localización de audio"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/25 - Legal de terceros - marcas, fan games y parodia.md",
+          "titulo": "25 · Legal de terceros: marcas, fan games y parodia"
+        },
+        {
+          "ruta": "13 - Diseño y producción de videojuegos/26 - Comunidad propia - Discord, moderación y gestión de crisis.md",
+          "titulo": "26 · Comunidad propia: Discord, moderación y gestión de crisis"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 25
+      "n_documentos": 27
     }
   ],
   "puntos_de_entrada": {
@@ -1305,7 +1341,7 @@
       "nota_para_agentes": "Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente."
     },
     "README.md": {
-      "titulo": "Biblioteca de conocimiento · GameMaker LTS 2026"
+      "titulo": "Biblioteca GameMaker · para que tu agente de IA no invente funciones"
     },
     "AGENTS.md": {
       "titulo": "AGENTS.md — cómo usar esta biblioteca si eres un agente de IA"
@@ -1324,9 +1360,15 @@
         "entender la estructura completa (usa AGENTS.md o este MAPA.json)",
         "buscar una función (usa _indice/buscar.py)"
       ]
+    },
+    "PUBLICAR.md": {
+      "titulo": "Publicar esta biblioteca",
+      "proposito": "",
+      "usar_cuando": [],
+      "no_usar_para": []
     }
   },
-  "total_documentos": 234,
+  "total_documentos": 244,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

@@ -58,8 +58,13 @@ objStructure         (padre de construcciones)
 objNeeds             (controller: hambre, sed, temperatura)
 objTimeOfDay         (ciclo día/noche)
 objChunkManager      (carga/descarga de regiones)
+objWorldGrid         (controller: rejilla de ocupación de construcciones, §5.3)
 objWorldGen          (genera el mundo por chunks)
 ```
+
+Como `objNeeds`, `objTimeOfDay`, `objChunkManager` y `objWorldGrid` son *controllers*
+singleton, colócalos una sola vez en la room inicial (o instáncialos desde `obj_game` ·
+Create), igual que ya haces con los otros tres.
 
 ### Structs
 
@@ -119,7 +124,9 @@ su desgaste (cambios de sprite, grietas).
 Reutiliza el `Inventory` de la receta 04. Para un survival añade:
 
 - **Capacidad por pila** (madera apila 99, herramientas no apilan).
-- **Peso** (opcional; añade decisiones de qué llevar).
+- **Peso** (opcional; añade decisiones de qué llevar). Implementado en
+  [04 · 04 §5.2](./04%20-%20RPG%20_%20Action%20RPG.md#52-inventario-y-equipamiento)
+  (`inventory_peso_total()`, `peso_maximo`, penalización de velocidad).
 - **Durabilidad** en herramientas.
 
 ### 4.3 Recetas de crafteo
@@ -139,6 +146,12 @@ receta = {
 **Comprobación eficiente:** tener una función `puede_craftear()` que no
 modifique nada, y `craftear()` que sí consuma. Nunca consumas primero y
 compruebes después.
+
+> ⚠️ Esta receta declara `estacion` y `tiempo` pero, tal como marca el informe de auditoría de
+> esta biblioteca (r3-2026-09-06, tema 22 y 23), `puede_craftear()`/`craftear()` (§5.1) **nunca
+> comprueban ninguno de los dos campos**: la comprobación de proximidad y la cola no-instantánea
+> son código nuevo, no un bug de los que ya existen. §5.7-§5.10 conectan estación, tiempo,
+> descubrimiento de recetas y el árbol de dependencias que faltaban.
 
 ### 4.4 Necesidades
 
@@ -206,6 +219,16 @@ Un valor 0-1 que recorre el día. Controla:
 - Temperatura (más frío de noche).
 - Spawn de criaturas (hostiles de noche).
 
+### 4.8 Contenedores externos
+
+`objStorageChest` aparece en la jerarquía de §2 pero, tal como marca el informe de auditoría de
+esta biblioteca (r3-2026-09-06, tema 5), nunca llega a implementarse: en `04 · 06 §4.4` un cofre
+es solo un booleano «abierto/cerrado», sin inventario propio. Un contenedor de verdad necesita
+tres piezas que un ítem tirado en el suelo no tiene: **capacidad propia** (no comparte la del
+jugador), **persistencia** (si el jugador lo llena y se aleja, el contenido sigue ahí al volver)
+y una **UI de dos paneles** (inventario del jugador a un lado, del cofre al otro). El código está
+en §5.6.
+
 ---
 
 ## 5. Código base
@@ -225,7 +248,7 @@ function Needs() constructor
     hambre  = 100;
     sed     = 100;
     calor   = 100;
-    sueño   = 100;
+    sueno   = 100;
     cordura = 100;
 
     // Tasas de degradación por frame (a 60 fps)
@@ -233,7 +256,7 @@ function Needs() constructor
     // vaciarse en algo más de medio día.
     tasa_hambre  = 0.030;
     tasa_sed     = 0.045;
-    tasa_sueño   = 0.018;
+    tasa_sueno   = 0.018;
     tasa_cordura = 0.008;
 
     // Multiplicadores por actividad
@@ -247,7 +270,7 @@ function Needs() constructor
 
         hambre = max(0, hambre - (tasa_hambre  * mult_actividad));
         sed    = max(0, sed    - (tasa_sed     * mult_actividad));
-        sueño  = max(0, sueño  - (tasa_sueño));
+        sueno  = max(0, sueno  - (tasa_sueno));
 
         // El calor depende de la temperatura exterior
         if (_temperatura != undefined)
@@ -278,7 +301,7 @@ function Needs() constructor
     };
 
     /// @desc Devuelve el daño por frame que debe recibir el jugador.
-    daño_por_frame = function()
+    dano_por_frame = function()
     {
         var _d = 0;
         if (sed     <= 0) _d += 0.05;
@@ -293,7 +316,7 @@ function Needs() constructor
         var _m = 1.0;
         if (hambre < 25) _m *= 0.75;
         if (sed    < 25) _m *= 0.70;
-        if (sueño  < 15) _m *= 0.60;
+        if (sueno  < 15) _m *= 0.60;
         return _m;
     };
 
@@ -301,7 +324,7 @@ function Needs() constructor
     alguna_critica = function()
     {
         return (hambre < 20) || (sed < 20) || (calor < 20) ||
-               (sueño < 15) || (cordura < 20);
+               (sueno < 15) || (cordura < 20);
     };
 
     consumir = function(_item_efecto)
@@ -309,13 +332,13 @@ function Needs() constructor
         if (variable_struct_exists(_item_efecto, "hambre")) hambre = min(100, hambre + _item_efecto.hambre);
         if (variable_struct_exists(_item_efecto, "sed"))    sed    = min(100, sed    + _item_efecto.sed);
         if (variable_struct_exists(_item_efecto, "calor"))  calor  = min(100, calor  + _item_efecto.calor);
-        if (variable_struct_exists(_item_efecto, "sueño"))  sueño  = min(100, sueño  + _item_efecto.sueño);
+        if (variable_struct_exists(_item_efecto, "sueno"))  sueno  = min(100, sueno  + _item_efecto.sueno);
     };
 
     serialize = function()
     {
         return { hambre: hambre, sed: sed, calor: calor,
-                 sueño: sueño, cordura: cordura };
+                 sueno: sueno, cordura: cordura };
     };
 
     static deserialize = function(_d)
@@ -324,7 +347,7 @@ function Needs() constructor
         _n.hambre  = _d.hambre;
         _n.sed     = _d.sed;
         _n.calor   = _d.calor;
-        _n.sueño   = _d.sueño;
+        _n.sueno   = _d.sueno;
         _n.cordura = _d.cordura;
         return _n;
     };
@@ -488,9 +511,9 @@ else
 
 ```gml
 // ---------------------------------------------------------------------------
-// objResourceNode — golpear(_daño, _herramienta)
+// objResourceNode — golpear(_dano, _herramienta)
 // ---------------------------------------------------------------------------
-function golpear(_daño, _herramienta)
+function golpear(_dano, _herramienta)
 {
     // ¿La herramienta es adecuada? Si no, daño reducido
     var _eficacia = 1.0;
@@ -502,7 +525,7 @@ function golpear(_daño, _herramienta)
         else                                       _eficacia = 0.3;   // a mano
     }
 
-    hp -= _daño * _eficacia;
+    hp -= _dano * _eficacia;
     shake = 6;
 
     // Feedback por capas
@@ -600,9 +623,10 @@ var _receta = recipe_get(estructura_id);
 // solaparse" pero nunca consultaba la rejilla de ocupación, así que dos
 // estructuras podían colocarse en la misma celda. Las dos funciones
 // inventadas se sustituyen por lo que YA existe: `objWorldGrid.ocupada()`
-// (el struct `WorldGrid` de más abajo, verificado, es la única fuente de
-// verdad sobre qué celda está libre) y `point_distance()` (función del
-// runtime, verificada con `buscar.py`) para el rango de colocación.
+// (el objeto `objWorldGrid` — jerarquía en §2, Create al final de este
+// apartado — es la única fuente de verdad sobre qué celda está libre) y
+// `point_distance()` (función del runtime, verificada con `buscar.py`)
+// para el rango de colocación.
 ghost_valido = (_receta != undefined)
     && _receta.puede_craftear(global.inventory)
     && !objWorldGrid.ocupada(_grid_x, _grid_y)
@@ -662,58 +686,75 @@ draw_set_alpha(1);
 
 ```gml
 // ---------------------------------------------------------------------------
-// scr_world_grid
+// objWorldGrid — Create
 // ---------------------------------------------------------------------------
+// ⚠️ Corregido (informe r3-99-cierre §3.1): la versión anterior definía esto
+// como `function WorldGrid() constructor { ... }` y nunca lo instanciaba en
+// ningún sitio — `objBuildManager` llamaba a `objWorldGrid.ocupada()` contra
+// un objeto que no existía en la jerarquía ni tenía Create, así que la
+// receta no compilaba/ejecutaba tal cual estaba escrita.
+//
+// La corrección lo convierte en objeto: `objWorldGrid` (añadido a la
+// jerarquía en §2) es un controller *singleton* — igual que `objChunkManager`
+// unas líneas más abajo, mismo patrón — cuyo Create define directamente estas
+// variables y funciones de instancia. Así las llamadas que ya usan este
+// documento y `04 · 51` (`objWorldGrid.ocupada()/.ocupar()/.liberar()`,
+// `objWorldGrid.celdas`) siguen funcionando sin tocar ni una: son variables
+// reales de la instancia, no de un struct aparte que nadie crea.
+celdas = {};    // "x,y" → instancia (sparse: solo las ocupadas)
 
-/// @func WorldGrid()
-/// @desc Grid de ocupación de construcciones. Evita solapes.
-function WorldGrid() constructor
+clave = function(_x, _y) { return string(_x) + "," + string(_y); };
+
+ocupada = function(_x, _y)
 {
-    celdas = {};    // "x,y" → instancia (sparse: solo las ocupadas)
+    return variable_struct_exists(celdas, clave(_x, _y));
+};
 
-    clave = function(_x, _y) { return string(_x) + "," + string(_y); };
+ocupar = function(_x, _y, _inst)
+{
+    celdas[$ clave(_x, _y)] = _inst;
+};
 
-    ocupada = function(_x, _y)
+liberar = function(_x, _y)
+{
+    var _k = clave(_x, _y);
+    if (variable_struct_exists(celdas, _k))
     {
-        return variable_struct_exists(celdas, clave(_x, _y));
-    };
+        variable_struct_remove(celdas, _k);
+    }
+};
 
-    ocupar = function(_x, _y, _inst)
+/// @desc Serializar (solo las ocupadas: eficiente). No se usa para el save
+/// principal — ver §6, `objWorldGrid` no se guarda aparte — pero queda
+/// disponible para depuración o para un sistema que sí quiera un volcado
+/// plano de la rejilla.
+serialize = function()
+{
+    var _out = [];
+    var _keys = variable_struct_get_names(celdas);
+
+    for (var _i = 0; _i < array_length(_keys); _i++)
     {
-        celdas[$ clave(_x, _y)] = _inst;
-    };
+        var _k = _keys[_i];
+        var _s = celdas[$ _k];
 
-    liberar = function(_x, _y)
-    {
-        var _k = clave(_x, _y);
-        if (variable_struct_exists(celdas, _k))
-        {
-            variable_struct_remove(celdas, _k);
-        }
-    };
+        if (!instance_exists(_s)) continue;
 
-    /// @desc Serializar (solo las ocupadas: eficiente)
-    serialize = function()
-    {
-        var _out = [];
-        var _keys = variable_struct_get_names(celdas);
+        array_push(_out, {
+            tipo: _s.tipo_estructura,
+            x: _s.grid_x,
+            y: _s.grid_y
+        });
+    }
+    return _out;
+};
 
-        for (var _i = 0; _i < array_length(_keys); _i++)
-        {
-            var _k = _keys[_i];
-            var _s = celdas[$ _k];
-
-            if (!instance_exists(_s)) continue;
-
-            array_push(_out, {
-                tipo: _s.tipo_estructura,
-                x: _s.grid_x,
-                y: _s.grid_y
-            });
-        }
-        return _out;
-    };
-}
+/// @desc Vacía la rejilla. La usa `survival_load()` (§6) antes de que
+/// `cargar_chunk()` (§5.4) la repueble sola según van entrando los chunks.
+vaciar = function()
+{
+    celdas = {};
+};
 ```
 
 ### 5.4 Chunking
@@ -749,7 +790,7 @@ function ChunkData(_cx, _cy) constructor
         array_push(nodos_talados, _unique_id);
     };
 
-    añadir_estructura = function(_tipo, _x, _y)
+    anadir_estructura = function(_tipo, _x, _y)
     {
         array_push(estructuras, { tipo: _tipo, x: _x, y: _y });
     };
@@ -818,7 +859,7 @@ registrar_estructura = function(_struct)
 {
     var _cx = _struct.x div CHUNK_PX;
     var _cy = _struct.y div CHUNK_PX;
-    chunk_get(_cx, _cy).añadir_estructura(_struct.tipo_estructura,
+    chunk_get(_cx, _cy).anadir_estructura(_struct.tipo_estructura,
                                           _struct.grid_x, _struct.grid_y);
 };
 ```
@@ -908,6 +949,12 @@ function cargar_chunk(_cx, _cy)
         _s.tipo_estructura = _e.tipo;
         _s.grid_x = _e.x;
         _s.grid_y = _e.y;
+
+        // ⚠️ Sin esto, una estructura que vuelve a entrar en pantalla (chunk
+        // descargado y recargado, o partida recién cargada) recrea la
+        // instancia pero deja su celda libre en objWorldGrid: dos jugadores
+        // — o el mismo, después de un load — podrían construir encima.
+        objWorldGrid.ocupar(_s.grid_x, _s.grid_y, _s);
     }
 
     // --- c) Activar las instancias de esta región --------------------------------
@@ -992,7 +1039,7 @@ if (tiempo >= 1)
     dia++;
 
     // Al amanecer: curar penalizaciones, registrar el día
-    global.needs.sueño = 100;
+    global.needs.sueno = 100;
     objChunkManager.registrar_nuevo_dia();
 }
 
@@ -1025,6 +1072,412 @@ if (_oscuridad > 0.01)
 > [24 · Iluminación 2D](./24%20-%20Iluminación%202D.md), ver
 > [24 · Iluminación 2D §6 — Ciclo día/noche con rampa de color](./24%20-%20Iluminación%202D.md#6--ciclo-díanoche-con-rampa-de-color),
 > que reutiliza este mismo `tiempo` de `objTimeOfDay`.
+
+### 5.6 Contenedores: objStorageChest
+
+```gml
+// ---------------------------------------------------------------------------
+// objStorageChest — Create
+// ---------------------------------------------------------------------------
+// Reutiliza Inventory (04 · 04 §5.2): cada cofre tiene SU PROPIA instancia,
+// separada de global.inventory (el inventario del jugador).
+inventario = new Inventory(30);   // capacidad propia del cofre, no la del jugador
+abierto    = false;
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objStorageChest — Step
+// ---------------------------------------------------------------------------
+if (!abierto)
+{
+    if (keyboard_check_pressed(ord("E"))
+        && point_distance(objPlayer.x, objPlayer.y, x, y) <= RANGO_CONSTRUCCION)
+    {
+        abierto = true;
+    }
+}
+else if (keyboard_check_pressed(vk_escape) || keyboard_check_pressed(ord("E")))
+{
+    abierto = false;
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objStorageChest — transferir_a_cofre(_item_id, _cantidad) / transferir_a_jugador(...)
+// ---------------------------------------------------------------------------
+
+/// @desc Mueve del inventario del jugador AL cofre. No mueve nada si no hay
+///       suficiente cantidad: comprobación antes que efecto, como en §5.1.
+function transferir_a_cofre(_item_id, _cantidad)
+{
+    if (!global.inventory.has(_item_id, _cantidad)) return false;
+    if (!inventario.add(_item_id, _cantidad))       return false;   // el cofre está lleno
+    global.inventory.remove(_item_id, _cantidad);
+    return true;
+}
+
+/// @desc Mueve del cofre AL jugador.
+function transferir_a_jugador(_item_id, _cantidad)
+{
+    if (!inventario.has(_item_id, _cantidad))       return false;
+    if (!global.inventory.add(_item_id, _cantidad)) return false;   // el jugador va lleno
+    inventario.remove(_item_id, _cantidad);
+    return true;
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objStorageChest — Draw GUI (dos paneles: jugador a la izquierda, cofre a la derecha)
+// ---------------------------------------------------------------------------
+if (!abierto) exit;
+
+var _px = display_get_gui_width() * 0.5 - 220;
+var _py = 60;
+
+draw_set_color(c_black);
+draw_rectangle(_px,       _py, _px + 200, _py + 260, false);   // panel jugador
+draw_rectangle(_px + 240, _py, _px + 440, _py + 260, false);   // panel cofre
+draw_set_color(c_white);
+draw_text(_px,       _py - 16, "Inventario");
+draw_text(_px + 240, _py - 16, "Cofre");
+
+var _fila = 0;
+for (var _i = 0; _i < array_length(global.inventory.slots); _i++)
+{
+    var _s = global.inventory.slots[_i];
+    draw_text(_px + 8, _py + 8 + _fila * 16, _s.item_id + " x" + string(_s.cantidad));
+    _fila++;
+}
+
+_fila = 0;
+for (var _i = 0; _i < array_length(inventario.slots); _i++)
+{
+    var _s = inventario.slots[_i];
+    draw_text(_px + 248, _py + 8 + _fila * 16, _s.item_id + " x" + string(_s.cantidad));
+    _fila++;
+}
+```
+
+> 💡 Este panel es deliberadamente mínimo: **listas de texto**, sin arrastrar-y-soltar. Para
+> drag-and-drop real entre los dos paneles, reutiliza la máquina de 3 estados de
+> [13 · 05 §e](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md)
+> — sus funciones `inventario_coger()`/`inventario_soltar()` ya resuelven el caso general; lo
+> único que cambia aquí es a cuál de los dos `Inventory` (jugador o `inventario` del cofre)
+> apunta el destino del soltar.
+
+> ⚠️ **Esta receta NO conecta todavía el contenido del cofre con el chunk diff de §5.4.**
+> `ChunkData.anadir_estructura()` solo guarda `{ tipo, x, y }`, sin sitio para el inventario del
+> cofre. Mientras el chunk siga cargado no hay pérdida real: `descargar_chunk()` (§5.4) desactiva
+> `objEnemy` y `objItemDrop`, pero no `objStorageChest`, así que la instancia (y su `inventario`)
+> sigue viva en memoria. El riesgo aparece al **guardar y volver a cargar la partida entera**: tal
+> cual, el contenido del cofre no sobrevive. Para persistirlo de verdad, añade un parámetro
+> opcional a `anadir_estructura(_tipo, _x, _y, _estado = undefined)` y guarda ahí
+> `inventario.serialize()`; en `cargar_chunk()`, justo después de crear la instancia, `if
+> (_e.estado != undefined) { _s.inventario = Inventory.deserialize(_e.estado); }`. No se aplica
+> aquí para no reescribir §5.4 mientras otro agente puede estar editándolo en paralelo — el
+> patrón es el mismo que ya usa `SurvivalState` en §6 para serializar structs anidados.
+
+### 5.7 Crafteo: estaciones y descubrimiento de recetas
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_crafting_estaciones — tema 22 del informe de auditoría: craftear() y
+// puede_craftear() (§5.1) declaran `estacion` en la receta pero nunca la
+// comprueban. Verificado: point_distance e instance_nearest, ya en uso en
+// §5.3 y en el resto de esta biblioteca.
+// ---------------------------------------------------------------------------
+
+#macro RANGO_ESTACION (CELL * 2)
+
+/// @func estacion_cercana(_tipo_estacion, _x, _y)
+/// @desc "" (crafteo a mano) siempre cuenta como estación válida: no hace
+///       falta buscar nada.
+/// @return {Bool}
+function estacion_cercana(_tipo_estacion, _x, _y)
+{
+    if (_tipo_estacion == "") return true;
+
+    var _inst = instance_nearest(_x, _y, objCraftingStation);
+    if (_inst == noone)              return false;
+    if (_inst.tipo != _tipo_estacion) return false;
+
+    return point_distance(_x, _y, _inst.x, _inst.y) <= RANGO_ESTACION;
+}
+
+/// @func puede_craftear_aqui(_receta, _inventario, _x, _y)
+/// @desc Envuelve Recipe.puede_craftear() (§5.1) SIN tocarla: añade la
+///       comprobación de estación que faltaba sin romper las llamadas que ya
+///       usan puede_craftear() a secas en otro sitio.
+function puede_craftear_aqui(_receta, _inventario, _x, _y)
+{
+    return _receta.puede_craftear(_inventario)
+        && estacion_cercana(_receta.estacion, _x, _y);
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_crafting_descubrimiento — tema 21: recipes_init() (§5.1) carga TODAS
+// las recetas en global.recipes sin ningún filtro de desbloqueo; el jugador
+// las tiene todas disponibles desde el segundo 1.
+// ---------------------------------------------------------------------------
+
+/// @func recetas_desbloqueadas_init(_iniciales)
+/// @param {Array<String>} _iniciales  Recetas que el jugador conoce desde el principio.
+function recetas_desbloqueadas_init(_iniciales)
+{
+    global.recetas_desbloqueadas = {};
+    for (var _i = 0; _i < array_length(_iniciales); _i++)
+    {
+        global.recetas_desbloqueadas[$ _iniciales[_i]] = true;
+    }
+}
+
+/// @func receta_desbloquear(_id)
+/// @desc Llámala al leer un blueprint (ver item_usar_blueprint() más abajo,
+///       la idea que §8 de este documento ya apuntaba sin implementar) o al
+///       cumplir la condición que decidas (nivel, misión, NPC).
+function receta_desbloquear(_id)
+{
+    global.recetas_desbloqueadas[$ _id] = true;
+}
+
+/// @func receta_esta_desbloqueada(_id)
+function receta_esta_desbloqueada(_id)
+{
+    return variable_struct_exists(global.recetas_desbloqueadas, _id);
+}
+
+/// @func recetas_disponibles()
+/// @desc Para la UI de crafteo: solo lo que el jugador ya conoce, no el
+///       catálogo entero de global.recipes.
+function recetas_disponibles()
+{
+    var _out = [];
+    var _ids = variable_struct_get_names(global.recetas_desbloqueadas);
+    for (var _i = 0; _i < array_length(_ids); _i++)
+    {
+        var _r = recipe_get(_ids[_i]);
+        if (_r != undefined) array_push(_out, _r);
+    }
+    return _out;
+}
+
+/// @func item_usar_blueprint(_inventario, _item_id, _receta_id)
+/// @desc Consume un objeto "blueprint_xxx" del inventario y desbloquea la
+///       receta que enseña. `_item_id` debe existir en items.json (04 · 04
+///       §5.3) con el `type` que decidas (p. ej. "blueprint").
+function item_usar_blueprint(_inventario, _item_id, _receta_id)
+{
+    if (!_inventario.has(_item_id, 1)) return false;
+    _inventario.remove(_item_id, 1);
+    receta_desbloquear(_receta_id);
+    return true;
+}
+```
+
+### 5.8 Crafteo: colas y lotes con cancelación
+
+```gml
+// ---------------------------------------------------------------------------
+// objCraftingStation — cola de crafteo con lotes y cancelación (temas 23 y
+// 24). Mismo patrón que la cola de producción de 04 · 13 §5.3 (objBuilding),
+// adaptado de "producir unidades" a "craftear objetos": un array con
+// { receta_id, tiempo_restante, tiempo_total }, un elemento activo a la vez.
+// ---------------------------------------------------------------------------
+
+// objCraftingStation — Create
+tipo = "banco";     // "banco", "fragua"... — el mismo valor que Recipe.estacion
+cola  = [];         // array de { receta_id, tiempo_restante, tiempo_total }
+```
+
+```gml
+/// @func crafteo_encolar(_receta_id, _veces, _inventario)
+/// @desc Cobra los materiales de las _veces repeticiones AL ENCOLAR (igual que
+///       04 · 13 §5.3): si a mitad de cola faltan materiales para la unidad 3
+///       de 5, las 1 y 2 ya se cobraron y se quedan en la cola.
+/// @return {Real} Cuántas repeticiones se encolaron de verdad (puede ser
+///                menos que _veces si los materiales no llegaban para todas).
+function crafteo_encolar(_receta_id, _veces, _inventario)
+{
+    var _receta = recipe_get(_receta_id);
+    if (_receta == undefined) return 0;
+
+    var _encoladas = 0;
+    for (var _i = 0; _i < _veces; _i++)
+    {
+        if (!_receta.puede_craftear(_inventario)) break;   // sin materiales: para aquí
+
+        var _keys = variable_struct_get_names(_receta.ingredientes);
+        for (var _k = 0; _k < array_length(_keys); _k++)
+        {
+            _inventario.remove(_keys[_k], _receta.ingredientes[$ _keys[_k]]);
+        }
+
+        array_push(cola, {
+            receta_id:       _receta_id,
+            tiempo_restante: max(1, _receta.tiempo),   // 0 = instantáneo → 1 frame mínimo
+            tiempo_total:    max(1, _receta.tiempo)
+        });
+        _encoladas++;
+    }
+    return _encoladas;
+}
+
+/// @func crafteo_cancelar(_indice, _inventario)
+/// @desc Reembolsa los materiales de ESE elemento de la cola y lo retira. El
+///       que esté en curso (índice 0) también se reembolsa: perder tiempo de
+///       cola al cancelar es aceptable, perder materiales no.
+function crafteo_cancelar(_indice, _inventario)
+{
+    if (_indice < 0 || _indice >= array_length(cola)) return false;
+
+    var _receta = recipe_get(cola[_indice].receta_id);
+    var _keys = variable_struct_get_names(_receta.ingredientes);
+    for (var _k = 0; _k < array_length(_keys); _k++)
+    {
+        _inventario.add(_keys[_k], _receta.ingredientes[$ _keys[_k]]);
+    }
+
+    array_delete(cola, _indice, 1);
+    return true;
+}
+```
+
+```gml
+// objCraftingStation — Step (avanza SOLO el elemento 0, igual que 04 · 13 §5.3)
+if (array_length(cola) > 0)
+{
+    cola[0].tiempo_restante--;
+
+    if (cola[0].tiempo_restante <= 0)
+    {
+        var _receta = recipe_get(cola[0].receta_id);
+        global.inventory.add(_receta.producto.id, _receta.producto.cantidad);
+        array_delete(cola, 0, 1);
+        audio_play_sound(sndCraftDone, 8, false);
+    }
+}
+```
+
+### 5.9 Árbol de dependencias de recetas
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_crafting_arbol — tema 20: la dependencia entre recetas (cuerda → cofre)
+// es implícita por clave compartida, sin validación ni forma de dibujarla. Se
+// resuelve construyendo el MISMO grafo que espera 13 · 16 §3.2 y reutilizando
+// SUS funciones arbol_detectar_ciclos()/arbol_nodos_alcanzables() tal cual —
+// no se reescriben aquí: hace falta scr_arbol_validar de 13 · 16 §3.2 en el
+// proyecto. Verificado: variable_struct_get_names, variable_struct_exists,
+// array_push, ya en uso en el resto de este documento.
+// ---------------------------------------------------------------------------
+
+/// @func recetas_construir_grafo()
+/// @desc Construye un grafo { nodos, raices } con la MISMA forma que espera
+///       13 · 16 §3.2: cada receta es un nodo; es hijo de otra receta si uno
+///       de sus ingredientes es el `producto.id` de esa otra receta.
+/// @returns {Struct} Pásalo directo a arbol_validar()/arbol_nodos_alcanzables().
+function recetas_construir_grafo()
+{
+    var _ids = variable_struct_get_names(global.recipes);
+
+    // Índice producto → receta que lo fabrica (una receta = un producto, aquí)
+    var _producto_a_receta = {};
+    for (var _i = 0; _i < array_length(_ids); _i++)
+    {
+        var _r = global.recipes[$ _ids[_i]];
+        _producto_a_receta[$ _r.producto.id] = _ids[_i];
+    }
+
+    var _nodos = {};
+    for (var _i = 0; _i < array_length(_ids); _i++)
+    {
+        _nodos[$ _ids[_i]] = { prerrequisitos: [], hijos: [] };
+    }
+
+    var _raices = [];
+    for (var _i = 0; _i < array_length(_ids); _i++)
+    {
+        var _id   = _ids[_i];
+        var _r    = global.recipes[$ _id];
+        var _mats = variable_struct_get_names(_r.ingredientes);
+
+        var _tiene_padre_craftable = false;
+        for (var _m = 0; _m < array_length(_mats); _m++)
+        {
+            var _mat = _mats[_m];
+            if (!variable_struct_exists(_producto_a_receta, _mat)) continue;   // materia prima, no receta
+
+            var _padre_id = _producto_a_receta[$ _mat];
+            array_push(_nodos[$ _id].prerrequisitos, _padre_id);
+            array_push(_nodos[$ _padre_id].hijos, _id);
+            _tiene_padre_craftable = true;
+        }
+
+        if (!_tiene_padre_craftable) array_push(_raices, _id);
+    }
+
+    return { nodos: _nodos, raices: _raices };
+}
+```
+
+> 💡 **`PrerrequisitoModo` (13 · 16 §3.1, `enum PrerrequisitoModo { Y, O }`) no tiene ambigüedad
+> aquí.** `arbol_nodos_alcanzables()` de 13 · 16 §3.2 comprueba `_hijo.modo` para decidir si basta
+> un prerrequisito (`O`) o hacen falta todos (`Y`); una receta que declara `{ madera: 5, cuerda: 2
+> }` siempre necesita AMBOS materiales, así que el grafo de recetas es **siempre modo `Y`** —
+> añade `modo: PrerrequisitoModo.Y` a cada nodo de `_nodos` si vas a reutilizar esa función tal
+> cual.
+
+### 5.10 Subproductos y fallos de fabricación
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_crafting_fallos — tema 25: sin probabilidad de fallo ni subproductos.
+// Se añade como una VARIANTE de Recipe.craftear() (§5.1), no una reescritura:
+// craftear() sigue existiendo tal cual para las recetas que no fallan nunca.
+// Verificado: random(n).
+// ---------------------------------------------------------------------------
+
+/// @func craftear_con_riesgo(_receta, _inventario, _prob_fallo, _subproducto = undefined)
+/// @param {Struct.Recipe} _receta
+/// @param {Struct}        _inventario
+/// @param {Real}          _prob_fallo    0..1. 0 se comporta como craftear() normal.
+/// @param {Struct}        _subproducto   { id, cantidad } opcional; se entrega SIEMPRE
+///                                       que se consuman materiales, falle o no la
+///                                       receta (viruta, cenizas, chatarra...).
+/// @return {Struct} { exito, subproducto_entregado }
+function craftear_con_riesgo(_receta, _inventario, _prob_fallo, _subproducto = undefined)
+{
+    if (!_receta.puede_craftear(_inventario))
+    {
+        return { exito: false, subproducto_entregado: false };
+    }
+
+    var _keys = variable_struct_get_names(_receta.ingredientes);
+    for (var _i = 0; _i < array_length(_keys); _i++)
+    {
+        _inventario.remove(_keys[_i], _receta.ingredientes[$ _keys[_i]]);
+    }
+
+    var _fallo = (random(1) < _prob_fallo);
+
+    if (!_fallo)
+    {
+        _inventario.add(_receta.producto.id, _receta.producto.cantidad);
+    }
+
+    if (_subproducto != undefined)
+    {
+        _inventario.add(_subproducto.id, _subproducto.cantidad);
+    }
+
+    return { exito: !_fallo, subproducto_entregado: (_subproducto != undefined) };
+}
+```
 
 ---
 
@@ -1131,6 +1584,11 @@ function survival_save()
         if (!_c.esta_vacio()) array_push(_data.chunks, _c.serialize());
     }
 
+    // `objWorldGrid` NO se serializa aparte: cada estructura ya viaja dentro
+    // de `_c.serialize()` (campo `estructuras` de `ChunkData`, §5.4), y
+    // `cargar_chunk()` reconstruye la ocupación sola al recrear las
+    // instancias — ver el comentario en `survival_load()`, abajo.
+
     // ⚠️ game_save_id, NO working_directory: en una build exportada working_directory
     // es de solo lectura y la escritura falla en silencio. Detalle: 01 - Fundamentos/
     // 14 - Persistencia y archivos.md §1.
@@ -1166,6 +1624,15 @@ function survival_load()
         objChunkManager.chunks[$ objChunkManager.chunk_key(_c.cx, _c.cy)] = _c;
     }
 
+    // Vaciar la rejilla de ocupación: no hace falta restaurarla a mano,
+    // `cargar_chunk()` (§5.4) llama a `objWorldGrid.ocupar()` por cada
+    // estructura según van entrando los chunks del jugador — igual que las
+    // instancias de `objStructure` tampoco se recrean aquí, sino al vuelo.
+    // Llama a `survival_load()` ANTES de que `objChunkManager` empiece a
+    // recorrer su Step (p.ej. desde el Create de `obj_game`), para que no
+    // queden chunks ya activados con instancias de una partida anterior.
+    objWorldGrid.vaciar();
+
     return true;
 }
 ```
@@ -1183,10 +1650,14 @@ function survival_load()
 | Necesidades que matan en 2 minutos | El jugador no puede explorar nada | Tasa ~0.03/frame; una necesidad al 0 molesta antes de matar |
 | Crafteo que consume antes de comprobar | Pierdes materiales al fallar | `puede_craftear()` separado de `craftear()` |
 | Receta que no devuelve materiales al fallar | El jugador pierde recursos por un error de UI | Nunca consumas si `puede_craftear()` es false |
-| Construcción sin grid de ocupación | Dos estructuras en la misma celda | `WorldGrid` con clave "x,y" |
+| Construcción sin grid de ocupación | Dos estructuras en la misma celda | `objWorldGrid` (celdas por clave "x,y", §2 y §5.3) |
+| Recrear una estructura en `cargar_chunk()` sin re-ocupar la rejilla | Tras descargar/recargar un chunk (o cargar partida), se puede construir encima de algo que ya existe | `objWorldGrid.ocupar()` en el mismo punto donde se recrea la instancia (§5.4) |
 | Durabilidad que no se guarda | Al cargar, todas las herramientas nuevas | Inclúyela en `serialize()` |
 | Recalcular chunks cada frame | Coste brutal | Cada 30 frames, o al cruzar el límite de chunk |
 | `string_split` con separador que no aparece | Devuelve el string entero: eso es correcto, pero no lo asumas de más de 2 partes | Documenta el formato "x,y" y respétalo |
+| Craftear sin comprobar la estación | Se fabrica una fragua al lado de una fogata | `puede_craftear_aqui()` (§5.7), no `puede_craftear()` a secas |
+| Cobrar materiales al completar la cola, no al encolar | Un lote de 5 se queda a medias y el jugador no sabe cuántos pagó | `crafteo_encolar()` (§5.8) cobra cada repetición en el momento de encolarla |
+| Cofre sin `Inventory` propia | Comparte capacidad con el jugador, o pierde el contenido al descargar el chunk | `objStorageChest.inventario` (§5.6) es una instancia aparte, con su propio `serialize()` |
 
 ---
 
@@ -1204,7 +1675,8 @@ function survival_load()
    bioma = f(temperatura, humedad).
 6. **Multijugador cooperativo** — ver receta 14.
 7. **Sistema de *blueprints*** — planos que consumes para aprender recetas;
-   convierte la exploración en progreso.
+   convierte la exploración en progreso. Ya implementado en §5.7
+   (`item_usar_blueprint()`, sobre el desbloqueo de `recetas_desbloqueadas`).
 
 **Cuándo pasar a otra receta:** si consigues que el chunking funcione, tienes
 la técnica que separa un prototipo de un juego de verdad. Es la más transferible

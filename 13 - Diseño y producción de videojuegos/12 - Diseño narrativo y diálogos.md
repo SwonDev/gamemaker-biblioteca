@@ -1062,6 +1062,51 @@ function guion_cargar(_ruta)
 > leído. `method()` con un struct propio le da a cada condición su propia copia. Es el error de
 > *closure* clásico y en GML se manifiesta igual que en JavaScript.
 
+### 6.1 bis El nodo *hub*: temas que no cierran la conversación
+
+Todo lo anterior modela una conversación que **avanza**: cada `Opcion.destino` lleva a un nodo
+distinto. Falta el patrón contrario, común en RPG y novela visual: un menú de temas donde
+preguntas lo que quieras, en el orden que quieras, y la conversación **no se cierra sola** —
+[Short lo llama *waypoint narrative*, §2.6](#26-las-formas-de-la-narrativa-interactiva-y-su-coste).
+No hace falta ningún concepto nuevo: un `Opcion` cuyo `destino` es el **mismo** `Nodo` que la
+contiene ya es un *hub*.
+
+```gml
+/// obj_narrativa · Create — un hub de temas: la posadera responde lo que le preguntes
+var _hub = global.guion.anadir(new Nodo("posadera_hub"));
+_hub.anadir_linea(new Linea("dlg_posadera_hub_intro", "posadera"));
+
+// cada tema vuelve al MISMO nodo: la conversación no avanza, solo se repite el menú
+_hub.anadir_opcion(new Opcion("dlg_op_preguntar_rumores", "posadera_hub",
+    undefined,
+    function() {
+        // la PRIMERA vez la reacción es especial; a partir de la segunda, la opción
+        // sigue ahí pero responde con la línea normal — flag_una_vez() nunca oculta la opción
+        if (flag_una_vez("posadera_rumores_contados")) {
+            bark_mostrar(txt("dlg_posadera_rumor_sorpresa"));
+        } else {
+            bark_mostrar(txt("dlg_posadera_rumor_repetido"));
+        }
+    }));
+
+_hub.anadir_opcion(new Opcion("dlg_op_preguntar_precio", "posadera_hub",
+    undefined,
+    function() { bark_mostrar(txt("dlg_posadera_precio")); }));
+
+// la salida es una opción MÁS, no un caso especial: destino "" termina la conversación (§6.1)
+_hub.anadir_opcion(new Opcion("dlg_op_despedirse", ""));
+```
+
+> 🔺 **La diferencia entre un tema y un nodo normal está solo en el `destino`.** Nada en
+> `Nodo` ni en `Opcion` sabe que esto es un *hub*: es la misma estructura de datos de §6.1,
+> usada de forma distinta. Cero símbolos nuevos del runtime.
+>
+> 💡 **`flag_una_vez` decide la REACCIÓN, no la disponibilidad.** Al contrario que en una rama
+> normal —donde una condición en `Opcion` puede ocultar la opción entera—, aquí la opción
+> **siempre** está visible; lo único que cambia con `flag_una_vez` es qué `efecto()` dispara.
+> Confundir las dos cosas es el error clásico: si condicionas la opción en vez del efecto, el
+> tema desaparece del menú después de la primera vez, y deja de ser un *hub*.
+
 ### 6.2 Los flags: un struct global, plano y guardable
 
 Un único struct, sin anidar, con claves de texto. Plano porque así se serializa sin pensar y se
@@ -1251,17 +1296,20 @@ Cincuenta líneas y es lo que más hace parecer vivo a un juego.
 /// @func BancoBarks()
 function BancoBarks() constructor
 {
-    reglas = [];   // { criterios, claves, peso, ultimo_us }
+    reglas = [];   // { criterios, claves, peso, prioridad, ultimo_us }
+    prioridad_sonando = -1;   // prioridad del bark que está sonando ahora, -1 = nada sonando
 
-    /// @func anadir(_criterios, _claves_texto)
+    /// @func anadir(_criterios, _claves_texto, [_prioridad])
     /// @param {Struct} _criterios    hechos que deben cumplirse: { zona: "pantano", vida_baja: true }
     /// @param {Array}  _claves_texto claves de la tabla de idiomas; se elige una al azar
-    static anadir = function(_criterios, _claves_texto)
+    /// @param {Real}   _prioridad    nivel de urgencia: mayor número corta a uno menor (§6.4)
+    static anadir = function(_criterios, _claves_texto, _prioridad = 0)
     {
         array_push(reglas, {
             criterios: _criterios,
             claves:    _claves_texto,
             peso:      array_length(struct_get_names(_criterios)),   // = especificidad
+            prioridad: _prioridad,
             ultimo_us: -1,   // el enfriamiento vive EN la regla, no en un índice que se reordena
         });
 
@@ -1272,9 +1320,16 @@ function BancoBarks() constructor
 
     /// @func elegir(_hechos, [_cooldown_us])
     /// @desc Devuelve una clave de texto, o undefined si no hay nada que decir.
+    ///       Si la regla elegida tiene más prioridad que la que suena, corta la que suena.
     static elegir = function(_hechos, _cooldown_us = 8000000)   // 8 s en microsegundos
     {
         var _ahora = get_timer();
+
+        // lo que sonaba ya ha terminado por su cuenta: ya no hay nada que proteger
+        if (prioridad_sonando >= 0 && (global.voz_actual == -1 || !audio_is_playing(global.voz_actual)))
+        {
+            prioridad_sonando = -1;
+        }
 
         for (var _i = 0; _i < array_length(reglas); _i++)
         {
@@ -1286,7 +1341,18 @@ function BancoBarks() constructor
                 continue;   // dicha hace nada: pasa a la siguiente, menos específica
             }
 
+            // una regla MÁS urgente que lo que suena corta la línea en curso, no espera turno
+            if ((_r.prioridad > prioridad_sonando) && (prioridad_sonando >= 0))
+            {
+                audio_stop_sound(global.voz_actual);   // global.voz_actual: 13 · 24 §3.2
+            }
+            else if (_r.prioridad <= prioridad_sonando)
+            {
+                continue;   // algo igual o más urgente sigue sonando: esta espera su turno
+            }
+
             _r.ultimo_us = _ahora;
+            prioridad_sonando = _r.prioridad;
             return _r.claves[irandom(array_length(_r.claves) - 1)];
         }
 
@@ -1339,6 +1405,66 @@ alarm[0] = game_get_speed(gamespeed_fps) * 6;
 > 🔺 **Las claves son de la tabla de idiomas** (`txt()`), no texto suelto: un banco de *barks* con
 > literales dentro es un banco que no se traduce
 > → [`04 · 21`](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md).
+
+**Prioridad, para que lo urgente no se pierda detrás de lo banal.** Un `cooldown` por regla
+evita que UNA MISMA línea se repita, pero no protegía nada de que un bark banal siguiera
+sonando mientras uno urgente esperaba su turno — el `elegir()` de arriba ya lo resuelve: una
+regla con más `prioridad` corta con `audio_stop_sound` la que esté sonando.
+
+```gml
+/// obj_narrativa · Create — niveles de prioridad, de menos a más urgente
+#macro PRIORIDAD_AMBIENTE 0
+#macro PRIORIDAD_REACCION 1
+#macro PRIORIDAD_URGENTE  2   // vida crítica
+#macro PRIORIDAD_MISION   3   // una línea de guion no se pierde por NADA
+
+global.barks.anadir({ llueve: true },
+                    ["bark_lluvia_1", "bark_lluvia_2"], PRIORIDAD_AMBIENTE);
+global.barks.anadir({ zona: "pantano", vida_baja: true, companero: "ana" },
+                    ["bark_ana_pantano_herido"], PRIORIDAD_REACCION);
+global.barks.anadir({ vida_baja: true },
+                    ["bark_aguanta_1", "bark_aguanta_2", "bark_aguanta_3"], PRIORIDAD_URGENTE);
+global.barks.anadir({ mision_urgente: true },
+                    ["bark_mision_ahora_vuelve"], PRIORIDAD_MISION);
+```
+
+> ⚠️ **`global.voz_actual`, `audio_stop_sound` y `audio_is_playing`** son de
+> [`13 · 24` §3.2](./24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md#32-resolución-en-runtime-con-fallback-a-subtítulos):
+> este `elegir()` da por hecho que quien reproduce la voz del bark guarda su *handle* ahí, tal
+> y como ya hace ese documento, y que **está inicializado a `-1`** desde el arranque (antes de
+> la primera voz nunca reproducida, no puede valer otra cosa). Si tu proyecto no tiene voz y
+> los *barks* son solo texto, inicialízalo igual (`global.voz_actual = -1;`) y el corte de
+> audio nunca se disparará solo — la prioridad sigue sirviendo para el orden de aparición del
+> texto, sin tocar nada más.
+
+**Diálogo en combate (*banter*).** Los criterios de `elegir()` son un `struct` cualquiera:
+`{ en_combate: true, objetivo: "jefe" }` funciona igual que `{ zona: "pantano" }`. Lo único que
+cambia en combate es CUÁNDO se le permite disparar un bark:
+
+```gml
+/// obj_jefe · Alarm 0 — bark de combate, sin pisar la ventana de impacto
+var _hechos = {
+    en_combate: true,
+    objetivo:   "jefe",
+    vida_baja:  (vida < vida_max * 0.3),
+};
+
+// nunca dispares un bark durante el hit-stop: es la pausa que vende el golpe
+// (time_is_frozen(), 04 · 15 §5.0) y una línea de diálogo encima la rompe
+if (!time_is_frozen())
+{
+    var _clave_combate = global.barks.elegir(_hechos, 3000000);   // cooldown más corto: 3 s
+    if (!is_undefined(_clave_combate)) bark_mostrar(txt(_clave_combate));
+}
+
+alarm[0] = game_get_speed(gamespeed_fps) * 4;
+```
+
+> 🔺 **`time_is_frozen()` es de [`04 · 15` §5.0](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md)**,
+> no de este documento: es la comprobación que ya usa el *game feel* para saber si el mundo está
+> congelado por *hit-stop* o por una pausa manual. Un bark que aparece a mitad de la ventana de
+> impacto rompe la sensación que el *hit-stop* estaba vendiendo — la regla no es «no interrumpas
+> animaciones de ataque» en general, es específicamente «no durante la congelación».
 
 ### 6.5 Un gestor de misiones mínimo (con estado «fallada»)
 
@@ -1765,6 +1891,78 @@ if (input_confirmar && voz != -1 && audio_is_playing(voz))
 > poder activarse aunque no haya voz grabada, y describir también los sonidos importantes
 > (`[puerta crujiendo]`) → [`04 · 27 — Accesibilidad`](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md) §2.
 
+### 6.10 Validar el grafo antes de jugarlo
+
+`13 · 10` — Testing y QA no tiene ninguna sección narrativa: nada comprueba hoy que un `destino`
+apunte a un nodo real, ni que todo nodo sea alcanzable. Un `id` mal escrito en un `destino` (o
+un nodo que quedó huérfano al reestructurar una rama) no revienta al compilar — revienta en
+mitad de la partida de un jugador, o peor, deja una opción que no lleva a ningún sitio.
+
+Mismo espíritu que `generar_hoja_grabacion.py` (`13 · 24` §2.3): un script en Python que
+recorre `datafiles/narrativa/nodos.json` (el mismo archivo que carga `guion_cargar()`, §6.1) y
+falla con una lista de problemas en vez de esperar a que un jugador tropiece con ellos.
+
+```python
+# validar_grafo_narrativo.py — dos clases de bug que "compila" pero rompe la partida:
+# destinos que apuntan a un nodo inexistente, y nodos a los que nunca se puede llegar.
+import json, sys
+
+ruta = sys.argv[1] if len(sys.argv) > 1 else "datafiles/narrativa/nodos.json"
+nodos = json.load(open(ruta, encoding="utf-8"))
+
+# los nodos que el JUEGO puede lanzar directamente (disparadores en GML, §6.3) no están
+# en el JSON: pásalos como argumentos extra. Sin ninguno, se asume el primer nodo del archivo.
+entradas = set(sys.argv[2:]) or {next(iter(nodos))}
+
+errores = []
+alcanzables = set(entradas)
+
+for id_nodo, nodo in nodos.items():
+    for opcion in nodo.get("opciones", []):
+        destino = opcion.get("destino", "")
+        if destino == "":
+            continue   # "" es fin de conversación, válido por definición (§6.1)
+        if destino not in nodos:
+            errores.append(f"{id_nodo}: la opción '{opcion['clave']}' apunta a "
+                            f"'{destino}', que no existe")
+        else:
+            alcanzables.add(destino)
+
+huerfanos = set(nodos) - alcanzables
+for id_nodo in sorted(huerfanos):
+    errores.append(f"{id_nodo}: inalcanzable — ninguna opción ni entrada declarada llega aquí")
+
+if errores:
+    print(f"{len(errores)} problema(s) en el grafo:")
+    for e in errores:
+        print(f"  - {e}")
+    sys.exit(1)
+
+print(f"{len(nodos)} nodos, todos los destinos resuelven y todos son alcanzables.")
+```
+
+```sh
+python3 validar_grafo_narrativo.py datafiles/narrativa/nodos.json posadera_hub tienda_intro
+#                                                                  ↑ ids de nodo que un disparador
+#                                                                    de GML puede lanzar directamente
+```
+
+> 🔺 **Las entradas son un argumento, no un descubrimiento automático.** El script solo ve el
+> JSON: qué nodo lanza cada `event_create`, `event_user` o zona de interacción vive en GML
+> (§6.3), no en `nodos.json`. Sin decirle cuáles son los puntos de entrada reales, el validador
+> asume que solo el primer nodo del archivo es alcanzable desde fuera y marca huérfano a
+> cualquier otro nodo de entrada legítimo — falso positivo, no bug real.
+>
+> ⚠️ **Lo que este script NO puede validar: que toda misión activable tenga un camino de código
+> hacia `completar()` o `fallar()`.** Esa lógica vive en los `efecto()` de cada `Opcion`
+> (funciones GML), y §6.1 ya explica por qué **los métodos no se serializan**: no están en el
+> JSON, así que no hay nada que un script en Python pueda recorrer. Comprobarlo de verdad
+> exigiría que cada opción declarase en los DATOS a qué misión afecta y cómo (un campo
+> `efecto_mision: { id: "...", resultado: "completar" }` en vez de un método), lo que cambia el
+> modelo de §6.1 y queda fuera de este documento. Si te hace falta esa garantía, es la primera
+> señal de que las misiones deberían tener su propio archivo de datos, no vivir escondidas
+> dentro del grafo de diálogo.
+
 ---
 
 ## 7 · Personajes y mundo
@@ -2007,6 +2205,8 @@ FINALES    3, decididos por: bando + mision_dique_completada + vio_el_barco
 - [ ] Los subtítulos se activan sin voz, y duran el caso lento (§6.9)
 - [ ] La UI cabe con el texto al 150 % y en el idioma más largo
 - [ ] Hay *barks* con al menos tres variantes y enfriamiento
+- [ ] Un *bark* urgente puede cortar a uno banal que esté sonando, no solo esperar su cooldown (§6.4)
+- [ ] El grafo de diálogo se ha validado: cero destinos rotos, cero nodos huérfanos (§6.10)
 - [ ] Las misiones pueden **fallar**, y el mundo lo comenta
 
 ---
@@ -2033,6 +2233,10 @@ FINALES    3, decididos por: bando + mision_dique_completada + vio_el_barco
 | **Personaje sin función** | Cuesta retrato, texto y mantenimiento, y no hace nada | La quinta casilla de la ficha (§7.1) |
 | **Misión que solo puede completarse** | La lista de tareas no es una historia | El estado `MISION_FALLADA` (§6.5) |
 | **Sequence que sobrevive al salto** | Dibuja encima de la partida | `limpiar()` con `layer_sequence_destroy` (§6.7) |
+| **Bark urgente que no se oye** | Vida crítica avisada tarde, detrás de una línea banal | Prioridad + `audio_stop_sound` en `elegir()` (§6.4) |
+| **Bark durante el *hit-stop*** | El golpe pierde fuerza porque encima habla alguien | `time_is_frozen()` antes de disparar el bark (§6.4) |
+| **Opción de tema que oculta la opción tras la primera vez** | El *hub* deja de ser *hub*: el menú se vacía | Condiciona el `efecto()`, no la visibilidad de la `Opcion` (§6.1 bis) |
+| **`destino` que apunta a un `id` borrado** | Una opción no lleva a ningún sitio en mitad de la partida | `validar_grafo_narrativo.py` antes de cada build (§6.10) |
 
 ---
 
@@ -2052,6 +2256,7 @@ FINALES    3, decididos por: bando + mision_dique_completada + vio_el_barco
 - [`13 · 01 — Diseño de juego`](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md) — el core loop y la economía que tu historia no puede contradecir
 - [`13 · 02 — Diseño de niveles`](./02%20-%20Diseño%20de%20niveles.md) — el ritmo en el que se incrustan los *beats*, y las líneas de guía que llevan al jugador hasta tu escena ambiental
 - [`13 · 04 — Animación de sprites, Sequences y Animation Curves`](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) §6 — las Sequences y sus *broadcast messages*
+- [`04 · 15 — Game feel y juice`](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md) §5.0 — `time_is_frozen()` y el *hit-stop* que un *bark* de combate no debe pisar (§6.4)
 - [`13 · 05 — UI y UX de juego`](./05%20-%20UI%20y%20UX%20de%20juego.md) — dónde vive la caja de diálogo dentro de la interfaz
 - [`13 · 07 — Generación procedural avanzada`](./07%20-%20Generación%20procedural%20avanzada.md) — determinismo y semillas, para nombres y contenido reproducibles
 - [`13 · 11 — Producción, alcance y lanzamiento`](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md) — recortar ramas es recortar alcance
@@ -2197,11 +2402,15 @@ Las funciones y constructores de los ejemplos que **no** son del runtime —`fla
 `flag_poner`, `flag_sumar`, `flag_una_vez`, `flags_iniciar`, `guion_cargar`, `nombre_generar`,
 `subtitulo_duracion`, `dialogo_empezar`, `bark_mostrar`, `partida_guardar`, `partida_cargar`,
 `mostrar_aviso_salto`, `inventario_anadir`, `txt`, `senal_emitir`, `save_game`, `load_game`,
-`MisionesDeserializar`, y los constructores `Linea`, `Opcion`, `Nodo`, `Guion`, `BancoBarks`,
-`Misiones`, `Cinematica`, `PasoEsperar`, `PasoDialogo`, `PasoFlag`, `PasoSequence`— son código de
-esta biblioteca, no API de GameMaker. `save_game` y `load_game` vienen de
-[`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml); `txt` de
+`MisionesDeserializar`, `time_is_frozen`, y los constructores `Linea`, `Opcion`, `Nodo`, `Guion`,
+`BancoBarks`, `Misiones`, `Cinematica`, `PasoEsperar`, `PasoDialogo`, `PasoFlag`,
+`PasoSequence`— son código de esta biblioteca, no API de GameMaker. `save_game` y `load_game`
+vienen de [`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml); `txt` de
 [`04 · 21`](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md);
-`senal_emitir` de [`04 · 16`](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md).
+`senal_emitir` de [`04 · 16`](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md);
+`time_is_frozen` de [`04 · 15 — Game feel y juice`](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md) §5.0.
+`global.voz_actual`, `audio_stop_sound` y `audio_is_playing` en el `BancoBarks` de §6.4 siguen
+el patrón ya establecido en [`13 · 24`](./24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md) §3.2 y §7,
+verificados contra el runtime como el resto de funciones de este párrafo.
 Las funciones `Chatterbox*` son de la librería de JujuAdams y **no están en `buscar.py`**: se
 verificaron leyendo su código fuente en `11 - Código descargado`.

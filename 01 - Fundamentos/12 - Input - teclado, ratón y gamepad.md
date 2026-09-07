@@ -6,9 +6,17 @@
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Game_Input/Mouse_Input/Mouse_Input.htm>
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Game_Input/GamePad_Input/Gamepad_Input.htm>
 > - <https://manual.gamemaker.io/lts/en/The_Asset_Editors/Object_Properties/Object_Events.htm>
+> - <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Game_Input/Virtual_Keys_And_Keyboards/Virtual_Keys_And_Keyboards.htm>
+>   (IME en Windows vía `keyboard_virtual_show`/`_hide`, §2 «IME y entrada de texto no ASCII»)
+> - <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Cameras_And_Display/display_reset.htm>
+>   (vsync, §4 «Vsync y latencia de input»)
+> - <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Game_Input/GamePad_Input/gamepad_get_mapping.htm> ·
+>   <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Game_Input/GamePad_Input/gamepad_test_mapping.htm>
 > - Josh Sutphin, *Doing Thumbstick Dead Zones Right*, Third Helix, 12-04-2013 — consultada el
 >   06-09-2026 vía una copia de 2014 en Wayback Machine (`web.archive.org/web/20141025070920/`);
 >   el dominio original hoy redirige a contenido sin relación, así que cita siempre el archivo.
+> - Wikipedia, *Screen tearing* — consultada 2026-09-06, solo para la relación general
+>   vsync↔latencia de entrada (§4 «Vsync y latencia de input»); GameMaker no la documenta.
 
 > ⚠️ **Corrección importante sobre la librería «Input»:** en la petición original se describía como «la librería oficial Input de YoYoGames en GitHub». **No es exacto.** Es una librería de la comunidad creada por **Juju Adams y Alynne Keith**, y desde 2025 **se ha movido de GitHub a Codeberg**. El personal de YoYo Games la recomienda públicamente en el bug tracker oficial. Detalles en la sección 7.
 
@@ -113,7 +121,7 @@ keyboard_clear(tecla)
 
 keyboard_set_map(tecla_real, tecla_mapeada)   // remapear
 keyboard_get_map(tecla)
-keyboard_unset_map(tecla)
+keyboard_unset_map()                          // ⚠️ SIN argumentos: borra TODOS los mapeos
 
 keyboard_set_numlock(activado) / keyboard_get_numlock()
 ```
@@ -137,6 +145,124 @@ keyboard_key_release(tecla);
 ```
 
 > ⚠️ **Simular pulsaciones NO ejecuta los eventos de teclado.** Solo afecta a las funciones `keyboard_check*()`.
+
+### Remapeo físico del teclado: `keyboard_set_map` frente al rebinding lógico
+
+`keyboard_set_map(key1, key2)` no es rebinding: es un remapeo a nivel del propio runtime.
+Redirige la tecla física `key1` para que **se interprete como** `key2` en todas las funciones
+`keyboard_check*()` — y `key1` deja de poder detectarse como ella misma mientras el mapeo esté
+activo, tal como advierte el propio manual:
+
+```gml
+keyboard_set_map(ord("W"), vk_up);   // pulsar "W" se interpreta como vk_up
+// A partir de aquí, keyboard_check(ord("W")) YA NO detecta la "W" físicamente pulsada:
+// solo detecta vk_up. Si tu juego también usaba "W" para otra cosa, se ha roto.
+
+keyboard_unset_map();   // ⚠️ sin argumentos: borra TODOS los mapeos a la vez, no solo este
+```
+
+**Cuándo usarlo en vez del rebinding lógico de
+[04 · 25 §5](../04%20-%20Recetas%20por%20género/25%20-%20Menú%20de%20opciones%20y%20ajustes.md#5--reasignar-controles-rebinding):**
+casi nunca, para juegos propios. El rebinding de verbos (`global.controles`, esa misma
+sección) es lo correcto cuando quieres que el jugador reconfigure **sus acciones**, porque no
+toca las teclas de nadie más y admite conflictos, perfiles y persistencia.
+`keyboard_set_map()` sirve para el caso contrario y mucho más raro: cuando necesitas que
+**todo el runtime**, sin tocar tu código de lectura de input, vea una tecla física como si
+fuera otra distinta — por ejemplo, redirigir un layout de teclado no estándar sin reescribir
+cada `keyboard_check(ord("W"))` del proyecto. Es compatibilidad de bajo nivel, no un sustituto
+del menú de Opciones.
+
+Símbolos verificados: `keyboard_set_map`, `keyboard_unset_map`, `keyboard_get_map`.
+
+### IME y entrada de texto no ASCII (CJK)
+
+> 🔴 **Hueco cerrado aquí.** La biblioteca documentaba cómo *mostrar* texto chino, japonés o
+> coreano (fuentes con los glifos correctos, en
+> [21 · Localización §4](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#4--fuentes-y-glifos--la-trampa-de-los-alfabetos-no-latinos)),
+> nunca cómo **escribirlo**. Esto responde con lo que el manual documenta de verdad — ni más,
+> ni menos.
+
+**Qué es un IME y por qué `ord()`/`vk_*` no valen aquí.** Un IME (*Input Method Editor*) es la
+capa del sistema operativo que traduce una secuencia de teclas latinas (pinyin, romaji…) en
+una ventana de **composición** donde el jugador elige el carácter final entre varias opciones
+antes de confirmarlo. Mientras compone, eso no es una pulsación de tecla normal: no tiene un
+único `vk_*` ni un `ord()` de un solo carácter — el mismo motivo por el que arriba `ord()` con
+`keyboard_check*()` solo detecta `0-9`/`A-Z`.
+
+**Lo que dice el manual — y lo que NO dice.** Comprobado íntegro sobre `09 - Manual oficial/`
+(es y en): **ninguna página menciona «IME» ni «composición»**, salvo una excepción concreta
+(siguiente punto). Las páginas de `keyboard_string` y `keyboard_lastchar` solo dicen que
+recogen «los caracteres imprimibles escritos» — ni una palabra sobre qué pasa mientras un IME
+está componiendo.
+
+**La excepción, y es la respuesta real:** la página de **Teclas y teclados virtuales** dice,
+sobre `keyboard_virtual_show`/`_hide`/`_status`/`_height`/`_set_position`:
+
+> *«Estas funciones sólo son válidas para las plataformas de destino **Xbox (GDK)**, **Android**
+> (incluido AndroidTV) e **iOS** (incluido tvOS). En **Windows**, se pueden utilizar para
+> activar o desactivar el uso de IME.»*
+
+Es la única mención a IME en todo el manual, y es la pieza que faltaba: **el teclado virtual de
+GameMaker no es solo para móvil.** En Windows, llamar a `keyboard_virtual_show()` no dibuja
+nada en pantalla — **activa el IME del sistema**, y el resultado (ya confirmado, con los
+caracteres CJK elegidos) llega por `keyboard_string`, igual que en móvil: *«no activarán los
+eventos regulares del teclado, sino que actualizarán la variable `keyboard_string`»* (misma
+página).
+
+```gml
+// obj_campo_nombre — al entrar en un campo que puede necesitar CJK (nombre, chat)
+// Verificado: keyboard_virtual_show, keyboard_virtual_hide, keyboard_string
+
+function campo_texto_ime_activar()
+{
+    keyboard_string = "";
+    // En Windows esto NO dibuja un teclado: activa el IME del sistema operativo.
+    // En Android/iOS/Xbox abre el teclado nativo, que ya trae su propio IME integrado.
+    keyboard_virtual_show(kbv_type_default, kbv_returnkey_done, kbv_autocapitalize_none, false);
+}
+
+function campo_texto_ime_leer()
+{
+    // NO leas keyboard_check*/keyboard_lastkey mientras esto está activo: el manual dice que
+    // esos eventos normales no se disparan. Lee SIEMPRE keyboard_string.
+    return keyboard_string;
+}
+
+function campo_texto_ime_desactivar()
+{
+    keyboard_virtual_hide();
+}
+```
+
+> ⚠️ **Esto no es una solución nativa completa, y hay que decirlo con esas palabras.** La nota
+> del manual cubre Xbox, Android, iOS y Windows (solo para IME). **No menciona macOS, Ubuntu,
+> HTML5 ni GX.games en absoluto** — a diferencia de las teclas virtuales (la otra mitad de esa
+> misma página), que sí listan HTML5 y GX.games como compatibles. No hay fuente primaria que
+> confirme qué ocurre en macOS o Linux al llamar a `keyboard_virtual_show()` con un IME del
+> sistema activo. **Pruébalo en la plataforma real antes de prometerle japonés al jugador en
+> Mac o Linux**, no asumas que funciona solo porque funciona en Windows.
+
+**En la práctica, para un campo que deba admitir japonés/chino/coreano:**
+
+1. Llama a `keyboard_virtual_show()` al entrar en el campo **en todas las plataformas de
+   escritorio y móvil por igual** — no lo reserves para `os_android`/`os_ios` como hace el
+   teclado virtual "normal" de [§8bis](#8-bis-input-táctil-móvil-gestos-y-teclado-virtual): en
+   Windows es la única forma documentada de activar el IME.
+2. Lee siempre `keyboard_string`, nunca `keyboard_check*()` ni `keyboard_lastchar` mientras el
+   campo esté activo.
+3. Al confirmar o cancelar, `keyboard_virtual_hide()`.
+4. La fuente de dibujo necesita los glifos CJK — ya resuelto en
+   [21 · Localización §4](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#4--fuentes-y-glifos--la-trampa-de-los-alfabetos-no-latinos):
+   una fuente con Noto Sans CJK y cacheado por glifo, no el rango de `font_add()`.
+5. Si tu juego no puede permitirse esa incertidumbre en macOS/Linux (un ranking competitivo
+   donde todo el mundo necesita poder escribir su nombre), la alternativa honesta es un
+   **selector de caracteres en pantalla** — una rejilla navegable con `foco_rejilla()` de
+   [13 · 05 §2.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#22-navegación-con-mando-y-teclado-foco-orden-envolvente-y-repetición) —
+   más lento de usar, pero no depende de un IME del sistema sin documentar en esa plataforma.
+
+Símbolos verificados: `keyboard_virtual_show`, `keyboard_virtual_hide`, `keyboard_string`. No
+existe `keyboard_ime_*` ni `os_ime_*`: comprobado con `--listar keyboard_` (21 símbolos,
+ninguno con «ime») y `--texto "IME"` sobre toda la biblioteca antes de escribir esta sección.
 
 ---
 
@@ -251,6 +377,13 @@ gp_axis_orientation_x/y/z/w      ← cuaternión (por eso 4 valores)
 
 > ⚠️ En otras plataformas estas devuelven **0**, incluso con un DualSense.
 
+> ⚠️ **No hay giroscopio nativo distinto del acelerómetro/tilt.** GameMaker no expone un sensor
+> de rotación en bruto aparte: solo `device_get_tilt_x()`, `device_get_tilt_y()` y
+> `device_get_tilt_z()` (verificado con `--listar device_get`: son los tres únicos símbolos de
+> esa familia). No existe `device_get_gyro_*` ni equivalente, ni una constante `gp_axis_gyro_*`
+> entre las de arriba. Receta de inclinación, calibración y zona muerta con lo que sí hay:
+> [04 · 28 §8.1](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#81-inclinación-acelerómetro).
+
 ### ⚠️ Los mandos no estándar no mapean igual
 
 > *«the constants given above **may not match exactly the buttons that you expect when they are pressed**, due to the fragmented and non-standardised way that the API is implemented by controller manufacturers.»*
@@ -288,6 +421,39 @@ gamepad_get_mapping(slot)
 gamepad_test_mapping(slot, cadena_mapeado)
 gamepad_remove_mapping(slot)
 ```
+
+### Mapeos SDL personalizados: cuando `gamecontrollerdb.txt` no basta
+
+Antes de tocar estas tres funciones, la mayoría de mandos exóticos ya se resuelven con un
+`gamecontrollerdb.txt` actualizado en los **Included Files** (arriba). Son el siguiente nivel:
+**escribir tú mismo** el mapeo SDL de un mando que ni siquiera esa base de datos reconoce.
+
+```gml
+// gamepad_get_mapping(slot) — ¿ya tiene mapeo este mando?
+var _mapa = gamepad_get_mapping(slot);
+
+if (_mapa == "no mapping" || _mapa == "")
+{
+    // Mismo formato que gamecontrollerdb.txt: GUID,nombre,botón:código,...,platform:X
+    var _mapa_manual = "030000005e0400008e02000010010000,Mando genérico," +
+                       "a:b0,b:b1,x:b2,y:b3,leftx:a0,lefty:a1,rightx:a2,righty:a3," +
+                       "leftshoulder:b4,rightshoulder:b5,start:b7,back:b6,platform:Windows";
+    gamepad_test_mapping(slot, _mapa_manual);   // lo aplica para PROBARLO, sin persistirlo
+}
+```
+
+`gamepad_test_mapping(index, value)` aplica el mapeo dado para esa sesión, sin guardarlo.
+`gamepad_remove_mapping(index)` lo retira y el mando vuelve a reportar botones sin traducir.
+`gamepad_get_mapping(index)` devuelve el string SDL activo, `"no mapping"` si el slot no tiene
+ninguno, o `"device index out of range"` si el slot ni siquiera es válido.
+
+> 💡 **Cuándo se llega hasta aquí de verdad**: casi nunca. Es la última instancia cuando un
+> mando muy concreto (un stick arcade artesanal, una marca pequeña) llega a un jugador y
+> `gamecontrollerdb.txt` no lo cubre — necesitas que el propio jugador te mande el nombre que
+> reporta `gamepad_get_description(slot)` y el mapeo botón por botón antes de poder escribir el
+> string de arriba a mano.
+
+Símbolos verificados: `gamepad_get_mapping`, `gamepad_test_mapping`, `gamepad_remove_mapping`.
 
 ### Zona muerta bien hecha
 
@@ -433,6 +599,138 @@ if (!window_has_focus() || os_is_paused())
     global.pausa = true;
 }
 ```
+
+### Varios mandos, uno por jugador (co-op local)
+
+Para 2-4 jugadores en el mismo sofá, cada uno necesita un **slot de jugador fijo**: el primer
+mando que se conecta no es necesariamente el del "jugador 1" si alguien desconecta el suyo y lo
+vuelve a enchufar a mitad de partida. El patrón es acumular los `pad_index` que llegan por el
+evento **Async System** de "Detección" (arriba) y asignarles un número de jugador **en el orden
+en que aparecen** — nunca fijar el slot a mano, por lo dicho en «no asumas que un gamepad está
+en el slot 0».
+
+```gml
+// ═══════════ obj_input_manager — Create (persistente, uno por partida) ═══════════
+mandos_por_jugador = [];      // índice = número de jugador (0-3); valor = pad_index, o -1
+
+/// @func mando_asignar(_pad_index)
+/// @desc Le da al mando el primer hueco de jugador libre, o le devuelve el que ya tenía si
+///       es una reconexión. Llamarlo desde "gamepad discovered" (evento Async System).
+/// @returns {Real} El número de jugador (0-3) al que se asignó el mando.
+function mando_asignar(_pad_index)
+{
+    var _n = array_length(mandos_por_jugador);
+
+    // ¿Ya estaba asignado? (reconexión del mismo mando) no lo dupliques.
+    for (var _i = 0; _i < _n; _i++)
+    {
+        if (mandos_por_jugador[_i] == _pad_index) return _i;
+    }
+
+    // Primer hueco libre (quedó a -1 tras una desconexión)
+    for (var _i = 0; _i < _n; _i++)
+    {
+        if (mandos_por_jugador[_i] == -1) { mandos_por_jugador[_i] = _pad_index; return _i; }
+    }
+
+    array_push(mandos_por_jugador, _pad_index);
+    return array_length(mandos_por_jugador) - 1;
+}
+
+/// @func mando_liberar(_pad_index)
+/// @desc Llamarlo desde "gamepad lost". Deja el hueco en -1 en vez de encoger el array, para
+///       que los demás jugadores NO cambien de número de jugador a mitad de partida.
+function mando_liberar(_pad_index)
+{
+    var _n = array_length(mandos_por_jugador);
+    for (var _i = 0; _i < _n; _i++)
+    {
+        if (mandos_por_jugador[_i] == _pad_index) { mandos_por_jugador[_i] = -1; return; }
+    }
+}
+```
+
+```gml
+// ═══════════ obj_input_manager — Async System ═══════════
+switch (async_load[? "event_type"])
+{
+    case "gamepad discovered":
+        var _jugador = mando_asignar(async_load[? "pad_index"]);
+        show_debug_message("Mando conectado → jugador " + string(_jugador));
+        break;
+
+    case "gamepad lost":
+        mando_liberar(async_load[? "pad_index"]);
+        break;
+}
+```
+
+Cada `obj_jugador` lee su propio mando con `obj_input_manager.mandos_por_jugador[numero_jugador]`
+en vez de asumir un slot fijo. Si el valor es `-1`, ese jugador todavía no tiene mando —
+enséñale una pantalla de "conecta un mando" en vez de leer input de un slot que no existe.
+
+> 💡 **Para arrancar con los mandos que ya estaban conectados** (no solo los que se detectan
+> DESPUÉS): recorre `gamepad_get_device_count()` slots al empezar la partida y llama a
+> `mando_asignar()` para cada uno que `gamepad_is_connected()` confirme. El evento *Async
+> System* solo dispara ante **cambios** de conexión, no te da el estado inicial.
+
+Símbolos verificados: `gamepad_get_device_count`, `gamepad_is_connected`, `array_length`,
+`array_push`.
+
+### Vsync y latencia de input
+
+`display_reset(aa, vsync)` es la única función del runtime que toca la sincronización vertical
+en marcha. El manual advierte, literalmente, que activarla *«puede dar una experiencia de
+juego más suave, pero también necesitará más potencia de procesamiento, por lo que su impacto
+debe ser considerado cuidadosamente antes de su uso»*. Desde 2026.0, **vsync viene activada por
+defecto** en todos los targets compatibles (ver
+[05 · 02 §4.1](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#41-cambios-de-20260-que-afectan-a-tu-publicación)),
+así que si no tocas nada, tu juego ya la lleva encendida.
+
+```gml
+// Alternar vsync en caliente, típicamente desde Opciones (04 · 25)
+display_reset(0, _vsync_activado);   // 0 = sin antialiasing; conserva el AA que ya tuvieras
+```
+
+**La disyuntiva que el manual no explica:**
+
+| | **Vsync activada** | **Vsync desactivada** |
+|---|---|---|
+| *Tearing* (el frame se corta a media pantalla) | No aparece | Puede aparecer si el juego renderiza más rápido que la tasa de refresco |
+| Latencia de entrada | El frame terminado espera al siguiente refresco de pantalla antes de mostrarse: añade retraso entre pulsar y ver el resultado | El frame se muestra en cuanto está listo: la latencia es la mínima que puede dar el motor |
+| Coste de GPU | Limita el juego a la tasa de refresco del monitor | El juego renderiza tan rápido como la GPU dé, gastando ciclos que no llegan a verse |
+
+> ⚠️ La relación general entre vsync y latencia de entrada (el frame se retiene hasta el
+> intervalo de blanqueo vertical antes de mostrarse) es conocimiento de gráficos por
+> computador establecido en el oficio, **no algo que documente el manual de GameMaker**: el
+> manual solo habla del coste de «potencia de procesamiento», nunca de la latencia. Confirmado
+> como relación real —sin cifra concreta de GameMaker— en Wikipedia, *Screen tearing*:
+> *«vertical synchronization causes input lag»* (consultado 2026-09-06).
+
+**Cuándo compensa cada cual:**
+
+- **Vsync activada** por defecto: para casi todo el catálogo (RPG, aventura, puzzle, la
+  mayoría de plataformas) el tearing se nota más que un poco de retraso, y es lo que trae
+  GameMaker de fábrica desde 2026.0.
+- **Vsync desactivada, o al menos opcional**: en cualquier juego donde la latencia se juega —
+  shmups, lucha, plataformas de precisión estricta, shooters twin-stick competitivos. El coyote
+  time y el buffer de
+  [06 · scr_input_buffer.gml](../06%20-%20Assets%20y%20Scripts/scr_input_buffer.gml) compensan
+  unos fotogramas de cuándo se **lee** la pulsación, no de cuándo se **muestra** el resultado en
+  pantalla: son dos retrasos distintos, y este es el segundo.
+
+**La recomendación práctica: no decidas tú, dale la opción al jugador.** Un toggle más en
+[04 · 25 §1](../04%20-%20Recetas%20por%20género/25%20-%20Menú%20de%20opciones%20y%20ajustes.md#1--los-widgets-leer-y-cambiar),
+aplicado en vivo con el mismo patrón que «pantalla_completa»:
+
+```gml
+// aplicar_ajuste() de 04 · 25 §2 — un case más, mismo patrón que "pantalla_completa"
+case "vsync":
+    display_reset(0, _w.val);
+    break;
+```
+
+Símbolo verificado: `display_reset`.
 
 ---
 
@@ -800,3 +1098,8 @@ Va en **Step** (o Begin Step). El Draw es para dibujar.
 6. Los mandos **no estándar mapean distinto**: ofrece rebindeo.
 7. ⭐ **La librería Input** (Juju Adams + Alynne Keith, v10.4.3 para LTS 2026, ahora en **Codeberg**) unifica teclado, ratón y mando y es lo recomendado para proyectos serios. **No es de la organización YoYoGames**, aunque el personal de YoYo la recomienda en su bug tracker.
 8. Independientemente de la librería: **abstrae tus controles en «verbos»** (`input_saltar()`), no en teclas.
+9. **IME/CJK**: no hay solución nativa documentada para macOS/Linux. En Windows, Android, iOS y
+   Xbox, `keyboard_virtual_show()` + leer `keyboard_string` sí es la vía oficial — también en
+   escritorio, no solo en móvil.
+10. **Vsync no es solo un ajuste visual**: añade latencia de entrada. Ofrécelo como opción, no
+    lo fijes tú por el jugador.

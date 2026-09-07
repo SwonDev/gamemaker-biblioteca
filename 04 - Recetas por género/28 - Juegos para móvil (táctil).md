@@ -591,6 +591,44 @@ Android viene **activada** por defecto y en iOS **desactivada**. Compruébalo en
 | **Partículas** | Recorta el número con `global.calidad_baja`. Mil partículas que en un PC no se notan aquí bajan 15 fps |
 | **`draw_text` con fuentes grandes** | Cada fuente ocupa su zona de textura: una de 72 px se come media página. Escala una de 24 con `draw_text_transformed` |
 | **Audio** | OGG comprimido para la música (una pista), WAV para efectos cortos, y pocos sonidos a la vez: el mezclador de un móvil no es el de un PC. Y recuerda que al pausar se detiene y **no vuelve solo** |
+| **RAM total del proceso** ⚠️ | El sistema operativo mata el juego por presión de memoria mucho antes de agotar la RAM del dispositivo — no hay una cifra única, oficial ni fija (ver abajo), pero el techo real en gama baja está muy por debajo de lo que parece «poco» en un PC de desarrollo |
+
+**Sobre esa última fila: iOS y Android no publican un número oficial fijo.** Lo que hacen ambos
+sistemas es matar procesos **por presión relativa de memoria**, no por una cifra en MB clavada
+en la documentación:
+
+- **iOS** usa **Jetsam**, que aplica un presupuesto de memoria por app que depende del **modelo
+  concreto del dispositivo**, no de una constante — Apple no publica la tabla. Lo que sí es
+  observable (reportes de desarrolladores, no un dato de Apple) es que el presupuesto ronda una
+  fracción de la RAM total del teléfono: un iPhone con 3 GB de RAM total deja un margen muchísimo
+  más estrecho a tu app que uno con 8 GB, incluso proporcionalmente. Es el mismo espíritu que
+  [`05 · 02 §3.8/§3.8bis`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md)
+  ya aplica a las consolas bajo NDA: aquí no hay NDA, pero tampoco hay tabla oficial de Apple —
+  trátalo con el mismo respeto por lo que no se puede afirmar sin fuente.
+- **Android** usa el **Low Memory Killer** (`lmkd`), documentado oficialmente en
+  <https://developer.android.com/games/optimize/vitals/lmk> (consultado 2026-09-07): mata
+  procesos por prioridad (`oom_adj_score`) cuando la RAM libre cae por debajo de un umbral que
+  **la propia documentación de Google confirma que escala con la RAM total del dispositivo** —
+  hay tres juegos de umbrales distintos según el dispositivo tenga menos de 3 GB, entre 3 y 5 GB,
+  o más de 5 GB de RAM, pero **Google tampoco publica las cifras exactas en MB** de cada nivel.
+
+**Qué hacer con esto, en la práctica** (no hay número que citar, pero sí una forma honesta de
+trabajar):
+
+- **Prueba en el dispositivo Android/iOS más modesto de tu lista de compatibilidad**, no en el
+  tuyo de desarrollo — la misma regla de §6.5 más abajo, aplicada a memoria en vez de a fps.
+- **Mide el consumo real con las herramientas de la plataforma**, no adivines: Instruments
+  (Allocations/memory gauge) en iOS y `adb shell dumpsys meminfo <paquete>` o el Android
+  Profiler en Android — ambas cubiertas con más detalle en
+  [`01 · 15 §11`](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#11-herramientas-externas-de-perfilado).
+- **El mismo checklist de limpieza de recursos dinámicos** de
+  [`01 · 15 §8`](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#8-checklist-de-limpieza-de-recursos-dinámicos)
+  (surfaces, buffers, estructuras de datos sin destruir) es lo primero que reduce el pico de
+  memoria en gama baja — antes de tocar nada de arte o audio.
+- `os_get_info()` (ver
+  [`01 · 15 §11.2`](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#112-instruments-macos-e-ios))
+  da `totalMemory`/`userMemory` en iOS/tvOS — no hay una clave equivalente documentada para
+  Android en el propio manual de GameMaker.
 
 ```gml
 /// display_set_sleep_margin: el ajuste contra el micro-tartamudeo

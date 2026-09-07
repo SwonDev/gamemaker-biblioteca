@@ -292,6 +292,12 @@ gm-cli package --target windows --output ./steam-windows.zip
 # 3. Subir con las herramientas de Steamworks (SteamPipe / steamcmd), fuera de GameMaker
 ```
 
+> El alta de la app en Steamworks (Steam Direct, ~100 USD), el `app_build.vdf`/`depot_build.vdf`
+> reales, el comando exacto de `steamcmd` y las ramas beta están desarrollados con detalle en
+> [05 · 05 §4](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md#4--steam-alta-de-la-aplicación-depósitos-y-subida).
+> Y antes de distribuir un build de macOS fuera de la Mac App Store hace falta firmarlo y
+> notarizarlo — proceso completo en [05 · 05 §2](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md#2--macos-firma-y-notarización).
+
 ### 3.6 Steam Deck
 
 **No existe un target «Steam Deck» y no hay mención oficial de Steam Deck en las release notes de
@@ -347,6 +353,11 @@ mínimo es una decisión de tu propio sistema de UI escalable, no un ajuste del 
 | Licencia | Los exports móviles están incluidos en el nivel **Free** (aunque sin uso comercial) |
 | IAPs | Extensiones oficiales `GMEXT-AppleIAP` y `GMEXT-GooglePlayBilling`, ambas con actualizaciones anunciadas |
 | CLI | `android` es target válido **a partir de la 2.3.0**; iOS no está soportado |
+
+> Estas guías cubren el **export**, no el trámite de la tienda: firma con Play App Signing, el
+> `.aab` frente al `.apk`, la ficha de privacidad de Google Play, los certificados de distribución
+> de Apple y el proceso de revisión de la App Store están en
+> [05 · 05 §5 y §6](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md#5--google-play-app-bundle-firma-ficha-y-pruebas).
 
 ### 3.8 Consolas
 
@@ -471,6 +482,9 @@ Regla práctica: **VM durante el desarrollo**, **YYC para el build de release**.
       razonable: §4.5).
 - [ ] Si publicas en GX.games: portada y capturas **16:9 exactos**, clasificación por edad y
       plataformas definidas antes de `publish`.
+- [ ] Si distribuyes fuera de GX.games: el `.exe` de Windows y el `.app` de macOS van **firmados**
+      (y el de macOS, además, **notarizado**) antes de llegar a un jugador —
+      [05 · 05 §2 y §3](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md).
 
 ### 4.5. Presupuesto de build: tamaño y arranque
 

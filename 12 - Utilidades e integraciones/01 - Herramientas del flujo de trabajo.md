@@ -61,6 +61,20 @@ menos dogmático, más configurable.
 Complementa a Feather, no lo sustituye.
 📁 `11 - Código descargado/librerias/depuracion/duck/`
 
+> ⚠️ **Su propio README lo marca como inestable y sin publicar**: *«duck is not yet released
+> and is unstable! An announcement will be made when 0.1.0 is released»*, y el badge de versión
+> de GameMaker que declara compatible es **`2022.3.0.497`** — muy anterior a LTS 2026.0.0.23.
+> Sin *push* desde 2025-06-05 (más de un año a fecha de esta verificación, 07-09-2026): no está
+> archivado, pero tampoco hay señal de que el 0.1.0 prometido haya llegado. Sirve para explorar
+> `duck run` / `duck help` en un proyecto de prueba, no para depender de él como puerta de CI
+> sin volver a comprobar su estado primero.
+>
+> **Gobo**, en cambio, no documenta su CLI en el README (solo enlaza un
+> [formateador web](https://pizzaandy.github.io/Gobo/) para probar) — se distribuye como
+> binario autocontenido compilado con Native AOT/.NET 8, así que la sintaxis exacta de línea de
+> comandos hay que sacarla de `gobo --help` tras descargar el binario de
+> [Releases](https://github.com/Pizzaandy/Gobo/releases), no de este catálogo.
+
 > 💡 **Antes de instalar ninguno de los dos**, activa **Feather** (viene activado por defecto
 > en LTS 2026) y configura sus *reglas de nomenclatura* en Preferencias. Cubre buena parte de
 > lo que hacen estas herramientas, sin dependencias.
@@ -217,6 +231,40 @@ tiempo ahorra en un proyecto grande.
 
 ⚠️ No está descargada (es comercial). Es la única recomendación de pago de esta biblioteca
 junto con los assets de itch.io.
+
+**Qué recarga en caliente**, según la propia página del autor
+([yal.cc/gmlive](https://yal.cc/gmlive/), verificada el 07-09-2026): código, sprites, rooms **y
+shaders**, con lo que el autor describe como «*one-minute setup, cross-platform support*» —
+soporte multiplataforma y una instalación de un minuto sobre un proyecto existente.
+
+**Cómo funciona por dentro** — no hay repositorio público de la versión moderna (búsqueda en
+vivo el 07-09-2026: `GMLive` en GitHub solo devuelve la versión histórica para GameMaker 8.2,
+[`YAL-GameMaker/gmlive_gm82`](https://github.com/YAL-GameMaker/gmlive_gm82), ★5, sin cambios
+desde 2025-04-09), pero su propio README explica el problema de fondo y cómo lo resuelve la
+versión de pago para GameMaker Studio y posteriores, textual:
+
+> «GameMaker: Studio and newer GM versions have a directory-based project structure, but no way
+> to dynamically load code. To make GMLive.gml work, I re-implement the entirety of GameMaker
+> Language in Haxe and compile it to GML.»
+
+Es decir: como el runtime de GameMaker (a diferencia del viejo GM8.2) **no tiene ninguna función
+para cargar código nuevo en caliente**, GMLive.gml no parchea el runtime — reimplementa un
+intérprete de GML completo, escrito en Haxe y compilado a GML normal, que corre **dentro** de tu
+propio juego. El plugin del lado del editor detecta qué script/evento cambió y le pasa el texto
+nuevo a ese intérprete embebido, que lo compila y lo ejecuta sin pasar por Igor (el compilador
+real, ver [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20línea%20de%20comandos.md)).
+
+⚠️ **Límites no confirmados por una fuente primaria de la versión moderna** (inferidos del propio
+mecanismo y del comportamiento estándar de los eventos de GameMaker, no verificados contra
+documentación oficial de GMLive): el código del evento **Create** de una instancia que **ya
+existía** antes del *hot reload* no se vuelve a ejecutar —Create solo corre al crear la
+instancia—, así que una variable inicializada ahí no cambia hasta la siguiente instancia nueva
+o un reinicio de room; y un `struct`/constructor ya instanciado conserva los métodos con los que
+se creó hasta que se vuelve a instanciar. Si tu flujo de trabajo depende de esto, verifícalo
+contra una build de prueba antes de asumirlo.
+
+**Requisitos y precio**, confirmados en vivo el 07-09-2026: **$29,95**, 4,9/5 sobre 71
+valoraciones en itch.io — sigue a la venta y activa.
 
 ---
 

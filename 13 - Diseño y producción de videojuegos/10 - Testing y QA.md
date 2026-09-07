@@ -1000,16 +1000,19 @@ mismo con interfaz, gráficas y agrupación por temas. Está descargado en
 
 ```gml
 // Un Benchmark agrupa TestCase. Cada TestCase recibe el número de iteraciones.
-new Benchmark("Variable access", [
-    new TestCase("dot operator", function(iterations) {
-        var struct = { x: 0 };
-        repeat (iterations) { var val = struct.x; }
-    }),
-    new TestCase("struct accessor", function(iterations) {
-        var struct = { x: 0 };
-        repeat (iterations) { var val = struct[$ "x"]; }
-    })
-]),   // …y así con cada alternativa que quieras comparar
+var _benchmarks = [
+    new Benchmark("Variable access", [
+        new TestCase("dot operator", function(iterations) {
+            var struct = { x: 0 };
+            repeat (iterations) { var val = struct.x; }
+        }),
+        new TestCase("struct accessor", function(iterations) {
+            var struct = { x: 0 };
+            repeat (iterations) { var val = struct[$ "x"]; }
+        })
+    ]),
+    // …y así con cada alternativa que quieras comparar
+];
 ```
 
 `TestCase` admite además una función `init` opcional, que se ejecuta antes y **no cuenta** en
@@ -1140,6 +1143,99 @@ configuración* añadiendo `_NombreDeLaConfig` al nombre —compilando con `--co
 línea es lento**: vale para avisos y errores, pero si registras cada frame, acumula en un array
 y vuelca cada N segundos.
 
+#### A dónde va cada nivel
+
+`registrar()` tiene tres destinos posibles y no todos los niveles llegan a los tres. La Config
+activa decide **si** un nivel se procesa (vía `NIVEL_MINIMO`); una vez procesado, el nivel decide
+**cuándo** se escribe a disco:
+
+| Nivel | Output del IDE | `partida.log` | Pantalla (consola, §7.5) |
+|---|---|---|---|
+| `DEPURAR` (traza) | Sí, si pasa `NIVEL_MINIMO` | Sí, en el buffer — se pierde si el juego crashea antes del siguiente volcado | Sí, si la consola está abierta |
+| `INFO` | Sí | Sí, en el buffer | Sí |
+| `AVISO` | Sí | Sí, **volcado inmediato** | Sí |
+| `ERROR` | Sí | Sí, **volcado inmediato** + candidato a `capturar_incidencia()` (§7.3) | Sí, en otro color |
+
+En `Default`/`Debug`, `NIVEL_MINIMO` deja pasar `DEPURAR`; en `Release`,
+`NIVEL_MINIMO_Release = NIVEL.AVISO` corta `DEPURAR` e `INFO` en el propio `exit;` de la primera
+línea de la función — ni se calcula la fecha ni se toca el disco.
+
+#### Sin castigar el frame: el mismo `registrar()`, con buffer
+
+Abrir y cerrar el fichero en cada llamada es barato si registras un evento suelto (el jugador
+guarda, cambia de nivel). Dentro de un bucle caliente —una traza por colisión, por paso de la IA,
+por partícula de una simulación a mano (`13 · 08`)— ese `file_text_open_append` de cada línea sí
+se nota en el frame. La versión con buffer solo abre el fichero cuando de verdad toca volcar:
+
+```gml
+// ═══════════ scr_registro (ampliación: buffer sin coste por frame) ═══════════
+global.registro_buffer         = [];
+global.registro_ultimo_volcado = current_time;
+
+#macro REGISTRO_INTERVALO_VOLCADO_MS 2000   // cada cuánto se escribe a disco, como mucho
+
+/// @desc Como registrar(), pero acumula en memoria en vez de abrir el fichero en cada
+///       llamada. AVISO y ERROR fuerzan un volcado inmediato: un error que no llega a
+///       verse en disco si el juego crashea a continuación no sirve de nada.
+/// @param {Real}   _nivel   Constante del enum NIVEL.
+/// @param {String} _texto
+function registrar_bufer(_nivel, _texto)
+{
+    if (_nivel < NIVEL_MINIMO) { exit; }
+
+    static etiquetas = ["DEPURAR", "INFO", "AVISO", "ERROR"];
+
+    var _d     = date_current_datetime();
+    var _hora  = $"{date_get_hour(_d)}:{date_get_minute(_d)}:{date_get_second(_d)}";
+    var _linea = $"[{_hora}] [{etiquetas[_nivel]}] {_texto}";
+
+    show_debug_message(_linea);
+    array_push(global.registro_buffer, _linea);
+
+    // La consola en pantalla (§7.5) lee de aquí, no del fichero.
+    if (variable_global_exists("consola_historial_visible"))
+    {
+        array_push(global.consola_historial_visible, _linea);
+    }
+
+    var _urgente = (_nivel >= NIVEL.AVISO);
+    var _lleno   = (array_length(global.registro_buffer) >= 50);
+    var _toca    = (current_time - global.registro_ultimo_volcado >= REGISTRO_INTERVALO_VOLCADO_MS);
+
+    if (_urgente || _lleno || _toca) { registro_volcar(); }
+}
+
+/// @desc Escribe de una sola vez todo lo acumulado en el buffer. Ábrelo tú también al
+///       cerrar el juego (Game End) para no perder la cola sin volcar.
+function registro_volcar()
+{
+    if (array_length(global.registro_buffer) == 0) { exit; }
+
+    var _f = file_text_open_append("partida.log");
+    for (var _i = 0; _i < array_length(global.registro_buffer); _i++)
+    {
+        file_text_write_string(_f, global.registro_buffer[_i]);
+        file_text_writeln(_f);
+    }
+    file_text_close(_f);
+
+    global.registro_buffer         = [];
+    global.registro_ultimo_volcado = current_time;
+}
+```
+
+> ⚠️ **Nunca escribas el log —ni ningún archivo propio— con `working_directory` delante de la
+> ruta.** `working_directory` apunta al **file bundle**, la parte del juego empaquetada con el
+> ejecutable, y es **de solo lectura en la build exportada**
+> ([`01 · 14` §1](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md#1-el-sandbox-lo-primero-que-debes-entender)):
+> escribir ahí falla en silencio o lanza una excepción según la plataforma. La regla es la misma
+> que ya usan `registrar()`/`registro_volcar()` arriba: pásale a `file_text_open_append()` un
+> nombre de fichero **relativo, sin ruta delante** (`"partida.log"`), y dejar que GameMaker
+> resuelva sola al **save area** (`01 · 14` §1, tabla de resolución de lectura/escritura). Esto
+> se aprende bien en el IDE, donde el *Run* del proyecto es más permisivo, y se descubre mal en
+> el paquete final —justo el caso que ya avisa `05 · 04` §8 sobre probar el build empaquetado y
+> no solo el Run.
+
 Combínalo con `exception_unhandled_handler()` para tener también los cierres inesperados: el
 patrón completo, con `debug_get_callstack()`, está en
 [`01 · 15`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) §3 y §9. **No lo repito.**
@@ -1215,6 +1311,354 @@ function modo_qa_paso()
 >
 > ⚠️ Comprueba la lista de teclas antes de publicar. Más de un juego ha salido a la venta con
 > el «matar a todos los enemigos» todavía en F9.
+
+### 7.5 Una consola de comandos en runtime
+
+El modo QA de §7.4 da atajos de **una tecla**: rápidos, pero fijos y sin parámetros. Una consola
+de **texto** resuelve lo que una tecla no puede — `tp 480 260`, `nivel rm_jefe_final`,
+`spawn obj_enemigo_arquero 5` — sin recompilar ni añadir una tecla nueva por cada comando futuro.
+Es el mismo principio que ya usan casi todos los motores (Source, Quake, Unreal): un intérprete
+de línea de comandos mínimo, vivo dentro del propio juego.
+
+#### El contrato: qué guarda cada comando
+
+Un comando es un **struct** con una función y su ayuda, guardado en un registro global por
+nombre. Nada de `switch` gigante: dar de alta un comando nuevo es una llamada, no tocar una
+función central que crece sin límite.
+
+```gml
+// ═══════════ scr_consola ═══════════
+
+/// @desc Registro global de comandos: nombre → { funcion, ayuda }. Llamar una sola vez,
+///       antes de registrar el primer comando (el Create de obj_consola, más abajo).
+function consola_iniciar()
+{
+    if (variable_global_exists("consola_comandos")) { exit; }   // ya iniciada
+    global.consola_comandos          = {};
+    global.consola_historial_visible = [];   // sink en pantalla; lo alimenta registrar_bufer() (§7.2)
+}
+
+/// @func consola_registrar(_nombre, _funcion, _ayuda)
+/// @desc Da de alta un comando. _funcion recibe un único argumento: un array de strings
+///       con los tokens que siguen al nombre del comando (puede estar vacío).
+/// @param {String}   _nombre
+/// @param {Function} _funcion
+/// @param {String}   _ayuda
+function consola_registrar(_nombre, _funcion, _ayuda)
+{
+    variable_struct_set(global.consola_comandos, string_lower(_nombre), {
+        funcion: _funcion,
+        ayuda:   _ayuda
+    });
+}
+```
+
+#### Parsear la línea: `string_split` + `string_trim`, respetando comillas
+
+`string_split(_texto, " ", true)` trocea por espacios de sobra, pero rompe un argumento como
+`decir "hola mundo"` en tres tokens. La solución no es reescribir un parser completo: es trocear
+con `string_split` como siempre y **recomponer** los tokens que quedan entre comillas.
+
+```gml
+/// @func consola_tokenizar(_texto)
+/// @desc Trocea una línea de comandos en tokens, respetando comillas dobles para
+///       argumentos con espacios (`decir "hola mundo"` → ["decir", "hola mundo"]).
+/// @param {String} _texto
+/// @returns {Array<String>}
+function consola_tokenizar(_texto)
+{
+    var _crudo         = string_split(string_trim(_texto), " ", true);
+    var _tokens         = [];
+    var _dentroComillas = false;
+    var _actual          = "";
+
+    for (var _i = 0; _i < array_length(_crudo); _i++)
+    {
+        var _t = _crudo[_i];
+
+        if (!_dentroComillas && string_char_at(_t, 1) == "\"")
+        {
+            var _cierraAqui = (string_length(_t) > 1
+                && string_char_at(_t, string_length(_t)) == "\"");
+
+            if (_cierraAqui)
+            {
+                array_push(_tokens, string_copy(_t, 2, string_length(_t) - 2));
+            }
+            else
+            {
+                _dentroComillas = true;
+                _actual          = string_copy(_t, 2, string_length(_t) - 1);
+            }
+        }
+        else if (_dentroComillas)
+        {
+            if (string_char_at(_t, string_length(_t)) == "\"")
+            {
+                _actual         += " " + string_copy(_t, 1, string_length(_t) - 1);
+                array_push(_tokens, _actual);
+                _dentroComillas = false;
+                _actual          = "";
+            }
+            else
+            {
+                _actual += " " + _t;
+            }
+        }
+        else
+        {
+            array_push(_tokens, _t);
+        }
+    }
+
+    if (_dentroComillas) { array_push(_tokens, _actual); }   // comilla sin cerrar: mejor esto que perder el comando
+
+    return _tokens;
+}
+
+/// @func consola_ejecutar(_linea)
+/// @desc Parsea una línea completa y ejecuta el comando que corresponda. No hace nada
+///       con una línea vacía; avisa por el log (§7.2) si el comando no existe.
+/// @param {String} _linea
+function consola_ejecutar(_linea)
+{
+    var _tokens = consola_tokenizar(_linea);
+    if (array_length(_tokens) == 0) { exit; }
+
+    var _nombre = string_lower(_tokens[0]);
+    array_delete(_tokens, 0, 1);   // lo que queda son los argumentos, ya sin el nombre
+
+    registrar_bufer(NIVEL.INFO, $"> {_linea}");
+
+    if (!variable_struct_exists(global.consola_comandos, _nombre))
+    {
+        registrar_bufer(NIVEL.AVISO, $"comando desconocido: «{_nombre}». Escribe «ayuda».");
+        exit;
+    }
+
+    var _comando = variable_struct_get(global.consola_comandos, _nombre);
+    _comando.funcion(_tokens);
+}
+```
+
+`consola_ejecutar()` vuelca cada línea escrita y cada resultado a **la misma capa de log** de
+§7.2 (`registrar_bufer()`): la consola no es un sistema aparte, es una entrada de texto sobre el
+log que ya existe. Eso también significa que lo que se teclea en la consola queda en
+`partida.log`, lo que convierte un informe de bug de un tester en «mira, hice esto en este
+orden» en vez de «no sé qué pulsé».
+
+#### El objeto controlador: entrada, historial y autocompletado
+
+```gml
+// ═══════════ obj_consola — Create ═══════════
+#macro TECLA_CONSOLA vk_f12   // cámbiala si tu plataforma usa F12 para otra cosa
+
+consola_iniciar();
+
+abierta           = false;
+historial_comandos = [];      // strings, el más reciente al final
+historial_indice   = -1;      // -1 = no se está navegando el historial
+sugerencias         = [];
+
+// ── Comandos de ejemplo: el patrón se repite para cada comando nuevo ──
+consola_registrar("ayuda", function(_args)
+{
+    var _nombres = variable_struct_get_names(global.consola_comandos);
+    array_sort(_nombres, true);
+    for (var _i = 0; _i < array_length(_nombres); _i++)
+    {
+        var _cmd = variable_struct_get(global.consola_comandos, _nombres[_i]);
+        registrar_bufer(NIVEL.INFO, $"  {_nombres[_i]} — {_cmd.ayuda}");
+    }
+}, "Lista todos los comandos disponibles");
+
+consola_registrar("dios", function(_args)
+{
+    if (!instance_exists(obj_jugador)) { exit; }
+    obj_jugador.invulnerable = !obj_jugador.invulnerable;
+    registrar_bufer(NIVEL.INFO, $"invulnerable = {obj_jugador.invulnerable}");
+}, "Activa o desactiva la invulnerabilidad del jugador");
+
+consola_registrar("tp", function(_args)
+{
+    if (array_length(_args) < 2) { registrar_bufer(NIVEL.AVISO, "uso: tp <x> <y>"); exit; }
+    if (!instance_exists(obj_jugador)) { exit; }
+    obj_jugador.x = real(_args[0]);
+    obj_jugador.y = real(_args[1]);
+    registrar_bufer(NIVEL.INFO, $"teletransportado a ({_args[0]}, {_args[1]})");
+}, "Teletransporta al jugador: tp <x> <y>");
+
+consola_registrar("nivel", function(_args)
+{
+    if (array_length(_args) < 1) { registrar_bufer(NIVEL.AVISO, "uso: nivel <room>"); exit; }
+    if (asset_get_type(_args[0]) != asset_room)
+    {
+        registrar_bufer(NIVEL.ERROR, $"no existe la room «{_args[0]}»");
+        exit;
+    }
+    room_goto(asset_get_index(_args[0]));
+}, "Cambia de room: nivel <nombre_room>");
+```
+
+```gml
+// ═══════════ obj_consola — Step ═══════════
+if (!MODO_QA) { exit; }   // en Release, MODO_QA_Release es false: el compilador borra todo esto
+
+if (keyboard_check_pressed(TECLA_CONSOLA))
+{
+    abierta            = !abierta;
+    keyboard_string     = "";
+    sugerencias          = [];
+    historial_indice     = -1;
+}
+
+if (!abierta) { exit; }
+
+// Historial: ↑ retrocede, ↓ avanza. historial_indice cuenta desde el final del array.
+if (keyboard_check_pressed(vk_up) && historial_indice < array_length(historial_comandos) - 1)
+{
+    historial_indice++;
+    keyboard_string = historial_comandos[array_length(historial_comandos) - 1 - historial_indice];
+}
+if (keyboard_check_pressed(vk_down))
+{
+    if (historial_indice > 0)
+    {
+        historial_indice--;
+        keyboard_string = historial_comandos[array_length(historial_comandos) - 1 - historial_indice];
+    }
+    else if (historial_indice == 0)
+    {
+        historial_indice = -1;
+        keyboard_string   = "";
+    }
+}
+
+if (keyboard_check_pressed(vk_tab)) { consola_autocompletar(); }
+
+if (keyboard_check_pressed(vk_enter) && string_length(string_trim(keyboard_string)) > 0)
+{
+    array_push(historial_comandos, keyboard_string);
+    consola_ejecutar(keyboard_string);
+    keyboard_string    = "";
+    sugerencias         = [];
+    historial_indice    = -1;
+}
+
+if (keyboard_check_pressed(vk_escape)) { abierta = false; }
+```
+
+```gml
+/// @func consola_autocompletar()
+/// @desc Si lo escrito es el principio de un único comando, lo completa. Si hay varias
+///       coincidencias, las deja en la variable de instancia `sugerencias` sin tocar
+///       keyboard_string. Se llama desde el Step de obj_consola, con self ya puesto.
+function consola_autocompletar()
+{
+    var _prefijo   = string_lower(keyboard_string);
+    var _nombres   = variable_struct_get_names(global.consola_comandos);
+    var _coinciden = [];
+
+    for (var _i = 0; _i < array_length(_nombres); _i++)
+    {
+        if (string_pos(_prefijo, string_lower(_nombres[_i])) == 1)
+        {
+            array_push(_coinciden, _nombres[_i]);
+        }
+    }
+
+    if (array_length(_coinciden) == 1)
+    {
+        keyboard_string = _coinciden[0] + " ";
+    }
+    else if (array_length(_coinciden) > 1)
+    {
+        array_sort(_coinciden, true);
+        sugerencias = _coinciden;
+    }
+}
+```
+
+```gml
+// ═══════════ obj_consola — Draw GUI ═══════════
+if (!MODO_QA || !abierta) { exit; }
+
+var _ancho      = display_get_gui_width();
+var _altoLinea  = 20;
+var _lineasLog  = 10;
+
+draw_set_alpha(0.85);
+draw_set_colour(c_black);
+draw_rectangle(0, 0, _ancho, _altoLinea * (_lineasLog + 2), false);
+draw_set_alpha(1);
+
+var _historial = global.consola_historial_visible;
+var _primera   = max(0, array_length(_historial) - _lineasLog);
+var _y         = 4;
+
+draw_set_colour(c_white);
+for (var _i = _primera; _i < array_length(_historial); _i++)
+{
+    draw_text(6, _y, _historial[_i]);
+    _y += _altoLinea;
+}
+
+draw_set_colour(c_lime);
+draw_text(6, _y, "> " + keyboard_string + (current_time div 500 % 2 == 0 ? "_" : ""));
+
+if (array_length(sugerencias) > 0)
+{
+    draw_set_colour(c_yellow);
+    draw_text(6, _y + _altoLinea, string_join_ext(" · ", sugerencias));
+}
+
+draw_set_colour(c_white);
+```
+
+`obj_consola` es un único objeto persistente creado una vez desde la room de arranque (§3.4 de
+[`13 · 06`](06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md)), igual que `obj_game`. No
+necesita capturar el ratón ni bloquear el resto del juego: mientras `abierta` es `true`, deja que
+el jugador se mueva por debajo — si no quieres eso, comprueba `obj_consola.abierta` en el Step de
+`obj_jugador` y sal antes de leer el resto del input, el mismo patrón que ya usa el modo QA.
+
+#### Cómo se desactiva en la build de release, para que no sea un agujero
+
+La consola entera cuelga de `MODO_QA`, el mismo macro de §7.4:
+
+```gml
+#macro MODO_QA          true
+#macro MODO_QA_Release  false
+```
+
+El primer `if (!MODO_QA) { exit; }` del Step **y** del Draw GUI hace que, compilando con
+`--config Release`, el compilador elimine ese código por ser un `if (false)` sobre una constante
+—la misma razón por la que §7.4 insiste en macro y no en variable global—. El objeto puede seguir
+existiendo en la room de Release: su Step y su Draw GUI no hacen nada. Aun así:
+
+- ⚠️ **No confíes solo en el macro para comandos peligrosos de verdad** (borrar el guardado,
+  desbloquear todo el juego): un macro mal puesto en una Config nueva es un error humano. Si un
+  comando puede hacer daño real, que además compruebe `DEV` (§3.12 de `13 · 06`) antes de actuar,
+  no solo que exista dentro de `MODO_QA`.
+- ⚠️ **Revisa la lista de comandos antes de publicar**, igual que la lista de teclas de §7.4 — un
+  `dios` o un `nivel` sueltos no son el problema; un comando que dé objetos gratis sí lo es si
+  alguien llega a activar `MODO_QA` por error en una build filtrada.
+- El `TECLA_CONSOLA` (F12) no colisiona con el modo QA (F1-F5) ni con capturas de sistema
+  operativo habituales, pero compruébalo en cada plataforma de destino.
+
+#### Lo que ya existe y esta receta no repite
+
+Tres piezas que un desarrollador suele esperar dentro de «herramientas de depuración en runtime»
+**ya están escritas** en otro sitio de esta biblioteca — la consola de esta sección las
+complementa, no las sustituye:
+
+| Herramienta | Dónde ya está | Qué hace |
+|---|---|---|
+| **Inspector de entidades en vivo** | [`01 · 15` §4](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#vistas-de-depuración-personalizadas-muy-potente) | `dbg_slider`, `dbg_watch`, `dbg_checkbox` sobre `ref_create(instancia, "variable")`: ve **y edita** el estado de una instancia concreta mientras juegas, sin tocar código |
+| **Gráfica de rendimiento en vivo** | [`01 · 15` §4](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#la-ventana-fps-cómo-leerla) | La ventana **FPS** del Debug Overlay, en modo *Stacked*, desglosa GC/IO/Update/Draw fotograma a fotograma |
+| **Capturas de pantalla e incidencias** | [`13 · 11` §4.7](11%20-%20Producción%2C%20alcance%20y%20lanzamiento.md#47-captura-modo-foto-y-compartir) y §7.3 de este documento | `captura_tomar()`/`captura_tomar_recorte()`, sobre `screen_save()`/`screen_save_part(nombre, x, y, w, h)` — verificada en `buscar.py`, existe en el runtime `2026.0.0.23` |
+
+Un comando de consola como `captura` que llame a `capturar_incidencia()` (§7.3) es la forma
+natural de unir las dos piezas: teclear en vez de programar una tecla nueva cada vez.
 
 ---
 
@@ -1846,6 +2290,59 @@ resultado sin preguntarle nunca al cliente qué cree que pasó. Todo lo demás �
 variables desplazadas, anti-debug casero— no detiene a nadie decidido: solo sube el precio de
 entrada para quien no pensaba currárselo de todas formas.
 
+### 14.7 · *Rate limiting*: limitar cuántas veces se puede llamar al backend
+
+Todo lo anterior (14.2-14.6) asume que la petición **llega** al backend. Sin límite de
+frecuencia, alguien puede automatizar el envío — probar combinaciones hasta que una pase
+`puntuacion_es_plausible()` (14.2), o simplemente saturar el servidor a peticiones por segundo,
+una forma barata de *denial of service*. Es lógica de **servidor**, no de GameMaker — no hay
+una función `network_*` o `http_*` que la resuelva desde el cliente —, pero se enlaza aquí
+porque protege el mismo backend que valida 14.2 y re-simula 14.3, y porque
+[`04 · 17`](../04%20-%20Recetas%20por%20g%C3%A9nero/17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) §6
+la señala como la primera defensa que necesita un endpoint de login.
+
+**El patrón estándar, en cualquier lenguaje de servidor:** un contador con ventana de tiempo
+por identificador — IP, cuenta de usuario, o el token de sesión de
+[`04 · 17`](../04%20-%20Recetas%20por%20g%C3%A9nero/17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) §6 —
+que rechaza la petición cuando se supera un máximo dentro de la ventana:
+
+```
+si peticiones[identificador] en los últimos N segundos > máximo:
+    responder 429 "Too Many Requests" y descartar
+si no:
+    incrementar el contador y procesar la petición normalmente
+```
+
+- **Por IP** es la primera barrera (barata, frena la automatización simple), pero una IP
+  compartida (NAT de instituto, CGNAT — ver
+  [`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §10.4) puede
+  penalizar a jugadores legítimos que no tienen la culpa de compartir salida a internet. **Por
+  cuenta de usuario/token** es más justo en cuanto ya hay autenticación (04/17 §6): cada
+  jugador tiene su propio presupuesto, sin castigar a su vecino de red.
+- **Valores de partida razonables para un envío de puntuación o guardado** (ajústalos a tu
+  juego; no son una cifra medida contra un sistema real): unas pocas peticiones por minuto por
+  cuenta —una partida no puede terminar más rápido que su duración mínima, que 14.2 ya usa para
+  descartar tiempos imposibles— y un límite algo más laxo por IP, para no bloquear a quien
+  comparte red con otros jugadores legítimos. Para un endpoint de **login**, el límite debe ser
+  mucho más estricto (unos pocos intentos por minuto): ahí lo que se protege no es un
+  leaderboard, es una contraseña frente a fuerza bruta.
+- **Código HTTP estándar para la respuesta:** `429 Too Many Requests`, con una cabecera
+  `Retry-After` si tu framework de servidor la soporta — así un cliente bien hecho sabe cuánto
+  esperar en vez de reintentar en bucle y empeorar el problema.
+- Si tu backend ya es **Colyseus**
+  ([`12 · 04`](../12%20-%20Utilidades%20e%20integraciones/04%20-%20Multijugador%20y%20red.md) §2),
+  el contador vive de forma natural en la misma sala de Node.js que ya re-simula 14.3; si usas
+  un servicio gestionado —**Firebase**
+  ([`12 · 03`](../12%20-%20Utilidades%20e%20integraciones/03%20-%20Integraciones%20con%20servicios.md) §5)
+  o **PlayFab**
+  ([`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §1.3)—, casi
+  todos traen *rate limiting* de serie y solo hace falta activarlo, no escribirlo.
+
+> ⚠️ El *rate limiting* del lado del **cliente** (por ejemplo, deshabilitar un botón unos
+> segundos tras pulsarlo) es una mejora de UX, **no una defensa**: cualquiera que hable
+> directamente con tu backend —sin pasar por tu juego compilado, con `curl` o Postman— lo
+> ignora por completo. La cuenta atrás real vive siempre en el servidor, igual que la
+> validación de 14.2 y la re-simulación de 14.3.
 
 ---
 
@@ -1858,6 +2355,7 @@ entrada para quien no pensaba currárselo de todas formas.
 - [`01 · 16 — Exportar y publicar`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) — HTML5 y sus trampas.
 - [`04 · 05 — Roguelike y generación procedural`](../04%20-%20Recetas%20por%20g%C3%A9nero/05%20-%20Roguelike%20y%20generaci%C3%B3n%20procedural.md) — los algoritmos que hay que probar con semilla.
 - [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 — «nunca confíes en el cliente», la base de §14 de este documento.
+- [`04 · 17 — Interoperabilidad con la web`](../04%20-%20Recetas%20por%20g%C3%A9nero/17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) §6 — autenticación con tokens sobre HTTP, el primer endpoint que necesita el §14.7 de este documento.
 - [`05 · 02 — Publicar y exportar`](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) §4.4 — checklist de release y CI.
 - [`05 · 04 — Convenciones y estilo GML`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §7 y §8 — aserciones de producción y checklist antes de compilar.
 - [`07 · 01 — GitHub · organización YoYoGames`](../07%20-%20Ecosistema/01%20-%20GitHub%20-%20organizaci%C3%B3n%20YoYoGames.md) — GM-TestFramework y GameMaker-Bugs.

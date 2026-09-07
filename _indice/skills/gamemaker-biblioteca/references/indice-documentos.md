@@ -11,10 +11,11 @@ Todas las rutas son relativas a la raíz de la biblioteca (`/Users/adrianpererad
 ## Puntos de entrada
 
 - `RUTA.md` — {'titulo': '🎓 Ruta completa: de cero a experto', 'proposito': 'Itinerario maestro en 6 niveles (0 Cero → 5 Profesional) con competencias observables, material exacto por nivel y una prueba de nivel.', 'usar_cuando': ['el usuario está aprendiendo y hay que situarlo', 'qué estudio ahora / por dónde sigo', 'cuánto me falta para X', 'no sé si estoy listo para hacer un juego comercial'], 'nota_para_agentes': 'Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente.'}
-- `README.md` — {'titulo': 'Biblioteca de conocimiento · GameMaker LTS 2026'}
+- `README.md` — {'titulo': 'Biblioteca GameMaker · para que tu agente de IA no invente funciones'}
 - `AGENTS.md` — {'titulo': 'AGENTS.md — cómo usar esta biblioteca si eres un agente de IA'}
 - `_indice/COMO-BUSCAR.md` — {'titulo': 'Árbol de decisión para encontrar cualquier cosa'}
 - `CLAUDE.md` — {'titulo': 'CLAUDE.md', 'proposito': 'Arranque mínimo: las 5 reglas irrenunciables y el desvío a AGENTS.md (instrucciones completas) y a _indice/COMO-BUSCAR.md (cómo buscar). Deliberadamente corto: se carga en cada sesión.', 'usar_cuando': ['empiezas una sesión en este repositorio', 'quieres las reglas antes de tocar nada'], 'no_usar_para': ['entender la estructura completa (usa AGENTS.md o este MAPA.json)', 'buscar una función (usa _indice/buscar.py)']}
+- `PUBLICAR.md` — {'titulo': 'Publicar esta biblioteca', 'proposito': '', 'usar_cuando': [], 'no_usar_para': []}
 
 
 ## `01 - Fundamentos` — Fundamentos de GML
@@ -173,6 +174,11 @@ Qué cambió en LTS 2026 y qué rompe el código antiguo. Handles, GMRT, UI Laye
 - `04 - Recetas por género/45 - Géneros sin receta propia - sigilo, horror, táctica, granja y idle.md` — 45 · Géneros sin receta propia — sigilo, horror, táctica, granja y idle
 - `04 - Recetas por género/46 - Eje Z falso - altura, sombras y profundidad en un juego 2D.md` — 46 · Eje Z falso — altura, sombras y profundidad en un juego 2D
 - `04 - Recetas por género/47 - Beat em up y brawler.md` — 47 · Beat 'em up y brawler
+- `04 - Recetas por género/48 - Aventura gráfica y point and click.md` — 48 · Aventura gráfica y point and click
+- `04 - Recetas por género/49 - Deportes y física de mesa.md` — 49 · Deportes y física de mesa
+- `04 - Recetas por género/50 - Juego de lucha.md` — 50 · Juego de lucha
+- `04 - Recetas por género/51 - Colonia y constructor de bases - trabajadores autónomos.md` — 51 · Colonia y constructor de bases — trabajadores autónomos
+- `04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md` — 52 · Live-ops técnico (config remota, versión mínima, mensajes del juego)
 - `04 - Recetas por género/_INDICE-RECETAS.md` — Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)
 
 
@@ -186,6 +192,7 @@ Tutoriales oficiales catalogados, publicación y exportación, glosario A-Z y co
 - `05 - Referencia/02 - Publicar y exportar.md` — 02 · Publicar y exportar un juego de GameMaker (2026)
 - `05 - Referencia/03 - Glosario GML.md` — 03 · Glosario GML (A–Z)
 - `05 - Referencia/04 - Convenciones y estilo GML.md` — 04 · Convenciones y estilo GML
+- `05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md` — 05 · Entregar el juego: firmar, notarizar y subir a las tiendas
 
 
 ## `06 - Assets y Scripts` — Scripts GML propios listos para copiar
@@ -238,6 +245,7 @@ GitHub de YoYoGames, librerías, extensiones, proyectos de ejemplo, foro, itch.i
 - `07 - Ecosistema/20 - SNAP - datos y formatos (guía en español).md` — 20 · SNAP — convertir datos entre formatos (guía en español)
 - `07 - Ecosistema/21 - Vinyl - audio avanzado (guía en español).md` — 21 · Vinyl — audio avanzado (guía en español)
 - `07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md` — 22 · Crear una extensión nativa (guía en español)
+- `07 - Ecosistema/23 - Arte generado por IA (pixel art y assets 2D).md` — 23 · Arte generado por IA (pixel art y assets 2D)
 - `07 - Ecosistema/_INDICE-ECOSISTEMA.md` — Índice del ecosistema GameMaker
 
 
@@ -373,4 +381,6 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/22 - Diseño de mundo y exploración.md` — 22 · Diseño de mundo y exploración
 - `13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md` — 23 · Catálogo de patrones en GML
 - `13 - Diseño y producción de videojuegos/24 - Voz, diálogo y localización de audio.md` — 24 · Voz, diálogo y localización de audio
+- `13 - Diseño y producción de videojuegos/25 - Legal de terceros - marcas, fan games y parodia.md` — 25 · Legal de terceros: marcas, fan games y parodia
+- `13 - Diseño y producción de videojuegos/26 - Comunidad propia - Discord, moderación y gestión de crisis.md` — 26 · Comunidad propia: Discord, moderación y gestión de crisis
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice

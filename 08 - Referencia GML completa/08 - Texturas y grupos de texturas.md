@@ -342,6 +342,11 @@ texturegroup_load("tg_Nivel4", true);
 // Al terminar el nivel 1, liberamos su grupo
 texturegroup_unload("tg_Nivel1");
 ```
+> ⚠️ **Si nunca llamas a `texturegroup_unload()`, el grupo se queda en VRAM el resto de la
+> partida.** No hay una recogida automática equivalente al GC de structs/arrays
+> ([`01 · 15 §5`](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#5-el-garbage-collector-recolector-de-basura)):
+> un grupo cargado con `texturegroup_load()` sigue en memoria aunque ya no dibujes ningún sprite
+> que pertenezca a él, hasta que tú mismo pidas descargarlo.
 
 ### `texturegroup_get_status(groupname)`
 - **Devuelve:** constante de estado de grupo de textura

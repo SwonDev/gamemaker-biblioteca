@@ -32,6 +32,49 @@ pnpm add -D @bscotch/stitch @bscotch/yy
 > existe). `@bscotch/yy` hace lo mismo desde Node/JS: lo lee, lo modifica y lo reescribe bien.
 > Es la alternativa cuando tu tooling vive en JavaScript en vez de en el CLI oficial.
 
+### `@bscotch/gml-parser` en detalle: analizar y refactorizar GML programáticamente
+
+El catálogo de arriba lo resume en una frase; esto es lo que hace de verdad, sacado de su README
+real (`packages/parser/README.md` del monorepo de Stitch, verificado el 07-09-2026 — ★158 el
+repo, sin archivar, último *push* 2026-06-15). No es un simple *parser* de texto: cuando carga un
+proyecto **modela el `.yyp` entero** —cada asset, cada referencia entre ellos— y mantiene ese
+modelo sincronizado mientras lo manipulas con sus propios métodos.
+
+```sh
+pnpm add -D @bscotch/gml-parser
+```
+
+```ts
+import { Project } from '@bscotch/gml-parser';
+
+// Carga el proyecto completo: parsea cada línea de GML y modela cada asset.
+// En un proyecto grande tarda; una vez cargado, se mantiene sincronizado solo
+// mientras uses los métodos del propio Project (no si tocas archivos por fuera).
+const project = await Project.initialize('ruta/al/proyecto.yyp');
+
+// Leer un .gml ya parseado (métodos para consultar/modificar su AST)
+const codigo = project.getGmlFile('scripts/scr_dano/scr_dano.gml');
+
+// Buscar un asset por nombre
+const activo = project.getAssetByName('obj_enemigo_arquero');
+
+// Renombrar un asset y TODAS sus referencias en código y en otros assets
+await project.renameAsset('obj_enemigo_viejo', 'obj_enemigo_arquero');
+
+// Recuperar un recurso huérfano: un .yy que existe en disco pero que el .yyp
+// ya no lista (el caso exacto de un merge mal resuelto, ver 13 · 06 §3.13)
+await project.addAssetToYyp('objects/obj_enemigo_arquero/obj_enemigo_arquero.yy');
+```
+
+**Requisitos, según el propio README**: Node.js 20+, y **desarrollado y probado solo en
+Windows** —«*might partially work on other operating systems*»—. El propio paquete se declara
+de alcance estrecho de versiones de GameMaker compatibles y avisa de que **puede corromper el
+proyecto**: es una herramienta de meta-programación, úsala con control de versiones y revisa el
+diff antes de confiar en el resultado. No trae CLI propia: se usa importándolo en un script de
+Node — para tooling desde terminal sin escribir JavaScript, la opción es
+[`gm-cli resourcetool`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md),
+que sigue siendo la vía oficial de esta biblioteca.
+
 ---
 
 ## 2 · Lenguajes y calidad de código
@@ -43,6 +86,80 @@ pnpm add -D @bscotch/stitch @bscotch/yy
   errores comunes en el código. Complementa el formateo (ver [*Just a formatter*](./06%20-%20itch.io%20-%20assets,%20herramientas%20y%20jams.md)
   de itch.io).
 - **`@ovipakla/gm-cli`** (2.1.3, no oficial) — *watch & sync* de fuentes GML con el `.yyp`.
+
+### `gamemaker-typescript` (`gmts`) en detalle
+
+Verificado el 07-09-2026 contra su repositorio real
+([`OleksandrDemian/gamemaker-typescript`](https://github.com/OleksandrDemian/gamemaker-typescript),
+★10, sin archivar, último *push* 2026-04-18): **transpila clases de TypeScript a objetos de
+GameMaker**, con soporte de tipos y autocompletado en el editor que uses (VS Code, WebStorm…).
+Cada objeto GameMaker se crea igual que siempre en el IDE; el `.ts` vive **junto a su `.yy`**
+—`objects/obj_player/code.ts`— para no tocar nunca el `.yyp` (evita el mismo problema de
+corrupción que ya explica `13 · 06` §3.13).
+
+```typescript
+// objects/obj_player/code.ts
+class Player extends GMObject {
+  _movement_speed: number;
+
+  onCreate() {
+    this._movement_speed = 2;
+  }
+
+  onStep() {
+    var _hspd = keyboard_check(vk_right) - keyboard_check(vk_left);
+    var _vspd = keyboard_check(vk_down) - keyboard_check(vk_up);
+
+    if (_hspd != 0 || _vspd != 0) {
+      var _dir = point_direction(0, 0, _hspd, _vspd);
+      this.x = this.x + lengthdir_x(this._movement_speed, _dir);
+      this.y = this.y + lengthdir_y(this._movement_speed, _dir);
+    }
+  }
+}
+```
+
+Uso real, según el README:
+
+```sh
+npm install -g @odemian/gamemaker-typescript
+gmts setup      # crea tsconfig.json, copia los tipos, configura la compilación
+gmts compile    # compila los .ts a .gml manualmente
+```
+
+⚠️ **La compilación automática (sin `gmts compile` manual) exige GameMaker `2024.14.4` (abril de
+2026) o superior**, versión en la que YoYo Games añadió el *hook* de extensión
+`pre_project_step` que este transpilador usa para compilar antes de que el proyecto recoja los
+assets. **No está verificado contra LTS 2026.0.0.23** de esta biblioteca —el README no menciona
+esa versión ni el runtime `2026.0.0.23` en concreto—: pruébalo en un proyecto de prueba antes de
+adoptarlo.
+
+**Limitaciones, literales del propio README**: en fase de *Proof of Concept*; tipos incompletos
+y no todos los tipos de objeto soportados; los **enums no están soportados**; las **funciones
+constructoras no están soportadas**; y extender una clase **no** asigna el padre en GameMaker
+automáticamente — hay que hacerlo a mano en el editor, como con cualquier objeto normal.
+
+### `gml-linter` en detalle
+
+El README publicado en npm es de una línea; el resto se ha verificado el 07-09-2026 inspeccionando
+el propio paquete (`npm pack @turlututu-games/gml-linter@0.0.6`, versión más reciente en el
+registro a esa fecha, publicada 2026-06-25). Es un binario Node (`bin/gml-linter`) con dos
+comandos —**`lint <archivo>`** (el que se ejecuta por defecto) y **`extract <archivo|carpeta>`**,
+para extraer la estructura del código— y **17 reglas** activas, deducidas de sus propios ficheros
+de tipos: `functionName`, `functionParamName`, `noGlobal`, `noTabAsSpace`, `noTrailingSpace`,
+`noMultiEmptyLines`, `missingEnumValue`, `missingEventDescription`, y seis reglas sobre el
+formato del JSDoc de una función (`functionComment`, `functionCommentDescription`,
+`functionCommentParamsExists`, `functionCommentParamsDescription`,
+`functionCommentReturns`/`ReturnsDescription`, `functionCommentTags`,
+`functionCommentCommentParamsCoherence`). Se configura con un fichero **`.gml-linter.json`** en
+la raíz del proyecto, validado contra un esquema generado con `typescript-json-schema`.
+
+⚠️ **No se ha encontrado un repositorio público** para este paquete (el paquete de npm no declara
+`repository`, y la organización `Turlututu-Games` de GitHub no tiene un repo llamado
+`gml-linter` entre los suyos, verificado el 07-09-2026): lo anterior sale de inspeccionar el
+`.tgz` real descargado del registro de npm, no de un README extenso. Trátalo como una herramienta
+de nicho, activa a juzgar por la fecha de publicación, pero sin la superficie de verificación
+(issues, estrellas, licencia visible) que sí tienen Gobo o duck.
 
 > ⚠️ **Distingue el `gm-cli` OFICIAL** (`@gamemaker/gm-cli`, de YoYo Games, el que usa este
 > equipo) de los homónimos no oficiales (`@ovipakla/gm-cli`). El oficial es el de la regla del

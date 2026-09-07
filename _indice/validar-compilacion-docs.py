@@ -116,6 +116,20 @@ Bloques descartados (no se compilan; se cuentan y se listan sus motivos):
     con `case PlayerState.slide`) fundidos en un fragmento. Envolverlos en
     un único switch de prueba juntaría ambos y «duplicate case statement
     found» sería un artefacto de la prueba, no del documento.
+  · «hereda de un constructor padre no definido en el mismo bloque» —
+    `function Hijo() : Padre() constructor { ... }` donde `Padre` no se
+    declara en ese mismo bloque. Comprobado en vivo (reproducido de forma
+    aislada): a diferencia de una llamada normal, el nombre en `: Padre()`
+    SÍ se resuelve en tiempo de COMPILACIÓN, y si no lo encuentra el
+    compilador no da un error limpio — CRASHEA el AssetCompiler entero
+    (`System.ArgumentNullException: Value cannot be null (Parameter
+    'key')` en `GML2VM.AddFuncAndPatch`) y ese «Fatal Error while compiling
+    - bailing» se traga cualquier error real de TODOS los bloques
+    restantes del build, no solo el de este. Como cada bloque vive en su
+    propio `(function() {...})();`, un padre definido en OTRO bloque
+    tampoco es visible aquí (aunque en el proyecto real sí lo sería, ahí
+    los scripts son globales) — no hay forma honesta de verificar la
+    herencia sin arriesgar el crash, así que se salta.
 
 Bloques que SÍ se compilan pero se envuelven primero:
   · `case`/`default:` sueltos sin `switch` que los contenga (y sin case
@@ -154,9 +168,11 @@ El proyecto de prueba se crea en ~/gm_prueba_docs (NUNCA bajo /tmp o
 trabajo actual) y se borra siempre al terminar, incluso si el script falla a
 medias.
 
-No entra en `actualizar.py`: la extracción+compilación de ~3000 bloques tarda
-más de lo razonable para un comando que se corre tras cada edición. Se ejecuta
-a mano antes de una release, o tras tocar bloques ```gml de la documentación.
+Medido en vivo con los ~3200 bloques compilables actuales: 17-25 s (extracción
++ `gm-cli init` + creación de recursos + `gm-cli compile`). Por debajo del
+límite de 3 minutos que justificaría dejarlo fuera, así que SÍ es el paso 9 de
+`actualizar.py` (ver ese script) y se ejecuta en cada pasada normal, no solo a
+mano antes de una release.
 
 Sale con 0 solo si todos los bloques compilables compilan sin error real.
 """
@@ -213,6 +229,23 @@ PRAGMA_TEXGROUP = re.compile(r'gml_pragma\s*\(\s*[\'"]Texgroup\.Scale[\'"]')
 # scope asset ... found in expression», comprobado en vivo): no se puede
 # fabricar un paquete instalado en un proyecto de prueba vacío.
 PAQUETE_SCOPE = re.compile(r"::[\w.\-]+::")
+# `function Hijo() : Padre() constructor { ... }` — herencia de constructor.
+# Comprobado en vivo (System.ArgumentNullException, "Value cannot be null
+# (Parameter 'key')" en GML2VM.AddFuncAndPatch): a diferencia de una llamada
+# normal (resuelta en tiempo de EJECUCIÓN, ver cabecera del script), el
+# nombre del padre en `: Padre()` SÍ se resuelve en tiempo de COMPILACIÓN. Si
+# `Padre` no existe en ningún sitio visible, el compilador no da un error de
+# sintaxis limpio: crashea el AssetCompiler ENTERO («Fatal Error while
+# compiling - bailing») y eso oculta cualquier error real de los bloques
+# restantes — un efecto mucho peor que un falso rojo aislado. Como cada
+# bloque vive en su propio `(function() {...})();` (ver cabecera: aísla
+# funciones anidadas), un padre definido en OTRO bloque tampoco es visible
+# aquí aunque en el proyecto real sí lo sería (ahí los scripts son globales).
+# Sin crear una biblioteca de padres de mentira, la única forma honesta de
+# no arriesgar el crash es saltar el bloque cuando el padre no está
+# definido DENTRO del mismo bloque.
+HERENCIA_CONSTRUCTOR = re.compile(
+    r"\bfunction\s+[A-Za-z_]\w*\s*\([^)]*\)\s*:\s*([A-Za-z_]\w*)\s*\(\s*\)\s*constructor\b")
 def cadena_con_salto_roto(codigo):
     """¿Hay una cadena `"…"`/`$"…"` (sin el `@` que sí admite líneas reales)
     que no se cierra antes de un salto de línea? SIEMPRE es inválida en GML,
@@ -468,6 +501,19 @@ def clasificar(b):
     if parece_listado(limpio):
         b.estado, b.motivo = "salta", "listado/tabla de nombres o comparación suelta (no es una sentencia GML ejecutable)"
         return
+
+    padres = HERENCIA_CONSTRUCTOR.findall(limpio)
+    if padres:
+        definidas_aqui = set(DECL_FUNC[0].findall(limpio))
+        huerfanos = sorted({p for p in padres if p not in definidas_aqui})
+        if huerfanos:
+            b.estado, b.motivo = "salta", (
+                f"hereda de un constructor padre no definido en el mismo bloque "
+                f"({', '.join(huerfanos)}): la resolución de `: Padre()` SÍ es en tiempo "
+                f"de compilación y un padre inexistente CRASHEA el compilador entero "
+                f"(System.ArgumentNullException), no solo ese bloque — comprobado en vivo"
+            )
+            return
 
     tiene_switch = bool(TIENE_SWITCH.search(limpio))
     if CASE_O_DEFAULT.search(limpio) and not tiene_switch:

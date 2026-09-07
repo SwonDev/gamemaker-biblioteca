@@ -114,6 +114,143 @@ draw_text(x, y, txt_n("monedas", global.monedas));    // "Tienes 1 moneda" / "Ti
 > hardcodeada. Para idiomas con plurales complejos, amplía `txt_n` con las claves que haga
 > falta (`_pocas`, `_muchas`).
 
+**El error que nadie ve hasta que traduce: concatenar la frase.**
+
+```gml
+/// ❌ da por hecho el orden de palabras del español
+draw_text(x, y, "Has encontrado " + item.nombre + ".");
+```
+
+```gml
+/// ✅ la frase COMPLETA vive en la clave; la variable solo rellena un hueco
+draw_text(x, y, txt("obtuviste_objeto", { objeto: item.nombre }));
+```
+
+```json
+// es.json
+{ "obtuviste_objeto": "Has encontrado {objeto}." }
+```
+
+En alemán o en japonés el objeto puede necesitar ir **antes** del verbo, o la frase entera
+reordenarse alrededor de él; una concatenación en español asume que ese orden es universal y no
+lo es. Con `{variables}` dentro de la clave, cada idioma reordena la frase entera como le haga
+falta — el código nunca decide el orden, solo rellena el hueco.
+
+---
+
+## 2 bis · Género gramatical
+
+`txt_n` resuelve la cantidad; nada en este documento resolvía todavía el **género**. «Estás
+listo» / «Estás lista» es el mismo problema con otro eje: sin un patrón, cada traductor decide
+por su cuenta cómo nombrar la clave alternativa, y las claves dejan de ser consistentes entre
+idiomas.
+
+```gml
+/// scr_idioma — sufijo de género: la misma idea que txt_n(), para masculino/femenino/neutro
+function txt_g(_base, _genero) {
+    var _clave = _base + "_" + _genero;   // "estado_listo_m" / "estado_listo_f" / "estado_listo_n"
+
+    // si el idioma no distingue género (inglés, por ejemplo), la clave con sufijo no existe:
+    // cae a la clave base sin más, sin que haga falta una tabla de qué idioma sí distingue
+    if (!variable_struct_exists(global.textos, _clave)) return txt(_base);
+    return txt(_clave);
+}
+```
+
+```json
+// es.json
+{
+    "estado_listo_m": "Estás listo",
+    "estado_listo_f": "Estás lista",
+    "estado_listo_n": "Todo listo"
+}
+```
+
+```gml
+/// uso: el género del PERSONAJE (no una regla gramatical automática) decide la clave
+draw_text(x, y, txt_g("estado_listo", jugador.genero));   // jugador.genero = "m" / "f" / "n"
+```
+
+> 💡 **`_m`/`_f`/`_n` son una convención de este documento, no una norma de GameMaker.** Úsala
+> tal cual o cambia las letras; lo que importa es que sea **la misma** en todas las claves y en
+> todos los idiomas, para que un traductor sepa qué añadir sin preguntar.
+
+---
+
+## 2 ter · Números y fechas por región
+
+⚠️ **GameMaker no tiene ningún soporte de configuración regional en el runtime.** Verificado:
+
+```sh
+python3 "_indice/buscar.py" --listar locale_
+# 0 símbolos empiezan por «locale_»
+```
+
+`string_format(val, tot, dec)` siempre usa el **punto** como separador decimal y nunca inserta
+separador de miles (`string_format(1234.5, 1, 1)` → `"1234.5"`, no `"1.234,5"`). Y
+`date_date_string(date)` imprime la fecha en un orden fijo del motor, no en el orden del
+idioma activo. Si tu juego se traduce, esto se construye a mano, con una tabla de datos propia:
+
+```gml
+/// scr_idioma_formato — separador de miles, separador decimal y orden de fecha,
+/// por idioma. GameMaker no ofrece nada de esto: es una tabla propia.
+global.formato_regional = {
+    es: { separador_miles: ".", separador_decimal: ",", orden_fecha: "d/m/a" },
+    en: { separador_miles: ",", separador_decimal: ".", orden_fecha: "m/d/a" },
+    de: { separador_miles: ".", separador_decimal: ",", orden_fecha: "d.m.a" },
+    ja: { separador_miles: ",", separador_decimal: ".", orden_fecha: "a/m/d" },
+};
+
+/// @func numero_formatear(_valor, [_decimales])
+/// @desc Aplica el separador de miles y decimal del idioma activo sobre lo que
+///       devuelve string_format() (que siempre usa punto y nunca separa miles).
+function numero_formatear(_valor, _decimales = 0) {
+    var _cfg   = global.formato_regional[$ global.idioma];
+    var _bruto = string_format(_valor, 1, _decimales);   // "1234.5" — sin miles, con punto
+
+    var _punto   = string_pos(".", _bruto);
+    var _entera  = (_punto > 0) ? string_copy(_bruto, 1, _punto - 1) : _bruto;
+    var _decimal = (_punto > 0) ? string_copy(_bruto, _punto + 1, string_length(_bruto) - _punto) : "";
+
+    // insertar el separador de miles cada tres cifras, recorriendo de derecha a izquierda
+    var _con_miles = "";
+    var _total     = string_length(_entera);
+    for (var _i = _total; _i >= 1; _i--) {
+        _con_miles = string_char_at(_entera, _i) + _con_miles;
+        var _restantes = _total - _i + 1;
+        if ((_restantes mod 3 == 0) && (_i > 1)) _con_miles = _cfg.separador_miles + _con_miles;
+    }
+
+    return (_decimal == "") ? _con_miles : _con_miles + _cfg.separador_decimal + _decimal;
+}
+
+/// @func fecha_formatear(_fecha)
+/// @desc date_date_string() imprime en un orden fijo; esto respeta orden_fecha del idioma.
+function fecha_formatear(_fecha) {
+    var _cfg = global.formato_regional[$ global.idioma];
+    var _d = string(date_get_day(_fecha));
+    var _m = string(date_get_month(_fecha));
+    var _a = string(date_get_year(_fecha));
+
+    switch (_cfg.orden_fecha) {
+        case "d/m/a": return $"{_d}/{_m}/{_a}";
+        case "m/d/a": return $"{_m}/{_d}/{_a}";
+        case "a/m/d": return $"{_a}/{_m}/{_d}";
+        case "d.m.a": return $"{_d}.{_m}.{_a}";
+        default:      return date_date_string(_fecha);   // fallback: el formato fijo del motor
+    }
+}
+```
+
+```gml
+/// uso
+draw_text(x, y, numero_formatear(1234.5, 1));   // es → "1.234,5"  ·  en → "1,234.5"
+draw_text(x, y, fecha_formatear(date_current_datetime()));   // es → "7/9/2026" · en → "9/7/2026"
+```
+
+> 🔺 **`global.formato_regional` es una tabla de este documento, no una API de GameMaker.**
+> Amplíala con cada idioma que soportes; los cuatro valores de arriba son ejemplo, no norma.
+
 ---
 
 ## 3 · Detectar el idioma del jugador y cambiarlo en caliente
@@ -146,6 +283,14 @@ function cambiar_idioma(_codigo) {
 
 Tu fuente `.ttf` probablemente **no incluye** cirílico, griego, chino, japonés o coreano. Si
 traduces al ruso y tu fuente no tiene sus glifos, sale todo en blanco.
+
+> 🔺 **Los glifos son necesarios, pero no bastan.** Con árabe y hebreo, además del glifo hace
+> falta que la letra cambie de forma según su posición en la palabra (*shaping* contextual) y
+> que el texto se reordene de derecha a izquierda (BiDi). Esto **no** es un límite de
+> GameMaker: **Scribble ya lo resuelve solo, sin llamar a nada**, y el ajuste de línea en
+> chino/japonés/coreano ya funciona sin espacios. Verificado en el código de la librería →
+> [`07 · 18` §6 — Escritura de derecha a izquierda (RTL) y CJK](../07%20-%20Ecosistema/18%20-%20Scribble%20-%20texto%20rico%20%28guía%20en%20español%29.md#6--escritura-de-derecha-a-izquierda-rtl-y-cjk).
+> Este apartado cubre solo la parte que sí sigue siendo tuya: qué glifos tiene la fuente.
 
 ```gml
 /// cargar una fuente con el rango de glifos que el idioma necesita
@@ -222,14 +367,48 @@ rompe la UI) lo ajustas a mano. La clave: **el LLM hace el trabajo mecánico, t�
 
 ---
 
+## 6 · Coste real de localizar y qué idiomas priorizar
+
+⚠️ **Criterio de negocio, no verificado contra una fuente primaria en esta sesión** — trátalo
+como punto de partida, no como dato cerrado.
+
+Traducir no es gratis ni instantáneo aunque el borrador salga de un LLM: cada idioma añade
+revisión humana (§5, paso 3), una hoja de grabación si hay voz
+([`13 · 24` §2.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md#23-la-hoja-de-grabación-generada-no-escrita-a-mano)),
+QA de que la UI no revienta (§5) y mantenimiento cada vez que el guion cambia. Ninguno de esos
+costes desaparece por traducir con IA; lo único que se abarata es el primer borrador.
+
+El orden habitual del sector para un juego indie que sale primero en inglés es:
+
+```
+inglés → EFIGS (español, francés, italiano, alemán) → chino simplificado
+       → japonés / coreano → portugués de Brasil → ruso
+```
+
+Es el orden que maximiza jugadores alcanzados por idioma añadido, **no** una regla fija para tu
+juego: un shooter competitivo y una visual novel tienen audiencias distintas. La decisión real
+debe apoyarse en los **datos de wishlist por región de la propia página de Steam del juego**
+(Steamworks los da desglosados por país), no en esta tabla genérica.
+
+> 💡 **Traducir es la parte barata; sostener la traducción es la cara.** Una traducción que
+> nadie revisa cuando el guion cambia se desincroniza sola. `[[clave]]` (§2) y la hoja de
+> grabación regenerada ([`13 · 24` §2.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md#23-la-hoja-de-grabación-generada-no-escrita-a-mano))
+> son lo que hace visible el desfase antes de que llegue a producción.
+
+---
+
 ## Las trampas
 
 | Trampa | Consecuencia |
 |---|---|
 | Un texto escrito a pelo en el código | Nunca se traduce; se queda en español para todos |
+| Concatenar la frase en vez de usar `{variables}` | Roto en alemán/japonés: el orden de palabras no es universal |
 | Plurales con "+s" | Roto en ruso, árabe, polaco… |
+| Género sin sufijo de clave (`_m`/`_f`/`_n`) | Cada traductor lo resuelve distinto; las claves dejan de ser consistentes |
+| `string_format`/`date_date_string` sin tabla regional | Números y fechas en el orden y separador equivocados para ese idioma |
 | La IA traduce `{variables}` | La interpolación deja de funcionar |
 | Fuente sin los glifos del idioma | Texto en blanco en ruso/CJK |
+| Un botón o logo con texto quemado en el sprite | Se traduce todo el juego menos ESE texto, y nadie se acuerda |
 | Probar solo en tu idioma | La UI revienta en alemán (30 % más largo) |
 | Re-traducir todo cada vez | Tiempo y dinero tirados; usa memoria de traducción |
 | Texto faltante = pantalla en blanco | Devuelve `[[clave]]` para verlo |
@@ -242,6 +421,8 @@ rompe la UI) lo ajustas a mano. La clave: **el LLM hace el trabajo mecánico, t�
 - [16 · Señales y desacoplamiento](./16%20-%20Señales%20y%20desacoplamiento.md) — para refrescar la UI al cambiar de idioma
 - [10 · Visual Novel y narrativa](./10%20-%20Visual%20Novel%20y%20narrativa.md) — donde el texto es el 90 % del juego
 - [14 · Persistencia y archivos](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) — guardar el idioma elegido
+- [`07 · 18` §6 — Scribble: RTL y CJK](../07%20-%20Ecosistema/18%20-%20Scribble%20-%20texto%20rico%20%28guía%20en%20español%29.md#6--escritura-de-derecha-a-izquierda-rtl-y-cjk) — árabe, hebreo y chino/japonés/coreano ya resueltos por la librería de texto
+- [`12 · 05` §8 — Catálogo de librerías de localización](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md#8-localización) — destaca **Unic** (mayúsculas y orden correcto con ñ) y **small_pp_localization_tool** (exporta la hoja de traducción a hoja de cálculo, sin reimplementar `13 · 24` §2.3)
 
 ---
 

@@ -5,6 +5,7 @@
 > - <https://manual.gamemaker.io/lts/en/The_Asset_Editors/Object_Properties/Object_Events.htm>
 > - <https://manual.gamemaker.io/lts/en/The_Asset_Editors/Object_Properties/Draw_Events.htm>
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Time_Sources/Time_Sources.htm>
+> - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Cameras_And_Display/display_set_timing_method.htm> (§7 bis)
 > - `gm-cli manual read "delta_time"` y `gm-cli manual read "room_speed"`
 
 ---
@@ -447,6 +448,63 @@ show_debug_message($"FPS real:   {fps_real}");
 ```
 
 `fps` es los frames de juego que GameMaker ha conseguido mantener; `fps_real` es el rendimiento real. Si `fps_real` baja de tu game speed, vas mal.
+
+### 7 bis · Vsync y frame pacing
+
+`fps_real` te dice **cuántos** frames por segundo estás sacando; no te dice si esos frames
+llegan **espaciados de forma regular**. Un juego puede marcar 60 fps de media y aun así sentirse
+a tirones si los frames llegan en ráfagas irregulares (16, 16, 33, 8, 16 ms…) en vez de cada
+16,67 ms clavados — eso es *frame pacing*, y GameMaker expone el control exacto para
+diagnosticarlo con dos funciones que hasta ahora no tenían una sola línea propia en esta
+biblioteca.
+
+```gml
+display_set_timing_method(method);   // fija el método de sincronización
+display_get_timing_method();         // consulta cuál está activo
+```
+
+Solo hay dos constantes documentadas por el manual oficial (verificado con
+`python3 _indice/buscar.py display_set_timing_method`):
+
+| Constante | Qué hace |
+|---|---|
+| `tm_countvsyncs` | Usa la señal de **vsync** de la plataforma como ancla para el tiempo de renderizado. Es el método **por defecto en todas las plataformas soportadas excepto PS4, Ubuntu y HTML5** — ahí solo está disponible el margen de sueño |
+| `tm_sleep` | Ignora vsync: cada frame intenta durar exactamente lo que le toca (1/30, 1/60 s…) esperando o durmiendo el tiempo justo. Es el único método disponible en las plataformas donde vsync no está soportado |
+
+```gml
+// Comprobar el método activo y forzar tm_sleep si hiciera falta
+if (display_get_timing_method() != tm_sleep)
+{
+    display_set_timing_method(tm_sleep);
+    if (display_get_sleep_margin() != 20) display_set_sleep_margin(20);
+}
+```
+
+El manual es explícito sobre cuál usar por defecto: *"la sincronización vsync por defecto dará
+los resultados más suaves"*, y advierte de que **incluso usando vsync, el margen de sueño sigue
+siendo relevante** — recomienda dejarlo en su valor por defecto salvo que sepas por qué lo tocas.
+El margen de sueño en sí (`display_set_sleep_margin()`, 4 ms por defecto en móvil / 10 ms en
+escritorio) ya está cubierto en
+[`04 · 28 §6.3`](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#63-lo-demás-que-se-paga-caro) —
+no se repite aquí; lo que faltaba era el propio `display_set_timing_method()`.
+
+⚠️ **Dos constantes más existen en el runtime pero no están documentadas por el manual oficial**:
+`tm_countvsyncs_winalt` y `tm_systemtiming` (verificadas con `buscar.py`: existen, se usan en
+código de terceros, pero ninguna página del manual las explica). No se recomienda apoyarse en
+ellas para un proyecto nuevo — usa `tm_sleep`/`tm_countvsyncs`, que sí tienen comportamiento
+documentado por YoYo Games.
+
+**Checklist de *hitching* (tirones), las tres causas que de verdad importan:**
+
+| Causa | Dónde se diagnostica y se corrige |
+|---|---|
+| **Garbage Collector** disparando en mitad de una escena de acción | [`01 · 15 §5`](./15%20-%20Depuración%20y%20rendimiento.md#5-el-garbage-collector-recolector-de-basura) — `gc_target_frame_time()`, y `gc_collect()` forzado en un momento seguro |
+| **Carga de texturas/assets** en el momento equivocado | [`04 · 41 §3.3`](../04%20-%20Recetas%20por%20género/41%20-%20Transiciones%2C%20carga%20y%20pausa.md#33-la-pantalla-de-carga-real) — pantalla de carga real con `texturegroup_get_status()` |
+| **Vsync/margen de sueño** mal ajustado para la plataforma | Esta sección + [`04 · 28 §6.3`](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#63-lo-demás-que-se-paga-caro) |
+
+Las tres vivían dispersas en tres documentos sin conectarse entre sí; si el juego «va a
+tirones» sin más pista, repasa las tres en ese orden antes de sospechar de tu propio código de
+Step.
 
 ---
 

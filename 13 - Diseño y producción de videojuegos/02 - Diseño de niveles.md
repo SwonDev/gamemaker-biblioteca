@@ -80,6 +80,16 @@ intersección»).
   oscuro)»*. Traducción barata a 2D: **lo interactivo tiene un color que no aparece en el fondo**. Nunca uses el color
   del suelo para una plataforma móvil.
 - **Silueta.** Si en escala de grises no distingues plataforma de decorado, el jugador tampoco.
+- **Regla de los tercios.** El vocabulario formal de lo que ya hace un *weenie* bien colocado: divide el encuadre en
+  tercios horizontales y verticales y sitúa el punto de referencia sobre una de las cuatro intersecciones, no en el
+  centro exacto. Un *weenie* centrado se lee como decorado; el mismo elemento desplazado a un tercio se lee como
+  destino. Aplícalo al colocar la cámara de una escena fija (un jefe, una entrada de nivel) y al encuadrar dónde cae
+  el primer punto de interés visible al entrar en una sala.
+- **Espacio negativo.** El área vacía alrededor de un elemento no es «nada»: es lo que le da lugar para leerse. Una
+  plataforma pegada al borde de la pantalla, sin margen alrededor, compite con el HUD y con el borde del viewport
+  por la atención del jugador. Dejar aire deliberado alrededor de un enemigo importante o de un ítem es la misma
+  técnica que el espacio en blanco de un cartel: la ausencia de ruido visual es lo que dirige el ojo hacia lo único
+  que hay.
 
 > 🔺 **La prueba de los cinco segundos.** Enseña una captura durante cinco segundos y pregunta hacia dónde iría. Si
 > duda, el problema no es del jugador.
@@ -303,7 +313,9 @@ el equivalente de false)»*.
 
 > ⚠️ Los autotiles **no son accesibles desde código**: no hay función para «pinta aquí con el autotile X». Si generas
 > niveles proceduralmente, el cálculo de bordes lo haces tú (bitmask de 4 u 8 vecinos) y lo escribes con
-> `tilemap_set()`. Lo cubre [`13 · 07 — Generación procedural avanzada`](./07%20-%20Generación%20procedural%20avanzada.md).
+> `tilemap_set()`. La receta completa —los dos esquemas (16 y 47 baldosas), el código verificado y por qué el de 16
+> no necesita tabla de traducción— está en
+> [`13 · 07 §5 bis — Autotiling clásico: bitmask de vecinos → índice de tile`](./07%20-%20Generación%20procedural%20avanzada.md#5-bis--autotiling-clásico-bitmask-de-vecinos--índice-de-tile).
 
 ### 3.4 Colisión de tiles: las dos vías
 

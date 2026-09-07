@@ -41,8 +41,9 @@ var _c = $"5 * pi^3 + 37.84 = {5 * power(pi, 3) + 37.84094}";
   del texto deben escribirse con `\n`.
 
 ```gml
-var _a = $"Este es el \n{  // ✅ válido
-    válido
+// Se puede partir en varias líneas SOLO dentro de las llaves ({ }):
+var _a = $"Este es el \n{
+    5 + 37
 }\nmétodo de partir un template";
 ```
 

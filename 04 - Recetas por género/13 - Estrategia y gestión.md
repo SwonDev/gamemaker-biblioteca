@@ -149,9 +149,9 @@ Una orden es un struct. Tenerlas como datos permite colas de órdenes
 
 ```gml
 orden = {
-    tipo: "mover" | "atacar" | "recolectar" | "construir" | "patrullar",
-    x, y,
-    objetivo: instancia o noone,
+    tipo: "mover",          // o "atacar" | "recolectar" | "construir" | "patrullar"
+    x: 0, y: 0,
+    objetivo: noone,        // instance id si "atacar"/"recolectar"; noone si solo apunta a un punto
     completada: false
 };
 ```
@@ -487,7 +487,7 @@ orden_actual  = 0;
 
 velocidad     = 2.0;
 rango_ataque  = 40;
-daño          = 8;
+dano          = 8;
 cadencia      = 45;
 cooldown      = 0;
 
@@ -534,7 +534,7 @@ else
 
                 if (_listo && cooldown <= 0)
                 {
-                    _orden.objetivo.hp -= daño;
+                    _orden.objetivo.hp -= dano;
                     cooldown = cadencia;
 
                     fx_impact(x, y, point_direction(x, y,
@@ -780,7 +780,7 @@ if (array_length(cola) > 0)
         _u.sprite_index = _def.sprite;
         _u.velocidad    = _def.velocidad;
         _u.hp           = _def.hp;
-        _u.daño         = _def.daño;
+        _u.dano         = _def.dano;
         _u.equipo       = equipo;
 
         array_delete(cola, 0, 1);

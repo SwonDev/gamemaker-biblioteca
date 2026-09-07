@@ -238,6 +238,67 @@ termine de bajar: suena al instante, sin el tartamudeo de un `audio_group_load()
 
 ---
 
+## 3 ter · Memoria en HTML5: el techo real
+
+[`01 · 15 §5`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md#5-el-garbage-collector-recolector-de-basura)
+ya avisa de que en HTML5 la recogida de basura la hace el motor de JavaScript, no `gc_*()`. Lo
+que falta decir es **cuánta memoria hay disponible antes de que algo falle**, porque en web no
+es solo «menos que en escritorio»: es un techo que varía por navegador, por dispositivo, y que
+**no da ninguna excepción que puedas capturar desde GML**.
+
+**De dónde sale el techo.** El runtime HTML5 de GameMaker se compila a WebAssembly, y WASM usa
+punteros de 32 bits — eso pone un **máximo absoluto de 4 GB** de memoria lineal por instancia,
+según confirma el propio equipo de V8: *"up to 4GB of memory in WebAssembly applications"*
+(v8.dev/blog/4gb-wasm-memory, consultado 2026-09-07). No todos los navegadores llegan ahí:
+Chrome y Safari en desktop soportan ese máximo de 4 GB; Firefox históricamente limita el
+**crecimiento** de una `WebAssembly.Memory` a 2 GB (issue oficial de Mozilla/WebAssembly,
+consultado 2026-09-07). Esto ya deja claro que **el mismo build de GameMaker tiene techos
+distintos según el navegador del jugador**, algo que no pasa en ningún export nativo.
+
+⚠️ **Y esos 2-4 GB son el límite del motor JS, no el que de verdad vas a tener disponible.** En
+**móvil el techo real es mucho más bajo y mucho más inconsistente** — un desarrollador que
+midió el límite de memoria de Safari en iOS de forma sistemática reporta *"a web page in mobile
+Safari on my 3rd generation iPhone SE at around 100 MB"* y *"on my 8th generation iPad at around
+200 MB"* antes de que la pestaña muera (lapcatsoftware.com/articles/2026/1/7.html, artículo
+fechado el 7 de enero de 2026), mientras que un hilo del propio foro de Apple Developer sobre un
+iPhone 12 Pro mide **~1,5 GB** en un dispositivo «usado» normalmente, subiendo a ~3 GB tras un
+reinicio completo (developer.apple.com/forums/thread/761666, consultado 2026-09-07). La
+diferencia entre 100 MB y 3 GB en el mismo fabricante y familia de dispositivos no es un error
+de medición: **es la prueba de que no hay UN número fiable** — depende del modelo exacto, la
+versión de iOS/navegador, cuánta memoria tiene ya ocupada el sistema y el patrón concreto de
+asignación de tu juego.
+
+⚠️ **Lo que sí es constante: no hay excepción capturable.** El mismo artículo lo prueba
+explícitamente: *"Using `try {} catch {}` blocks in JavaScript doesn't help at all; there's no
+JavaScript exception to catch"* — cuando el navegador decide que ya es suficiente, recarga la
+pestaña o la mata directamente, sin pasar por ningún camino de error que el código (ni el tuyo
+en GML, ni el JavaScript generado por GameMaker) pueda interceptar. No existe un
+`exception_unhandled_handler()` (§3 de
+[`01 · 15`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md)) para esto:
+un HTML5 sin memoria se ve, desde dentro del juego, exactamente igual que si alguien hubiera
+cerrado la pestaña de golpe.
+
+**Qué hacer con esto, en la práctica:**
+
+- **Presupuesta memoria como si el objetivo fuera el peor dispositivo de la lista**, no el
+  navegador de escritorio donde pruebas normalmente. Los cientos de MB de un móvil de gama baja,
+  no los GB de un PC, son el número que importa para HTML5/itch.io/GX.games.
+- **Vigila el crecimiento, no solo el pico.** Grupos de texturas que no se descargan
+  (`texturegroup_unload()`,
+  [`08 · 08`](../08%20-%20Referencia%20GML%20completa/08%20-%20Texturas%20y%20grupos%20de%20texturas.md#texturegroup_unloadgroupname)),
+  estructuras de datos sin destruir (checklist de
+  [`01 · 15 §8`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md#8-checklist-de-limpieza-de-recursos-din%C3%A1micos))
+  y arrays que solo crecen entre rooms son, en HTML5, la diferencia entre «funciona toda la
+  partida» y «se recarga solo a los diez minutos» — y el jugador nunca sabrá por qué.
+- **Prueba en un móvil de verdad, en el navegador de verdad, antes de publicar** — el mismo
+  principio de [`04 · 28 §6.5`](28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#65-medir-en-el-dispositivo-no-en-el-pc),
+  aplicado aquí a Safari/Chrome móvil en vez de al export nativo. Un juego que va sobrado de
+  memoria en tu portátil puede recargarse solo en un iPhone SE sin que el Debug Overlay (que
+  [`01 · 15 §4`](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md#4-nivel-3-el-debug-overlay)
+  ya avisa que **no existe en HTML5**) te dé ninguna pista.
+
+---
+
 ## 4 · Detectar dónde te estás ejecutando
 
 ```gml
@@ -293,8 +354,98 @@ if (async_load[? "id"] == peticion) {
 
 ---
 
+## 6 · Autenticación con tokens sobre HTTP
+
+El ejemplo del §5 sube una puntuación **sin identificarse**: cualquiera que conozca la URL
+puede mandar el mismo POST haciéndose pasar por otro jugador. En cuanto tu backend distingue
+cuentas de usuario —o simplemente quieres saber quién manda cada petición—, hace falta
+**autenticación**, y el patrón estándar sobre HTTP es un **token portador** (*bearer token*) en
+la cabecera `Authorization`.
+
+`http_post_string()` (usado en el §5) no acepta cabeceras. Para eso está
+[`http_request()`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Asynchronous_Functions/HTTP/http_request.md),
+que recibe un cuarto argumento: un `ds_map` de cabeceras. El propio manual lo dice sin rodeos:
+*"una solicitud HTTP puede usarse para muchas cosas, como la autenticación mediante cabeceras
+HTTP si usas APIs RESTful"*, y su ejemplo oficial construye exactamente ese `ds_map` con una
+clave `"Authorization"`.
+
+```gml
+/// @func servidor_peticion_autenticada(_url, _metodo, _token, _cuerpo)
+/// @desc Envía una petición HTTP con un token de sesión en la cabecera Authorization.
+///       El token NUNCA se escribe a mano en el código: lo devuelve tu propio endpoint de
+///       login (más abajo) y vive solo en memoria mientras dura la sesión — nunca en el .sav.
+/// @param {String} _url
+/// @param {String} _metodo   "GET", "POST"...
+/// @param {String} _token    El token de sesión ya obtenido (ver login más abajo).
+/// @param {String} _cuerpo   "" si no hace falta cuerpo (por ejemplo, en un GET).
+/// @returns {Real} El Async Request ID, para comparar en el evento Async - HTTP.
+function servidor_peticion_autenticada(_url, _metodo, _token, _cuerpo)
+{
+    var _headers = ds_map_create();
+    ds_map_add(_headers, "Authorization", "Bearer " + _token);
+    ds_map_add(_headers, "Content-Type", "application/json");
+
+    var _id = http_request(_url, _metodo, _headers, _cuerpo);
+
+    // http_request() ya copió lo que necesitaba de _headers al enviar: destrúyelo siempre
+    // después de la llamada, igual que cualquier otro ds_map que no vayas a reutilizar.
+    ds_map_destroy(_headers);
+    return _id;
+}
+```
+
+**De dónde sale el token: un login normal que devuelve una cadena, no una contraseña
+permanente incrustada en el juego.**
+
+```gml
+/// @desc Botón "Entrar" del formulario de login. NUNCA escribas un usuario/contraseña real
+///       aquí: estas dos variables vienen de campos de texto que rellena el jugador.
+peticion_login = http_post_string(
+    "https://TU-SERVIDOR-AQUI.example/login",                          // ⚠️ marcador: tu endpoint real
+    json_stringify({ usuario: campo_usuario_texto, contrasena: campo_contrasena_texto }));
+
+/// Async - HTTP
+if (async_load[? "id"] == peticion_login)
+{
+    if (async_load[? "status"] == 0 && async_load[? "http_status"] == 200)
+    {
+        var _r = json_parse(async_load[? "result"]);
+        global.token_sesion = _r.token;      // solo en memoria; se pierde al cerrar el juego
+    }
+    else
+    {
+        // Credenciales inválidas, servidor caído, rate limit (ver 13/10 §14.7)...
+        mostrar_error_login();
+    }
+}
+```
+
+Tres reglas que ya son las de esta biblioteca aplicadas a este caso concreto:
+
+- **La contraseña viaja en el cuerpo del POST, nunca en la URL** (una URL queda en logs de
+  servidor y en el historial del navegador) **y el endpoint tiene que estar detrás de HTTPS**
+  —`https://`, o `network_socket_wss` si hablas por WebSocket en vez de HTTP— porque sin
+  cifrado de transporte tanto la contraseña como el token viajan **en claro**. Verifícalo antes
+  de escribir nada: `curl -I https://tu-endpoint` debe responder, no solo `http://`.
+- **El servidor decide si el token es válido, nunca el cliente.** Un token caducado o revocado
+  debe hacer que el servidor rechace la petición (normalmente con `401 Unauthorized`) aunque el
+  cliente insista en mandarlo — la misma regla de
+  [`04 · 14`](14%20-%20Multijugador.md) §2.2, aplicada a HTTP en vez de a sockets.
+- **El endpoint de login es el primero que necesita *rate limiting*.** Sin límite de intentos
+  por cuenta/IP, alguien puede probar contraseñas por fuerza bruta. Patrón completo, sin
+  símbolos de GML nuevos porque es lógica de servidor:
+  [`13 · 10 — Testing y QA`](../13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md) §14.7.
+
+Símbolos verificados: `http_request`, `http_post_string`, `ds_map_create`, `ds_map_add`,
+`ds_map_destroy`, `json_stringify`, `json_parse`.
+
+---
+
 ## Ver también
 
 - [16 · Exportar y publicar](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) — la casilla que centra el juego, y las limitaciones de HTML5
 - [16 · Señales y desacoplamiento](./16%20-%20Señales%20y%20desacoplamiento.md) — para que los callbacks no acoplen media base de código
 - [Catálogo del foro](../07%20-%20Ecosistema/16%20-%20Cat%C3%A1logo%20de%20la%20secci%C3%B3n%20Tutorials%20del%20foro.md) — el hilo original que destapó este hueco
+- [14 · Multijugador](14%20-%20Multijugador.md) §2.2 — «nunca confíes en el cliente», la regla que el §6 de este documento aplica a HTTP
+- [13 · 10 — Testing y QA](../13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md) §14 — validación en servidor, replay firmado y §14.7 *rate limiting*
+- [01 · 15 §5 y §11](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md) — el Garbage Collector en HTML5 (§3 ter de este documento parte de ahí) y las herramientas externas de perfilado

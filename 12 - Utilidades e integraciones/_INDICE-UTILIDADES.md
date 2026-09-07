@@ -13,14 +13,14 @@
 
 | # | Documento | Qué cubre |
 |---|---|---|
-| 01 | [Herramientas del flujo de trabajo](./01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) | Editores, formateadores, analizadores, CLI, tests, documentación, temas del IDE |
+| 01 | [Herramientas del flujo de trabajo](./01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) | Editores, formateadores, analizadores (con el aviso de madurez real de duck/Gobo), CLI, tests, documentación, temas del IDE, **GMLive.gml explicado por dentro** (por qué reimplementa GML en Haxe) |
 | 02 | [Extensiones nativas y del sistema](./02%20-%20Extensiones%20nativas%20y%20del%20sistema.md) | Ventana, ratón, ficheros fuera del sandbox, cámara, MIDI, Lua, WebAssembly |
 | 03 | [Integraciones con servicios](./03%20-%20Integraciones%20con%20servicios.md) | Steam, Discord, Twitch, GOG, Epic, Firebase, anuncios, compras, GitHub |
 | 04 | [Multijugador y red](./04%20-%20Multijugador%20y%20red.md) | Photon, Colyseus, Warp, rollback, HTTP, WebSockets |
-| 05 | [Pipeline de arte, audio y niveles](./05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md) | Aseprite, Tiled, LDtk, Blender, FMOD, Spine, texture packing |
+| 05 | [Pipeline de arte, audio y niveles](./05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md) | Aseprite, Tiled, **LDtk con guía de instalación y recarga en vivo**, Blender, FMOD, Spine, texture packing |
 | 06 | [itch.io — assets, herramientas y jams](./06%20-%20itch.io%20-%20assets%2C%20herramientas%20y%20jams.md) | Qué hay realmente en itch.io para GameMaker, con precios |
 | 07 | [Dónde buscar: hubs, foros y documentación](./07%20-%20D%C3%B3nde%20buscar%20-%20hubs%20y%20documentaci%C3%B3n.md) | awesome-gamemaker, GameMaker Kitchen, Marketplace, foros, gm(48) |
-| 08 | [Tooling externo: CLI, parsers e ingeniería inversa](./08%20-%20Tooling%20externo%20-%20CLI%2C%20parsers%20e%20ingenier%C3%ADa%20inversa.md) | Ecosistema npm/PyPI: Stitch (@bscotch), @bscotch/yy, gml-parser, TS→GML, gml-linter, MCP, UndertaleModTool para estudiar juegos compilados |
+| 08 | [Tooling externo: CLI, parsers e ingeniería inversa](./08%20-%20Tooling%20externo%20-%20CLI%2C%20parsers%20e%20ingenier%C3%ADa%20inversa.md) | Ecosistema npm/PyPI: Stitch (@bscotch) y su **`gml-parser` con ejemplos reales**, @bscotch/yy, **TS→GML (`gmts`) con ejemplo de código**, **gml-linter con sus 17 reglas**, MCP, UndertaleModTool para estudiar juegos compilados |
 
 ---
 

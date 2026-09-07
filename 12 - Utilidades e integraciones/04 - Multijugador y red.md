@@ -130,6 +130,7 @@ comunidad más completa y sigue muy activa. Incluye cliente GML y servidor.
 | [**GMNest**](https://github.com/TimVN/GMNest) | 2 | Extensión de **Socket.IO** para HTML5 | `librerias/red-y-multijugador/GMNest` |
 | [**gm_networking**](https://github.com/gmclan-org/gm_networking) | 2 | Demostración mínima de red. Bueno para **entender** el mecanismo | `librerias/red-y-multijugador/gm_networking` |
 | [**gm_boomers_networking**](https://github.com/gmclan-org/gm_boomers_networking) | 2 | Imita la API del clásico **39dll** con funciones nativas | `librerias/red-y-multijugador/gm_boomers_networking` |
+| [**Nakama**](https://github.com/heroiclabs/nakama) | — | Servidor de backend **open-source y autoalojable** (Apache-2.0): autenticación, storage, chat, multijugador en tiempo real y por turnos, leaderboards, torneos. Sin cliente oficial para GameMaker (⚠️ verificado en el propio repositorio el 2026-09-07: lista clientes para Unity, Godot, Unreal, Defold, .NET, JS, Java, iOS — GML no aparece) | No descargado. Se habla con él por HTTP/WebSocket con las funciones nativas de §5, igual que con cualquier servidor propio sin cliente GML dedicado |
 
 **De pago en itch.io / Marketplace (no descargados):**
 
@@ -160,6 +161,19 @@ jugadores en LAN eso basta y sobra.
 Lee [`08 - Referencia GML completa/16 · Buffers`](../08%20-%20Referencia%20GML%20completa/16%20-%20Buffers.md)
 antes de diseñar tu protocolo: si no empaquetas bien, el ancho de banda se dispara.
 
+> ⚠️ **Un detalle que rompe un build en silencio: HTML5 no puede alojar servidor.**
+> `network_create_server()` no funciona en el objetivo HTML5 (restricción del navegador, no un
+> bug de GameMaker) y solo se le llega por **WebSocket** (`network_socket_ws` sin cifrar,
+> `network_socket_wss` cifrado). Si tu servidor de escritorio también debe aceptar clientes
+> web, necesitas **dos sockets de escucha** — uno TCP/UDP normal y otro WebSocket. Explicación
+> completa, con la cita textual del manual:
+> [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §4.1.
+>
+> 💡 **UDP fiable sin sumar una dependencia:** `network_set_config(network_config_enable_reliable_udp,
+> socket)` activa acuse de recibo y reenvío sobre un socket UDP ya creado — actívalo en los dos
+> extremos, añade 12 bytes de cabecera por paquete. Antes de meter GMS ENet solo para esto, lee
+> [`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §8 punto 3.
+
 ---
 
 ## 6. Cómo abordarlo (orden recomendado)
@@ -183,3 +197,9 @@ antes de diseñar tu protocolo: si no empaquetas bien, el ancho de banda se disp
 - GMEXT-Photon: <https://github.com/YoYoGames/GMEXT-Photon>
 - awesome-gamemaker · Networking: <https://github.com/bytecauldron/awesome-gamemaker>
 - Metadatos de repositorios: API de GitHub, 1 de septiembre de 2026
+- Nakama (heroiclabs), README del repositorio (open-source, autoalojable, lista de clientes
+  oficiales, sin GameMaker entre ellos), consultado el 7 de septiembre de 2026:
+  <https://github.com/heroiclabs/nakama>
+- Manual oficial LTS 2026 — `network_set_config` (UDP fiable nativo, cabecera de 12 bytes,
+  activación en ambos extremos), consultado el 7 de septiembre de 2026:
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Networking/network_set_config.htm>

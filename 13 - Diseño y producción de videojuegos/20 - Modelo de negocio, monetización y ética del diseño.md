@@ -43,6 +43,12 @@ Tres preguntas que no tienen respuesta en una función de GML ni en una cláusul
 El resto de este documento trata de responder a las tres sin recurrir ni a `steam_set_achievement`
 ni a un abogado.
 
+> **Lo que este documento NO cubre:** el riesgo legal de construir tu modelo de negocio sobre
+> la propiedad intelectual de un tercero — un fan game, un homenaje que se acerca demasiado a una
+> marca registrada, merchandising con personajes que no son tuyos. Esa es una pregunta de
+> **antes** de diseñar la economía, no de cómo monetizarla, y tiene su propio documento:
+> [13 · 25 — Legal de terceros: marcas, fan games y parodia](./25%20-%20Legal%20de%20terceros%20-%20marcas%2C%20fan%20games%20y%20parodia.md).
+
 ### 1.2 · El menú de modelos, y su efecto en el resto del diseño
 
 No hay un modelo «mejor»: cada uno **reordena las prioridades de todo lo demás que vas a diseñar**.
@@ -328,6 +334,15 @@ mismo que mantiene el motor), y el modelo de negocio (F2P o pase de temporada, �
 estructuralmente de la recurrencia. Si alguna de las tres no se cumple, no hagas live ops:
 lanza el juego terminado y, si funciona, decide la primera expansión con datos reales en la
 mano, no con un roadmap escrito antes del lanzamiento.
+
+> 💡 **No confundas esto con la pieza técnica mínima.** El argumento de arriba es contra un
+> **servicio en vivo completo** (temporadas, equipo dedicado, contenido sin fin). Poder apagar un
+> evento roto o forzar una actualización crítica sin esperar la revisión de una tienda es otra
+> cosa mucho más barata, que sí tiene sentido para cualquier estudio por pequeño que sea: la
+> pieza puramente técnica —config remota, feature flags graduales, versión mínima del cliente,
+> MOTD, modo mantenimiento— está en
+> [`04 · 52 — Live-ops técnico`](../04%20-%20Recetas%20por%20género/52%20-%20Live-ops%20técnico%20%28config%20remota%2C%20versi%C3%B3n%20m%C3%ADnima%2C%20mensajes%20del%20juego%29.md),
+> y no exige ni el equipo dedicado ni el compromiso de temporadas que sí exige lo de arriba.
 
 ### 1.9 · KPIs de producto y el embudo de tienda
 
@@ -871,6 +886,7 @@ for (var _i = 0; _i < global.pase_actual.nivel; _i++)
 - [13 · 13 §5.5 y §5.7 — Probabilidad justa y piedad](./13%20-%20Matemáticas%20aplicadas%20al%20juego.md#57--crítico-con-piedad-pity) — el mecanismo de bolsa aleatoria y crítico con piedad que §1.5 y §3.1 aplican a las cajas de botín
 - [13 · 16 §2.6 — El patrón de monedas múltiples](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#26-el-patrón-de-monedas-múltiples-partida-frente-a-meta) — moneda de partida frente a moneda de meta, base de la economía dual de §1.4
 - [13 · 14 §2 — El documento de diseño](./14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md#2--el-método-paso-a-paso) — dónde encaja la sección 11 (Monetización) de la plantilla larga de GDD
+- [13 · 25 — Legal de terceros: marcas, fan games y parodia](./25%20-%20Legal%20de%20terceros%20-%20marcas%2C%20fan%20games%20y%20parodia.md) — el riesgo de construir tu negocio sobre la IP de un tercero, que este documento no cubre (§1.1)
 
 ---
 

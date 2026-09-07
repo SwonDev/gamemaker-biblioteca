@@ -12,8 +12,13 @@ GameMaker_Fuentes/
 09 - Manual oficial/
 
 # 608 repositorios de terceros (3,8 GB), cada uno con su licencia, más juegos
-# comerciales extraídos que NO son redistribuibles. Se clonan, no se copian.
-11 - Código descargado/
+# comerciales extraídos que NO son redistribuibles. Se clonan, no se copian
+# (./reconstruir.sh codigo). _RUTAS.json y _CATALOGO.md sí se publican: son solo
+# nombres, rutas y enlaces a GitHub — ni una línea de código de nadie — y son lo
+# que ese script necesita para saber qué clonar y desde dónde.
+11 - Código descargado/*
+!11 - Código descargado/_RUTAS.json
+!11 - Código descargado/_CATALOGO.md
 
 # ─── Generados: salen del runtime instalado, no del repositorio ──────────────
 # Se regeneran con `python3 _indice/actualizar.py`, y así coinciden siempre con

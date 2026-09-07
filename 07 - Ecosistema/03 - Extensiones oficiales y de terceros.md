@@ -89,6 +89,18 @@ Es decir: **`extgen` es la vía oficial para envolver cualquier librería nativa
 | [GMEXT-Medal](https://github.com/YoYoGames/GMEXT-Medal) | Envía eventos a la app **Medal** para guardar clips. **GML puro**, sin librerías nativas. **Nueva en 2026** | Todas | NOASSERTION | 2026-08-26 | 0 |
 | [GMEXT-Elements](https://github.com/YoYoGames/GMEXT-Elements) | Extensión **Elements**. **Nueva en 2026** | Todas | NOASSERTION | 2026-08-26 | 7 |
 
+> ℹ️ **Steam Workshop: existe, pero no en el runtime.** `steam_ugc_*` no aparece en
+> `GmlSpec.xml` (`python3 _indice/buscar.py --listar steam_ugc` → 0 resultados), igual que
+> `steam_lobby_*` ([`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §10.3):
+> es API de la extensión, no del motor base. **GMEXT-Steamworks sí la trae** —
+> `steam_ugc_create_item` y el resto de la familia `steam_ugc_*` están documentados en la wiki
+> de la propia extensión, verificado contra el repositorio clonado en
+> `11 - Código descargado/extensiones_oficiales/GMEXT-Steamworks/docs/ugc.js`— y funcionan como
+> el Workshop clásico de Steam. Si tu modding **no** debe depender de que el jugador tenga el
+> juego en Steam —build de itch.io, GX.games u otra tienda—, la alternativa multiplataforma es
+> **GMEXT-mod.io** (REST, funciona en cualquier target). No hay una tercera opción nativa del
+> motor para ninguno de los dos casos.
+
 ### 3.2 Monetización y publicidad
 
 | Extensión | Qué hace | Plataformas | Licencia | Push | ★ |

@@ -259,6 +259,164 @@ function cargar_nube(_nombre_archivo) {
 > la misma que en [17 · Interoperabilidad con la web](./17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md)
 > con `localStorage`.
 
+### 5.1 · Cuota de Steam Cloud
+
+Cada juego tiene un **límite de bytes por usuario** que se configura en el panel de
+Steamworks (1 GB por defecto). Comprobarlo evita que un jugador se quede sin poder guardar sin
+saber por qué:
+
+```gml
+/// antes de escribir en la nube, o al abrir el menú de ajustes de nube
+if (global.steam && steam_is_cloud_enabled_for_app()) {
+    var _total = steam_get_quota_total();   // bytes totales asignados a este juego
+    var _libre = steam_get_quota_free();    // bytes que quedan libres
+
+    if (_libre < 1024 * 100) {   // menos de 100 KB libres: avisa antes de que falle la escritura
+        mostrar_aviso("Espacio de Steam Cloud casi lleno. Libera partidas antiguas.");
+    }
+}
+```
+
+📄 Verificado en `GMEXT-Steamworks/docs/cloud.js`. El manual de la propia extensión avisa:
+*"once the quota is exhausted file writes will fail"* — si no compruebas la cuota, el jugador
+descubre el problema cuando `steam_file_write` ya ha fallado en silencio.
+
+### 5.2 · iCloud (Game Center Saved Games)
+
+**Existe y está documentada por completo en la extensión oficial**, aunque no aparezca en el
+resto de esta receta: es la única vía de nube nativa de Apple, exclusiva de iOS/macOS, y va
+**por Game Center**, no por un servicio de nube separado. Verificado línea a línea en
+`GMEXT-GameCenter/docs/savedgames.js`.
+
+```gml
+/// guardar la partida como un GameCenterSavedGame con nombre "slot1"
+function guardar_icloud(_slot, _datos_json) {
+    var _buff = buffer_create(string_byte_length(_datos_json) + 1, buffer_fixed, 1);
+    buffer_write(_buff, buffer_string, _datos_json);
+
+    gamecenter_saved_games_save(_slot, _buff, function(_resultado) {
+        if (_resultado.success) {
+            show_debug_message($"iCloud: guardado '{_resultado.name}'");
+        }
+    });
+
+    buffer_delete(_buff);   // el callback ya copió lo que necesitaba
+}
+```
+
+```gml
+/// cargar: pedir los metadatos primero, luego los bytes con un buffer del tamaño exacto
+function cargar_icloud(_slot, _al_terminar) {
+    gamecenter_saved_games_data_request(_slot, function(_resultado) {
+        if (!_resultado.success) { _al_terminar(undefined); return; }
+
+        var _buff = buffer_create(_resultado.required_size, buffer_fixed, 1);
+        if (gamecenter_saved_games_data_fetch(_resultado.handle_id, _buff)) {
+            buffer_seek(_buff, buffer_seek_start, 0);
+            _al_terminar(buffer_read(_buff, buffer_string));
+        } else {
+            gamecenter_saved_games_data_release(_resultado.handle_id);
+            _al_terminar(undefined);
+        }
+        buffer_delete(_buff);
+    });
+}
+```
+
+**Conflictos entre dispositivos** (el jugador guardó desde el iPhone y desde el Mac antes de
+sincronizar): GameKit los reporta por un **callback suscrito una sola vez**, no por cada
+llamada individual —
+
+```gml
+/// Create de obj_control — un único suscriptor para toda la partida
+gamecenter_saved_games_callback_subscribe(function(_evento) {
+    if (_evento.type == "conflict") {
+        // El evento solo trae METADATOS de cada lado (nombre, dispositivo, fecha), no los
+        // bytes: hay que pedir los datos del elegido antes de poder resolver. Aquí el
+        // criterio es "el más reciente"; podría ser cualquier otro.
+        var _elegido = _evento.slots[0];
+        var _i;
+        for (_i = 1; _i < array_length(_evento.slots); _i++) {
+            if (_evento.slots[_i].modification_date > _elegido.modification_date) {
+                _elegido = _evento.slots[_i];
+            }
+        }
+
+        var _conflict_id = _evento.conflict_id;   // capturado para el callback anidado
+        gamecenter_saved_games_data_request(_elegido.name, function(_datos) {
+            if (!_datos.success) return;
+
+            var _buff = buffer_create(_datos.required_size, buffer_fixed, 1);
+            if (gamecenter_saved_games_data_fetch(_datos.handle_id, _buff)) {
+                gamecenter_saved_games_resolve_conflict(_conflict_id, _buff,
+                    function(_resultado) { show_debug_message("Conflicto de iCloud resuelto"); });
+            }
+            buffer_delete(_buff);
+        });
+    } else if (_evento.type == "modified") {
+        show_debug_message($"iCloud: '{_evento.slot.name}' cambió en otro dispositivo");
+    }
+});
+```
+
+> ⚠️ **Es una feature exclusiva de Apple** (iOS y macOS): en el resto de plataformas no hace
+> nada. Guarda siempre en local además (§5 arriba es el patrón), igual que con Steam Cloud.
+> 💡 `gamecenter_saved_games_data_release(handle_id)` libera la copia que retiene la extensión
+> si pides los datos de un slot y decides no leerlos: sin esto, la extensión los mantiene en
+> memoria el resto de la sesión.
+
+### 5.3 · Google Play Saved Games
+
+Nube nativa de Android, **distinta de los logros/leaderboards de Google Play Games** (esos van
+por otras funciones de la misma extensión). Verificado en `GMEXT-GooglePlayServices/docs/savedgames.js`.
+A diferencia de iCloud, cada slot se **abre** antes de leer o escribir, y solo entonces se
+**confirma y cierra**:
+
+```gml
+/// abrir (crea el slot si no existe) y, si abrió limpio, leer los datos
+play_services_saved_games_open("slot_1", true,
+    PlayServicesSavedGamesConflictPolicy.MostRecentlyModified,
+    function(_status, _info = undefined) {
+        if (!_status.success) return;
+        if (_info.is_conflict) return;   // no puede pasar con esta política: se resuelve solo
+
+        var _datos = _info.data != "" ? json_parse(_info.data) : undefined;
+    });
+```
+
+```gml
+/// guardar: el slot debe estar ABIERTO en esta sesión (con play_services_saved_games_open)
+var _opciones = new PlayServicesSavedGameCommitOptions();
+_opciones.name               = "slot_1";
+_opciones.data                = json_stringify(_datos_partida);
+_opciones.desc                = "Nivel 3, 00:12:34";
+_opciones.played_time_millis  = -1;   // -1 = no tocar el valor que ya había
+_opciones.progress_value      = -1;
+_opciones.cover_image_path    = "";   // "" = no tocar la miniatura
+
+play_services_saved_games_commit_and_close(_opciones, function(_status, _metadata = undefined) {
+    if (_status.success) { show_debug_message("Guardado en Google Play"); }
+});
+```
+
+**Resolución de conflictos**: `PlayServicesSavedGamesConflictPolicy` trae **cuatro políticas
+automáticas**, resueltas en el servidor sin tocar código, y una manual:
+
+| Política | Se queda con… |
+|---|---|
+| `LongestPlaytime` | el lado con más `played_time_millis` |
+| `LastKnownGood` | la última versión que el servidor confirmó consistente |
+| `MostRecentlyModified` | el lado modificado más recientemente |
+| `HighestProgress` | el lado con mayor `progress_value` |
+| `Manual` | ninguna automática: tu código decide con `play_services_saved_games_resolve_conflict(conflict_id, use_local, callback)` |
+
+> 💡 **La UI del sistema ya existe hecha**: `play_services_saved_games_show_saved_games_ui(titulo,
+> boton_crear, boton_borrar, max_resultados, callback)` abre el selector nativo de partidas de
+> Google, sin construir pantalla propia.
+>
+> ⚠️ Igual que iCloud: exclusivo de Android con Google Play Services. Guarda siempre en local
+> además.
+
 ---
 
 ## 6 · Xbox Live / UWP (logros, estadísticas, leaderboards, usuarios, nube)

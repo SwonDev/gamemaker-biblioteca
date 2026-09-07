@@ -207,6 +207,14 @@ def main():
         for nom, donde in sorted(no_ascii.items()):
             print(f"    {nom}  →  en {', '.join(sorted(donde)[:3])}")
 
+    escrituras_wd = escrituras_en_working_directory(docs)
+    if escrituras_wd:
+        print(f"\n✗ {sum(len(v) for v in escrituras_wd.values())} escritura(s) en `working_directory` "
+              f"(GRAVE: solo lectura en una build exportada — usa `game_save_id`, ver 01/14 §1):")
+        for fp, lineas in sorted(escrituras_wd.items()):
+            for linea in lineas:
+                print(f"    {fp}  →  {linea}")
+
     graves = {n: d for n, d in sospechosas.items()
               if n.startswith(FAMILIAS) and not es_extension(n)}
     propias = {n: d for n, d in sospechosas.items() if n not in graves and not es_extension(n)}
@@ -223,7 +231,7 @@ def main():
                 print(f"  ✗ {nom}()  ·  {d}")
     else:
         print("\nNingún nombre con prefijo del runtime sin resolver: el código no inventa funciones.")
-    return 1 if (graves or no_ascii) else 0
+    return 1 if (graves or no_ascii or escrituras_wd) else 0
 
 
 if __name__ == "__main__":
