@@ -866,7 +866,7 @@ Un autómata celular ya conectado (§3.1) sigue lleno de **puntas ciegas**: celd
 mayoría son ruido que alarga el recorrido sin añadir nada. Dos usos opuestos para la misma
 detección: **rellenarlas** (mazmorra más directa) o **marcarlas** como candidatas a sala secreta
 en vez de tocarlas — la tercera capa de secretos de
-[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15--rutas-alternativas-y-secretos).
+[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15-riesgo-recompensa-secretos-y-atajos).
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -951,7 +951,7 @@ function podar_callejones(_cueva, _max_pasadas)
 Para la variante de **secretos**, no rellenes nada: usa `encontrar_callejones()` directamente y
 reserva esas celdas para una sala pequeña con un ítem, un tesoro o un atajo — la técnica de
 señalización y recompensa ya está en
-[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15--rutas-alternativas-y-secretos).
+[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15-riesgo-recompensa-secretos-y-atajos).
 
 ---
 
@@ -3559,7 +3559,7 @@ partirlo.
 - [`02 · 08 — Package Manager y Prefabs`](../02%20-%20Novedades%202026/08%20-%20Package%20Manager%20y%20Prefabs.md) — distribuir piezas de contenido entre proyectos.
 - [`12 · 05 — Pipeline de arte, audio y niveles`](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte,%20audio%20y%20niveles.md) — librerías GML ya escritas de WFC, autómatas celulares y terreno destructible.
 - [`13 · 01 — Diseño de juego`](./01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop,%20mec%C3%A1nicas,%20balance%20y%20dificultad.md) — la curva de dificultad que el generador ejecuta.
-- [`13 · 02 — Diseño de niveles`](./02%20-%20Dise%C3%B1o%20de%20niveles.md#15--rutas-alternativas-y-secretos) — §1.5: las tres capas de secretos que reutiliza la poda de callejones (§3 bis).
+- [`13 · 02 — Diseño de niveles`](./02%20-%20Dise%C3%B1o%20de%20niveles.md#15-riesgo-recompensa-secretos-y-atajos) — §1.5: las tres capas de secretos que reutiliza la poda de callejones (§3 bis).
 - [`13 · 08 — Físicas a mano y fluidos`](./08%20-%20F%C3%ADsicas%20a%20mano%20y%20fluidos.md#12--metaballs-agua-y-limo-estilizados) — §12: metaballs por recorte de alfa; marching squares (§3 ter) es la alternativa vectorial.
 - [`13 · 22 — Diseño de mundo y exploración`](./22%20-%20Dise%C3%B1o%20de%20mundo%20y%20exploraci%C3%B3n.md#33-bis--ciudades-y-redes-de-calles) — §3.3 bis: trazado de calles apoyado en el `NodoManzana` derivado del BSP de este documento.
 - [`01 · 06 — Eventos y ciclo del juego`](../01%20-%20Fundamentos/06%20-%20Eventos%20y%20ciclo%20del%20juego.md#8-time-sources-la-alternativa-moderna-a-los-alarm) — §8: Time Sources y `call_later`, la base de §14.

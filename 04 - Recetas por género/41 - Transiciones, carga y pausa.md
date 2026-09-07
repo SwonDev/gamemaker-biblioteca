@@ -9,7 +9,7 @@
 > los **extiende** hasta el punto en que de verdad se sostienen en un juego completo. No cubre
 > el remapeo de controles ([25 · Opciones §5](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md#5--reasignar-controles-rebinding))
 > ni el diseño visual de los botones y el mapa de pantallas
-> ([13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21--el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada)),
+> ([13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada)),
 > que ya están resueltos y a los que este documento se engancha.
 
 ---
@@ -114,7 +114,7 @@ Antes de escribir código, responde a tres preguntas:
 ### 2.3 Diseña el menú de pausa: mapa de pantallas y qué se congela
 
 El mapa de pantallas ya está resuelto en
-[13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21--el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
+[13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
 Reanudar / Opciones (la misma pantalla que desde el menú principal) / Salir (con confirmación).
 Lo que falta decidir es la mecánica:
 
@@ -777,10 +777,10 @@ global.consejos_carga = [
 #### 3.4.1 Estructura
 
 Tres opciones, en el orden que ya fija
-[13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21--el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
+[13/05 §2.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
 **Reanudar · Opciones · Salir**. La navegación entre ellas (foco, envolvente, repetición de
 tecla mantenida) no se repite aquí: usa
-[13/05 §2.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#22--navegación-con-mando-y-teclado-foco-orden-envolvente-y-repetición)
+[13/05 §2.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#22-navegación-con-mando-y-teclado-foco-orden-envolvente-y-repetición)
 o el patrón de lista de
 [04 · 18](./18%20-%20Menús%20con%20scroll%20y%20navegación.md), y el botón de cuatro estados de
 [13/05 §3.5a](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#a-botón-con-sus-cuatro-estados)
@@ -875,7 +875,7 @@ if (estado == PausaEstado.Confirmando) dibujar_confirmacion_salir(_gw, _gh);
 #### 3.4.4 «¿Seguro que quieres salir?» — con «No» por defecto, sin `show_question()`
 
 La regla ya está fijada en
-[13/05 §2.1, punto 3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21--el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
+[13/05 §2.1, punto 3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada):
 toda acción destructiva confirma, y el botón por defecto es «No». Lo que falta es el mecanismo,
 porque la tentación de usar `show_question()` es real y **está descartada**:
 [01 · 15](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md) advierte que
@@ -943,7 +943,7 @@ function dibujar_confirmacion_salir(_gw, _gh) {
 Al entrar en Opciones desde la pausa (la misma pantalla que desde el menú principal, regla 1 de
 13/05 §2.1) y volver, el foco debe reaparecer en «Opciones», no saltar a «Reanudar» — es la
 **ley 5** de
-[13/05 §2.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#22--navegación-con-mando-y-teclado-foco-orden-envolvente-y-repetición):
+[13/05 §2.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#22-navegación-con-mando-y-teclado-foco-orden-envolvente-y-repetición):
 «al volver de una subpantalla, el foco vuelve donde estaba».
 
 ```gml

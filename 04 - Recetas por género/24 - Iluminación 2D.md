@@ -245,7 +245,7 @@ lineal con ese límite, así que no lo subas más de lo que realmente vayas a ne
   (paredes en primer plano, el propio jugador), no para todo el tileset.
 - **Alternativa lista:** `Bulb` (JujuAdams, MIT, 107 ★, ya descargado en
   `11 - Código descargado/librerias/iluminacion/Bulb/` y catalogado en
-  [11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminacion))
+  [11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminación-y-sombras))
   trae normal maps con specular ya resueltos (`__shdBulbLightWithNormalMap`,
   `BulbNormalMapDrawSpriteExt`) con una variante en espacio-objeto que evita el requisito de
   Separate Texture Page de arriba a cambio de un vertex shader más complejo — la opción cuando
@@ -459,7 +459,7 @@ solo cuando la luz se mueve, en vez del filtro por distancia de arriba.
 
 `Bulb` (JujuAdams, MIT, 107 ★, ya descargado en
 `11 - Código descargado/librerias/iluminacion/Bulb/` y catalogado en
-[11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminacion))
+[11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminación-y-sombras))
 resuelve lo mismo con vertex buffers y una proyección en Z por vértice
 (`__BulbAddOcclusionHard`, `BulbStaticOccluder`) en vez de `pr_trianglestrip` por arista — más
 caro de montar, pero soporta oclusores de forma arbitraria (no solo rectángulos) y penumbra real
@@ -744,7 +744,7 @@ tiñe ligeramente de azul en plena noche — como si la luz ambiente de verdad s
 - [08 · 23 — Recetario de shaders de efecto](../08%20-%20Referencia%20GML%20completa/23%20-%20Recetario%20de%20shaders%20de%20efecto.md) — la cadena de post-procesado multipasada, el blur gaussiano (§4.3) y la conversión mundo→UV (§5) que usan estas secciones
 - [08 · 04 — Color y blending](../08%20-%20Referencia%20GML%20completa/04%20-%20Color%20y%20blending.md) — los blend modes en detalle
 - [04 · 09 — Survival y crafting §5.5](./09%20-%20Survival%20y%20crafting.md#55-ciclo-díanoche) — el reloj `objTimeOfDay.tiempo` que alimenta §6
-- [11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminacion) — `Bulb`, la librería descargada con la que se contrastaron §3 y §4
+- [11 · `_CATALOGO.md` §Iluminación y sombras](../11%20-%20Código%20descargado/_CATALOGO.md#iluminación-y-sombras) — `Bulb`, la librería descargada con la que se contrastaron §3 y §4
 
 ---
 

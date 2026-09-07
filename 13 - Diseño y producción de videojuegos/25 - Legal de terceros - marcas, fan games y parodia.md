@@ -340,6 +340,12 @@ Distinto de crear un fan game: esto es sobre **mencionar** una marca ajena real 
 motor, un mando— en tu propia ficha de tienda o marketing, cuando lo que vendes es tu juego
 original.
 
+> 🎮 **Si la consola es una de las que estás desarrollando de verdad**, esta sección cubre el
+> riesgo de marca en general; el matiz específico de consola —estar aprobado como desarrollador
+> **no** te da permiso para anunciar la plataforma hasta que el fabricante lo autorice, es
+> información sujeta a NDA— está en
+> [05 · 06 §2.4](../05%20-%20Referencia/06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md#24-qué-pasa-si-te-dicen-que-no-y-qué-no-puedes-anunciar-aunque-te-digan-que-sí).
+
 ### 4.1 El uso nominativo: la salida legal para referirte a algo real
 
 Existe una doctrina reconocida —sobre todo en EE. UU., con equivalentes prácticos en otras

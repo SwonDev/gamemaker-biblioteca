@@ -1273,7 +1273,7 @@ function array_clone_barajado(_cartas_def)
 Si además necesitas evitar que **la misma carta de recompensa** se repita demasiado seguido
 entre combates (una queja habitual del género cuando el RNG puro da tres veces la misma carta de
 seguido), la **bolsa aleatoria** de
-[13 · 13 §5.5](<../13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md#55-bolsa-aleatoria-shuffle-bag>)
+[13 · 13 §5.5](<../13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md#55--bolsa-aleatoria-shuffle-bag>)
 es la herramienta correcta para el generador de recompensas de `§3.4.5` — no la reimplementes
 aquí, ese documento ya trae el código completo.
 
@@ -1704,7 +1704,7 @@ asíncronos, no algo que `§3.6` resuelva por extensión.
 - [04 · 05 §4.1 y §5.0 — Roguelike y generación procedural](./05%20-%20Roguelike%20y%20generación%20procedural.md) —
   el constructor `RNG()` con semilla que `§2.4.5` y `§3.4.2` reutilizan, y el patrón de moneda
   dual `RunState`/`MetaProgress` (§4.7) que `§3.4.5` cita para la meta-progresión de cartas.
-- [13 · 13 §5.5 — Bolsa aleatoria (*shuffle bag*)](<../13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md#55-bolsa-aleatoria-shuffle-bag>) —
+- [13 · 13 §5.5 — Bolsa aleatoria (*shuffle bag*)](<../13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md#55--bolsa-aleatoria-shuffle-bag>) —
   la herramienta correcta si el generador de recompensas de `§3.4.5` repite la misma carta
   demasiado seguido.
 - [13 · 13 §8 — Curvas de crecimiento para diseño](<../13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md#8--curvas-de-crecimiento-para-diseño>) —

@@ -199,8 +199,14 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
    ```sh
    gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --toolchain GMS2@2026.0.0.23
    ```
-   ⚠️ Las plantillas con *prefabs* fallan en `gm-cli` 2.3.0 en macOS. Usa *Space Rocks* o
-   *Blank Pixel Game*, o crea el proyecto desde el IDE. Detalle en `07 - Ecosistema/13`.
+   ⚠️ Las plantillas con *prefabs* fallan en `gm-cli` 2.3.0 en macOS: de las 18 plantillas de
+   juego, **9 fallan y 9 funcionan** (no solo *Platformer*). Usa *Space Rocks* o
+   *Blank Pixel Game* — ambas funcionan —, o crea el proyecto desde el IDE. Tabla completa de
+   las 18, verificada una a una, y las otras tres trampas que hacen fracasar a un agente hoy
+   (`resourcetool`/`compile` colgados bajo sandbox, el evento equivocado sin avisar, funciones
+   inventadas que el compilador no detecta) en
+   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-cuatro-trampas-que-hacen-fracasar-a-un-agente-hoy)
+   — léelo entero si vas a operar este repo por terminal, es la guía específica para agentes.
 4. **Escribe GML** verificando cada símbolo con `buscar.py` antes de usarlo. Al terminar,
    `python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>` lista cualquier función
    inventada u obsoleta que se haya colado, con la parecida que sí existe.

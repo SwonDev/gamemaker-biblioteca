@@ -398,6 +398,13 @@ Todos aceptan `[--cache-dir]`, `[--config]` y el argumento `[project]` (ruta al 
 cuyo orden y contenido gestiona GameMaker; un error manual deja el proyecto corrupto. Para la
 lógica sí puedes (y debes) editar los `.gml` con tu editor normal.
 
+> ⚠️ **Si un agente de IA ejecuta esto y se cuelga sin salida durante 20-30 segundos**: no es
+> `resourcetool`, es `npx` verificando el paquete contra el registro bajo un sandbox de red
+> restringido (el modo por defecto del Bash tool de Claude Code). Receta de emergencia (dos
+> niveles, con el comando exacto para invocar el binario ya cacheado sin pasar por `npx`) en
+> [`12 · 09` §0, Trampa
+> 2](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-2--resourcetool-eval-y-compile-pueden-colgarse-bajo-el-sandbox-del-bash-tool).
+
 ### Ayuda interna
 
 ```bash
@@ -996,6 +1003,12 @@ Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1
 El directorio del proyecto se crea **pero queda vacío de `.yyp`**: no hay proyecto usable.
 
 ### Alcance real (matriz de pruebas ejecutada)
+
+**No es solo `Platformer`**: de las 18 plantillas de juego, **9 fallan y 9 funcionan**. La
+tabla completa con las 18, verificada una a una, vive en un solo sitio para no duplicarla y
+que se desactualice — [`12 · 09` §0, Trampa
+1](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-1--9-de-las-18-plantillas-de-gm-cli-init-fallan-hoy-en-macos).
+Como referencia rápida, las tres que se probaron primero en esta sesión:
 
 | Plantilla | Resultado | ¿Genera `.yyp`? |
 |---|---|---|

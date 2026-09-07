@@ -54,11 +54,11 @@ diseño en vez de una anécdota del jugador— es que el mundo lo **reconozca**:
   neutralizaciones no letales, y ese número cambia «la cantidad de guardias presentes en cada
   zona y su fuerza, la cantidad de ratas, *weepers* y moscas de sangre», y el aprecio de los
   personajes por el protagonista — y decide cuál de los dos finales, uno positivo y uno sombrío,
-  recibe el jugador (verificado por `WebSearch`, 2026-09-07; fuente en [§9](#9-fuentes)).
+  recibe el jugador (verificado por `WebSearch`, 2026-09-07; fuente en [§9](#fuentes)).
 - ***Undertale*** exige la ruta pacifista completa **sin un solo enemigo muerto** (0 EXP/LOVE
   ganado en toda la partida) para desbloquear el final «True Pacifist», y el juego lo recuerda
   entre partidas — matar a uno solo, incluso mucho después, cierra esa puerta para siempre en esa
-  misma partida (verificado por `WebSearch`, 2026-09-07; fuente en [§9](#9-fuentes)).
+  misma partida (verificado por `WebSearch`, 2026-09-07; fuente en [§9](#fuentes)).
 
 Ninguno de los dos ejemplos necesita una economía nueva: los dos son **un contador que ya
 tienes** (`flag_sumar()` de [13 · 12 §6.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/12%20-%20Diseño%20narrativo%20y%20diálogos.md#62-los-flags-un-struct-global-plano-y-guardable))
@@ -279,20 +279,63 @@ ya existen (salud propia, distancia al jugador, número de aliados vivos). La en
 
 ```gml
 // ---------------------------------------------------------------------------
+// obj_guardia · Create — AÑADIDO justo después de construir `pizarra`
+// (04 · 31 §3): el campo que consideracion_miedo() lee, y el listener que lo
+// mantiene al día. Cada enemigo del encuentro se apunta a sí mismo — es su
+// propia pizarra la que cuenta, no una compartida — así que dos enemigos
+// nunca pisan el contador del otro.
+// ---------------------------------------------------------------------------
+pizarra.aliados_noqueados_o_muertos = 0;   // NUEVO campo, junto a los de 04 · 31 §3
+
+senal_escuchar("enemigo_noqueado", function(_d) { pizarra.aliados_noqueados_o_muertos += 1; });
+senal_escuchar("aliado_muerto",    function(_d) { pizarra.aliados_noqueados_o_muertos += 1; });
+```
+
+`"enemigo_noqueado"` ya lo emite §3.1 arriba. `"aliado_muerto"` **no existe todavía en ningún
+otro documento de la biblioteca** — se añade aquí, en la misma línea que ya escribe
+`fsm.set("muerto")` (§3, condición hermana de `04 · 30 §5.7` citada más arriba):
+
+```gml
+// ---------------------------------------------------------------------------
+// obj_entidad — Step. La misma rama de §3 de este documento, con una llamada
+// AÑADIDA al final del else — no cambia qué estado se decide, solo lo anuncia.
+// ---------------------------------------------------------------------------
+if (combate.golpe_no_letal) { fsm.set("noqueado"); }
+else { fsm.set("muerto"); senal_emitir("aliado_muerto", { enemigo: id }); }   // NUEVO
+```
+
+```gml
+// ---------------------------------------------------------------------------
 // Consideración de utility nueva, añadida al array de considerations de
 // 04 · 31 §7 (el resto del enemigo — atacar, cubrirse, perseguir — no cambia)
 // ---------------------------------------------------------------------------
 function consideracion_miedo(_pizarra)
 {
-    var _aliados_caidos = _pizarra.aliados_noqueados_o_muertos;   // incrementado por
-                                                                   // "enemigo_noqueado"/"muerto" (senal_escuchar)
+    var _aliados_caidos = _pizarra.aliados_noqueados_o_muertos;   // incrementado arriba por
+                                                                   // "enemigo_noqueado"/"aliado_muerto"
     var _vida_propia    = _pizarra.duena.combate.vida / _pizarra.duena.combate.vida_max;
 
     var _miedo = clamp(_aliados_caidos * 0.3 + (1 - _vida_propia) * 0.5, 0, 1);
-    return _miedo * _pizarra.duena.arquetipo.valentia_inversa;   // 04 · 33 §1: cada arquetipo
-                                                                   // responde distinto al miedo
+    return _miedo * _pizarra.duena.arquetipo.valentia_inversa;   // NUEVO — campo que añade
+                                                                   // este documento a los seis
+                                                                   // arquetipos de 04 · 33 §1
 }
 ```
+
+> 🆕 **`valentia_inversa` no existía en `ArquetipoDef` (`04 · 33 §1`) antes de este documento.**
+> Es un campo opcional que se añade a cada `global.arquetipos.*` ya construido — igual que
+> `04 · 53` añade `frames_restantes` a `global.marca_muerte` — sin tocar el constructor ni los
+> seis literales de `04 · 33 §1`, así que ese documento no necesita cambiar:
+>
+> ```gml
+> /// obj_control · Game Start — DESPUÉS de construir global.arquetipos (04 · 33 §1)
+> global.arquetipos.embestidor.valentia_inversa    = 0.4;  // agresivo: cede tarde al miedo
+> global.arquetipos.tirador.valentia_inversa       = 0.6;  // ya evita el cuerpo a cuerpo
+> global.arquetipos.muro.valentia_inversa          = 0.2;  // aguanta la línea por diseño
+> global.arquetipos.enjambre.valentia_inversa      = 0.9;  // sin nadie, no es nada
+> global.arquetipos.francotirador.valentia_inversa = 0.7;  // ya evita la exposición
+> global.arquetipos.apoyo.valentia_inversa         = 0.8;  // prioriza sobrevivir a curar
+> ```
 
 ```gml
 // ---------------------------------------------------------------------------

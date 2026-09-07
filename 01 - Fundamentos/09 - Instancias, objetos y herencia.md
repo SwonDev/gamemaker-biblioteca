@@ -419,7 +419,7 @@ Cada instancia activa, tenga o no código en sus eventos, arrastra:
 - **Un `id`** (handle) que el motor mantiene vivo y resoluble mientras la instancia exista.
 - **Entrada en las listas de colisión** de su objeto — aunque el evento Collision esté vacío o
   no exista, la instancia sigue teniendo bounding box/máscara calculada
-  ([`01 · 08 §4`](./08%20-%20Movimiento%20y%20colisiones.md#4-elegir-la-forma-de-la-máscara)).
+  ([`01 · 08 §4`](./08%20-%20Movimiento%20y%20colisiones.md#4-máscaras-bounding-boxes-y-el-cambio-de-20221)).
 - **Paso por Step y Draw** del motor en cada frame, aunque tus propios eventos estén vacíos —
   hay un coste de comprobación por instancia antes de decidir que no hay nada que ejecutar.
 - **Sus propias variables de instancia** (`x`, `y`, `image_index`, `depth`…), reservadas por
@@ -456,7 +456,7 @@ part_particles_create(_ps, x, y, _pt, 20);   // las 20 "chispas" de golpe
 El sistema de partículas gestiona internamente el equivalente a miles de "instancias" con una
 estructura de datos contigua, no con el aparato completo de instancia de GameMaker — es el mismo
 principio de Data Locality que mide
-[`13 · 23 §3.4`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/23%20-%20Catálogo%20de%20patrones%20en%20GML.md#34-data-locality-—-medido-no-folclore),
+[`13 · 23 §3.4`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/23%20-%20Catálogo%20de%20patrones%20en%20GML.md#34-data-locality--medido-no-folclore),
 aplicado por el propio motor. A cambio, **pierdes** colisión, eventos individuales y control fino
 por partícula — si necesitas que una "chispa" concreta reaccione a algo, no es candidata a
 partícula.

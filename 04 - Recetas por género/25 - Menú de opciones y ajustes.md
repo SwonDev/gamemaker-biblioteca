@@ -541,7 +541,7 @@ rebind_iniciar(nombre_accion_seleccionada, _campo);
 
 `controles_iniciar()` (04/40 §3.5) ya vuelve a los valores de fábrica — lo que faltaba es el
 guardarraíl: es una acción destructiva y la regla ya está fijada en
-[13 · 05 §2.1, punto 3](<../13 - Diseño y producción de videojuegos/05 - UI y UX de juego.md#21--el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada>)
+[13 · 05 §2.1, punto 3](<../13 - Diseño y producción de videojuegos/05 - UI y UX de juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada>)
 («restablecer controles» es justo el ejemplo que cita esa regla): **toda acción destructiva
 confirma, y el botón por defecto es "No"**. Mismo mecanismo que la confirmación de salir de
 [04 · 41 §3.4.4](./41%20-%20Transiciones,%20carga%20y%20pausa.md#344-seguro-que-quieres-salir--con-no-por-defecto-sin-show_question),

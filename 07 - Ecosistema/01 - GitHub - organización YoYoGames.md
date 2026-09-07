@@ -17,8 +17,8 @@
 | [GM-TestFramework](#gm-testframework) | 25 | 2026-08-25 | NOASSERTION | Sí (tests unitarios) |
 | [GM-ExtensionGenerator](#gm-extensiongenerator) | 26 | 2026-08-27 | Apache-2.0 | Sí (extensiones nativas) |
 | [GameMaker-Manual](#gamemaker-manual-y-traducciones) | 58 | 2026-08-27 | — | Sí (contribuir a la doc) |
-| [GMEXT-Steamworks](#3-las-extensiones-gmext-) | 123 | 2026-08-25 | NOASSERTION | Sí (publicar en Steam) |
-| [GM3D-Samples](#gm3d-samples) | 13 | 2026-08-20 | MIT | Sí (si haces 3D) |
+| [GMEXT-Steamworks](#3-las-extensiones-gmext--44-en-total) | 123 | 2026-08-25 | NOASSERTION | Sí (publicar en Steam) |
+| [GM3D-Samples](#2-proyectos-de-ejemplo-y-prefabs-oficiales) | 13 | 2026-08-20 | MIT | Sí (si haces 3D) |
 
 ---
 

@@ -1562,7 +1562,7 @@ posicionamiento — solo cambia cómo se calculan «vecino», «distancia» y «
 
 **No repitas la conversión pantalla↔hex:** `hex_a_pixel()`, `pixel_a_hex()` y `redondear_hex()`
 ya están resueltas, verificadas y con las fórmulas de Red Blob Games citadas, en
-[`13 · 13` §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos).
+[`13 · 13` §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74--hexágonos).
 Este apartado las da por incluidas en el proyecto y añade justo lo que le falta a esa sección
 para un tablero **jugable**: vecindad, distancia, rango de ataque, movimiento con presupuesto
 (pathfinding) y línea de tiro — el mismo catálogo de §5.10-§5.12, sobre hexágonos.
@@ -1993,7 +1993,7 @@ serializar = function()
 - [13 · 13 — Matemáticas aplicadas al juego §7](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md) —
   mundo↔celda, *snapping* e isométrico/hexágonos: la base de coordenadas de rejilla de la que
   `linea_de_tiro()` toma la advertencia de `floor` frente a `round`. Su §7.4 —
-  [hexágonos](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos) —
+  [hexágonos](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74--hexágonos) —
   trae `hex_a_pixel()`/`pixel_a_hex()`/`redondear_hex()`, que §5.15-§5.17 de este documento dan
   por incluidas y no repiten.
 - [13 · 01 — Diseño de juego: core loop, mecánicas, balance y dificultad §4.4 y §9.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md) —
@@ -2027,7 +2027,7 @@ serializar = function()
   <https://www.redblobgames.com/grids/hexagons/>. §5.15-§5.17 de este documento reutilizan sus
   6 direcciones axiales (`HEX_DIR_Q`/`HEX_DIR_R`), la fórmula de distancia cúbica y el algoritmo
   de barrido «hex range» de `hex_en_rango()`; la conversión píxel↔hex de la misma fuente ya está
-  en [13 · 13 §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos)
+  en [13 · 13 §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74--hexágonos)
   y no se repite aquí.
 
 **Manual oficial de GameMaker LTS 2026** (espejo local en `09 - Manual oficial/`; todos los
