@@ -1097,7 +1097,7 @@ function bloqueo_valido_lucha(_dir, _postura, _altura_ataque)
 
 Bloquear sin límite es tan degenerado como golpear sin límite. La corrección reutiliza
 `RecursoCombate` de
-[`04 · 36 §3.2`](./36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md#32-recursocombate-el-pool-genrico-y-sus-tres-variantes) —
+[`04 · 36 §3.2`](./36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md#32-recursocombate-el-pool-genérico-y-sus-tres-variantes) —
 no hay que escribir un pool de recursos nuevo, es literalmente el mismo struct con el signo de
 regeneración a favor de la víctima:
 

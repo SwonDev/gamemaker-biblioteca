@@ -346,6 +346,12 @@ proyecto. Puede que una futura versión del CLI añada el subcomando anunciado.
 
 ## 5. Cómo usar un agente de IA con GameMaker (lo que sí funciona hoy)
 
+> 📖 Esta sección da lo mínimo para arrancar. El manual completo, con las cuatro trampas que
+> hacen fracasar a un agente hoy (plantillas que fallan, `resourcetool`/`compile` colgados bajo
+> sandbox, el evento equivocado sin avisar, funciones inventadas que el compilador no detecta),
+> el ciclo completo del agente y el mapa exacto de qué `.gml` va en cada archivo, está en
+> [`12 · 09` — Manual del agente de IA: operar GameMaker con `gm-cli`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md).
+
 ### 5.1 Requisitos
 
 ```bash

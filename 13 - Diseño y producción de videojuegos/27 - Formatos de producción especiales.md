@@ -249,7 +249,7 @@ if (indice_actual < array_length(preguntas)) {
 ([13 · 01 §9.5](./01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md#95--telemetría-contar-muertes-por-sala-y-volcarlas-a-json));
 para un centro educativo que necesite el resultado en su propio sistema, en vez de leerlo con
 `jq` a mano como en §9.6, el mismo `http_request` con cola y reintento de
-[13 · 01 §9.7](./01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md#97--de-volcado-local-a-backend-real-httprequest-con-cola-y-reintento)
+[13 · 01 §9.7](./01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md#97--de-volcado-local-a-backend-real-http_request-con-cola-y-reintento)
 lo manda a un backend propio: no hace falta escribir un sistema de exportación nuevo, el patrón
 ya existe y no distingue entre «evento de muerte» y «evento de respuesta».
 

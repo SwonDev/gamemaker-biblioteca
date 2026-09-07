@@ -6,7 +6,7 @@
 > lo recorre de punta a punta con la terminología exacta del IDE y código verificado.
 >
 > **No cubre:** el catálogo de extensiones ya escritas por otros —eso es
-> [07 · 01 §3](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext-44-en-total)
+> [07 · 01 §3](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext--44-en-total)
 > (las 44 `GMEXT-*` oficiales) y
 > [12 · 02](../12%20-%20Utilidades%20e%20integraciones/02%20-%20Extensiones%20nativas%20y%20del%20sistema.md)
 > (el mercado de terceros)—, ni la comunicación JavaScript↔GML dentro del propio juego HTML5,
@@ -658,7 +658,7 @@ en [`Disabling_Extensions`](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_
 No hace falta adivinar cómo se estructura una extensión seria: las **44 `GMEXT-*` de
 YoYoGames son código abierto** y están descargadas en
 `11 - Código descargado/extensiones_oficiales/`. Catálogo completo en
-[07 · 01 §3](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext-44-en-total).
+[07 · 01 §3](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext--44-en-total).
 Las usadas como fuente para esta guía:
 
 | Extensión | Qué enseña |
@@ -706,7 +706,7 @@ Plantillas de terceros, ya descargadas y catalogadas en
 
 ## Ver también
 
-- [07 · 01 §3 — Las 44 `GMEXT-*` oficiales](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext-44-en-total) — ejemplos reales completos para leer
+- [07 · 01 §3 — Las 44 `GMEXT-*` oficiales](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#3-las-extensiones-gmext--44-en-total) — ejemplos reales completos para leer
 - [07 · 01 — `GM-ExtensionGenerator`](./01%20-%20GitHub%20-%20organización%20YoYoGames.md#gm-extensiongenerator) — la ficha del repo
 - [12 · 02 — Extensiones nativas y del sistema](../12%20-%20Utilidades%20e%20integraciones/02%20-%20Extensiones%20nativas%20y%20del%20sistema.md) — el catálogo: qué ya existe antes de escribir la tuya
 - [04 · 17 — Interoperabilidad con la web (HTML5)](../04%20-%20Recetas%20por%20género/17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) — JS↔GML dentro del juego, con `gmcallback_`

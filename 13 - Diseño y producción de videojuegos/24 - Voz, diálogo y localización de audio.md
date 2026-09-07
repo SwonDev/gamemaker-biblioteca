@@ -8,8 +8,8 @@
 > timing de una línea de voz frente al *typewriter* → [`13 · 12` §6.9](./12%20-%20Diseño%20narrativo%20y%20diálogos.md#69-subtítulos-velocidad-de-texto-y-voces)
 > y [`04 · 10` §5.6](../04%20-%20Recetas%20por%20género/10%20-%20Visual%20Novel%20y%20narrativa.md#56-voces-sincronizadas-con-el-typewriter);
 > el ducking de música y la mezcla de la voz como referencia de 0 dB →
-> [`13 · 09` §4](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#4-la-mezcla); los subtítulos de
-> diálogo (caja, nombre del hablante, escala) → [`04 · 27` §2](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md#2-subtítulos-y-texto-legible).
+> [`13 · 09` §4](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#4--la-mezcla); los subtítulos de
+> diálogo (caja, nombre del hablante, escala) → [`04 · 27` §2](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md#2--subtítulos-y-texto-legible).
 
 ---
 
@@ -38,7 +38,7 @@ dependen los tres del mismo subtítulo. Qué idioma dobla y cuál solo subtitula
 | Diálogo principal, cinemáticas, tutorial hablado | Sí, si hay presupuesto para el idioma de referencia |
 | *Barks* y frases de sistema cortas | Casi nunca: el volumen de líneas (§7) hace el coste inasumible salvo estudios grandes |
 | Documentos leídos, *lore* opcional, *flavour text* | Rara vez; son las primeras líneas que un plan ajustado recorta |
-| Voces de criatura no verbal (gruñidos, chillidos) | No es «doblaje»: son SFX de personaje → [`13 · 09` §3](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#3-diseñar-un-efecto-de-sonido); o voz procedural → §6 |
+| Voces de criatura no verbal (gruñidos, chillidos) | No es «doblaje»: son SFX de personaje → [`13 · 09` §3](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#3--diseñar-un-efecto-de-sonido); o voz procedural → §6 |
 
 ---
 
@@ -116,7 +116,7 @@ completa, la clave no ([`05 · 04` — Convenciones](../05%20-%20Referencia/04%2
 Copiar a mano las claves del guion de diálogo (`13 · 12` §6.1) y los textos de `es.json`
 (`04 · 21` §1) a la tabla del §2.1 es trabajo mecánico y una fuente segura de desincronía en
 cuanto el guion cambia una vez más. Con el mismo espíritu reanudable que `traducir_idioma.py`
-de [`04 · 21` §5](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#5-traducción-asistida-por-ia--el-flujo-moderno),
+de [`04 · 21` §5](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#5--traducción-asistida-por-ia--el-flujo-moderno),
 un script cruza las dos fuentes de verdad y genera el CSV:
 
 ```python
@@ -222,7 +222,7 @@ de importar el fichero. Lo que GameMaker recibe ya tiene que estar:
 ### 2.6 Importar a GameMaker: mono, formato, ¿streamed o no?
 
 Las reglas generales de importación (bitrate, conversión OGG, opciones por plataforma) ya están
-en [`13 · 09` §7](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#7-formatos-y-ajustes-de-importación) y
+en [`13 · 09` §7](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#7--formatos-y-ajustes-de-importación) y
 no se repiten. Específico de voz:
 
 - **Mono, siempre.** Una voz grabada en estéreo no aporta espacialidad real y duplica el peso
@@ -414,11 +414,11 @@ problema de conversión en la tienda.
 
 Dos mitades de esta pauta de accesibilidad ya están resueltas por separado:
 
-- [`04 · 27` §5.3](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md#53-el-indicador-visual-la-otra-mitad-de-la-pauta)
+- [`04 · 27` §5.3](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md#53--el-indicador-visual-la-otra-mitad-de-la-pauta)
   dibuja la **flecha** en el borde de la GUI apuntando a una fuente de sonido
   (`indicador_sonido_mostrar(_wx, _wy)`), reutilizando el ángulo del sistema de mono/estéreo de
   esa misma sección.
-- [`13 · 09` §8](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8-herramientas-licencias-y-accesibilidad)
+- [`13 · 09` §8](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8--herramientas-licencias-y-accesibilidad)
   pide el **texto** (`[puerta crujiendo]`) y lo remite a `04 · 27` §2, que solo cubre el
   subtítulo de **diálogo**.
 
@@ -661,7 +661,7 @@ comercial concreto.
 | Vía | Cómo | Cuándo |
 |---|---|---|
 | **A — banco de grabaciones** | 4-10 «blips» cortos (0,1-0,2 s) por tipo de voz, con el *round robin* + variación de tono de [`13 · 09` §3.2](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#32-variaciones-y-round-robin) | Recomendada: coste de CPU nulo, control total del timbre |
-| **B — síntesis en tiempo real** | Un tono corto generado con `tono_generar()` de [`08 · 24` §3](../08%20-%20Referencia%20GML%20completa/24%20-%20Audio%20avanzado%20-%20buffers,%20colas,%20sincronía%20y%20grabación.md#3-buffer-sounds-síntesis-y-audio-procedural-en-tiempo-real) | Cero assets, útil en un *jam*; cuesta CPU por carácter y exige liberar el *buffer sound* al momento |
+| **B — síntesis en tiempo real** | Un tono corto generado con `tono_generar()` de [`08 · 24` §3](../08%20-%20Referencia%20GML%20completa/24%20-%20Audio%20avanzado%20-%20buffers,%20colas,%20sincronía%20y%20grabación.md#3--buffer-sounds-síntesis-y-audio-procedural-en-tiempo-real) | Cero assets, útil en un *jam*; cuesta CPU por carácter y exige liberar el *buffer sound* al momento |
 
 ### 6.2 El «blip» enganchado al *typewriter*
 
@@ -851,7 +851,7 @@ function voz_qa_reporte(_idiomas)
 - [ ] Los *barks* con varias tomas de voz (§7) no repiten el mismo archivo dos veces seguidas —
       confirmarlo escuchando 15-20 disparos seguidos de un mismo bark.
 - [ ] La hoja de créditos de voz (actores, estudio, fecha, idioma) está tan actualizada como la
-      de música y SFX de [`13 · 09` §8](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8-herramientas-licencias-y-accesibilidad).
+      de música y SFX de [`13 · 09` §8](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8--herramientas-licencias-y-accesibilidad).
 
 ---
 

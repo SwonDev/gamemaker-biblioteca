@@ -585,7 +585,7 @@ function caidas_instalar_manejador() {
 ```
 
 La clave se define como cualquier otra del catálogo de idiomas
-([04 · 21 §2](../04%20-%20Recetas%20por%20g%C3%A9nero/21%20-%20Localizaci%C3%B3n%20e%20idiomas%20%28con%20traducci%C3%B3n%20por%20IA%29.md#2-la-funci%C3%B3n-txt-con-variables-y-plurales)):
+([04 · 21 §2](../04%20-%20Recetas%20por%20g%C3%A9nero/21%20-%20Localizaci%C3%B3n%20e%20idiomas%20%28con%20traducci%C3%B3n%20por%20IA%29.md#2--la-funci%C3%B3n-txt--con-variables-y-plurales)):
 
 ```
 "caida_mensaje_jugador": "El juego se ha cerrado por un error inesperado. Se ha guardado un informe en:\n{ruta}\nSúbelo al canal de soporte para que podamos solucionarlo. Se intentó guardar tu partida automáticamente."
@@ -595,7 +595,7 @@ Sin esto, un jugador que no lea el idioma en el que compilaste el mensaje de dep
 defecto ni siquiera entiende que algo falló, y es justo el que menos posibilidades tiene de
 escribirte un reporte útil. ⚠️ En consolas certificadas no está verificado si un `show_message`
 se comporta igual (la documentación técnica está bajo NDA, ver
-[05 · 02 §3.8 bis](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#38-bis-qué-exige-una-consola-aunque-no-puedas-contarlo)):
+[05 · 02 §3.8 bis](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#38-bis--qué-exige-una-consola-aunque-no-puedas-contarlo)):
 pruébalo en el kit de desarrollo real antes de depender de él fuera de PC.
 
 ### 4.6 Builds reproducibles
@@ -1171,7 +1171,10 @@ subscription. Other than that, everything else is free and unlimited!»*
 - **Esta biblioteca trabaja con Professional**, que cubre PC, web y móvil comerciales. Para
   cualquier consola hacen falta **Enterprise** *y* el acceso de desarrollador de la plataforma, que
   se solicita aparte: ver
-  [05 · 02 §1.4 y §3.8](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md).
+  [05 · 02 §1.4 y §3.8](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md). El registro
+  real de los tres fabricantes (Nintendo, PlayStation, Xbox), el NDA que firmas antes de ver nada
+  y qué exige el *lotcheck*/TRC/XR de cada uno están en
+  [05 · 06 — Publicar en consolas](../05%20-%20Referencia/06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md).
 - **GMRT** será gratis para uso no comercial; para publicar comercialmente con GMRT, YoYo pide
   licencia Professional.
 - Con una licencia permanente antigua de GMS2 **puedes seguir publicando comercialmente con el
@@ -1387,6 +1390,13 @@ En cuanto entra alguien de fuera —a quien pagas por un encargo, o a quien invi
 pagarle— aparecen tres preguntas que ningún tutorial de GameMaker responde: **qué le pides**,
 **qué le debes** y **qué es tuyo al final**.
 
+> 🎮 **¿La otra persona es un *porting house* o un publisher de consola?** Esta sección cubre el
+> caso general — colaboradores, contratados, cesión de derechos. La variante específica de
+> consola (porting houses verificadas hoy, *fee* fijo frente a *revenue share*, quién figura
+> como «publisher de récord» ante Nintendo/PlayStation/Xbox) está en
+> [05 · 06 §7.4](../05%20-%20Referencia/06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md#74-cómo-se-estructura-un-acuerdo-de-porting-o-publishing)
+> — que ya enlaza de vuelta aquí.
+
 ### 12.1 Colaboradores, socios y contratados: la diferencia importa antes de firmar nada
 
 Tres relaciones que se parecen por fuera y son muy distintas en lo que implican:
@@ -1509,9 +1519,9 @@ juego**, y es un trabajo distinto de traducir de cero:
 | | **Traducción** (por IA o humana) | **LQA** |
 |---|---|---|
 | Parte de | El texto fuente en español | El texto ya traducido |
-| Comprueba | Que el significado pase a otro idioma | Que suene natural, que respete el tono del juego, que las `{variables}` sigan intactas y que el texto quepa en la UI ([04 · 21 §5](../04%20-%20Recetas%20por%20g%C3%A9nero/21%20-%20Localizaci%C3%B3n%20e%20idiomas%20%28con%20traducci%C3%B3n%20por%20IA%29.md#5-traducción-asistida-por-ia--el-flujo-moderno)) |
+| Comprueba | Que el significado pase a otro idioma | Que suene natural, que respete el tono del juego, que las `{variables}` sigan intactas y que el texto quepa en la UI ([04 · 21 §5](../04%20-%20Recetas%20por%20g%C3%A9nero/21%20-%20Localizaci%C3%B3n%20e%20idiomas%20%28con%20traducci%C3%B3n%20por%20IA%29.md#5--traducción-asistida-por-ia--el-flujo-moderno)) |
 | Se hace mirando | El archivo de texto | Idealmente el juego en marcha, en contexto — no solo la lista de cadenas |
-| Su equivalente en audio/voz | — | La escucha de [`13 · 24` §8](./24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md#8-qa-de-voz): el mismo principio, aplicado al doblaje en vez de al texto |
+| Su equivalente en audio/voz | — | La escucha de [`13 · 24` §8](./24%20-%20Voz%2C%20diálogo%20y%20localización%20de%20audio.md#8--qa-de-voz): el mismo principio, aplicado al doblaje en vez de al texto |
 
 **Un idioma «traducido» sin LQA no está terminado, está en borrador.** Encargar la revisión a
 alguien distinto de quien tradujo —aunque sea por IA— es lo que atrapa los errores que el propio

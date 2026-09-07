@@ -26,7 +26,7 @@ son las **categorías**: qué existe, cómo se llama, por dónde se empieza y qu
 cualquier certificación de consola desde hace décadas (repetido en charlas GDC, en la documentación
 pública de otros motores y en la experiencia compartida del oficio).
 
-[05 · 02 §3.8 bis](./02%20-%20Publicar%20y%20exportar.md#38-bis-qué-exige-una-consola-aunque-no-puedas-contarlo)
+[05 · 02 §3.8 bis](./02%20-%20Publicar%20y%20exportar.md#38-bis--qué-exige-una-consola-aunque-no-puedas-contarlo)
 ya aplica esta técnica con una tabla de categorías de certificación sin inventar ni un umbral —
 es el patrón correcto, y este documento lo extiende al resto del trámite en vez de reescribirlo.
 
@@ -252,7 +252,7 @@ Ya documentado, y no se repite aquí: la tabla de exportadores (Switch, Switch 2
 One/Series) y sus wikis privadas de runtime está en
 [05 · 02 §3.8](./02%20-%20Publicar%20y%20exportar.md#38-consolas), y las categorías públicas de
 certificación que sí se pueden documentar sin romper el NDA están en
-[05 · 02 §3.8 bis](./02%20-%20Publicar%20y%20exportar.md#38-bis-qué-exige-una-consola-aunque-no-puedas-contarlo).
+[05 · 02 §3.8 bis](./02%20-%20Publicar%20y%20exportar.md#38-bis--qué-exige-una-consola-aunque-no-puedas-contarlo).
 El CLI (`gm-cli`) **no compila ninguna consola todavía** — «coming soon» para `switch`, `ps4`,
 `ps5`, `xboxseriesxs» —, así que cualquier build de consola se hace **desde el IDE**, con las
 wikis privadas de runtime como única guía técnica una vez aprobado.

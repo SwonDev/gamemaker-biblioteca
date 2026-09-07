@@ -80,7 +80,7 @@ room_set_persistent(room, true);
 > 💡 **Por qué `room_goto()` puede doler con muchas instancias.** Esa destrucción de arriba no es
 > gratis: al salir de una room no persistente, GameMaker recorre y destruye **cada instancia no
 > persistente** que hubiera en ella (Destroy → Clean Up de cada una, como en
-> [§4](#4-destruir-instancias) de este mismo documento), y al entrar en la nueva room **crea**
+> [`01 · 09` §4](./09%20-%20Instancias%2C%20objetos%20y%20herencia.md#4-destruir-instancias)), y al entrar en la nueva room **crea**
 > todas las instancias colocadas en el editor y ejecuta su Room Creation Code. Con unas pocas
 > decenas de instancias no se nota; con varios miles (una room de mundo abierto muy poblada, un
 > editor de niveles con generación procedural pesada) ese barrido de destrucción + creación es un

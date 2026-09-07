@@ -93,7 +93,7 @@ densidades percibidas distintas con el mismo número de POIs.
 
 > ⚠️ La cuota de la tabla es un punto de partida razonable para un metroidvania de ritmo medio, no
 > una medición: ajústala con el playtest cuantitativo de
-> [13 · 01 §3.4](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#34-medir-la-dificultad-con-datos-no-con-opiniones)
+> [13 · 01 §3.4](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#34--medir-la-dificultad-con-datos-no-con-opiniones)
 > (mediana de tiempo real por zona, no la media) antes de tratarla como definitiva.
 
 La distribución física de los POIs dentro de una zona —que no se amontonen ni dejen calvas— es un

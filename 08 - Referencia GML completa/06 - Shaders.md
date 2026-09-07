@@ -11,7 +11,7 @@
 
 1. [Qué es un shader](#qué-es-un-shader)
 2. [Lenguajes de shader por plataforma](#lenguajes-de-shader-por-plataforma)
-3. [Anatomía de un shader de GameMaker](#anatomía-de-un-shader-de-gamemakerr)
+3. [Anatomía de un shader de GameMaker](#anatomía-de-un-shader-de-gamemaker)
 4. [Constantes integradas (uniforms)](#constantes-integradas-uniforms)
 5. [Índices de matriz](#índices-de-matriz)
 6. [Cómo pasar datos al shader](#cómo-pasar-datos-al-shader)
