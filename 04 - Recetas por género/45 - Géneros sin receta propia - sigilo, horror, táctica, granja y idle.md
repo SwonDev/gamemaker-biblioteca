@@ -954,7 +954,632 @@ la vuelta como `_campo_run` y la moneda de prestigio como `_campo_meta`.
 
 ---
 
-## 7 · Checklist transversal
+## 7 · Géneros que se resuelven combinando piezas ya escritas
+
+> Diez géneros más que la auditoría `_indice/auditorias/r4-generos.md` (2026-09-07) encontró
+> sin cubrir o cubiertos a medias. A diferencia de §2-§6, ninguno de estos necesita una receta
+> completa propia: la mayoría son la combinación honesta de sistemas que esta biblioteca ya
+> tiene escritos en otro sitio. Donde de verdad falta algo — gestión deportiva y tower offense
+> — este documento lo construye con código real; donde el hueco es genuino pero no se cierra hoy
+> (city builder a escala de ciudad, 4X completo) se dice sin rodeos, con el motivo y la
+> auditoría que lo determinó.
+
+### 7.1 · Walking simulator y terror en primera persona explícito
+
+Se combinan aquí porque comparten la misma base técnica — cámara subjetiva, exploración sin
+combate — y la diferencia entre ambos es de tono, no de sistema.
+
+**Walking simulator.** Wikipedia lo define como «un juego de aventura que consiste
+principalmente en movimiento e interacción con el entorno»[^8], y es explícito en lo que le
+falta a propósito: «los *walking sims* generalmente no tienen mecánicas de combate ni
+escenarios tradicionales de victoria o derrota»[^8]. Las piezas que ya existen cubren el género
+entero: el bucle de curiosidad → observación → navegación → recompensa que estructura la
+exploración está en
+[13 · 22 §1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/22%20-%20Diseño%20de%20mundo%20y%20exploración.md#1--los-principios),
+con el grafo de bloqueos de §2 si el paseo tiene progresión de zonas; la cámara en primera
+persona con el ratón bloqueado — sensibilidad, `window_mouse_set_locked`, el patrón correcto
+con `window_mouse_get_delta_x`/`_y` en vez de recentrar el cursor cada frame — está completa en
+[04 · 29 §7](./29%20-%203D%20en%20GameMaker.md#primera-persona-con-el-ratón-bloqueado)
+(«Primera persona con el ratón bloqueado»); la narrativa ambiental sin diálogo hablado —
+objetos, descripciones, documentos encontrados — está en
+[13 · 12 §3.1-§3.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/12%20-%20Diseño%20narrativo%20y%20diálogos.md#31-narrativa-ambiental-environmental-storytelling);
+si el juego SÍ tiene diálogo hablado con NPC, la maquinaria completa (guion como datos, parser,
+caja de texto) es [04 · 10](./10%20-%20Visual%20Novel%20y%20narrativa.md).
+
+Lo que ningún documento anterior cubre, porque son reglas negativas — lo que el género
+DELIBERADAMENTE no tiene: **sin HUD de combate** (ni barra de vida ni munición: si aparece un
+HUD, que sea un objetivo o un diario, no un estado de batalla); **sin *fail state*** — no hay
+forma de «perder» un walking simulator, así que ninguna mecánica de detección o daño de este
+documento debería colarse sin que el diseño lo pida explícitamente; y **el ritmo lo marca la
+interacción con objetos del mundo**, no un temporizador ni una oleada — el jugador decide cuándo
+avanzar, la única presión legítima es la curiosidad.
+
+**Terror en primera persona explícito** (*found footage*, cámara subjetiva, «no puedo correr
+para siempre») es la combinación directa de esas tres piezas con el [§3](#3--horror) de este
+propio documento (horror genérico: recursos escasos, enemigo intocable, sonido como amenaza). No
+hace falta ni una línea de código nueva: la cámara de `04 · 29 §7` sustituye a cualquier cámara
+de plataformas o *top-down* que los ejemplos de §3 dieran por hecha, y el resto — el medidor de
+detección reutilizado como monstruo (§3.3), la munición poco fiable (§3.2), la tensión continua
+(§3.4) — funciona sin cambios porque nunca dependió de una cámara concreta.
+
+### 7.2 · Life sim (simulación de vida cotidiana, estilo *Sims*)
+
+Un life sim no tiene un sistema propio que construir: es la superposición de tres que esta
+biblioteca ya escribió por separado y nunca se habían nombrado juntos como género. **Necesidades**
+— hambre, energía, higiene, diversión, con decaimiento y umbrales — es `Needs()` en
+[04 · 09 §5.0](./09%20-%20Survival%20y%20crafting.md#50-necesidades), el mismo struct que §5.6
+de este documento reutiliza para el ganado (con su propia degradación diaria en vez de los
+métodos calibrados por fotograma, si la cadencia del juego es por franjas de actividad y no
+tiempo real puro). **Relaciones** — afinidad con NPC, regalos, ramificación de diálogo — es
+`VNState` en
+[04 · 10 §5.2](./10%20-%20Visual%20Novel%20y%20narrativa.md#52-estado-de-la-historia), el mismo
+sistema que §5.4 de este documento envuelve para los corazones de granja. **Rutinas** — qué hace
+cada NPC a cada hora del día, y el despachador que decide su siguiente tarea — es
+[04 · 51 §3](./51%20-%20Colonia%20y%20constructor%20de%20bases%20-%20trabajadores%20autónomos.md#3--rutinas-y-horarios-de-npc),
+ya diseñado sobre el mismo reloj de `04 · 09 §5.5`.
+
+Ningún life sim necesita un sistema nuevo por esto: necesita las tres piezas trabajando sobre el
+MISMO reloj (`04 · 09 §5.5`) y el MISMO bus de señales
+([04 · 16](./16%20-%20Señales%20y%20desacoplamiento.md)), exactamente como ya se conectan
+calendario, cultivos y relaciones en §5 de este documento. La diferencia frente a una granja
+*cozy* no es técnica, es de foco: la granja pone el cultivo en el centro y las relaciones
+alrededor; un life sim invierte esa jerarquía y pone las necesidades y relaciones del personaje
+jugable en el centro, con el trabajo o la economía como una rutina de horario más
+(`04 · 51 §3.1`) en vez del sistema principal.
+
+### 7.3 · City builder / tycoon a escala de ciudad
+
+**Esto NO está cubierto**, y conviene decirlo con precisión para no confundirlo con lo que sí lo
+está. [04 · 51](./51%20-%20Colonia%20y%20constructor%20de%20bases%20-%20trabajadores%20autónomos.md)
+(colonia y constructor de bases) resuelve un género vecino pero distinto: colonos individuales
+con nombre, necesidades y una IA de tareas (*RimWorld*, *Dwarf Fortress*) — cada habitante es una
+instancia que el jugador puede seleccionar y seguir. Un *city builder* a escala de ciudad
+(*SimCity*, *Cities: Skylines*) es otra cosa: miles de habitantes son estadística agregada, no
+instancias, y el sistema que define el género — zonificación que hace crecer el mapa de forma
+orgánica según la demanda, y simulación de tráfico sobre una red de calles — no tiene ni una
+línea escrita en esta biblioteca (auditoría `r4-generos.md`, tema 18).
+
+Lo que SÍ existe y ayuda de verdad, sin ser el sistema en sí: la generación de calles y manzanas
+de
+[13 · 22 §3.3 bis](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/22%20-%20Diseño%20de%20mundo%20y%20exploración.md#33-bis--ciudades-y-redes-de-calles)
+es geometría de mundo (trazar una red de vías con reglas de manzana), no el sistema económico que
+un *city builder* necesita para decidir DÓNDE crece la ciudad — pero es la base geométrica sobre
+la que ese sistema se construiría. Las redes de energía y fluidos dirigidas sobre grafo de
+[04 · 51 §6](./51%20-%20Colonia%20y%20constructor%20de%20bases%20-%20trabajadores%20autónomos.md#6--redes-de-energía-y-fluidos)
+son el mismo patrón de datos que necesitaría una red de tráfico, solo que sin los nodos de
+«vehículo» moviéndose por ella.
+
+Si tu juego necesita esto de verdad, son dos sistemas nuevos y sustanciales — no una receta de
+una tarde: zonificación con crecimiento por demanda, y simulación de tráfico aunque sea agregada,
+sin vehículos individuales. Candidatos a documento propio si esta biblioteca los cierra en el
+futuro, no algo que este documento resuelve hoy.
+
+### 7.4 · Gestión deportiva / manager
+
+**La convención.** Un jugador de manager deportivo (*Football Manager* es el ejemplo dominante
+del género) no controla el partido: decide antes de que empiece — alineación, táctica, fichajes —
+y lo ve resolverse. Wikipedia resume la distinción de género con precisión: los juegos de gestión
+deportiva sitúan al jugador «en el papel de mánager o ejecutivo de un equipo en vez de controlar
+directamente a los atletas durante los partidos», con una jugabilidad centrada en «planificación
+estratégica, fichajes, gestión financiera, entrenamiento y desarrollo del equipo a largo plazo», y
+el género se asocia con «sistemas estadísticos profundos y progresión a largo plazo, más que con
+la acción momento a momento»[^9].
+
+`04 · 49` cubre el género vecino — deportes **jugados** en tiempo real, con balón físico, pase e
+IA por roles — y es explícito en que nunca resuelve un partido por simulación de eventos
+discretos ni por un menú de alineación (auditoría `r4-generos.md`, tema 17, verificado leyendo su
+índice de secciones completo). Esta sección cierra ese hueco concreto: un motor de partido que
+resuelve por probabilidad, no por física, más la plantilla, las transferencias y el calendario de
+liga que lo rodean.
+
+**Por qué esto SÍ lleva código nuevo, a diferencia del resto de §7.** El resto de este documento
+conecta piezas que ya existen; un manager deportivo necesita un motor de resolución que no se
+parece a nada más de la biblioteca — ni al combate de `04 · 30`/`04 · 34` (daño instancia a
+instancia), ni a la táctica de `04 · 35` (rejilla y turnos), ni a la economía de `13 · 01 §4.1`
+(fuentes y sumideros sin narrativa de partido). Es su propio motor: posesión → ataque → tiro,
+resuelto con probabilidades derivadas de comparar estadísticas de plantilla, más el avance del
+minuto con una máquina de estados simple.
+
+```gml
+/// scr_manager_partido — el motor: plantilla, fuerza de equipo y probabilidad de gol.
+/// Ningún símbolo de aquí sustituye nada de 04 · 30/04 · 34/04 · 35: es un motor nuevo,
+/// pensado para resolverse sin física ni frame a frame.
+
+enum EstadoPartido { PRIMERA_PARTE, DESCANSO, SEGUNDA_PARTE, FINALIZADO }
+enum ResultadoPosesion { SIN_LLEGADA, PARADA, GOL }
+
+/// @func jugador_crear(_nombre, _posicion, _ataque, _defensa, _valor_mercado)
+/// @param {String} _posicion  "GUARDAMETA" · "DEFENSA" · "CENTROCAMPISTA" · "DELANTERO"
+function jugador_crear(_nombre, _posicion, _ataque, _defensa, _valor_mercado)
+{
+    return {
+        nombre: _nombre, posicion: _posicion,
+        ataque: _ataque, defensa: _defensa,          // 1..100
+        valor_mercado: _valor_mercado
+    };
+}
+
+/// @func equipo_crear(_nombre, _jugadores, _presupuesto)
+function equipo_crear(_nombre, _jugadores, _presupuesto)
+{
+    return {
+        nombre: _nombre, jugadores: _jugadores, presupuesto: _presupuesto,
+        puntos: 0, ganados: 0, empatados: 0, perdidos: 0,
+        goles_favor: 0, goles_contra: 0
+    };
+}
+
+/// @func equipo_fuerza_ataque(_equipo)
+/// @desc Media de ataque de los jugadores de campo (todos menos el guardameta).
+function equipo_fuerza_ataque(_equipo)
+{
+    var _suma = 0, _n = 0;
+    for (var _i = 0; _i < array_length(_equipo.jugadores); _i++)
+    {
+        var _j = _equipo.jugadores[_i];
+        if (_j.posicion != "GUARDAMETA") { _suma += _j.ataque; _n += 1; }
+    }
+    return (_n > 0) ? (_suma / _n) : 50;
+}
+
+/// @func equipo_fuerza_defensa(_equipo)
+/// @desc Media de defensa del bloque defensivo: defensas y guardameta, no delanteros.
+function equipo_fuerza_defensa(_equipo)
+{
+    var _suma = 0, _n = 0;
+    for (var _i = 0; _i < array_length(_equipo.jugadores); _i++)
+    {
+        var _j = _equipo.jugadores[_i];
+        if (_j.posicion == "DEFENSA" || _j.posicion == "GUARDAMETA") { _suma += _j.defensa; _n += 1; }
+    }
+    return (_n > 0) ? (_suma / _n) : 50;
+}
+
+#macro PARTIDO_PROB_GOL_BASE   0.10   // conversión con fuerzas iguales, punto de partida a ajustar
+#macro PARTIDO_PROB_GOL_MIN    0.02
+#macro PARTIDO_PROB_GOL_MAX    0.45
+
+/// @func partido_probabilidad_gol(_fuerza_ataque, _fuerza_defensa)
+/// @desc Convierte la comparación ataque/defensa en una probabilidad de gol POR OCASIÓN ya
+///       creada, 0..1. Lineal y acotada a propósito: nada de exponenciales que disparen la
+///       probabilidad con diferencias de plantilla extremas.
+function partido_probabilidad_gol(_fuerza_ataque, _fuerza_defensa)
+{
+    var _diferencia = _fuerza_ataque - _fuerza_defensa;              // -99..99
+    var _prob = PARTIDO_PROB_GOL_BASE + (_diferencia / 100) * 0.35;
+    return clamp(_prob, PARTIDO_PROB_GOL_MIN, PARTIDO_PROB_GOL_MAX);
+}
+
+/// @func partido_resolver_posesion(_atacante, _defensor)
+/// @desc Un evento discreto en dos tiradas: primero si la posesión LLEGA a generar una
+///       ocasión (favorece al equipo con más ataque frente a la defensa rival), y solo si
+///       llega, si esa ocasión se convierte. Mismo patrón de "una tirada por evento" que
+///       arma_intentar_disparo() (§3.2 de este documento): random() contra una probabilidad
+///       calculada, nunca física ni posición real de balón.
+function partido_resolver_posesion(_atacante, _defensor)
+{
+    var _fuerza_ataque  = equipo_fuerza_ataque(_atacante);
+    var _fuerza_defensa = equipo_fuerza_defensa(_defensor);
+
+    var _prob_llegada = clamp(0.35 + (_fuerza_ataque - _fuerza_defensa) / 200, 0.15, 0.65);
+    if (random(1) >= _prob_llegada) { return ResultadoPosesion.SIN_LLEGADA; }
+
+    var _prob_gol = partido_probabilidad_gol(_fuerza_ataque, _fuerza_defensa);
+    return (random(1) < _prob_gol) ? ResultadoPosesion.GOL : ResultadoPosesion.PARADA;
+}
+
+/// @func partido_crear(_local, _visitante)
+function partido_crear(_local, _visitante)
+{
+    return {
+        local: _local, visitante: _visitante,
+        goles_local: 0, goles_visitante: 0,
+        minuto: 0, estado: EstadoPartido.PRIMERA_PARTE,
+        eventos: []                          // feed de texto para un marcador "en directo"
+    };
+}
+
+#macro PARTIDO_PROB_POSESION_POR_MINUTO   0.5   // ~45 posesiones "que cuentan" en 90 minutos
+
+/// @func partido_simular_minuto(_partido)
+/// @desc Un minuto puede no tener nada que contar (posesión trivial en el centro del campo):
+///       simular las 90 posesiones de un partido no aporta nada que el marcador no cuente ya.
+///       La posesión se reparte por fuerza total: el equipo mejor valorado la tiene más a
+///       menudo, no 50/50 fijo.
+function partido_simular_minuto(_partido)
+{
+    if (random(1) >= PARTIDO_PROB_POSESION_POR_MINUTO) { return; }
+
+    var _poder_local     = (equipo_fuerza_ataque(_partido.local)     + equipo_fuerza_defensa(_partido.local))     / 2;
+    var _poder_visitante = (equipo_fuerza_ataque(_partido.visitante) + equipo_fuerza_defensa(_partido.visitante)) / 2;
+    var _ataca_local = (random(_poder_local + _poder_visitante) < _poder_local);
+
+    var _atacante = _ataca_local ? _partido.local     : _partido.visitante;
+    var _defensor = _ataca_local ? _partido.visitante : _partido.local;
+
+    var _resultado = partido_resolver_posesion(_atacante, _defensor);
+    if (_resultado == ResultadoPosesion.GOL)
+    {
+        if (_ataca_local) { _partido.goles_local += 1; } else { _partido.goles_visitante += 1; }
+        array_push(_partido.eventos, { minuto: _partido.minuto, texto: $"¡Gol de {_atacante.nombre}!" });
+    }
+    else if (_resultado == ResultadoPosesion.PARADA)
+    {
+        array_push(_partido.eventos, { minuto: _partido.minuto, texto: $"Ocasión de {_atacante.nombre}, parada del guardameta." });
+    }
+}
+
+/// @func partido_avanzar_minuto(_partido)
+/// @desc Se llama UNA vez por minuto simulado — desde un Step con temporizador si el
+///       jugador está viendo el partido "en directo", o en bucle si pulsa "simular todo".
+///       La máquina de estados que pide el encargo: dos tiempos de 45 minutos y un descanso.
+function partido_avanzar_minuto(_partido)
+{
+    switch (_partido.estado)
+    {
+        case EstadoPartido.PRIMERA_PARTE:
+            _partido.minuto += 1;
+            partido_simular_minuto(_partido);
+            if (_partido.minuto >= 45) { _partido.estado = EstadoPartido.DESCANSO; }
+            break;
+
+        case EstadoPartido.DESCANSO:
+            _partido.estado = EstadoPartido.SEGUNDA_PARTE;
+            break;
+
+        case EstadoPartido.SEGUNDA_PARTE:
+            _partido.minuto += 1;
+            partido_simular_minuto(_partido);
+            if (_partido.minuto >= 90) { _partido.estado = EstadoPartido.FINALIZADO; }
+            break;
+
+        case EstadoPartido.FINALIZADO:
+            break;                            // nada más: el llamador debe dejar de avanzar
+    }
+}
+
+/// @func partido_simular_completo(_local, _visitante)
+/// @desc Resuelve el partido entero de una vez, para las jornadas que el jugador NO ve en
+///       directo — reutiliza la MISMA máquina de estados de partido_avanzar_minuto(), no una
+///       lógica paralela.
+function partido_simular_completo(_local, _visitante)
+{
+    var _partido = partido_crear(_local, _visitante);
+    while (_partido.estado != EstadoPartido.FINALIZADO) { partido_avanzar_minuto(_partido); }
+    return _partido;
+}
+```
+
+> ⚠️ **Estas constantes son un punto de partida, no una calibración real.** Con
+> `PARTIDO_PROB_GOL_BASE = 0.10` y `PARTIDO_PROB_POSESION_POR_MINUTO = 0.5`, dos equipos iguales
+> anotan de media 1-2 goles por partido combinados. No se ha verificado contra una fuente
+> primaria cuántos goles produce de media un partido de fútbol real, así que aquí no se cita esa
+> cifra: ajusta las constantes con el panel de balance en caliente de
+> [13 · 01 §9.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#94--balance-en-caliente-con-el-debug-overlay)
+> hasta que el resultado se sienta correcto en tu propio *playtesting*, sin dar por buena esta
+> calibración de fábrica.
+
+Plantilla, transferencias y calendario de liga completan el bucle: fichar gastando presupuesto,
+y una tabla de posiciones que se recalcula cada jornada.
+
+```gml
+/// scr_manager_liga — resultado aplicado a la tabla, fichajes y calendario de vuelta única.
+
+/// @func partido_aplicar_resultado(_partido)
+/// @desc Traduce el marcador final en puntos de liga (3-1-0) y estadística de gol. Se llama
+///       UNA vez, al terminar el partido (estado FINALIZADO), nunca durante la simulación.
+function partido_aplicar_resultado(_partido)
+{
+    var _local = _partido.local, _visitante = _partido.visitante;
+
+    _local.goles_favor      += _partido.goles_local;
+    _local.goles_contra     += _partido.goles_visitante;
+    _visitante.goles_favor  += _partido.goles_visitante;
+    _visitante.goles_contra += _partido.goles_local;
+
+    if (_partido.goles_local > _partido.goles_visitante)
+    {
+        _local.puntos += 3;     _local.ganados += 1;     _visitante.perdidos += 1;
+    }
+    else if (_partido.goles_local < _partido.goles_visitante)
+    {
+        _visitante.puntos += 3; _visitante.ganados += 1; _local.perdidos += 1;
+    }
+    else
+    {
+        _local.puntos += 1;     _visitante.puntos += 1;
+        _local.empatados += 1;  _visitante.empatados += 1;
+    }
+}
+
+/// @func mercado_fichar(_jugador, _origen, _destino)
+/// @desc Mueve un jugador de un equipo a otro si el presupuesto del destino alcanza. No
+///       reescribe jugador_crear() ni equipo_crear(): solo mueve el struct entre dos arrays
+///       y ajusta el presupuesto de ambos lados.
+/// @return {Bool}
+function mercado_fichar(_jugador, _origen, _destino)
+{
+    if (_destino.presupuesto < _jugador.valor_mercado) { return false; }
+
+    var _indice = array_get_index(_origen.jugadores, _jugador);
+    if (_indice < 0) { return false; }                 // _jugador no está en el equipo _origen
+
+    array_delete(_origen.jugadores, _indice, 1);
+    array_push(_destino.jugadores, _jugador);
+
+    _destino.presupuesto -= _jugador.valor_mercado;
+    _origen.presupuesto  += _jugador.valor_mercado;
+    return true;
+}
+
+/// @func liga_generar_calendario(_equipos)
+/// @desc Calendario de una vuelta (todos contra todos una vez) por el método del círculo: un
+///       equipo fijo, los demás rotan una posición cada jornada. Con número impar de equipos
+///       se añade un hueco `undefined` que cada uno se salta una vez (jornada de descanso).
+/// @param {Array<Struct>} _equipos
+/// @return {Array} un array de jornadas; cada jornada es un array de { local, visitante }
+function liga_generar_calendario(_equipos)
+{
+    var _lista = array_create(array_length(_equipos));
+    array_copy(_lista, 0, _equipos, 0, array_length(_equipos));
+    if (array_length(_lista) mod 2 != 0) { array_push(_lista, undefined); }
+
+    var _n = array_length(_lista);
+    var _jornadas = [];
+
+    for (var _j = 0; _j < _n - 1; _j++)
+    {
+        var _partidos_jornada = [];
+        for (var _i = 0; _i < _n / 2; _i++)
+        {
+            var _local     = _lista[_i];
+            var _visitante = _lista[_n - 1 - _i];
+            if (_local != undefined && _visitante != undefined)
+            {
+                array_push(_partidos_jornada, { local: _local, visitante: _visitante });
+            }
+        }
+        array_push(_jornadas, _partidos_jornada);
+
+        // Rotar: la posición 0 se queda fija, el último pasa a la 1 y el resto se desplaza.
+        var _ultimo = _lista[_n - 1];
+        for (var _k = _n - 1; _k > 1; _k--) { _lista[_k] = _lista[_k - 1]; }
+        _lista[1] = _ultimo;
+    }
+    return _jornadas;
+}
+
+/// @func liga_tabla_posiciones(_equipos)
+/// @desc Copia y ordena por puntos y, en empate, por diferencia de goles. array_sort()
+///       modifica el array que recibe: se ordena una COPIA, nunca la lista original de
+///       equipos — evita reordenar por sorpresa la fuente de verdad de la liga.
+function liga_tabla_posiciones(_equipos)
+{
+    var _tabla = array_create(array_length(_equipos));
+    array_copy(_tabla, 0, _equipos, 0, array_length(_equipos));
+
+    array_sort(_tabla, function(_a, _b)
+    {
+        if (_a.puntos != _b.puntos) { return (_b.puntos - _a.puntos); }
+        var _dg_a = _a.goles_favor - _a.goles_contra;
+        var _dg_b = _b.goles_favor - _b.goles_contra;
+        return (_dg_b - _dg_a);              // ambos restos son enteros: sin el aviso de coma
+                                              // flotante que el manual hace sobre array_sort()
+    });
+    return _tabla;
+}
+```
+
+**A qué apoyarte**
+
+- Deportes jugados en tiempo real, si el juego combina ambos modos (partido jugable a veces,
+  simulado otras): [04 · 49](./49%20-%20Deportes%20y%20física%20de%20mesa.md).
+- Economía y ajuste fino: `13 · 01 §4.1` (vocabulario de fuentes y sumideros) y
+  `13 · 01 §9.4` (panel de balance en caliente, reutilizable tal cual para las constantes de
+  arriba).
+- Guardado de plantilla, calendario y tabla:
+  [01 · 14 §9](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md#9-sistema-de-guardado-completo-recomendado),
+  el mismo patrón JSON que usa el idle de §6.4 de este documento.
+
+### 7.5 · 4X (explorar, expandir, explotar, exterminar)
+
+Un 4X (*Civilization*, *Old World*) une dos motores que la biblioteca ya construyó completos, más
+una pieza que falta. El RTS de
+[04 · 13 §4-§5](./13%20-%20Estrategia%20y%20gestión.md#4-sistemas-clave) da selección, órdenes,
+niebla de guerra y producción por cola — el «expandir/explotar» de la sigla, con el turno
+cambiado por tiempo real si tu 4X es por turnos (la mayoría lo son: cambia el bucle de Step por
+una fase de turno, sin tocar la selección ni las órdenes). La táctica por turnos de
+[04 · 35](./35%20-%20Combate%20por%20turnos%20y%20táctico%20en%20rejilla.md) completa da el
+«exterminar» cuando dos ejércitos chocan en una casilla — rejilla, línea de tiro, cobertura,
+iniciativa.
+
+Lo que falta de verdad son dos sistemas de gestión de imperio que ningún RTS necesita: el árbol
+tecnológico y la diplomacia. El árbol tecnológico NO es un sistema nuevo — es el mismo grafo de
+nodos con prerrequisitos que
+[13 · 16 §3.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#31-el-grafo-de-nodos-modelo-de-datos-en-json-y-carga-a-structs)
+ya construyó para árboles de habilidades (modelo de datos en JSON, carga a *structs*), con la
+validación de ciclos y alcanzabilidad de
+[13 · 16 §3.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#32-validación-por-grafo-ciclos-kahnbfs-y-alcanzabilidad-bfs);
+un árbol tecnológico de 4X es ese mismo grafo con «coste en turnos de investigación» en vez de
+«coste en puntos de habilidad» como unidad de desbloqueo. La diplomacia (tratados, guerra y paz,
+IA de facción con actitud hacia el jugador) no tiene ni una pieza reutilizable en esta
+biblioteca — es el hueco real, y no se resuelve componiendo documentos existentes (auditoría
+`r4-generos.md`, tema 15).
+
+### 7.6 · Sandbox creativo
+
+Un modo *sandbox*/creativo (Minecraft en modo creativo, el editor libre de muchos *builders*) no
+tiene sistemas propios: es el MISMO inventario y crafteo de
+[04 · 09 §4.1-§4.3](./09%20-%20Survival%20y%20crafting.md#4-sistemas-clave) y la MISMA colocación
+en rejilla de
+[04 · 51 §5.1](./51%20-%20Colonia%20y%20constructor%20de%20bases%20-%20trabajadores%20autónomos.md#51--plano-frente-a-construido-dos-capas-no-una),
+con los sumideros de recursos desconectados — nunca se gasta lo que se coloca, nunca hay un
+contador de cuánto queda. Es, literalmente, el «modo sin fallar» que §5.1 de este mismo documento
+ya nombra para la granja, llevado un paso más allá: no solo sin fallo, sin coste. Lo único que un
+*sandbox* añade encima de esos dos sistemas es una bandera de modo que la validación de coste ya
+existente debe consultar antes de descontar materiales — no un sistema nuevo.
+
+### 7.7 · Tower offense
+
+Un *tower offense* invierte quién ataca y quién defiende frente a un tower defense: en vez de
+torres estáticas defendiendo un camino contra enemigos que avanzan, son **unidades móviles las
+que avanzan** hacia un objetivo defendido por posiciones estáticas. `04 · 08 §1` ya lo nombra en
+su tabla de subgéneros («Torres móviles que avanzan», dificultad Media) sin desarrollarlo — esta
+sección lo desarrolla reutilizando, sin tocar ni una línea, el mismo `TDGrid` y el mismo
+*pathfinding* de
+[04 · 08 §5.1](./08%20-%20Tower%20Defense.md#51-la-grid-lógica) (`mp_grid_create`,
+`calcular_path()` sobre `mp_grid_path`). Lo único que cambia es qué objeto sigue el camino y qué
+objeto dispara.
+
+```gml
+/// obj_atacante_movil · Create — la "torre" de 04 · 08 pasa a ser esto: una unidad que
+/// avanza en vez de defender quieta. Usa la MISMA TDGrid de 04 · 08 §5.1: no se crea una
+/// rejilla nueva, se recibe la del nivel al spawnear (mismo patrón que enemigo_set_path()
+/// de 04 · 08 §5.5, con origen y destino invertidos).
+/// @param {Struct} _grid     TDGrid (04 · 08 §5.1), ya existente en el nivel.
+/// @param {Real}   _celda_x  Celda de origen (spawn del atacante).
+/// @param {Real}   _celda_y
+/// @param {Real}   _obj_x    Celda del objetivo defendido.
+/// @param {Real}   _obj_y
+
+grid           = _grid;
+vida           = 40;
+dano_impacto   = 10;                        // daño al objetivo defendido, al llegar
+velocidad_base = 1.2;
+
+var _ruta = grid.calcular_path(_celda_x, _celda_y, _obj_x, _obj_y);
+if (_ruta == noone)
+{
+    instance_destroy();                     // sin camino al objetivo: no tiene sentido existir
+    exit;
+}
+path_start(_ruta, velocidad_base, path_action_stop, false);
+```
+
+```gml
+/// obj_atacante_movil · Step — llega al objetivo defendido, o muere en el camino
+if (path_position >= 1)
+{
+    with (obj_objetivo_defendido) { vida -= other.dano_impacto; }
+    if (path_exists(path_index)) { path_delete(path_index); }
+    instance_destroy();
+    exit;
+}
+
+if (vida <= 0)
+{
+    if (path_exists(path_index)) { path_delete(path_index); }
+    instance_destroy();
+}
+```
+
+El defensor estático es literalmente `objTowerBase` de
+[04 · 08 §5.3](./08%20-%20Tower%20Defense.md#53-torre-targeting-y-disparo) sin cambiar ni una
+línea de apuntado ni de disparo — el único cambio es a quién apunta `buscar_objetivo()`: el
+`with (objEnemyBase)` de esa función pasa a ser `with (obj_atacante_movil)`, porque ahora es el
+atacante quien se mueve por el camino y el defensor quien se queda quieto disparándole. El
+objetivo defendido es la única pieza sin equivalente en un TD normal — ahí no hay «vidas del
+jugador» que perder, hay una estructura con barra de vida propia:
+
+```gml
+/// obj_objetivo_defendido · Create
+vida     = 500;
+vida_max = 500;
+
+/// obj_objetivo_defendido · Step
+if (vida <= 0) { global.atacante_gana = true; }   // el objetivo cayó: gana quien atacaba
+```
+
+Las oleadas de atacantes reutilizan sin cambios
+[04 · 08 §5.8](./08%20-%20Tower%20Defense.md#58-oleadas-desde-structs) (oleadas desde *structs*):
+esa función solo le importa instanciar un objeto desde una definición, es indiferente a si el
+objeto instanciado avanza o defiende.
+
+### 7.8 · Escape room / sala de escape
+
+Una sala de escape no tiene ni un sistema propio: es
+[04 · 48](./48%20-%20Aventura%20gráfica%20y%20point%20and%20click.md) (aventura gráfica y *point
+& click*) con el mapa recortado a una sola sala. Los sistemas que definen una sala de escape ya
+están completos ahí — hotspots por objeto, máscara o polígono
+([§3.1](./48%20-%20Aventura%20gráfica%20y%20point%20and%20click.md#31--hotspots-tres-formas-de-marcar-una-zona-interactiva)),
+cursor contextual con prioridad (§3.2), inventario combinatorio para combinar objetos entre sí
+([§3.7](./48%20-%20Aventura%20gráfica%20y%20point%20and%20click.md#37--inventario-combinatorio)),
+y estado del mundo por banderas globales para que abrir el cajón dependa de haber usado la llave
+en la cerradura antes (§3.8). Lo único que una sala de escape NO necesita de `04 · 48` es el
+viaje entre escenas (§2, la transición entre habitaciones de una aventura completa): vive y muere
+en una sola *room*, con el mismo sistema de banderas decidiendo qué hotspot se activa según lo
+que ya se resolvió, no qué habitación se carga.
+
+### 7.9 · Experiencias de menos de 5 minutos (*microgames* de *jam*/itch)
+
+**La convención:** en un *microgame* el jugador decide en los primeros segundos si sigue
+jugando.
+[13 · 11 §1.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#14-prototipo-mvp-y-vertical-slice-tres-cosas-distintas)
+ya fija el prototipo como «jugable en un minuto»; un *microgame* de *jam* ES ese prototipo,
+pulido, sin las capas de progresión que un juego completo añadiría encima.
+[04 · 11](./11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md) (arcade y juegos de un botón) es la
+pieza técnica más cercana — control reducido a una entrada, dificultad progresiva, reinicio
+instantáneo (§5.5) — pero pensada para un juego que se rejuega muchas veces seguidas, no para una
+sesión que empieza y acaba una sola vez.
+
+Lo que falta encima de esas dos piezas son dos reglas de ritmo que solo importan cuando la sesión
+completa dura menos que la paciencia de quien juega una *jam*:
+
+**1 · Sin menú, carga inmediata.** El juego no se abre con una pantalla de título esperando una
+pulsación: empieza jugándose. Si hacen falta instrucciones, van ENCIMA de la acción, no antes —
+la «regla de los 3 segundos»: el objetivo se lee sin pulsar nada, y se retira solo.
+
+```gml
+/// obj_control · Create — arranca el juego en marcha; no hay un room de menú que cargar antes
+partida_tiempo    = 0;
+mostrar_objetivo  = true;
+
+/// obj_control · Step — el rótulo se retira solo, nunca por una pulsación de "empezar"
+partida_tiempo += delta_time / 1000000;
+if (partida_tiempo > 3) { mostrar_objetivo = false; }
+
+/// obj_control · Draw GUI — el objetivo se lee mientras el juego YA está corriendo debajo
+if (mostrar_objetivo)
+{
+    draw_set_alpha(clamp(1 - (partida_tiempo / 3), 0, 1));      // se desvanece, no corta de golpe
+    draw_text(20, 20, "Objetivo: llega a la meta antes de que suba la marea");
+    draw_set_alpha(1);
+}
+```
+
+**2 · Reinicio instantáneo, sin pantalla de resultados de tres clics.**
+[04 · 11 §5.5](./11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md#55-muerte-y-reinicio-instantáneo)
+ya construyó la muerte y el reinicio instantáneo para arcade; un *microgame* usa el MISMO patrón
+sin cambiar nada, con una diferencia de tono: no suele haber un *high score* que justifique una
+pantalla aparte, así que el reinicio vuelve al juego directamente, no a un menú de resultados.
+
+### 7.10 · Lo que queda fuera, y por qué
+
+La auditoría `_indice/auditorias/r4-generos.md` (2026-09-07) cribó estos géneros contra las
+etiquetas reales de itch.io y Steam y decidió que ninguno justifica receta propia hoy — por baja
+demanda real en GameMaker, o porque exigen infraestructura de *live service* fuera del alcance de
+un proyecto en solitario. El número entre paréntesis es el tema de esa auditoría, por si una
+ronda futura quiere revisar el veredicto.
+
+| Género | Por qué no |
+|---|---|
+| **Immersive sim** (sistemas emergentes, sin guion) | Alcance enorme —*Deus Ex*, *Prey*— y prácticamente inexistente en GameMaker; 0 resultados en la biblioteca antes de esta auditoría (tema 7) |
+| **MOBA** (carriles, torres, *creeps*) | Exige infraestructura de *matchmaking* y balance competitivo de *live service* fuera del alcance realista de un proyecto en solitario (tema 10) |
+| **Extraction shooter** (loteo, extracción, perder botín al morir) | Los cimientos de red ya existen (`04 · 14 §10`, tablas de *loot* de `04 · 05`), pero el género completo con red competitiva en tiempo real es más proyecto que receta (tema 8) |
+| **Battle royale** (zona que se encoge, último en pie) | Mismos cimientos de red que el *extraction shooter*; la mecánica del círculo es sencilla (`lerp` sobre un radio), la infraestructura de decenas de jugadores simultáneos no lo es (tema 9) |
+| **Hidden object games** (objetos ocultos) | Género casi extinto fuera de móvil casual; 0 resultados, sin demanda que lo justifique (tema 28) |
+| **Juegos de palabras** (*Wordle*-style) | Las funciones de comparación de cadenas ya existen sueltas en `08` (referencia GML); falta ensamblarlas en una receta, pero la demanda es baja (tema 29) |
+| **Juegos de dibujar** (*Gartic Phone*-style) | La captura de trazos con `surface`/`sprite_add` existe dispersa en otros documentos, nunca ensamblada para esto; baja demanda (tema 32) |
+| **Mecanografía** (*typing games*) | Técnicamente cercano a las ventanas de acierto de `13 · 19` (rítmica) pero sin desarrollar; baja demanda (tema 33) |
+| **Simuladores hardcore de vuelo/conducción** | GameMaker es mal ajuste para aerodinámica realista y sistemas de cabina complejos; `04 · 12` cubre el eje arcade, no el simulador duro (tema 21) |
+
+Si tu proyecto necesita de verdad uno de estos, la columna «por qué no» es un punto de partida
+honesto, no un veto: dice qué falta y por qué esta biblioteca no lo dio por prioritario hoy, no
+que sea imposible construirlo.
+
+---
+
+## 8 · Checklist transversal
 
 - [ ] **Sigilo**: el jugador nunca es descubierto sin haber visto venir el motivo (cono +
       línea de visión + medidor visibles o inferibles).
@@ -974,8 +1599,14 @@ la vuelta como `_campo_run` y la moneda de prestigio como `_campo_meta`.
 - [ ] **Idle**: el juego calcula progreso offline al cargar, con un tope explícito.
 - [ ] **Idle**: los números que superan la pantalla usan `numero_abreviado()` (o equivalente)
       antes de desbordar el HUD o perder precisión en silencio.
+- [ ] **Manager deportivo**: la probabilidad de gol sale de comparar estadísticas de plantilla
+      (`equipo_fuerza_ataque()`/`_defensa()`), nunca un marcador fijado a mano.
+- [ ] **Tower offense**: el atacante móvil usa el MISMO `TDGrid`/pathfinding de `04 · 08 §5.1` —
+      no se reimplementa un A* nuevo solo por invertir quién ataca y quién defiende.
+- [ ] **Experiencias <5 min**: el objetivo se lee en los primeros segundos sin pulsar nada, y no
+      hay pantalla de menú antes de que el juego empiece a correr.
 
-## 8 · Errores clásicos y cómo evitarlos
+## 9 · Errores clásicos y cómo evitarlos
 
 | Error | Por qué pasa | Cómo evitarlo |
 |---|---|---|
@@ -988,6 +1619,9 @@ la vuelta como `_campo_run` y la moneda de prestigio como `_campo_meta`.
 | `array_create(n, {...})` para inicializar una rejilla de structs | Parece más corto que un bucle | Todas las celdas comparten la MISMA referencia de struct; usa el bucle de §5.3 |
 | Progreso offline sin tope | Se copia solo la fórmula de producción, sin el `clamp` | `progreso_offline_aplicar()` (§6.4) siempre acota a `_tope_horas` |
 | Guardar la producción acumulada como `real` sin vigilar el límite | Los números crecen más rápido de lo previsto en playtesting | Vigila `int64` (`13 · 13 §11.4`) y planea la migración a mantisa+exponente con tiempo |
+| Simular un partido de manager con `random()` puro, sin comparar plantillas | Parece «aleatorio = justo» | El marcador debe correlacionar con la calidad del equipo: calcula `equipo_fuerza_ataque()`/`_defensa()` (§7.4) antes de tirar el dado |
+| Reimplementar el pathfinding para un tower offense | Parece que «atacar» necesita una rejilla distinta de «defender» | Es la MISMA `TDGrid` de `04 · 08 §5.1` (§7.7): solo cambia qué objeto la usa y en qué dirección va el camino |
+| Un *microgame* con pantalla de título y menú de opciones antes de jugar | Se copia la estructura de un juego completo por costumbre | La regla de los 3 segundos (§7.9): el juego empieza corriendo, el objetivo se lee encima, sin pulsar nada |
 
 ## Ver también
 
@@ -1008,6 +1642,15 @@ la vuelta como `_campo_run` y la moneda de prestigio como `_campo_meta`.
 - [13 · 16 — Progresión](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md) — monedas múltiples y prestigio del §6.4.
 - [01 · 14 — Persistencia y archivos](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) — el sistema de guardado sobre el que se apoya el §6.4.
 - [08 · 18 — Fecha y hora](../08%20-%20Referencia%20GML%20completa/18%20-%20Fecha%20y%20hora.md) — `date_current_datetime`/`date_second_span`, la base del §6.4.
+- [13 · 22 — Diseño de mundo y exploración](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/22%20-%20Diseño%20de%20mundo%20y%20exploración.md) — el bucle de exploración del §7.1, y la generación de calles del §7.3.
+- [04 · 29 — 3D en GameMaker](./29%20-%203D%20en%20GameMaker.md) — la cámara en primera persona con el ratón bloqueado que usan el §7.1 y el terror en primera persona.
+- [04 · 51 — Colonia y constructor de bases](./51%20-%20Colonia%20y%20constructor%20de%20bases%20-%20trabajadores%20autónomos.md) — rutinas y horarios (§7.2), redes de energía (§7.3) y colocación en rejilla (§7.6).
+- [04 · 13 — Estrategia y gestión](./13%20-%20Estrategia%20y%20gestión.md) — el RTS completo que sostiene la mitad del §7.5.
+- [04 · 08 — Tower Defense](./08%20-%20Tower%20Defense.md) — la `TDGrid` y el *pathfinding* que reutiliza sin cambios el §7.7.
+- [04 · 48 — Aventura gráfica y point and click](./48%20-%20Aventura%20gráfica%20y%20point%20and%20click.md) — hotspots, cursor contextual e inventario combinatorio, la base del §7.8.
+- [13 · 11 — Producción, alcance y lanzamiento](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md) — la escala prototipo/MVP/vertical slice del §7.9.
+- [04 · 11 — Arcade y juegos de un botón](./11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md) — el reinicio instantáneo que reutiliza sin cambios el §7.9.
+- [04 · 49 — Deportes y física de mesa](./49%20-%20Deportes%20y%20física%20de%20mesa.md) — el deporte JUGADO en tiempo real, el género vecino del manager de §7.4.
 
 ## Fuentes
 
@@ -1016,12 +1659,16 @@ la vuelta como `_campo_run` y la moneda de prestigio como `_campo_meta`.
 `09 - Manual oficial/`): `clamp`, `lerp`, `merge_colour`, `draw_healthbar`, `date_current_datetime`,
 `date_second_span`, `array_create`, `array_contains`, `array_get_index`, `chr`, `ln`, `power`,
 `string_format`, `variable_struct_exists`, `random`, `point_distance`, `audio_sound_gain`,
-`audio_play_sound`, `delta_time`. `senal_emitir`/`senal_escuchar` (`04 · 16`), `en_cono_vision`
-(`13 · 13 §2.4`), `hay_vision_libre`/`ia_ve_al_jugador` (`04 · 31 §5`) y
-`VNState.afinidad_get`/`afinidad_sumar` (`04 · 10 §5.2`) son funciones **propias de la
-biblioteca**, no del runtime: se enlazan a su definición en vez de reescribirlas.
+`audio_play_sound`, `delta_time`. Añadidos para el §7: `array_sort`, `array_copy`,
+`array_length`, `array_push`, `array_delete`, `instance_destroy`, `path_start`, `path_position`,
+`path_index`, `path_exists`, `path_delete`, `path_action_stop`, `draw_text`, `draw_set_alpha`.
+`senal_emitir`/`senal_escuchar` (`04 · 16`), `en_cono_vision`
+(`13 · 13 §2.4`), `hay_vision_libre`/`ia_ve_al_jugador` (`04 · 31 §5`),
+`VNState.afinidad_get`/`afinidad_sumar` (`04 · 10 §5.2`) y `TDGrid.calcular_path`/`mp_grid_path`
+(`04 · 08 §5.1`) son funciones **propias de la biblioteca**, no del runtime: se enlazan a su
+definición en vez de reescribirlas.
 
-**Diseño, consultadas el 2026-09-06:**
+**Diseño, consultadas el 2026-09-06 (§1-§6) y el 2026-09-07 (§7):**
 
 [^1]: *Mark of the Ninja*, Wikipedia — «enemies which would be invisible to the character are
     also invisible to the player»; los ruidos como círculos que se expanden; los iconos de
@@ -1062,3 +1709,16 @@ biblioteca**, no del runtime: se enlazan a su definición en vez de reescribirla
 [^7]: `13 · 13 §11.4` de esta misma biblioteca, sobre `int64` y la representación mantisa +
     exponente para cifras que lo superan — no es una fuente externa, se cita para dejar claro
     qué parte de §6.3 es nueva y cuál solo implementa lo ya escrito allí.
+
+[^8]: *Walking simulator*, Wikipedia, consultada el 2026-09-07 — «an adventure game that
+    consists primarily of movement and environmental interaction»; «walking sims generally do
+    not have combat mechanics or traditional win/lose scenarios» —
+    <https://en.wikipedia.org/wiki/Walking_simulator>
+
+[^9]: *Sports game*, Wikipedia, sección «Management», consultada el 2026-09-07 — los juegos de
+    gestión deportiva sitúan al jugador «in the role of a team manager or executive rather than
+    directly controlling athletes during matches», con jugabilidad centrada en «strategic
+    planning, player transfers, financial management, training, and long-term team development»
+    y asociada a «deep statistical systems and long-term progression rather than moment-to-moment
+    action» —
+    <https://en.wikipedia.org/wiki/Sports_game>

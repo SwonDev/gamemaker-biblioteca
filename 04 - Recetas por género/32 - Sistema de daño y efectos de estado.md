@@ -21,9 +21,10 @@
 > [13 · 05 §3.5 b)](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md).
 > El TTK/DPS de **diseño**, la hoja de cálculo de balance y el Debug Overlay son de
 > [13 · 01 §4.4 y §9.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md).
-> Lo que **tampoco** cubre y sigue siendo un hueco de la biblioteca: los **arquetipos de
-> enemigo**, la **tabla de amenaza** (*aggro*) y el **director de intensidad** de un encuentro
-> — nada de esto tiene todavía documento propio.
+> Lo que **tampoco** cubre: los **arquetipos de enemigo**, la **tabla de amenaza** (*aggro*) y el
+> **director de intensidad** de un encuentro, que son de
+> [04 · 33](./33%20-%20Diseño%20de%20enemigos%2C%20encuentros%20y%20director%20de%20combate.md)
+> (§1, §4 y §5-6 respectivamente).
 
 ---
 
@@ -283,6 +284,53 @@ Un color por tipo (tabla `global.dano_tipo_info`, ya indexable por `DanoTipo`) r
 tres sitios: el número flotante de 04 · 15 §5.6, el contorno o *tint* del sprite al recibir el
 golpe, y el icono del propio efecto de estado. Una única fuente de verdad para el color evita
 que el número flotante diga «fuego» en amarillo y el icono lo pinte de rojo.
+
+**Congelación, como efecto visual compuesto — no hace falta técnica nueva.** El tinte plano de
+arriba (`global.dano_tipo_info[DanoTipo.HIELO].color`) ya se aplica al icono y al número
+flotante; en el propio sprite se lee mejor combinado con la desaturación progresiva de
+[08 · 06 §6.1](../08%20-%20Referencia%20GML%20completa/06%20-%20Shaders.md#61-desaturación-progresiva) —
+el gris drena «vida» del sprite antes de sumarle el azul, en vez de un tinte plano sobre los
+colores originales:
+
+```gml
+// obj_enemigo — Draw, mientras combate.efectos.tiene("congelacion") (§5.4)
+if (combate.efectos.tiene("congelacion"))
+{
+    shader_set(sh_desaturar);                          // 08 · 06 §6.1, tal cual
+    shader_set_uniform_f(u_intensidad, 0.6);
+    image_blend = merge_color(c_white, global.dano_tipo_info[DanoTipo.HIELO].color, 0.35);
+    draw_self();
+    shader_reset();
+    image_blend = c_white;
+}
+else
+{
+    draw_self();
+}
+```
+
+Para la escarcha creciendo encima (no solo el tinte), superpón una textura simple de cristales
+con `bm_add` y alfa creciente según el tiempo que le queda al efecto — los mismos campos
+`.restante`/`.duracion_total` de `combate.efectos.activos[i]` que ya usa §5.10 para la barra bajo
+el icono, aplicados aquí a la opacidad de la escarcha en vez de a una barra.
+
+**Quemado, igual de compuesto.** `pt_fuego`/`pt_ascua` de
+[04 · 39 §3.1](./39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#31-ampliar-objfx-los-tipos-de-partícula-que-faltaban)
+ya existen para fuego EN UN PUNTO fijo (una antorcha, §3.3 de ese documento); para un enemigo
+que arde basta con crearlas desde su posición ACTUAL cada Step, no desde un emisor anclado:
+
+```gml
+// obj_enemigo — Step, mientras combate.efectos.tiene("quemadura")
+if (combate.efectos.tiene("quemadura"))
+{
+    part_particles_create(objFx.ps, x, y - sprite_height * 0.5, objFx.pt_fuego, 1);
+}
+```
+
+`part_type_step(pt_fuego, -6, pt_ascua)` — ya definido en esa misma sección de 04 · 39 — sigue
+engendrando ascuas sin cambiar nada: el fuego «se mueve con el enemigo» porque el punto de
+creación se recalcula cada frame con su propio `x, y`, no porque haya un sistema nuevo que
+seguirlo.
 
 ### 4.7 Curación como sistema: HoT y el bloqueo en combate
 

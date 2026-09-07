@@ -32,6 +32,33 @@ windows
 xboxseriesxs
 ```
 
+**Re-verificado en vivo el 07-09-2026, con `ResourceTool@2026.0.17`: el comando sigue
+funcionando exactamente así — no es una regresión.** Lo que cambia el resultado es si el
+proyecto tiene la carpeta `options/` generada en disco, algo que depende de cómo se creó el
+proyecto, no de la versión del ResourceTool:
+
+- Sobre un proyecto **Blank Pixel Project** (la plantilla oficial de `gm-cli init`) y sobre
+  **Towers Vs. Monsters**/**Puzzle Slider** (plantillas oficiales de la Marketplace), `options
+  list` imprime la lista completa sin problema — en dos de los tres casos, con un **14.º nodo,
+  `reddit`**, que esta tabla no recoge (coherente con el target Reddit/Devvit nuevo de 2026.0,
+  §3.3).
+- Sobre un proyecto creado desde **Space Rocks - Starter Pack** (uno de los ejemplos que cita
+  `AGENTS.md` §5 para `gm-cli init`), la carpeta `options/` **no existe en absoluto** en el
+  paquete del asset: `options list` no imprime nada (ni error, exit 0) y `options info
+  platform=<cualquiera>` — incluso con un nombre de plataforma inventado — responde siempre
+  `No licensed options for platform 'X'. Available: `. El mismo síntoma se reprodujo con otras
+  plantillas GML-code de la Marketplace (Brick Breaker, Firejump, RPG Starter Pack, Scrolling
+  Shooter, Farm Survivor): ninguna trae `options/` de fábrica.
+- **No hay ningún flag que regenere esa carpeta desde el CLI** (comprobado con `gm-cli
+  resourcetool eval --help` y `options` sin argumentos, 07-09-2026): si te pasa esto, la
+  alternativa que funciona es abrir el proyecto una vez en el IDE (que crea los recursos de
+  Options por defecto al guardar) o copiar la carpeta `options/` de un proyecto que sí la
+  tenga.
+
+Este hallazgo también resuelve, con evidencia en vivo, una pregunta pendiente para consolas:
+en los tres proyectos que sí tienen `options/`, aparece **`switch` pero nunca `switch2`** —
+detalle completo en [06 · 3.5](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md#35-la-pregunta-pendiente-resuelta-switch-2-comparte-nodo-con-switch).
+
 ### 1.2 Plataformas que el CLI puede compilar hoy
 
 | Target del CLI | Soportado en 2.2.0 | Soportado en 2.3.0 | Notas |
@@ -91,6 +118,11 @@ compañía te ha aprobado como desarrollador:
 
 Proceso de solicitud: <https://gamemaker.io/en/help/articles/application-process-for-console-access>
 
+> El trámite completo de acceso —URLs de registro, contactos regionales de Nintendo, el paso a
+> paso de PlayStation y Xbox verificado contra ese mismo artículo, y qué hacer cuando el detalle
+> exacto vive dentro del NDA— está desarrollado en
+> [06 · Publicar en consolas: Nintendo, PlayStation y Xbox §2](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md#2--el-trámite-público-antes-del-devkit).
+
 ---
 
 ## 2. Licencias: qué permite cada una
@@ -99,7 +131,7 @@ Fuente: <https://gamemaker.io/en/get>
 
 | Capacidad | **Free** | **Professional** | **Enterprise** |
 |---|---|---|---|
-| Precio | Gratis | **Pago único de 99,99 USD** | Suscripción mensual o anual |
+| Precio | Gratis | **Pago único de 99,99 USD** | Suscripción mensual o anual — **67,99 €/mes o 679,99 €/12 meses**, verificado en Steam el 07-09-2026 (detalle y fuente en [06 · 3.1](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md#31-la-licencia-enterprise-el-precio-real)) |
 | Licencia | **No comercial** | **Comercial** | **Comercial** |
 | Export a GX.games | ✅ | ✅ | ✅ |
 | Export de escritorio (Windows/macOS/Linux) | ✅ | ✅ | ✅ |
@@ -375,6 +407,11 @@ desarrollador (el proceso está en el artículo de ayuda enlazado en la sección
 Switch 1, but please do see the setup guides before attempting any builds or filing any bugs.»
 El foro oficial recuerda además que los detalles de consola están **bajo NDA** y sólo se discuten
 en el foro privado de desarrolladores verificados.
+
+> El trámite de acceso a cada fabricante (con URLs y contactos reales), el vocabulario del
+> oficio (*lotcheck*, TRC, XR, Gamerscore…) y lo que sí es público sobre cada consola están en
+> [06 · Publicar en consolas: Nintendo, PlayStation y Xbox](./06%20-%20Publicar%20en%20consolas%20-%20Nintendo%2C%20PlayStation%20y%20Xbox.md) —
+> no se repite aquí.
 
 ### 3.8 bis · Qué exige una consola aunque no puedas contarlo
 

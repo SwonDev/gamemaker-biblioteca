@@ -1,7 +1,7 @@
 # Índice del ecosistema GameMaker
 
 > Documentado el **31 de agosto de 2026**.
-> Contexto: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · runtime GMS2 2026.0.0.23) · **GMRT** en Beta · `gm-cli` 2.2.0 local (2.3.0 publicada).
+> Contexto: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · runtime GMS2 2026.0.0.23) · **GMRT** en Beta · `gm-cli` 2.3.0 (verificado 07-09-2026, al día con la publicada).
 > **Todo lo que aparece aquí se ha verificado contra la API de GitHub, la API de Codeberg, los READMEs de los repos o el manual oficial (`gm-cli manual read`).**
 
 ---
@@ -120,7 +120,7 @@
 | Bento | [JujuAdams/Bento](https://github.com/JujuAdams/Bento) | 53 | MIT | UI multiplataforma |
 | lexicon | [tabularelf/lexicon](https://github.com/tabularelf/lexicon) | 52 | MIT | Localización |
 | DoLater | [JujuAdams/DoLater](https://github.com/JujuAdams/DoLater) | 45 | MIT | `call_later()` con argumentos |
-| Emu | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 43 | ⚠️ sin licencia | UI para herramientas |
+| Emu | [DragoniteSpam/Emu](https://github.com/DragoniteSpam/Emu) | 43 | MIT (desde 2020) | UI para herramientas |
 | LimeUI | [Limekys/LimeUI](https://github.com/Limekys/LimeUI) | 36 | MIT | UI con flexpanels |
 | SNAP | [JujuAdams/SNAP](https://github.com/JujuAdams/SNAP) | 100 | MIT | Conversores de datos |
 | Dynamo | [JujuAdams/Dynamo](https://github.com/JujuAdams/Dynamo) | 36 | MIT | Carga dinámica de datos |
@@ -218,7 +218,7 @@ Comando (verificado):
 gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolchain GMS2@2026.0.0.23
 ```
 
-> ⚠️ Con `gm-cli` **2.2.0**, las plantillas que usan **prefabs** (p. ej. *Platformer Template*) fallan con `ProjectTool PREFABS RESTORE exited with code 1`. **Actualiza a 2.3.0** antes: `npm install -g @gamemaker/gm-cli@latest`.
+> ⚠️ Las plantillas que usan **prefabs** (p. ej. *Platformer Template*) fallan con `ProjectTool PREFABS RESTORE exited with code 1`. **No es un problema de versión: sigue fallando en 2.3.0**, la última publicada (reverificado 02-09-2026). Detalle y alternativas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
 ---
 
@@ -299,7 +299,7 @@ gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolc
 
 ### ⚠️ Licencias que requieren revisión antes de uso comercial
 
-`NOASSERTION` o sin licencia en: la mayoría de las `GMEXT-*` · `gmlscripts/scripts` · `PixelatedPope/HelpfulGMLScripts` · `Mtax-Development/GML-OOP` · `DragoniteSpam/Emu` · `JujuAdams/Hotglue` · `JujuAdams/PNGEncoder` · `JujuAdams/Konstants` · `TrianglyRU/OrbinautFramework` · `MegamixEngine` · `Mine-imator` · todos los proyectos marcados 🚩.
+`NOASSERTION` o sin licencia en: la mayoría de las `GMEXT-*` · `gmlscripts/scripts` · `PixelatedPope/HelpfulGMLScripts` · `Mtax-Development/GML-OOP` · `JujuAdams/Hotglue` · `JujuAdams/PNGEncoder` · `JujuAdams/Konstants` · `TrianglyRU/OrbinautFramework` · `MegamixEngine` · `Mine-imator` · todos los proyectos marcados 🚩. `DragoniteSpam/Emu` **no** entra en esta lista: es MIT desde 2020 (verificado 2026-09-07), pese a que estuvo marcada como «sin licencia» en versiones anteriores de este documento.
 
 **GPL-3.0 (contagiosa):** `Spring-SG/FVM-Reborn` · `toarch7/nt-recreated-public`.
 
@@ -331,7 +331,7 @@ gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolc
 | **gm(48)** | <https://gm48.net/> | ✅ |
 | gm(48) · calendario | <https://gm48.net/game-jam-schedule> | ✅ |
 | gm(48) · proyectos open source | <https://gm48.net/open-source-gamemaker-projects> | ✅ |
-| GMTK Game Jam (oficial) | <https://gmtkgamejam.com/> | ✅ |
+| GMTK Game Jam (oficial) | <https://gmtkgamejam.com/> | 🔴 **no responde** (500 / timeout, comprobado 07-09-2026); usa la edición en itch.io de abajo o <https://gamemakerstoolkit.com/jam/> |
 | GMTK Game Jam 2026 | <https://itch.io/jam/gmtk-jam-2026> | ✅ finalizada |
 | Ludum Dare | <https://ludumdare.com/> | ✅ (fin anunciado en oct 2028) |
 | ~~ldjam.com~~ | ~~<https://ldjam.com>~~ | ❌ **no responde** |

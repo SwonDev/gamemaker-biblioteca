@@ -3,6 +3,8 @@
 > El motor de física integrado de GameMaker. Para puzzles físicos tipo *Angry Birds*, cajas que
 > se apilan y ruedan, vehículos con ruedas, cuerdas, ragdolls. **No es para un plataformas
 > normal** — eso se hace mejor a mano ([01 · Plataformas 2D](./01%20-%20Plataformas%202D.md)).
+> También cubre el patrón *colocar y simular* (estilo *Besiege*): piezas que el jugador coloca
+> en frío sobre una rejilla y que solo cobran física de golpe al pulsar «Simular» (§7).
 >
 > **Hueco de receta detectado:** las 100 funciones `physics_*` estaban catalogadas, pero sin
 > una guía que enseñara a montar el mundo, crear fixtures y usar joints. Este documento lo cierra.
@@ -278,6 +280,279 @@ physics_particle_draw_ext(0, 1, spr_gota, 0, 1, 1, 0, c_white, 1);
 
 ---
 
+## 7 · Sandbox de física / contraption builder
+
+Todo lo anterior asume que las fixtures y los joints se crean **una vez**, en el `Create` de
+un objeto que ya existe en la sala. Hay un patrón distinto — el de juegos como *Besiege*, donde
+el jugador **construye** antes de jugar: coloca piezas en una rejilla en tiempo de diseño, sin
+que la gravedad las toque, guarda esa construcción, y solo al pulsar «Simular» cobra vida de
+golpe como un cuerpo físico completo con sus joints.
+
+```
+DISEÑO (sin física, solo datos)  →  GUARDAR (JSON)  →  SIMULAR (instanciar + fixtures + joints)
+        ↑                                                              │
+        └──────────────────────  DESHACER (destruir instancias)  ──────┘
+```
+
+> ⚠️ No se ha podido abrir ninguna fuente sobre *Besiege* en esta sesión — la red no responde
+> (falla incluso la resolución DNS, con y sin `curl`, y `WebFetch`; WebSearch está agotado). Se
+> nombra solo como referencia de diseño ampliamente conocida del género; no se cita ningún dato
+> concreto (estudio, fecha, cifras) que no se haya verificado en vivo.
+
+### 7.1 · Catálogo de piezas: forma + joint, como datos
+
+Cada pieza colocable es un **dato**, no una instancia: qué objeto la representa, su forma de
+fixture y con qué tipo de joint se conecta a la pieza vecina. Los tres joints son los mismos de
+**[§4 · Joints: cuerdas, ruedas, puentes](#4--joints-cuerdas-ruedas-puentes)** de este mismo
+documento — no se repiten aquí sus firmas completas; siguen siendo largas y fáciles de
+equivocar, así que antes de tocarlas: `python3 _indice/buscar.py physics_joint_revolute_create`.
+
+```gml
+/// función de apoyo — el catálogo de piezas del taller
+function taller_catalogo_piezas() {
+    return [
+        { id: "viga",   objeto: obj_pieza_viga,   forma: "caja",    ancho: 64, alto: 16,
+          densidad: 0.8, junta: "revolute" },   // eslabón rígido que puede girar en el punto de unión
+        { id: "rueda",  objeto: obj_pieza_rueda,  forma: "circulo", radio: 16,
+          densidad: 0.6, junta: "revolute" },   // rueda: gira libre sobre su eje, §4
+        { id: "cuerda", objeto: obj_pieza_cuerda, forma: "caja",    ancho: 8,  alto: 32,
+          densidad: 0.3, junta: "distance" },   // eslabón de cadena, §4
+        { id: "piston", objeto: obj_pieza_piston, forma: "caja",    ancho: 48, alto: 16,
+          densidad: 1.0, junta: "prismatic" },  // desliza en un eje, §4
+    ];
+}
+
+/// función de apoyo — buscar un tipo del catálogo por su id
+function taller_tipo_de(_id) {
+    for (var _i = 0; _i < array_length(catalogo); _i++) {
+        if (catalogo[_i].id == _id) return catalogo[_i];
+    }
+    return undefined;
+}
+```
+
+### 7.2 · Modo diseño: colocar en rejilla sin física activa
+
+La rejilla de ocupación (celda ocupada/libre, fantasma que se dibuja bajo el ratón) **ya está
+resuelta** en
+[04 · 09 — Survival y crafting §5.3](./09%20-%20Survival%20y%20crafting.md#53-construcción-con-ghost-preview)
+con `objWorldGrid`: un struct sparse `"x,y" → dato`, con `ocupada()`/`ocupar()`/`liberar()`. No
+se duplica aquí ese mecanismo; solo se adapta a lo que este patrón necesita de más: cada celda
+tiene que recordar **de qué tipo de pieza es**, para poder decidir el joint al simular — no le
+basta con saber que está ocupada.
+
+```gml
+/// obj_taller · Create — el estado del taller: catálogo + rejilla de diseño
+#macro TALLER_CELDA 64              // tamaño de cada celda, en píxeles
+
+catalogo           = taller_catalogo_piezas();  // §7.1
+pieza_elegida       = 0;             // índice en el catálogo (lo cambia la UI de selección)
+celdas              = {};            // "gx,gy" → { tipo, gx, gy } — solo datos, cero instancias
+modo_simulando      = false;
+instancias_fisicas  = [];            // se rellena al simular; sirve para deshacer (§7.4)
+
+taller_clave = function(_gx, _gy) {
+    return string(_gx) + "," + string(_gy);
+};
+```
+
+```gml
+/// obj_taller · Step — colocar/quitar piezas mientras se diseña
+if (modo_simulando) exit;    // en simulación no se coloca: la física manda
+
+if (mouse_check_button_pressed(mb_left)) {
+    var _gx = mouse_x div TALLER_CELDA;
+    var _gy = mouse_y div TALLER_CELDA;
+    var _clave = taller_clave(_gx, _gy);
+
+    if (!variable_struct_exists(celdas, _clave)) {
+        celdas[$ _clave] = { tipo: catalogo[pieza_elegida].id, gx: _gx, gy: _gy };
+    }
+}
+
+if (mouse_check_button_pressed(mb_right)) {
+    var _clave = taller_clave(mouse_x div TALLER_CELDA, mouse_y div TALLER_CELDA);
+    if (variable_struct_exists(celdas, _clave)) variable_struct_remove(celdas, _clave);
+}
+```
+
+```gml
+/// obj_taller · Draw — piezas en modo diseño: fantasmas, NUNCA cuerpos físicos
+if (modo_simulando) exit;
+
+var _claves = variable_struct_get_names(celdas);
+for (var _i = 0; _i < array_length(_claves); _i++) {
+    var _pieza = celdas[$ _claves[_i]];
+    var _tipo  = taller_tipo_de(_pieza.tipo);
+
+    draw_sprite_ext(_tipo.objeto.sprite_index, 0,
+        _pieza.gx * TALLER_CELDA + TALLER_CELDA * 0.5,
+        _pieza.gy * TALLER_CELDA + TALLER_CELDA * 0.5,
+        1, 1, 0, c_white, 0.5);    // alfa 0.5: es un preview, todavía no existe de verdad
+}
+```
+
+> 🔺 **La gracia del modo diseño es que nada de esto toca `physics_*`.** Mientras `celdas` sea
+> solo datos y el dibujo sea `draw_sprite_ext` sobre un fantasma, la construcción a medio hacer
+> no puede desplomarse por gravedad ni empujarse a sí misma. La física no existe hasta §7.4.
+
+### 7.3 · Serializar la construcción: solo datos, nunca instancias
+
+Mismo espíritu que el resto de la biblioteca para persistencia
+([01 · 14 — Persistencia y archivos §8](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md#8-json-la-opción-recomendada-en-2026))
+y que `objWorldGrid.serialize()` en la receta de survival: se guarda **la forma de recrear la
+construcción**, no una referencia viva a nada. `celdas` ya es un struct de structs planos —
+`json_stringify` lo serializa entero de un golpe.
+
+```gml
+/// construccion_guardar() — vuelca `celdas` a un array plano y lo guarda en JSON
+function construccion_guardar(_nombre_archivo) {
+    var _piezas = [];
+    var _claves = variable_struct_get_names(celdas);
+    for (var _i = 0; _i < array_length(_claves); _i++) {
+        array_push(_piezas, celdas[$ _claves[_i]]);
+    }
+
+    var _json = json_stringify({ piezas: _piezas }, true);   // true = con indentación
+
+    var _buffer = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
+    buffer_write(_buffer, buffer_string, _json);   // buffer_string: incluye el nulo final
+    buffer_save(_buffer, _nombre_archivo);
+    buffer_delete(_buffer);
+}
+
+/// construccion_cargar() — reconstruye `celdas` desde el JSON guardado
+function construccion_cargar(_nombre_archivo) {
+    if (!file_exists(_nombre_archivo)) return false;
+
+    var _buffer = buffer_load(_nombre_archivo);
+    var _json   = buffer_read(_buffer, buffer_string);
+    buffer_delete(_buffer);
+
+    var _datos = json_parse(_json);
+
+    celdas = {};
+    for (var _i = 0; _i < array_length(_datos.piezas); _i++) {
+        var _pieza = _datos.piezas[_i];
+        celdas[$ taller_clave(_pieza.gx, _pieza.gy)] = _pieza;
+    }
+    return true;
+}
+```
+
+> ⚠️ **Guarda antes de simular, no después.** Si la construcción vuelca al simular (una torre
+> mal apoyada, un motor que se embala) y no la guardaste, la pierdes: no hay vuelta atrás a un
+> estado que nunca se escribió a disco. Ver «Las trampas» más abajo.
+
+### 7.4 · Botón «Simular»: instanciar de golpe, activar física, crear joints
+
+Al pulsar «Simular» se recorre `celdas` **dos veces**: una para instanciar cada pieza y darle su
+fixture (mismo trío `physics_fixture_create` / `physics_fixture_bind` / `physics_fixture_delete`
+de **[§1 · Activar el mundo y el objeto](#1--activar-el-mundo-y-el-objeto)**), y una segunda para
+crear los joints entre vecinos — **tienen que existir las dos fixtures antes de unirlas con un
+joint**, así que el orden de los dos bucles no es opcional.
+
+```gml
+/// obj_taller · función de apoyo — decide el joint según el tipo de pieza
+/// (firmas completas en §4; aquí solo se elige CUÁL usar y con qué anclaje)
+function taller_conectar(_instancia_a, _instancia_b, _tipo_junta) {
+    var _anchor_x = (_instancia_a.phy_position_x + _instancia_b.phy_position_x) / 2;
+    var _anchor_y = (_instancia_a.phy_position_y + _instancia_b.phy_position_y) / 2;
+
+    if (_tipo_junta == "revolute") {
+        physics_joint_revolute_create(_instancia_a, _instancia_b, _anchor_x, _anchor_y,
+            0, 0, false, 0, 0, false, false);
+    } else if (_tipo_junta == "distance") {
+        physics_joint_distance_create(_instancia_a, _instancia_b,
+            _instancia_a.phy_position_x, _instancia_a.phy_position_y,
+            _instancia_b.phy_position_x, _instancia_b.phy_position_y, false);
+    } else if (_tipo_junta == "prismatic") {
+        physics_joint_prismatic_create(_instancia_a, _instancia_b, _anchor_x, _anchor_y,
+            0, 1, 0, TALLER_CELDA, true, 500, 0, false, false);
+    }
+}
+
+/// obj_taller · el botón «Simular»
+function taller_simular() {
+    if (modo_simulando) return;
+
+    var _capa   = layer_get_id("Instancias");
+    var _claves = variable_struct_get_names(celdas);
+    var _mapa_instancias = {};   // "gx,gy" → instancia recién creada, para enlazar joints
+
+    // 1) instanciar cada pieza y darle fixture: SIN esto, no hay cuerpo que enlazar
+    for (var _i = 0; _i < array_length(_claves); _i++) {
+        var _clave = _claves[_i];
+        var _pieza = celdas[$ _clave];
+        var _tipo  = taller_tipo_de(_pieza.tipo);
+
+        var _wx = _pieza.gx * TALLER_CELDA + TALLER_CELDA * 0.5;
+        var _wy = _pieza.gy * TALLER_CELDA + TALLER_CELDA * 0.5;
+        var _inst = instance_create_layer(_wx, _wy, _capa, _tipo.objeto);
+
+        var _fix = physics_fixture_create();
+        if (_tipo.forma == "caja") {
+            physics_fixture_set_box_shape(_fix, _tipo.ancho / 2, _tipo.alto / 2);
+        } else {
+            physics_fixture_set_circle_shape(_fix, _tipo.radio);
+        }
+        physics_fixture_set_density(_fix, _tipo.densidad);
+        physics_fixture_set_restitution(_fix, 0.1);
+        physics_fixture_set_friction(_fix, 0.4);
+        physics_fixture_bind(_fix, _inst);
+        physics_fixture_delete(_fix);   // la plantilla ya no hace falta, §1
+
+        _mapa_instancias[$ _clave] = _inst;
+        array_push(instancias_fisicas, _inst);
+    }
+
+    // 2) AHORA que todas las fixtures existen, enlazar cada pieza con su vecina
+    for (var _i = 0; _i < array_length(_claves); _i++) {
+        var _clave  = _claves[_i];
+        var _pieza  = celdas[$ _clave];
+        var _tipo   = taller_tipo_de(_pieza.tipo);
+        var _inst_a = _mapa_instancias[$ _clave];
+
+        var _vecino_derecha = taller_clave(_pieza.gx + 1, _pieza.gy);
+        if (variable_struct_exists(_mapa_instancias, _vecino_derecha)) {
+            taller_conectar(_inst_a, _mapa_instancias[$ _vecino_derecha], _tipo.junta);
+        }
+
+        var _vecino_abajo = taller_clave(_pieza.gx, _pieza.gy + 1);
+        if (variable_struct_exists(_mapa_instancias, _vecino_abajo)) {
+            taller_conectar(_inst_a, _mapa_instancias[$ _vecino_abajo], _tipo.junta);
+        }
+    }
+
+    modo_simulando = true;
+}
+```
+
+### 7.5 · Deshacer: volver al modo diseño
+
+`celdas` nunca se toca durante la simulación — es el plano, no la máquina—, así que deshacer es
+solo destruir lo que se instanció y bajar la bandera. El fantasma del §7.2 vuelve a dibujarse
+exactamente como estaba, sin restaurar nada a mano.
+
+```gml
+/// obj_taller · el botón «Deshacer» — destruir la simulación, volver al plano
+function taller_deshacer() {
+    if (!modo_simulando) return;
+
+    for (var _i = 0; _i < array_length(instancias_fisicas); _i++) {
+        if (instance_exists(instancias_fisicas[_i])) instance_destroy(instancias_fisicas[_i]);
+    }
+    instancias_fisicas = [];
+    modo_simulando = false;
+}
+```
+
+> 💡 **Reiniciar de golpe** (probar la misma construcción otra vez desde cero) es
+> `taller_deshacer()` seguido de `taller_simular()`: como `celdas` no cambió, la segunda
+> simulación instancia exactamente las mismas piezas en las mismas celdas.
+
+---
+
 ## Las trampas
 
 | Trampa | Consecuencia |
@@ -289,6 +564,8 @@ physics_particle_draw_ext(0, 1, spr_gota, 0, 1, 1, 0, c_white, 1);
 | Inventar el orden de argumentos de un joint | El joint no hace lo que crees |
 | Usar Box2D para un plataformas normal | Control resbaladizo, salto flotante |
 | No hacer `physics_fixture_delete` tras el bind | Fuga de memoria de fixtures |
+| Simular sin haber serializado antes (§7.3) | Si la construcción vuelca, se pierde: no hay a qué volver |
+| Crear los joints antes de que existan las dos fixtures (§7.4) | El joint no engancha nada, o crashea |
 
 ---
 
@@ -296,4 +573,6 @@ physics_particle_draw_ext(0, 1, spr_gota, 0, 1, 1, 0, c_white, 1);
 
 - [01 · Plataformas 2D](./01%20-%20Plataformas%202D.md) — cuándo NO usar física (movimiento manual)
 - [08 · Movimiento y colisiones](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md) — la colisión por ejes, la alternativa a la física
+- [09 · Survival y crafting §5.3](./09%20-%20Survival%20y%20crafting.md#53-construcción-con-ghost-preview) — la rejilla de ocupación con ghost preview que reutiliza §7.2
+- [14 · Persistencia y archivos §8](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md#8-json-la-opción-recomendada-en-2026) — `json_stringify`/`json_parse` a fondo, lo que usa §7.3
 - El manual: `buscar.py physics_` lista las 100 funciones con sus firmas

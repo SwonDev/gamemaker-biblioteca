@@ -26,6 +26,7 @@ La regla es incómoda pero cierta: **sube de arquitectura solo cuando la de abaj
 | **Árbol de comportamiento** | Decisiones **con prioridad** reevaluadas cada tick, y ramas **reutilizables** entre enemigos | No sabe puntuar: solo dice sí/no. «¿Ataco o curo?» le queda grande | ~120 líneas |
 | **Utility** | Varias opciones válidas a la vez y quieres la *mejor* según el contexto | No sabe encadenar pasos: puntúa acciones sueltas, no planes | ~40 líneas de motor; el ajuste es lo caro |
 | **GOAP** | El agente debe **encadenar** acciones que no programaste juntas, y replanificar al fallar | Caro de depurar y de CPU; necesita muchas acciones para lucir | Alto — casi nunca compensa en indie |
+| **Minimax / alfa-beta** ([§10 bis](#10-bis--búsqueda-adversarial-minimax-y-poda-alfa-beta)) | Juego **por turnos**, de **información perfecta** y **suma cero**: ajedrez, damas, tres en raya, Conecta 4 | Tiempo real, información oculta (manos, niebla de guerra), más de dos bandos, o un árbol que no cabe en el presupuesto del turno | ~80 líneas núcleo + poda; el árbol crece exponencial con la profundidad |
 
 | Enemigo | Arquitectura mínima que basta |
 |---|---|
@@ -866,6 +867,308 @@ A* de verdad sobre un mapa (que es otra cosa):
 
 ---
 
+## 10 bis · Búsqueda adversarial: minimax y poda alfa-beta
+
+**Minimax** (con su optimización real, la **poda alfa-beta**) es el algoritmo clásico para que
+una IA elija el mejor movimiento en un juego de **dos bandos, por turnos, de información
+perfecta y de suma cero**: ambos ven el tablero entero, se turnan, y lo que gana uno lo pierde
+el otro exactamente. Ajedrez, damas, tres en raya, Conecta 4. **No tiene nada que ver con lo que
+decide un enemigo en tiempo real**, y por eso va aparte, después de FSM, BT, utility y GOAP — no
+dentro de ellos.
+
+> 🔺 **Distinto problema, distinta caja de herramientas.** Todo lo de §1-§10 asume un agente que
+> decide solo, tick a tick, contra un mundo que no le devuelve la jugada. Minimax asume lo
+> contrario: un rival que **también piensa**, y que en cada uno de sus turnos va a escoger lo
+> peor posible para ti. No sustituye a ninguna arquitectura anterior de este documento — responde
+> a una pregunta que ninguna de ellas se hace: «si el rival juega perfecto, ¿cuál es mi mejor
+> jugada ahora?».
+
+El mismo Orkin de §10 ya reutilizaba A* para dos cosas distintas —navegar y planificar—, con
+solo cambiar qué son los nodos y qué son las aristas. Minimax recorre un árbol de estados por
+tercera vez, pero con una diferencia que lo cambia todo: en GOAP el agente elige sus propias
+acciones sobre un mundo pasivo, que nunca le lleva la contraria. En minimax el árbol se recorre
+en dos roles que se alternan un nivel por movimiento: **MAX** (nosotros) elige la rama que más le
+conviene; **MIN** (el rival) elige la que **menos** le conviene a MAX. El árbol entero es una
+negociación pesimista: MAX asume que MIN siempre va a jugar lo mejor para sí mismo, nunca un
+error.
+
+**El tablero, como dato.** Igual que en §7 un árbol de comportamiento se representa como struct
+anidado en vez de como control de flujo fijo, aquí el estado del juego es un **array plano**, no
+nueve variables `casilla_0_0`…`casilla_2_2`. Así una sola función recorre, copia y puntúa el
+tablero sin saber nada de «filas» ni «columnas» — y ese mismo array es lo que viaja, copiado, por
+cada rama del árbol.
+
+**Tres en raya es el mínimo honesto.** El encargo original de este documento ya lo deja escrito:
+*la complejidad de ajedrez es de contenido, no de técnica*. Cambiar de juego es cambiar
+`tablero_movimientos` y `tablero_evaluar` —las dos únicas funciones que conocen las reglas—; el
+motor de minimax y la poda de más abajo no cambian ni una línea. Para damas el cambio sería de
+tamaño, no de forma: `tablero_movimientos` generaría saltos y capturas sobre un tablero de 32
+casillas jugables en vez de 9, y `tablero_evaluar` contaría piezas y coronadas en vez de líneas.
+
+```gml
+/// scr_minimax_tres_en_raya
+/// Tablero: array de 9 casillas (índice = fila * 3 + columna).
+/// 0 = vacía · 1 = ficha de MAX · 2 = ficha de MIN.
+function tablero_nuevo() {
+    return array_create(9, 0);
+}
+
+/// Las 8 líneas que ganan la partida, precalculadas una sola vez.
+global.__lineas_tres_en_raya = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],   // filas
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],   // columnas
+    [0, 4, 8], [2, 4, 6]               // diagonales
+];
+
+/// @returns {Array<Real>} índices (0-8) de las casillas vacías: los movimientos legales.
+function tablero_movimientos(_tablero) {
+    var _movs = [];
+    for (var _i = 0; _i < 9; _i++) {
+        if (_tablero[_i] == 0) { array_push(_movs, _i); }
+    }
+    return _movs;
+}
+
+/// Copia el tablero y coloca UNA ficha — nunca muta el original: cada rama del
+/// árbol necesita su propia copia, igual que estado_aplicar() en el
+/// planificador GOAP de §10.
+function tablero_jugar(_tablero, _casilla, _ficha) {
+    var _nuevo = array_create(9);
+    array_copy(_nuevo, 0, _tablero, 0, 9);
+    _nuevo[_casilla] = _ficha;
+    return _nuevo;
+}
+
+/// +10 si gana MAX, -10 si gana MIN, 0 en cualquier otro caso (incluida la
+/// partida en curso). Con solo 9 casillas el árbol se explora HASTA EL FINAL
+/// siempre, así que basta con «quién ganó»: una heurística más fina (líneas
+/// abiertas, centro ocupado…) solo hace falta cuando el juego no se puede
+/// resolver entero —damas, ajedrez— y hay que puntuar posiciones a medio
+/// camino donde nadie ha ganado todavía.
+function tablero_evaluar(_tablero) {
+    var _lineas = global.__lineas_tres_en_raya;
+    for (var _i = 0; _i < array_length(_lineas); _i++) {
+        var _l = _lineas[_i];
+        var _a = _tablero[_l[0]];
+        if (_a != 0 && _a == _tablero[_l[1]] && _a == _tablero[_l[2]]) {
+            return (_a == 1) ? 10 : -10;
+        }
+    }
+    return 0;
+}
+```
+
+**Minimax recursivo, con profundidad limitada.** MAX maximiza, MIN minimiza, y se alternan un
+nivel del árbol por movimiento. `_profundidad` es el mismo tipo de tope que ya usa este documento
+en otros sitios (el `_max_nodos` de §10, los `_veces` de un `Repetidor` en §4): sin un límite, un
+juego más grande que el tres en raya no termina nunca de explorar.
+
+```gml
+/// @param {Array} _tablero      estado actual
+/// @param {Real}  _profundidad  cuántos movimientos más mirar hacia delante
+/// @param {Bool}  _maximizando  true si le toca decidir a MAX (nosotros)
+/// @returns {Real} la puntuación del mejor resultado alcanzable desde aquí
+function minimax(_tablero, _profundidad, _maximizando) {
+    var _puntuacion = tablero_evaluar(_tablero);
+    if (_puntuacion != 0) { return _puntuacion; }                     // alguien ya ganó
+
+    var _movs = tablero_movimientos(_tablero);
+    if (array_length(_movs) == 0 || _profundidad <= 0) { return 0; }  // empate o corte
+
+    if (_maximizando) {
+        var _mejor = -infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 1);
+            _mejor = max(_mejor, minimax(_hijo, _profundidad - 1, false));
+        }
+        return _mejor;
+    } else {
+        var _mejor = infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 2);
+            _mejor = min(_mejor, minimax(_hijo, _profundidad - 1, true));
+        }
+        return _mejor;
+    }
+}
+```
+
+**Poda alfa-beta: el mismo árbol, sin recorrerlo entero.** `minimax()` explora TODAS las ramas
+aunque ya sepa que una es peor que otra que encontró antes — trabajo tirado. Alfa-beta lleva dos
+números durante el recorrido: `_alfa` (lo mejor que MAX tiene garantizado hasta ahora en algún
+sitio del árbol) y `_beta` (lo mejor que MIN tiene garantizado). En cuanto una rama demuestra que
+va a ser peor de lo que el rival **ya puede forzar en otro sitio** (`_beta <= _alfa`), se corta:
+no hace falta seguir mirando esa rama, porque un rival racional nunca va a dejar que la partida
+llegue tan lejos.
+
+**Cuánto reduce, medido de verdad.** Con `minimax()` y `minimax_alfa_beta()` de esta misma
+sección, sobre un tablero vacío y explorando hasta el final (`_profundidad = 9`): minimax puro
+recorre **549 946 nodos**; con la poda alfa-beta, **18 297** — una reducción del **96,7 %**, sin
+cambiar el resultado (los dos concuerdan: la partida es un empate con juego perfecto, `0`).
+Medido esta sesión traduciendo literalmente ambas funciones a Python y contando las llamadas
+recursivas; el código de la comprobación no forma parte del documento pero el resultado sí es
+una medición propia, no una cita de manual.
+
+> ⚠️ La cifra que repite la literatura clásica de IA de juegos (el resultado se atribuye a Knuth
+> y Moore, 1975) es que, con el **mejor orden de exploración posible**, alfa-beta reduce el
+> factor de ramificación efectivo de `b` a `√b` — del orden de `b^(d/2)` nodos en vez de `b^d`.
+> El 96,7 % medido arriba es de un caso concreto (tres en raya, orden de movimientos sin
+> optimizar) y no pretende ser esa cota teórica. **No se ha podido verificar la cifra `√b` contra
+> ninguna fuente primaria en esta sesión: no hubo acceso a red** (ni `curl` ni WebFetch
+> resolvieron ningún host — ver Fuentes). Tómala como orientación de manual, no como medición
+> propia.
+
+```gml
+/// Misma firma que minimax(), con _alfa y _beta añadidos. La llamada raíz
+/// empieza con _alfa = -infinity, _beta = infinity: sin margen que podar todavía.
+function minimax_alfa_beta(_tablero, _profundidad, _alfa, _beta, _maximizando) {
+    var _puntuacion = tablero_evaluar(_tablero);
+    if (_puntuacion != 0) { return _puntuacion; }
+
+    var _movs = tablero_movimientos(_tablero);
+    if (array_length(_movs) == 0 || _profundidad <= 0) { return 0; }
+
+    if (_maximizando) {
+        var _mejor = -infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 1);
+            _mejor = max(_mejor, minimax_alfa_beta(_hijo, _profundidad - 1, _alfa, _beta, false));
+            _alfa  = max(_alfa, _mejor);
+            if (_beta <= _alfa) { break; }          // MIN no va a dejar llegar aquí: podar
+        }
+        return _mejor;
+    } else {
+        var _mejor = infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 2);
+            _mejor = min(_mejor, minimax_alfa_beta(_hijo, _profundidad - 1, _alfa, _beta, true));
+            _beta  = min(_beta, _mejor);
+            if (_beta <= _alfa) { break; }          // MAX no va a dejar llegar aquí: podar
+        }
+        return _mejor;
+    }
+}
+```
+
+**Presupuesto: ni recorrer de golpe, ni confiar en que «no debería tardar».** Con 9 casillas el
+árbol de tres en raya cabe entero en un frame sin que se note —como mucho 9! = 362 880
+posiciones, bastantes menos con la poda de arriba—. Con un juego de verdad (damas, un Conecta 4
+de 7 columnas) esto deja de ser cierto, y aparecen los dos mismos problemas que este documento ya
+resolvió en otro contexto:
+
+- **Tope de nodos explorados**, igual que el `_max_nodos = 400` del planificador GOAP en §10: un
+  contador **compartido** entre todas las llamadas recursivas —un struct, porque los structs son
+  referencias: todas las llamadas mutan el MISMO contador— que corta la búsqueda al llegar al
+  límite y devuelve la evaluación heurística de donde se quedó, no la puntuación exacta.
+- **Tope de tiempo real**, con la misma idea que trocea un generador procedural en
+  [13 · 07 §14 — Generar sin congelar el frame](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/07%20-%20Generación%20procedural%20avanzada.md#14--generar-sin-congelar-el-frame).
+  La diferencia es que un autómata celular se recorre celda a celda —un `for` plano que se puede
+  parar y retomar en cualquier índice—, mientras que minimax es una recursión: no hay un punto
+  intermedio limpio donde «pausar» sin reescribir el algoritmo entero como una pila explícita
+  (viable, pero se sale del alcance «40 líneas honestas» de esta sección). La versión práctica
+  que sí cabe aquí es **iterative deepening acotado por reloj**: probar profundidad 1, si sobra
+  presupuesto probar profundidad 2, y así sucesivamente, quedándose siempre con el resultado de
+  la última profundidad que llegó a TERMINAR. Como cada profundidad añadida multiplica el trabajo
+  por el factor de ramificación, comprobar el reloj **solo entre profundidades** —no dentro de la
+  recursión— ya evita pasarse mucho del presupuesto en la inmensa mayoría de los casos.
+
+```gml
+/// Contador de nodos compartido entre TODAS las llamadas recursivas de una
+/// búsqueda: un struct, no una variable suelta, porque los structs son
+/// referencias — cada llamada que muta _contador.nodos ve el mismo total.
+function contador_nodos_nuevo() {
+    return { nodos: 0 };
+}
+
+/// minimax_alfa_beta() con tope de nodos: al alcanzarlo, devuelve la
+/// evaluación heurística del estado en el que se quedó (no la puntuación
+/// exacta) en vez de seguir explorando.
+function minimax_con_tope(_tablero, _profundidad, _alfa, _beta, _maximizando, _contador, _tope_nodos) {
+    _contador.nodos++;
+    if (_contador.nodos >= _tope_nodos) { return tablero_evaluar(_tablero); }
+
+    var _puntuacion = tablero_evaluar(_tablero);
+    if (_puntuacion != 0) { return _puntuacion; }
+
+    var _movs = tablero_movimientos(_tablero);
+    if (array_length(_movs) == 0 || _profundidad <= 0) { return 0; }
+
+    if (_maximizando) {
+        var _mejor = -infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 1);
+            _mejor = max(_mejor, minimax_con_tope(_hijo, _profundidad - 1, _alfa, _beta, false, _contador, _tope_nodos));
+            _alfa  = max(_alfa, _mejor);
+            if (_beta <= _alfa) { break; }
+        }
+        return _mejor;
+    } else {
+        var _mejor = infinity;
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], 2);
+            _mejor = min(_mejor, minimax_con_tope(_hijo, _profundidad - 1, _alfa, _beta, true, _contador, _tope_nodos));
+            _beta  = min(_beta, _mejor);
+            if (_beta <= _alfa) { break; }
+        }
+        return _mejor;
+    }
+}
+
+/// Elige el mejor movimiento con iterative deepening acotado por reloj:
+/// prueba profundidad 1, 2, 3… y se queda con el resultado de la última que
+/// dio tiempo a terminar dentro de _presupuesto_ms.
+function mejor_movimiento(_tablero, _ficha, _presupuesto_ms = 50, _tope_nodos = 50000) {
+    var _movs = tablero_movimientos(_tablero);
+    if (array_length(_movs) == 0) { return -1; }
+
+    var _elegido             = _movs[0];
+    var _t0                  = get_timer();
+    var _profundidad_maxima  = array_length(_movs);   // no hay más jugadas que casillas vacías
+    var _le_toca_a_max_luego = (_ficha == 2);          // tras jugar _ficha, el turno pasa al otro
+
+    for (var _profundidad = 1; _profundidad <= _profundidad_maxima; _profundidad++) {
+        var _contador           = contador_nodos_nuevo();
+        var _mejor_de_la_pasada = _movs[0];
+        var _mejor_puntuacion   = (_ficha == 1) ? -infinity : infinity;
+
+        for (var _i = 0; _i < array_length(_movs); _i++) {
+            var _hijo = tablero_jugar(_tablero, _movs[_i], _ficha);
+            var _p = minimax_con_tope(_hijo, _profundidad - 1, -infinity, infinity,
+                                       _le_toca_a_max_luego, _contador, _tope_nodos);
+            var _mejora = (_ficha == 1) ? (_p > _mejor_puntuacion) : (_p < _mejor_puntuacion);
+            if (_mejora) { _mejor_puntuacion = _p; _mejor_de_la_pasada = _movs[_i]; }
+        }
+
+        if ((get_timer() - _t0) >= _presupuesto_ms * 1000) { break; }   // sin tiempo para ir más hondo
+        _elegido = _mejor_de_la_pasada;
+    }
+    return _elegido;
+}
+```
+
+```gml
+/// Uso: obj_ia_tres_en_raya · el turno de la IA (ficha 2)
+tablero = tablero_nuevo();
+// ... el jugador coloca su ficha con tablero[_casilla] = 1 en algún punto anterior ...
+var _casilla_ia = mejor_movimiento(tablero, 2, 50, 50000);   // 50 ms, 50 000 nodos como mucho
+tablero[_casilla_ia] = 2;
+```
+
+> 💡 **Por qué esto no sustituye a nada de §1-§10.** Un enemigo de acción no tiene turnos: se
+> mueve, dispara y decide en tiempo real mientras el jugador hace lo mismo a la vez — no hay
+> información perfecta simétrica (el jugador no ve el árbol de decisión del enemigo) ni turnos
+> que alternar. Y el deckbuilder de un jugador de
+> [`04 · 44 §3`](./44%20-%20Bullet%20heaven%2C%20autobattler%20y%20deckbuilder.md#3--deckbuilder) tampoco es
+> candidato: es de **un jugador contra la IA de los enemigos**, no dos agentes racionales
+> turnándose sobre el mismo tablero, y encima la mano del jugador es información que el propio
+> juego **oculta** — minimax exige que **ambos** bandos vean el estado completo. Un TCG
+> competitivo con manos ocultas (Hearthstone, *Magic*) necesita técnicas que quedan fuera de este
+> documento —*Perfect Information Monte Carlo*, *Counterfactual Regret Minimization*, o
+> simplemente reglas/utility sobre lo que sí es visible—: minimax puro solo vale para información
+> perfecta.
+
+---
+
 ## 11 · Percepción: ver, oír, recordar y avisar
 
 Una IA solo es tan buena como lo que sabe. Tres sentidos y una memoria bastan.
@@ -1036,6 +1339,8 @@ nadie, y cuando el enemigo haga algo raro sabrás dónde mirar. Catálogo comple
 | **Puntuaciones sin normalizar** | Una consideración de 0-100 aplasta a otra de 0-1 y el resto no cuenta | Todo a 0-1, siempre. Es la regla nº 1 del capítulo de Graham |
 | **Utility sin umbral mínimo** | Se ejecuta la mejor acción aunque puntúe 0.02: tonterías sin motivo | Umbral de `0.05`-`0.15`; por debajo, no hacer nada |
 | **GOAP replanificado cada frame** | Congelaciones periódicas sin causa aparente | Planificar solo al cambiar de objetivo o al fallar el plan, con tope de nodos |
+| **Minimax sin poda alfa-beta** | El árbol crece exponencial con la profundidad y un movimiento tarda segundos o congela el frame | Añadir `_alfa`/`_beta` (§10 bis) — mismo resultado, muchísimo menos árbol explorado |
+| **Función de evaluación mal escalada** | La IA hace jugadas absurdas: sacrifica la partida por una ventaja que no vale lo que puntúa | Cada término de la heurística pesado a propósito, igual que la normalización 0-1 de utility (§8) |
 | **`instance_deactivate_region` con x2/y2** | La mitad de los enemigos desaparecen, o ninguno se desactiva | Son `(left, top, width, height, inside, notme)` |
 
 ---
@@ -1054,6 +1359,8 @@ nadie, y cuando el enemigo haga algo raro sabrás dónde mirar. Catálogo comple
 - [01 · 15 — Depuración y rendimiento](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md) — el Debug Overlay completo y cómo medir
 - [13 · 13 — Matemáticas aplicadas al juego §2.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md) — el cono de visión, que aquí no se repite
 - [02 · Top-Down / Twin-Stick](./02%20-%20Top-Down%20_%20Twin-Stick.md) — el género donde estos enemigos se lucen
+- [13 · 07 §14 — Generar sin congelar el frame](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/07%20-%20Generación%20procedural%20avanzada.md#14--generar-sin-congelar-el-frame) — la técnica de trocear trabajo por presupuesto de milisegundos que [§10 bis](#10-bis--búsqueda-adversarial-minimax-y-poda-alfa-beta) adapta a minimax
+- [04 · 44 §3 — Deckbuilder](./44%20-%20Bullet%20heaven%2C%20autobattler%20y%20deckbuilder.md#3--deckbuilder) — mano oculta e información imperfecta: por qué NO es candidato a minimax puro, a diferencia del tablero visible de [§10 bis](#10-bis--búsqueda-adversarial-minimax-y-poda-alfa-beta)
 
 ---
 
@@ -1092,6 +1399,12 @@ Consultadas el **2026-09-06**.
   [`ref_create`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Variable_Functions/ref_create.md).
 - **Código de `Gizmo199/BehaviorTree`**, leído en el clon local
   `GameMaker_Fuentes/librerias/Gizmo199__BehaviorTree/scripts/__BehaviorTree/__BehaviorTree.gml`.
+- **Manual oficial**, para los símbolos nuevos de §10 bis:
+  [`get_timer`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Maths_And_Numbers/Date_And_Time/get_timer.md),
+  [`array_copy`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Variable_Functions/array_copy.md).
+- [13 · 07 §14 — Generar sin congelar el frame](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/07%20-%20Generación%20procedural%20avanzada.md#14--generar-sin-congelar-el-frame)
+  — leído entero para adaptar la técnica de presupuesto por milisegundos a minimax en §10 bis;
+  ya es fuente verificada de la propia biblioteca.
 
 **Citadas pero NO abiertas** (URLs tomadas del índice de gameaipro.com, que sí se abrió):
 
@@ -1117,3 +1430,17 @@ Consultadas el **2026-09-06**.
   **301 permanente a `bitpart.ai`**. Por eso el PDF de la GDC 2006 se cita desde el espejo de
   gamedevs.org; la autoría y el evento van impresos en la portada del propio documento, que se
   ha leído.
+- ⚠️ **§10 bis (minimax y poda alfa-beta) no tiene fuente externa abierta.** Esta sesión no tuvo
+  acceso a red en ningún momento: ni `curl` (los tres intentos con `-A "Mozilla/5.0"` a
+  `en.wikipedia.org`, `www.chessprogramming.org` y `www.google.com` devolvieron código de salida
+  28, «connection timed out», y hasta `1.1.1.1` sin resolver dominio) ni la herramienta WebFetch
+  (`ECONNREFUSED` / `ENOTFOUND` contra los mismos dos primeros hosts) consiguieron abrir nada.
+  Minimax se atribuye a Claude Shannon (1950, «Programming a Computer for Playing Chess») y la
+  poda alfa-beta a John McCarthy, formalizada por Donald Knuth y Ronald W. Moore en «An Analysis
+  of Alpha-Beta Pruning» (*Artificial Intelligence* 6, 1975); el tratamiento de referencia en
+  videojuegos es el capítulo de búsqueda adversarial de Stuart Russell y Peter Norvig,
+  *Artificial Intelligence: A Modern Approach*. Los tres son atribuciones de conocimiento
+  general, **no verificadas contra el texto primario en esta sesión**: no se cita ninguna cifra,
+  cita textual ni URL de esos trabajos que no se haya podido comprobar — la única cifra numérica
+  que aparece en §10 bis (la reducción a `√b` con orden óptimo) va marcada con su propio ⚠️ en el
+  cuerpo del texto, no aquí.

@@ -85,7 +85,8 @@ que sigue siendo la vía oficial de esta biblioteca.
 - **`@turlututu-games/gml-linter`** (0.0.6) — **linter de GML**: detecta problemas de estilo y
   errores comunes en el código. Complementa el formateo (ver [*Just a formatter*](./06%20-%20itch.io%20-%20assets,%20herramientas%20y%20jams.md)
   de itch.io).
-- **`@ovipakla/gm-cli`** (2.1.3, no oficial) — *watch & sync* de fuentes GML con el `.yyp`.
+- **`@ovipakla/gm-cli`** (**2.3.0**, verificado en npm 07-09-2026; no oficial, no confundir con el
+  `@gamemaker/gm-cli` de YoYo Games) — *watch & sync* de fuentes GML con el `.yyp`.
 
 ### `gamemaker-typescript` (`gmts`) en detalle
 
@@ -205,6 +206,28 @@ estudiarlos, se **descompilan**:
 > **`reverse-skill`** (instalada en `~/.claude/skills/reverse-skill`), pensada para ingeniería
 > inversa en general. Para GameMaker en concreto, **UndertaleModTool es la vía directa** —
 > entiende el formato `data.win` nativamente, cosa que las herramientas genéricas de RE no hacen.
+
+### 4 ter · Juegos de la era GameMaker 8.x (formato `.gmk`/`.exe`, anterior a `data.win`)
+
+UndertaleModTool solo entiende el formato `data.win` de GameMaker: Studio 1.x en adelante. Los
+juegos hechos con **GameMaker 8.0/8.1** (2009-2011, formato `.gmk` de proyecto y ejecutables
+`.exe` autocontenidos) son un binario distinto y necesitan herramientas propias:
+
+| Herramienta | Qué resuelve | ★ | Licencia | Último *push* | Verificado |
+|---|---|---:|---|---|---|
+| [`OpenGMK/OpenGMK`](https://github.com/OpenGMK/OpenGMK) | Reimplementación *open source* del **runner** de GameMaker 8.x — ejecuta juegos `.exe`/`.gmk` de esa era fuera del runtime original de YoYo, con herramientas adicionales de inspección | 406 | GPL-2.0 | 2026-07-16 | 2026-09-07 |
+| [`OpenGMK/GM8Decompiler`](https://github.com/OpenGMK/GM8Decompiler) | **Descompilador** de ejecutables GameMaker 8.x — recupera el proyecto `.gmk` (código, sprites, rooms) a partir del `.exe` compilado, el mismo papel que UndertaleModTool cumple para `data.win` | 200 | GPL-2.0 | 2024-02-12 ⚠️ sin *push* desde hace más de dos años | 2026-09-07 |
+| [`skyfloogle/gm8x_fix`](https://github.com/skyfloogle/gm8x_fix) | **Parche** que corrige bugs conocidos del runner original de GameMaker 8.0/8.1 (no descompila ni reimplementa nada, solo arregla el binario original) | 58 | MIT | 2026-04-09 | 2026-09-07 |
+
+**Para qué le sirve a alguien hoy: casi para nada, salvo curiosidad histórica o preservación.**
+GameMaker 8.x lleva más de una década descontinuado y ningún proyecto nuevo se hace con ese
+formato. Este trío solo interesa si necesitas **estudiar o ejecutar** un juego concreto hecho en
+GameMaker 8.0/8.1 (proyectos de archivo, preservación de un juego indie antiguo, investigación
+histórica del motor) — no aporta nada al desarrollo con GameMaker LTS 2026.
+
+> ⚖️ Misma regla de legalidad que UndertaleModTool más arriba: **estudiar sí, redistribuir
+> assets no.** Descompilar para entender cómo está hecho un juego es aprendizaje legítimo;
+> redistribuir su código o arte sin permiso, no lo es.
 
 ---
 

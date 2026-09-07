@@ -2,18 +2,24 @@
 # -*- coding: utf-8 -*-
 """sincronizar-skill.py — mantiene la skill `gamemaker-biblioteca` pegada al disco.
 
-La skill (en `_indice/skills/gamemaker-biblioteca/`) es lo que Claude Code y Codex cargan
-cuando desarrollan con GameMaker desde CUALQUIER proyecto. Si cita un documento que se
-renombró, el agente sigue una pista falsa sin enterarse. Este script lo impide:
+La skill (en `_indice/skills/gamemaker-biblioteca/`) es lo que los CLI de IA cargan cuando
+desarrollan con GameMaker desde CUALQUIER proyecto. Si cita un documento que se renombró, el
+agente sigue una pista falsa sin enterarse. Este script lo impide:
 
   1. Regenera `references/indice-documentos.md` a partir de MAPA.json: todas las carpetas
      con su criterio de uso y todos los documentos con su título. Nunca se edita a mano.
   2. Comprueba que cada ruta de la biblioteca citada en SKILL.md y en references/*.md
      existe de verdad.
-  3. Informa de si los enlaces simbólicos de ~/.claude/skills y ~/.codex/skills apuntan
-     a esta carpeta (informativo: no falla, pero lo dice).
+  3. Regenera `AGENTS.md` (mismo directorio que SKILL.md) derivándolo del cuerpo real de
+     SKILL.md. Existe para los CLI de IA que no soportan un directorio de skills en formato
+     `SKILL.md` y solo leen `AGENTS.md` en la raíz de un proyecto (ver `instalar.sh`). Nunca
+     se edita a mano: si SKILL.md cambia, este archivo cambia solo en el siguiente `actualizar.py`.
+  4. Informa de si los enlaces simbólicos de ~/.claude/skills, ~/.codex/skills, ~/.agents/skills,
+     ~/.qwen/skills, ~/.kimi-code/skills y ~/.config/opencode/skills apuntan a esta carpeta
+     (informativo: no falla, pero lo dice).
 
-Lo llama actualizar.py. Sale con 0 si no hay rutas rotas.
+Lo llama actualizar.py e instalar.sh (antes de copiar la skill, para que la copia ya incluya
+el AGENTS.md al día). Sale con 0 si no hay rutas rotas.
 """
 import os, re, sys, json
 
@@ -22,6 +28,7 @@ RAIZ = os.path.dirname(IND)
 SKILL = os.path.join(IND, "skills", "gamemaker-biblioteca")
 REFS = os.path.join(SKILL, "references")
 GENERADO = os.path.join(REFS, "indice-documentos.md")
+AGENTS_GENERADO = os.path.join(SKILL, "AGENTS.md")
 
 # Una ruta de la biblioteca citada entre acentos graves: empieza por «NN - », por un
 # archivo de la raíz o por _indice/. Se admite «NN/…» abreviado solo en prosa, no aquí.
@@ -64,6 +71,46 @@ def generar_indice():
     return sum(len(c.get("documentos", [])) for c in m.get("carpetas", []))
 
 
+def generar_agents_md():
+    """Deriva AGENTS.md del cuerpo real de SKILL.md — nunca se escribe a mano.
+
+    Existe para los CLI de IA que solo entienden AGENTS.md en la raíz de un proyecto y no
+    tienen un directorio de skills en formato SKILL.md (ver la investigación citada en
+    `instalar.sh`). El contenido es el mismo: se copia el cuerpo tal cual, sin reescribirlo,
+    para que no pueda desincronizarse de lo que ya dice la skill.
+    """
+    ruta_skill = os.path.join(SKILL, "SKILL.md")
+    txt = open(ruta_skill, encoding="utf-8").read()
+    # SKILL.md empieza por "---\n<frontmatter YAML>\n---\n<cuerpo>". Se separa por el
+    # delimitador de cierre del frontmatter, no por el primero (que abre el bloque).
+    partes = txt.split("---", 2)
+    if len(partes) < 3:
+        return None  # SKILL.md sin frontmatter: no debería pasar, no se genera nada falso
+    frontmatter, cuerpo = partes[1], partes[2]
+    descripcion = ""
+    for linea in frontmatter.splitlines():
+        if linea.strip().startswith("description:"):
+            descripcion = linea.split(":", 1)[1].strip()
+            break
+    out = [
+        "# AGENTS.md — Biblioteca GameMaker (generado desde la skill)\n",
+        "> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**\n"
+        "> **`SKILL.md`. No lo edites a mano:** se reescribe en cada "
+        "`python3 _indice/actualizar.py`\n"
+        "> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz\n"
+        "> de un proyecto y no tienen un directorio de skills en formato `SKILL.md` — copia\n"
+        "> este archivo (o enlázalo) como `AGENTS.md` en la raíz de tu proyecto de GameMaker.\n"
+        "> Si tu CLI sí lee skills, usa directamente la carpeta\n"
+        "> `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.\n",
+    ]
+    if descripcion:
+        out.append(f"**Cuándo aplica esto:** {descripcion}\n")
+    out.append(cuerpo.strip() + "\n")
+    with open(AGENTS_GENERADO, "w", encoding="utf-8") as f:
+        f.write("\n".join(out))
+    return AGENTS_GENERADO
+
+
 def rutas_rotas():
     rotas = []
     archivos = [os.path.join(SKILL, "SKILL.md")]
@@ -84,22 +131,43 @@ def rutas_rotas():
 
 
 def estado_enlaces():
-    """¿Claude Code y Codex ven esta skill? Solo informa."""
+    """¿Qué CLI ven esta skill ahora mismo? Solo informa (ver instalar.sh para la instalación)."""
     sitios = {
         "Claude Code": os.path.expanduser("~/.claude/skills/gamemaker-biblioteca"),
         "Codex (pool)": os.path.expanduser("~/.codex/skills-pool/gamemaker-biblioteca"),
         "Codex (activa)": os.path.expanduser("~/.codex/skills/gamemaker-biblioteca"),
+        "Genérico ~/.agents (Codex canónico · Copilot CLI · Gemini CLI · Cursor CLI · Kimi Code)":
+            os.path.expanduser("~/.agents/skills/gamemaker-biblioteca"),
+        "opencode": os.path.expanduser("~/.config/opencode/skills/gamemaker-biblioteca"),
+        "Qwen Code": os.path.expanduser("~/.qwen/skills/gamemaker-biblioteca"),
+        "Kimi Code CLI": os.path.expanduser("~/.kimi-code/skills/gamemaker-biblioteca"),
+        "Gemini CLI": os.path.expanduser("~/.gemini/skills/gamemaker-biblioteca"),
+        "GitHub Copilot CLI": os.path.expanduser("~/.copilot/skills/gamemaker-biblioteca"),
+        "Cursor CLI": os.path.expanduser("~/.cursor/skills/gamemaker-biblioteca"),
+        "Cline": os.path.expanduser("~/.cline/skills/gamemaker-biblioteca"),
     }
+    propio = os.path.join(SKILL, "SKILL.md")
+    txt_propio = open(propio, encoding="utf-8").read() if os.path.isfile(propio) else None
     lineas = []
     for nombre, ruta in sitios.items():
         if not os.path.lexists(ruta):
             lineas.append(f"  ✗ {nombre}: falta {ruta}")
             continue
         real = os.path.realpath(ruta)
-        if os.path.isfile(os.path.join(real, "SKILL.md")) and os.path.samefile(real, SKILL):
-            lineas.append(f"  ✓ {nombre}: {ruta} → esta carpeta")
+        skill_md = os.path.join(real, "SKILL.md")
+        if not os.path.isfile(skill_md):
+            lineas.append(f"  ⚠ {nombre}: {ruta} existe pero no tiene SKILL.md")
+            continue
+        # Symlink → identidad de ruta. Copia (cp -R) → mismo contenido. Ambas cuentan como
+        # "al día"; solo se avisa si de verdad es otra cosa (una skill distinta con ese nombre).
+        es_symlink = os.path.islink(ruta)
+        al_dia = os.path.samefile(real, SKILL) if es_symlink else (
+            txt_propio is not None and open(skill_md, encoding="utf-8").read() == txt_propio)
+        if al_dia:
+            modo = "enlace →" if es_symlink else "copia al día,"
+            lineas.append(f"  ✓ {nombre}: {ruta} ({modo} esta carpeta)")
         else:
-            lineas.append(f"  ⚠ {nombre}: {ruta} apunta a {real}, no a la skill de la biblioteca")
+            lineas.append(f"  ⚠ {nombre}: {ruta} no coincide con esta carpeta (reinstala con ./instalar.sh)")
     return lineas
 
 
@@ -109,6 +177,9 @@ def main():
         return 0
     n = generar_indice()
     print(f"references/indice-documentos.md regenerado: {n} documentos.")
+    agents = generar_agents_md()
+    if agents:
+        print(f"AGENTS.md regenerado desde SKILL.md: {os.path.relpath(agents, RAIZ)}")
     rotas = rutas_rotas()
     if rotas:
         print(f"✗ {len(rotas)} rutas citadas por la skill no existen:")

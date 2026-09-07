@@ -340,6 +340,14 @@ else
 }
 ```
 
+> 💡 **Afinar `hit_flash_max` sin recompilar.** La familia `dbg_*` del Debug Overlay
+> ([01 · 15 §4](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#vistas-de-depuración-personalizadas-muy-potente)),
+> con el patrón `ref_create` que ya usa
+> [13 · 06 §3.14 c](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md#314-depuración-estructurada)
+> para un gestor de audio, sirve igual aquí — la variable ya existe, no hace falta crear nada:
+> `if (DEV) dbg_slider(ref_create(self, "hit_flash_max"), 2, 30, "Duración del hit flash");`
+> en el Create, y verás el parpadeo cambiar de duración en vivo la próxima vez que golpees algo.
+
 #### Vía B (sin shader): blanco aditivo con `draw_sprite_ext`
 
 **No sirve poner `image_blend = c_white`**: `image_blend` multiplica el color del sprite por el

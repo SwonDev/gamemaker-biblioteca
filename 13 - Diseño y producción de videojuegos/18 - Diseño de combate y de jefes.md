@@ -508,6 +508,10 @@ en §4.1.
 
 **Arena:** hazards ____ · coberturas (04 · 34 §4.5) ____ · tamaño frente a la esquiva más larga del jugador ____
 
+**¿Tiene salida no letal?** sí / no — si sí, ¿cuál vía?: aturdir/noquear · huir de verdad ·
+negociar/sobornar · intimidar · dormir a distancia (04 · 56 §1.2). Un encuentro sin marcar se
+trata como "no la tiene" — el silencio no es una salida accidental.
+
 **Verificado en playtest** (§2.10): ¿algún tester describió el encuentro como "ruido" en vez de "difícil"? ____
 ```
 
@@ -725,6 +729,9 @@ que un solo jugador la juegue.
   de §3.1-3.2.
 - [04 · 34 — Combate a distancia](../04%20-%20Recetas%20por%20género/34%20-%20Combate%20a%20distancia%20-%20armas%2C%20munición%20y%20balística.md) —
   cobertura y asistencia de puntería, para arenas de jefe con ataques a distancia (§1.5, §2.3).
+- [04 · 56 — Combate no letal](../04%20-%20Recetas%20por%20género/56%20-%20Combate%20no%20letal%20-%20pacifismo%2C%20aturdir%2C%20huir%20y%20negociar.md) —
+  la salida no letal de la ficha de encuentro de §3.2: aturdir/noquear, huir de verdad,
+  negociar, intimidar y las consecuencias que la reconocen.
 - [04 · 15 — Game feel y juice](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md) —
   anticipación y recuperación (§4.8) y el `BossAttackState` con `ANTICIPATE_FRAMES` (§5.8) que
   §1.3 usa como verificación cruzada del piso de reacción.

@@ -48,7 +48,7 @@ pero si vienes de otra herramienta o quieres un flujo por datos:
 
 | Herramienta | ★ | Qué hace |
 |---|---:|---|
-| [**LDtkParser**](https://github.com/evolutionleo/LDtkParser) | 63 | Importador avanzado de niveles `.ldtk`. MIT, último *push* 2025-08-14 |
+| [**LDtkParser**](https://github.com/evolutionleo/LDtkParser) | 63 | Importador avanzado de niveles `.ldtk`. MIT, último *push* 2025-08-14 — ⚠️ **más de un año sin *push*** (reverificado 2026-09-07). Sigue siendo la mejor opción viva para LDtk→GameMaker, pero revisa si algo cambió antes de depender de ella para un proyecto nuevo |
 | [**LDtk to GMS**](https://shynif.itch.io/ldtk-to-gms) | — | Importador alternativo (itch.io) |
 
 📁 `librerias/niveles-y-mapas/LDtkParser`
@@ -330,7 +330,7 @@ Si vas a traducir tu juego —y esta biblioteca existe justamente porque la trad
 | [**lexicon**](https://github.com/tabularelf/lexicon) | 52 | Ficheros de idioma con sustitución de variables | `librerias/localizacion/lexicon` |
 | [**polyglot**](https://github.com/daikon-games/polyglot) | 35 | Localización sencilla | `librerias/localizacion/polyglot` |
 | [**Localize**](https://github.com/Kruger0/Localize) | 20 | Multi-idioma con sincronización | `librerias/localizacion/Localize` |
-| [**gm-i18n**](https://github.com/CreativeHandOficial/gm-i18n) | 21 | i18n para GMS 2.3+ | `librerias/localizacion/gm-i18n` |
+| [**gm-i18n**](https://github.com/CreativeHandOficial/gm-i18n) | 21 | i18n para GMS 2.3+. ⚠️ **Sin *push* desde 2023-02-04** — más de 3 años parado (reverificado 2026-09-07) | `librerias/localizacion/gm-i18n` |
 | [**GMLocalize2**](https://github.com/DragoniteSpam/GMLocalize2) | 5 | Con interfaz visual | `librerias/localizacion/GMLocalize2` |
 | [**small_pp_localization_tool**](https://github.com/AntonBergaker/small_pp_localization_tool) | 11 | Exportación a hoja de cálculo para traductores | `librerias/localizacion/small_pp_localization_tool` |
 | **Cultured** | — | Localización dentro de GameMaker | [GameMaker Kitchen](https://www.gamemakerkitchen.com/tools) |

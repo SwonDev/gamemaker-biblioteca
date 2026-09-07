@@ -132,6 +132,61 @@ La latencia también es feedback: por debajo de **100 ms** una respuesta se perc
 instantánea. Un botón que se anima 300 ms antes de reaccionar se siente roto aunque sea
 precioso.
 
+### 1.5 bis El mismo principio, en el mundo: acción rechazada
+
+§1.5 lo resuelve para un botón de menú. La misma regla — **toda entrada rechazada responde en
+≤1 frame, con un motivo, nunca con silencio** — se aplica igual FUERA de los menús, y hoy solo
+existe como ejemplos sueltos que nadie ha juntado:
+
+- La puerta cerrada que se sacude sin decir el motivo, en
+  [04 · 06 — Metroidvania](../04%20-%20Recetas%20por%20género/06%20-%20Metroidvania.md) («Feedback:
+  la puerta se sacude»).
+- El icono de habilidad que baja a alfa 0,6 durante el enfriamiento, en
+  [04 · 36 §3.3-3.4](../04%20-%20Recetas%20por%20género/36%20-%20Habilidades%2C%20enfriamientos%20y%20recursos%20de%20combate.md).
+- El botón inactivo de §1.5, con sus cuatro estados y su motivo visible.
+
+Los tres resuelven el MISMO problema en tres sitios distintos, sin una pieza compartida. Aquí
+está esa pieza — el equivalente de «botón inactivo» para el mundo, no el menú:
+
+```gml
+/// @func accion_rechazada(_x, _y, _motivo)
+/// @desc Dispara en el punto donde el jugador intentó algo que no pudo: reutiliza
+///       fx_floating_text (04 · 15 §5.6) para el motivo y un sonido corto de "denegado".
+///       _motivo puede ser "" cuando el propio choque físico ya lo dice todo.
+function accion_rechazada(_x, _y, _motivo)
+{
+    if (_motivo != "") fx_floating_text(_x, _y, _motivo, c_ltgray);
+    audio_play_sound(snd_denegado, 5, false);
+}
+```
+
+```gml
+// obj_jugador — al intentar lanzar una habilidad que sigue en enfriamiento (04 · 36 §3.3:
+// mismos campos que ya usa slot_habilidad_dibujar() para el alfa 0,6 del icono)
+var _clave = "bola_fuego";
+var _listo = (habilidades.enfriamiento[$ _clave] <= 0) && (habilidades.cargas[$ _clave] > 0);
+if (!_listo)
+{
+    accion_rechazada(x, y - 20, txt("en_enfriamiento"));
+    exit;
+}
+```
+
+```gml
+// obj_jugador — al chocar con un muro invisible que sella una zona (obj_muro_invisible
+// de 04 · 47 §5, o el límite de un traversal de 04 · 37)
+if (place_meeting(x + hspeed, y, obj_muro_invisible))
+{
+    accion_rechazada(x, y, "");   // sin texto: el choque ya dice "por aquí no"
+    camera_shake(0.05);           // sacudida sutil — no la del golpe de combate de 04 · 15 §5.7
+}
+```
+
+> 💡 **No es una receta nueva por sistema — es una función de una línea que faltaba juntar.**
+> Cada acción bloqueada del juego (habilidad en enfriamiento, puerta sin llave, muro invisible,
+> objeto que no se puede coger) gana el mismo tratamiento con la misma llamada, en vez de que
+> cada sistema invente su propio silencio o su propio parche.
+
 ### 1.6 Affordance: la forma dice el uso
 
 Un elemento tiene *affordance* cuando su aspecto sugiere lo que se puede hacer con él. En un

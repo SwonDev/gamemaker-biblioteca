@@ -78,6 +78,18 @@ Son **bases completas** sobre las que construir. Los mejores para aprender arqui
 - **Género:** motor tipo *I Wanna Be The Guy* (plataformas de precisión).
 - **Nota:** diseñado para **GM 8.2**, no para LTS 2026. Estúdialo por las técnicas, no para usarlo tal cual.
 
+### GMOSSE (GameMaker Open-Source Shmup Engine) — de nicho
+
+- **Enlace:** <https://github.com/BPzeBanshee/GMOSSE> · **8 ★** · **BSD-3-Clause-Clear** · push 2026-09-05 (verificado 2026-09-07).
+- **Género:** *shoot-em-up*/*shmup* (mantenido desde 2011, actualizado a la última versión de GameMaker).
+- **Qué aprenderás:** cierra un hueco real — la biblioteca ya tiene motores de referencia para
+  plataformas de precisión (Orbinaut, Harmony, Megamix) pero ninguno de *shmup*. Patrones de bala,
+  formaciones de enemigos y estructura de niveles por oleadas.
+- **Tracción honesta:** 8 estrellas y un solo mantenedor de largo recorrido. No es un proyecto con
+  comunidad activa como Orbinaut o Harmony — sirve como referencia de arquitectura para el género,
+  no como framework de producción con soporte detrás. Licencia permisiva, así que es seguro leerlo
+  y reutilizar patrones.
+
 ---
 
 ## 3. Juegos completos — nivel principiante–intermedio

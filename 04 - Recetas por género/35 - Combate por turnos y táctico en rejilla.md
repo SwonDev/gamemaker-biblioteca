@@ -33,7 +33,8 @@
 > El árbol de comportamiento, el utility AI genérico y la percepción son de
 > [04 · 31](./31%20-%20IA%20de%20decisión%20-%20árboles%20de%20comportamiento%2C%20utility%20y%20GOAP.md);
 > aquí sólo se **aplican** sus curvas a un problema nuevo (elegir una celda). El *deckbuilding*
-> (mazo, mano, energía por turno) sigue siendo un hueco de la biblioteca y no se cubre aquí.
+> (mazo, mano, descarte, energía por turno) no se cubre aquí: es el encargo de
+> [04 · 44 §3](./44%20-%20Bullet%20heaven%2C%20autobattler%20y%20deckbuilder.md#3--deckbuilder).
 
 ---
 

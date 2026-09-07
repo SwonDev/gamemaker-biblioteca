@@ -1,7 +1,7 @@
 # 06 · Plantillas y starters
 
 > Verificado el **31 de agosto de 2026** consultando la API oficial (`https://api.gamemaker.io/api/gamemaker/project-templates`) y **creando proyectos de prueba reales** con `gm-cli`.
-> `gm-cli` instalado en este Mac: **2.2.0** (última publicada: **2.3.0**).
+> `gm-cli` instalado en este Mac: **2.3.0**, al día con la última publicada (verificado 07-09-2026).
 
 ---
 
@@ -172,25 +172,18 @@ jobs:
 
 ## 4. ⚠️ Incidencia encontrada al probar (importante)
 
-Al intentar crear la **Platformer Template** con `gm-cli` **2.2.0**, el proceso **falló**:
+Al intentar crear la **Platformer Template** con `gm-cli`, el proceso **falló**:
 
 ```
 Command failed:
 Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1
 ```
 
-**Diagnóstico:** las plantillas que usan **prefabs** (como Platformer Template) dependen de la herramienta `PREFABS RESTORE`, que parece no funcionar en la versión 2.2.0. La última versión publicada es **2.3.0**.
+**Diagnóstico:** las plantillas que usan **prefabs** (como Platformer Template) dependen de la herramienta `PREFABS RESTORE`, que falla. ⚠️ **No es un problema de versión del CLI**: se probó primero en 2.2.0 y **se reverificó en 2.3.0 el 02-09-2026 — sigue fallando igual**. Detalle completo y matriz de pruebas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
-**Solución:**
+Con **Space Rocks** (que no usa prefabs) el comando funciona perfectamente en cualquiera de las dos versiones, y genera el árbol completo mostrado en la sección 3.
 
-```sh
-npm install -g @gamemaker/gm-cli@latest   # actualiza a 2.3.0
-gm-cli --version                          # confirma que estás en 2.3.0
-```
-
-Con **Space Rocks** (que no usa prefabs) el comando funciona perfectamente en 2.2.0, y genera el árbol completo mostrado en la sección 3.
-
-> **Conclusión práctica:** si `gm-cli init` te falla con «PREFABS RESTORE», **actualiza el CLI antes** de culpar a la plantilla. Y si sigue fallando, crea el proyecto desde el IDE.
+> **Conclusión práctica:** si `gm-cli init` te falla con «PREFABS RESTORE», **no es tu instalación ni tu versión del CLI** — no pierdas tiempo actualizando. Crea el proyecto desde el IDE en su lugar, o usa una plantilla sin prefabs.
 
 ---
 
@@ -327,7 +320,7 @@ room_goto(rm_menu);
 ├─ SÍ  → Space Rocks (léelo entero, modifícalo, rómpelo)
 └─ NO
    ├─ ¿Pixel art?           → Blank Pixel Game (suavizado desactivado)
-   ├─ ¿Plataformas?         → Platformer Template   ⚠️ actualiza gm-cli a 2.3.0 antes
+   ├─ ¿Plataformas?         → Platformer Template   ⚠️ falla con `gm-cli init` (§4) — créalo desde el IDE
    ├─ ¿Shooter?             → Scrolling Shooter / Twin Stick Shooter
    ├─ ¿Supervivencia?       → Survivor Game Template
    ├─ ¿Puzzle?              → Match 3 / Puzzle Slider

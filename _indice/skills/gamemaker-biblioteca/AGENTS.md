@@ -1,7 +1,14 @@
----
-name: gamemaker-biblioteca
-description: Fuente fidedigna para desarrollar con GameMaker LTS 2026 y GML. Úsala antes de escribir o revisar GML, ante cualquier duda de API (¿existe esta función?, firma, obsoleta, manual), y al planificar o construir un juego con GameMaker en cualquiera de sus disciplinas: diseño de juego y GDD, niveles, mundo, pixel art, animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura y patrones, generación procedural, físicas y fluidos, combate y enemigos, IA, pathfinding, progresión, sonido y voz, testing, producción, negocio, narrativa, matemáticas, móvil y 3D; y para publicar: firmar, notarizar, subir a Steam, Play, App Store y consolas (Nintendo, PlayStation, Xbox). Dispara con GameMaker, GML, gm-cli, resourcetool, archivos .yyp/.yy/.gml, «hazme un juego», «publicar mi juego», y con «no compila» o «se comporta raro» en un proyecto GameMaker.
----
+# AGENTS.md — Biblioteca GameMaker (generado desde la skill)
+
+> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**
+> **`SKILL.md`. No lo edites a mano:** se reescribe en cada `python3 _indice/actualizar.py`
+> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz
+> de un proyecto y no tienen un directorio de skills en formato `SKILL.md` — copia
+> este archivo (o enlázalo) como `AGENTS.md` en la raíz de tu proyecto de GameMaker.
+> Si tu CLI sí lee skills, usa directamente la carpeta
+> `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.
+
+**Cuándo aplica esto:** Fuente fidedigna para desarrollar con GameMaker LTS 2026 y GML. Úsala antes de escribir o revisar GML, ante cualquier duda de API (¿existe esta función?, firma, obsoleta, manual), y al planificar o construir un juego con GameMaker en cualquiera de sus disciplinas: diseño de juego y GDD, niveles, mundo, pixel art, animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura y patrones, generación procedural, físicas y fluidos, combate y enemigos, IA, pathfinding, progresión, sonido y voz, testing, producción, negocio, narrativa, matemáticas, móvil y 3D; y para publicar: firmar, notarizar, subir a Steam, Play, App Store y consolas (Nintendo, PlayStation, Xbox). Dispara con GameMaker, GML, gm-cli, resourcetool, archivos .yyp/.yy/.gml, «hazme un juego», «publicar mi juego», y con «no compila» o «se comporta raro» en un proyecto GameMaker.
 
 # GameMaker · biblioteca fidedigna
 

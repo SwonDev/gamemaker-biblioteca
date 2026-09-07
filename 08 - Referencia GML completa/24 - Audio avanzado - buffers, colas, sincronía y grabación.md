@@ -164,6 +164,8 @@ else                    audio_sync_group_debug(-1);
 
 ## 3 · Buffer sounds: síntesis y audio procedural en tiempo real
 
+> 💡 **¿Un agente sin ningún archivo de audio?** Esta sección es la respuesta — la escalera completa de prioridad (síntesis primero, generador externo después, placeholder al final) está en [13 · 09 §8 bis](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8-bis--un-agente-sin-archivo-de-audio-la-escalera-de-prioridad).
+
 Un **buffer sound** convierte datos que tú mismo escribes en un buffer (ver
 [08 · 16 — Buffers](./16%20-%20Buffers.md) para la base) en un sonido reproducible con la API
 normal (`audio_play_sound`, `audio_sound_gain`, `audio_sound_pitch`…). No crea un sonido nuevo

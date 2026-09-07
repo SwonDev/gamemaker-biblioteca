@@ -6,7 +6,7 @@
 > proyecto con el motor sin inventarse nada.
 
 **Versión de referencia:** GameMaker **LTS 2026.0** · IDE `2026.0.0.16` · runtime GMS2 `2026.0.0.23`
-**Canal Beta vigente:** `2026.100.0` (IDE 1139 / runtime 1090, 27-08-2026) · **GMRT** Beta `0.21`
+**Canal Beta vigente:** `2026.100.0` (IDE 1142 / runtime 1093, 02-09-2026, verificado 07-09-2026) · **GMRT** Beta `0.21`
 
 ---
 
@@ -257,14 +257,31 @@ concreta** que sirve para diagnosticar sin preguntar.
   `_indice/traduccion/README.md`.
 - El **catálogo de la API** sale del `GmlSpec.xml` del runtime real instalado. No es una
   recopilación de internet.
-- Los **148 repositorios** se han clonado del GitHub original y llevan sus estrellas, licencia
+- Los **608 repositorios** se han clonado del GitHub original y llevan sus estrellas, licencia
   y fecha de último cambio reales, consultadas por la API de GitHub.
 - Lo **no verificado** se marca con ⚠️ en el texto. Si algo no lleva marca, es porque se
   comprobó contra una fuente primaria.
 
 ---
 
-## 7. Idioma
+## 7. Credenciales
+
+**Nunca copies una credencial a un archivo.** Ni a `/tmp`, ni al scratchpad, ni al repositorio,
+ni a un script. Si necesitas un token —de GitHub, de una tienda, de un servicio— léelo de la
+variable de entorno en el momento de usarlo y no lo escribas en ningún sitio:
+
+```sh
+curl -H "Authorization: Bearer $GH_TOKEN" ...     # bien
+echo "$GH_TOKEN" > /tmp/token.txt                 # nunca
+```
+
+Un archivo en `/tmp` lo lee cualquier proceso de la máquina. Tampoco pegues credenciales en los
+ejemplos de la documentación: usa marcadores evidentes (`<TU_TOKEN>`) y di que el secreto vive
+fuera del código.
+
+---
+
+## 8. Idioma
 
 Todo el texto propio de la biblioteca está en **español con ortografía completa** (tildes,
 eñes, ¿ ¡). Los **nombres de funciones, constantes y argumentos se respetan en inglés**: son

@@ -1728,6 +1728,66 @@ rutas relativas, assets descartados por el compilador, permisos. La regla es sen
 figura ya en [`05 · 04`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) §8:
 **prueba el build empaquetado antes de cada entrega, no solo el Run.**
 
+### 8.5 Interpretar los errores: lo que el compilador SÍ detecta y lo que NO
+
+Un error de sintaxis normal sale con el formato `gml_Object_<objeto>_<Evento>(<línea>) :
+<mensaje>` (verificado rompiendo a propósito un `Create_0.gml` con `var _horizontal = ;`), y
+`gm-cli compile` añade al final, además del texto con bordes `│`, un bloque JSON parseable:
+
+```json
+{"errors":[{"source":"AssetCompiler","message":"gml_Object_obj_x_Create_0(0) : unexpected symbol \";\" in expression"},{"source":"AssetCompiler","message":".../GMAssetCompiler.dll exited with non-zero status (1)"}]}
+```
+
+**🔴 Un `constructor` con padre no definido crashea el `AssetCompiler` entero, sin línea y sin
+mensaje útil.** Este hallazgo vivía solo en `_indice/PENDIENTE-r3.md`, un documento de
+seguimiento interno que un agente no visita en su flujo normal; queda promovido aquí y en
+[`12 · 09` — Manual del agente de IA](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#73--el-crash-silencioso-un-constructor-con-padre-no-definido-tira-abajo-el-assetcompiler-entero),
+que trae el detalle completo (reproducción, JSON de ese caso concreto y cómo reconocerlo antes
+de sospechar de otra cosa):
+
+```gml
+// NO HAGAS ESTO: PadreQueNoExiste no está definido en ningún sitio del proyecto
+function Hijo() : PadreQueNoExiste() constructor {
+    valor = 1;
+}
+```
+
+```
+Command failed:
+/…/runtime-2026.0.0.23/bin/assetcompiler/osx/arm64/GMAssetCompiler.dll exited with non-zero status (1)
+```
+
+Verificado en vivo el 7 de septiembre de 2026: el fallo se repite tres veces seguidas, sin
+señalar archivo ni línea — es la trampa más difícil de localizar por descarte, porque nada en
+el mensaje menciona `constructor` ni herencia.
+
+**Otras trampas del motor**, encontradas por `validar-compilacion-docs.py` al compilar 3 501
+bloques de GML de esta biblioteca contra el runtime real, y que también vivían solo en
+`PENDIENTE-r3.md`:
+
+| Trampa | Por qué falla |
+|---|---|
+| **GML no admite notación científica**: `1e10` | Se trocea en el literal `1` seguido del identificador `e10` |
+| **El ternario anidado necesita paréntesis** | `a ? x : b ? y : z` falla; escribe `a ? x : (b ? y : z)` |
+| **`const` no existe en GML** | Usa `#macro NOMBRE valor` |
+| `skeleton_animation_set(animname, [loop])` no tiene argumento de *track* | No busques una firma con más argumentos por analogía con otros motores |
+| `skeleton_animation_get_position` devuelve 0-1 normalizado | No son segundos |
+| `keyboard_unset_map()` no acepta argumentos | Llamarla con un argumento es un error de sintaxis |
+
+**Por qué esto hace que `validar-proyecto.py` no sea opcional**: GML resuelve los nombres de
+función en tiempo de ejecución, así que llamar a una que no existe **no es un error de
+compilación**. `funcion_que_no_existe(5, "hola")` compila con `exit 0` limpio y solo revienta al
+ejecutar, con un mensaje que ni siquiera nombra el problema real:
+
+```
+Variable obj_x.funcion_que_no_existe(100003, -2147483648) not set before reading it.
+```
+
+Detalle completo del matiz — `validar-proyecto.py` solo hace fallar el comando (`exit 1`) para
+funciones con prefijo de familia del runtime; un nombre de dominio sin prefijo con una errata
+solo aparece en la categoría `desconocida`, y **solo con `--todo`** — en
+[`12 · 09` §7.5](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#75-por-qué-validar-proyectopy-no-es-opcional--y-un-matiz-importante-sobre-lo-que-detecta-de-verdad).
+
 ---
 
 ## 9 · QA manual: el trabajo que no se automatiza

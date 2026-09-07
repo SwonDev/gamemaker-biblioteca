@@ -34,16 +34,23 @@ Posts verificados de 2026 (del feed RSS):
 
 | Fecha | Post | Enlace |
 |---|---|---|
+| 19 ago 2026 | Loop Hero (Playdigious) — port de PC a móvil de un juego de éxito conocido | <https://gamemaker.io/en/blog/pc-to-mobile-loop-hero> |
 | 22 jul 2026 | Making A Rhythm Game In GameMaker | <https://gamemaker.io/blog/make-rhythm-game> |
 | 15 jul 2026 | Why We Stuck With GameMaker — Space Scum | <https://gamemaker.io/blog/space-scum-why> |
 | 13 jul 2026 | **Photon GameMaker Extension Release** (multijugador) | <https://gamemaker.io/blog/photon-extention-release> |
 | 8 jul 2026 | The King Is Watching: From Game Jam to 600k Sales | <https://gamemaker.io/blog/the-king-is-watching-tinybuild> |
 | 5 ago 2026 | **Bringing Real-Time Multiplayer to GameMaker with Colyseus** (beta) | <https://gamemaker.io/en/blog/colyseus-multiplayer> |
+| 1 jul 2026 | Cause+Select — proyecto benéfico | <https://gamemaker.io/en/blog/cause-select-charity> |
+| 24 jun 2026 | Chivalware (respaldado por The Arcade Crew) | <https://gamemaker.io/en/blog/arcade-crew-chivalware> |
 | 4 jun 2026 | Discord Social SDK Extension Update | <https://gamemaker.io/blog/discord-social-sdk> |
 | 20 may 2026 | **GameMaker LTS 2026.0: New Features, GMRT and Much More** | <https://gamemaker.io/en/blog/lts-2026-release> |
+| 13 may 2026 | Barty's Adventure — entrevista al estudio | <https://gamemaker.io/en/blog/bartys-adventure-interview> |
 | 29 abr 2026 | **GameMaker Update Spring 2026: LTS Roadmap, GMRT, and the Future** | <https://gamemaker.io/en/blog/update-spring-2026> |
 | 20 ene 2026 | Micro Jam: A Bi-Weekly Game Jam Community | <https://gamemaker.io/blog/micro-jam> |
 | 16 ene 2026 | Namazu Elements (multijugador) | <https://gamemaker.io/blog/namazu-elements-multiplayer> |
+
+> Cuatro filas añadidas el 2026-09-07 (verificadas con WebFetch, HTTP 200): el feed RSS oficial
+> no las listaba todas — la tabla de arriba es la lista real del blog, no solo del RSS.
 
 Los dos imprescindibles: **LTS 2026.0** y **Update Spring 2026**. El segundo contiene el
 roadmap: Code Editor 2 como plugin, nueva Start Page, ProjectTool y el futuro **Prefab

@@ -23,6 +23,16 @@ Al ejecutar `./instalar.sh`, `actualizar.py` deriva `simbolos.json` del `GmlSpec
 runtime que esa persona tenga instalado**. Eso no es un apaño: es lo que garantiza que la
 biblioteca no le mienta sobre una versión que no es la suya.
 
+`./instalar.sh` también detecta e instala la skill en cada CLI de IA que la persona tenga: Claude
+Code, Codex, opencode, Qwen Code, Kimi Code CLI, `~/.agents/skills` (estándar abierto que además
+leen Copilot CLI, Gemini CLI y Cursor CLI) y Cline. Investigado en vivo contra documentación
+oficial el 07-09-2026 — detalle y fuentes en el README, sección
+[«Qué CLI de IA están soportados»](README.md#qué-cli-de-ia-están-soportados). El único archivo que
+genera fuera de esas carpetas de skills es
+`_indice/skills/gamemaker-biblioteca/AGENTS.md` (derivado de `SKILL.md` por
+`_indice/sincronizar-skill.py`, para quien use un CLI que solo lea `AGENTS.md`) — ya incluido en
+«La skill» de la tabla de arriba, no hace falta una fila propia.
+
 Lo que **no** tendrá hasta que ejecute `./reconstruir.sh`, y hay que decírselo en el README con
 todas las letras:
 

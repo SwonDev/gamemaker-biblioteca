@@ -1157,6 +1157,121 @@ switch (attack_state)
 }
 ```
 
+### 5.9 Zona de peligro: el telegraph espacial (AoE)
+
+§5.8 avisa CUÁNDO va a golpear el jefe (el tinte progresivo, el temblor). No avisa DÓNDE — si el
+ataque es un área en el suelo y no un embiste hacia el jugador, el timing perfecto no sirve de
+nada porque no hay con qué esquivar. La pieza que falta es puramente espacial y usa el MISMO
+timer de §5.8, sin ningún estado nuevo:
+
+```gml
+// case BossAttackState.anticipate: (AMPLIACIÓN de §5.8 — añade esto junto al tinte del sprite)
+zona_peligro_alfa = attack_timer / ANTICIPATE_FRAMES;   // 0 → 1, crece con el mismo timer
+```
+
+```gml
+// obj_jefe — Draw (antes de dibujar el sprite del jefe, para que la zona quede "en el suelo")
+if (attack_state == BossAttackState.anticipate)
+{
+    draw_set_alpha(zona_peligro_alfa * 0.5);
+    draw_set_color(c_red);
+    draw_circle(x_objetivo_ataque, y_objetivo_ataque, radio_ataque, false);   // relleno
+    draw_set_alpha(zona_peligro_alfa);
+    draw_circle(x_objetivo_ataque, y_objetivo_ataque, radio_ataque, true);    // contorno, más visible
+    draw_set_alpha(1);
+}
+```
+
+> 💡 **Fija el punto de impacto AL ENTRAR en `anticipate`, no cada frame.** Si
+> `x_objetivo_ataque`/`y_objetivo_ataque` siguieran al jugador en tiempo real hasta el último
+> fotograma, no habría ruta de escape que planificar — solo un esquive de última centésima.
+> Guarda `x_objetivo_ataque = objPlayer.x; y_objetivo_ataque = objPlayer.y;` **una sola vez**, en
+> el mismo `case BossAttackState.idle` donde §5.8 ya cambia a `anticipate` y llama a
+> `squash_preset(self, "anticipate")` — y deja que el círculo se quede quieto mientras el
+> jugador decide.
+
+**Variante en cono**, para un ataque direccional (un tajo en abanico, un chorro) — el jugador ve
+por dónde SÍ puede quedarse, no solo dónde NO debe estar:
+
+```gml
+// obj_jefe — Draw, variante cono (sustituye a los dos draw_circle de arriba)
+draw_primitive_begin(pr_trianglefan);
+draw_vertex_colour(x_objetivo_ataque, y_objetivo_ataque, c_red, zona_peligro_alfa * 0.5);   // vértice central
+
+var _pasos = 16;
+for (var _i = 0; _i <= _pasos; _i++)
+{
+    var _ang = direccion_ataque - (angulo_cono * 0.5) + (angulo_cono * _i / _pasos);
+    draw_vertex_colour(x_objetivo_ataque + lengthdir_x(radio_ataque, _ang),
+                       y_objetivo_ataque + lengthdir_y(radio_ataque, _ang),
+                       c_red, zona_peligro_alfa * 0.1);   // más transparente en el borde exterior
+}
+draw_primitive_end();
+```
+
+### 5.10 La cadena de un golpe, ensamblada
+
+Cada pieza de un golpe tiene sus propios fotogramas — §5.7 los del impacto, §5.8 los de la
+anticipación — pero nunca se han visto juntas en una sola línea de tiempo. Aquí está esa línea,
+más la única pieza que de verdad faltaba: la reacción del enemigo.
+
+| Fotograma relativo al impacto | Etapa | Qué pasa | Dónde vive |
+|---|---|---|---|
+| `-ANTICIPATE_FRAMES` a `-1` | Anticipación | Tinte progresivo + temblor del atacante | §5.8 |
+| `-ANTICIPATE_FRAMES` a `-1` | Zona de peligro | Círculo/cono en el suelo, alfa creciente | §5.9 |
+| `0` | Impacto | Daño aplicado; `hit_flash` fijado | §5.7, pasos 1-2 |
+| `0` | Squash | Deformación instantánea del sprite golpeado | §5.7, paso 4 |
+| `0` | Partículas | `fx_impact()` en la dirección del golpe | §5.7, paso 5 |
+| `0` a `+N` (según daño) | Hit stop | El tiempo casi se detiene; las partículas SIGUEN volando | §5.7, paso 6 · [04 · 39 §3.8](./39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#38-congelar-partículas-durante-una-pausa-real) |
+| `0` a `+20` (decae) | Sacudida de cámara | `camera_shake`, más trauma cuanto más daño | §5.7, paso 7 |
+| `0` | Sonido | `audio_play_sound` + pitch aleatorio | §5.7, paso 8 |
+| `+2` (retardo corto, opcional) | Número de daño | `fx_floating_text()`, con el `pop_scale` de entrada | §5.7, paso 9 |
+| `+2` a `+hitstun` | **Reacción del enemigo** | La IA se PAUSA y se ve una animación de «herido» — no solo el empuje físico | Nuevo, ver abajo |
+
+> 💡 **El retardo del número flotante es opcional y no toca `hit_complete()`.** Si quieres que el
+> «+12» aparezca un par de fotogramas después del resto (para que no compita visualmente con el
+> flash y las partículas, que sí deben ser instantáneos), no reescribas el paso 9: dispara el
+> texto flotante desde una alarma corta de la víctima en vez de la llamada directa, guardando el
+> daño pendiente en una variable. La mayoría de juegos no lo necesitan — un solo frame de
+> diferencia casi no se nota — así que trátalo como el ajuste fino que es, no como un paso
+> obligatorio.
+
+**La reacción del enemigo, la pieza que faltaba.** `apply_knockback()` (§5.4) ya mueve al
+enemigo, pero mover no es reaccionar: un enemigo empujado por los aires que sigue atacando o
+persiguiendo mientras vuela es exactamente lo que hace que un golpe «no se sienta». Falta un
+estado de «herido» que pare la IA, no solo el cuerpo:
+
+```gml
+/// hit_complete() (§5.7) — AMPLIACIÓN: si la víctima tiene árbol de IA (04 · 31), añade
+/// esto junto al paso 3 (Knockback + hitstun)
+if (variable_instance_exists(_v, "hitstun"))   // solo lo tienen los enemigos con IA
+{
+    _v.hitstun      = 14;                 // ~0,23 s a 60 fps: interrumpe sin sacarlo de combate
+    _v.sprite_index = spr_enemigo_herido;  // animación de "herido", distinta de idle/ataque
+    _v.image_index  = 0;
+}
+```
+
+```gml
+// obj_enemigo — Step, ANTES de arbol.tick(pizarra) (04 · 31 §2, mismo sitio que ese
+// documento usa en su obj_guardia · Step)
+if (hitstun > 0)
+{
+    hitstun--;
+    exit;   // ni un tick de IA mientras dura: 04 · 31 §1 ya explica que el árbol "no tiene
+            // estado" y se recorre de cero cada tick — saltárselo un frame no lo rompe, solo
+            // congela el punto donde estaba (la Secuencia en curso lo retoma igual al volver)
+}
+
+arbol.tick(pizarra);   // el árbol normal de 04 · 31 §2, sin tocar
+```
+
+> 💡 **Esto es lo que distingue el `hitstun` de un simple empuje físico.** `apply_knockback()`
+> mueve al enemigo; el `hitstun` de arriba **detiene su cerebro** durante esos mismos
+> fotogramas. Usa el mismo valor que ya recibe `apply_knockback()` si quieres que los dos
+> terminen a la vez, o uno más corto si prefieres que el enemigo siga reaccionando físicamente
+> más tiempo del que está «aturdido» de verdad.
+
 ---
 
 ## 6. Gestión del estado del jugador
@@ -1269,6 +1384,8 @@ function hit_stop(_frames)
 | No limpiar tweens al cambiar de room | Tweens apuntando a IDs reciclados de otros objetos | `array_resize(tweens, 0)` en Room End |
 | Feedback solo visual | El juego se siente "sordo" | Mínimo tres canales: visual + espacial + auditivo |
 | Ataques sin anticipación | El jugador siente que muere por azar | 20‑40 frames de telegraph antes de cada golpe |
+| Telegraph solo de color, sin marca en el suelo | El jugador ve que algo va a pasar pero no dónde plantarse | Zona de peligro (círculo/cono) durante `ANTICIPATE_FRAMES` (§5.9) |
+| Un enemigo golpeado sigue atacando mientras vuela por los aires | El golpe no se siente: solo se movió el cuerpo, no reaccionó | `hitstun` que pausa el árbol de IA, no solo `apply_knockback()` (§5.10) |
 
 ---
 

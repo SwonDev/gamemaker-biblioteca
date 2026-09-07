@@ -922,6 +922,119 @@ if (_dx != 0 || _dy != 0) rejilla_mover(_dx, _dy);
 
 ---
 
+### 3.11 Cintas transportadoras
+
+`objPlatformMoving` de `04·01 §5.8` resuelve la plataforma que **se mueve** y a la que el
+jugador se sube (patrón `riding`: el delta de posición de la plataforma se copia al jugador cada
+Begin Step, `04·01 §5.2`). Una cinta transportadora es el caso contrario: **el objeto no se
+mueve nunca**, pero empuja con una velocidad constante a quien la pisa mientras dura el
+contacto. Nunca reutilices `objPlatformMoving` para esto — no tiene sentido animarla de un
+extremo a otro, y el patrón `riding` da por hecho que el objeto que se sigue se desplaza de
+verdad.
+
+**El vector de empuje.** Cada cinta tiene una dirección y una velocidad, ambas sobrescribibles
+por instancia (una cinta puede ir más rápido que otra, o en sentido contrario) pero con un valor
+por defecto en `scr_config`:
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_config — AÑADIDOS de esta receta (cintas transportadoras)
+// ---------------------------------------------------------------------------
+#macro CINTA_VELOCIDAD  1.5   // px/frame de empuje por defecto
+#macro CINTA_DIRECCION  1     // 1 = derecha, -1 = izquierda, por defecto
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objConveyor — Create
+// ---------------------------------------------------------------------------
+direccion = CINTA_DIRECCION;      // sobrescribible en el código de creación de la instancia
+velocidad = CINTA_VELOCIDAD;      // ídem: una cinta concreta puede ir más rápido que la de al lado
+push_x    = direccion * velocidad;
+```
+
+**El jugador: el empuje se suma a `vel_x`, no a `x` directamente.** Sumar el empuje a la
+posición sin pasar por `move_and_collide()` dejaría que la cinta empujara al jugador dentro de
+una pared. En su lugar, se detecta el contacto igual que `on_ground` (paso 8 de `04·01 §5.3`,
+justo después de comprobarlo) y se aplica al **siguiente** frame, antes de la llamada a
+`move_and_collide()` del paso 6 — el mismo orden que ya usa el bucle base, sin reescribirlo:
+
+```gml
+// ---------------------------------------------------------------------------
+// objPlayer — Create (AÑADIDO de esta receta, junto a las de 04·37 §2.3)
+// ---------------------------------------------------------------------------
+en_cinta = noone;
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objPlayer — Step, paso 3 bis: se inserta DESPUÉS del cálculo normal de
+// vel_x por input/fricción (paso 3 de 04·01 §5.3) y ANTES del salto (paso 4)
+// ---------------------------------------------------------------------------
+if (en_cinta != noone)
+{
+    vel_x += en_cinta.push_x;
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objPlayer — Step, paso 8 (AÑADIDO junto a la comprobación de on_ground de
+// 04·01 §5.3): detecta la cinta para que el paso 3 bis del frame SIGUIENTE
+// ya la tenga en cuenta.
+// ---------------------------------------------------------------------------
+on_ground = place_meeting(x, y + 1, objSolid) || place_meeting_on_way(x, y + 1);
+en_cinta  = instance_place(x, y + 1, objConveyor);
+```
+
+Sumar el empuje a `vel_x` en vez de tratarlo aparte resuelve solo el caso que pide el brief sin
+código extra:
+
+- **Caminando a favor de la cinta**: `vel_x` (del input) y `push_x` tienen el mismo signo, se
+  suman, el jugador va más rápido de lo normal.
+- **Parado sobre la cinta**: `vel_x` del input es `0`, así que `vel_x` final es `push_x` — el
+  jugador viaja pasivamente a la velocidad de la cinta, como cualquier objeto sin input.
+- **Caminando en contra**: `vel_x` del input y `push_x` tienen signo contrario, se restan — el
+  jugador avanza más despacio de lo normal. Si `CINTA_VELOCIDAD` es mayor que `MOVE_SPEED_MAX`
+  (la velocidad máxima del jugador, `04·01 §5.0`), la resta no llega a cero: el signo final es
+  el de la cinta y el jugador retrocede pese a mantener pulsado el input contrario — exactamente
+  el caso de "cinta más rápida que el jugador" que no se puede caminar en contra.
+
+> ⚠️ **`move_and_collide()` recorta el desplazamiento con su parámetro `max_x_distance`**
+> (`04·01 §5.3`, paso 6: `move_and_collide(vel_x, vel_y, objSolid, 4, 0, 0, MOVE_SPEED_MAX, -1)`).
+> Si `vel_x + push_x` supera `MOVE_SPEED_MAX`, el exceso se recorta en silencio y la cinta deja
+> de notarse por encima de ese tope. Para que el empuje de la cinta se sienta de verdad, sube ese
+> límite cuando `en_cinta != noone`: `move_and_collide(vel_x, vel_y, objSolid, 4, 0, 0, MOVE_SPEED_MAX + abs(en_cinta.push_x), -1)`.
+
+**Objetos sin input propio: la cinta los transporta ella misma.** Una caja de `§3.10`, un
+enemigo que no lee `en_cinta`, cualquier cosa que solo tenga `x`/`y` y ninguna máquina de
+estados propia, no puede leer el empuje por su cuenta. Para esos casos la cinta hace el trabajo:
+todo objeto que deba dejarse transportar pasivamente cuelga de un padre común,
+`objConveyorPassivo` (en el editor de objetos, cambia el padre de `objBox` de `§3.10` a este si
+quieres que las cajas se muevan solas sobre una cinta), y la propia cinta lo recorre en su Step:
+
+```gml
+// ---------------------------------------------------------------------------
+// objConveyor — Step. Transporta objetos SIN input propio (cajas, enemigos
+// que no comprueban en_cinta). El jugador NUNCA hereda de objConveyorPassivo:
+// ya lee el empuje él solo (más arriba) y aplicarlo aquí también lo duplicaría.
+// ---------------------------------------------------------------------------
+with (objConveyorPassivo)
+{
+    // "other" es la instancia de objConveyor que llamó a este with (página
+    // "other" del manual, sección "Cuándo cambia «other»").
+    if (place_meeting(x, y + 1, other.id) && !place_meeting(x + other.push_x, y, objSolid))
+    {
+        x += other.push_x;
+    }
+}
+```
+
+El segundo `place_meeting` frena a la caja justo antes de la pared en vez de dejarla clavada
+dentro: la misma idea de comprobar antes de mover que ya usa `rejilla_mover()` en `§3.10`.
+
+---
+
 ## 4 · Checklist
 
 - [ ] El enum `PlayerState` tiene los estados nuevos **al final**, nunca insertados en medio.
@@ -938,6 +1051,9 @@ if (_dx != 0 || _dy != 0) rejilla_mover(_dx, _dy);
 - [ ] Al agacharte, el techo se comprueba con la máscara de PIE antes de levantarte, no después.
 - [ ] El estado `climb`/`hang`/rejilla hace `exit` para no ejecutar `move_and_collide()` ese frame.
 - [ ] `objPlatform` (one-way) y `objSolid` nunca se mezclan en la misma llamada a `move_and_collide()` — sigue valiendo el aviso de `04·01 §5.4`.
+- [ ] El empuje de la cinta se suma a `vel_x` (paso 3 bis), nunca directamente a `x`: así pasa por `move_and_collide()` y no atraviesa paredes.
+- [ ] El `max_x_distance` de `move_and_collide()` se amplía cuando `en_cinta != noone`, o el empuje se recorta en silencio por encima de `MOVE_SPEED_MAX`.
+- [ ] `objConveyorPassivo` nunca incluye a `objPlayer`: el jugador lee el empuje él solo y aplicarlo dos veces lo duplicaría.
 - [ ] `python3 _indice/validar-codigo-gml.py` y `python3 _indice/verificar-enlaces.py "04 - Recetas por género"` en 0 antes de dar esto por cerrado.
 
 ---
@@ -956,6 +1072,8 @@ if (_dx != 0 || _dy != 0) rejilla_mover(_dx, _dy);
 | Tile de agua en el índice `0` del tile set | `tilemap_get_at_pixel() > 0` nunca detecta el agua | Usa cualquier índice distinto de 0 para el tile marcador |
 | Mover al jugador por rejilla cada frame en vez de por pulsación | El sokoban se vuelve ilegible: la caja "patina" varias casillas | `keyboard_check_pressed()`, nunca `keyboard_check()`, para `rejilla_mover()` |
 | Olvidar el `exit` en los estados climb/hang/rejilla | `move_and_collide()` se sigue ejecutando y pelea contra la posición fijada a mano | Cierra esos bloques con `exit` antes de los pasos 6-10 del bucle base |
+| Sumar el empuje de la cinta a `x` en vez de a `vel_x` | El jugador atraviesa la pared al final de la cinta | El empuje pasa por `move_and_collide()`: se suma a `vel_x` antes del paso 6 (§3.11) |
+| No ampliar `max_x_distance` con una cinta rápida | La cinta parece no hacer nada por encima de `MOVE_SPEED_MAX` | `move_and_collide(..., MOVE_SPEED_MAX + abs(en_cinta.push_x), -1)` (§3.11) |
 
 ---
 
