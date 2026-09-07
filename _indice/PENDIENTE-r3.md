@@ -1,111 +1,60 @@
-# Trabajo pendiente — tercera ronda (2026-09-06)
+# Tercera ronda — cerrada (2026-09-07)
 
-> **Estado: auditorías CERRADAS, redacción a medias.** Las diez auditorías de dominio están
-> terminadas y sus informes en [`auditorias/`](./auditorias/) (`r3-*.md`): son el encargo ya
-> redactado, con evidencia por tema y símbolos verificados. La redacción se detuvo por límite de
-> tokens semanal, no por haber terminado.
+> **Estado: sin deuda.** `python3 _indice/actualizar.py` termina con
+> «Biblioteca coherente. Índices al día y sin deuda pendiente.» y sus **doce pasos en verde**.
+> Los informes de las auditorías siguen en [`auditorias/`](./auditorias/) como registro de por
+> qué se escribió cada cosa; el veredicto de cierre está en
+> [`auditorias/r3-99-cierre.md`](./auditorias/r3-99-cierre.md).
 
-## Lo que sí quedó hecho
+## Qué cambió
 
-- **Diez auditorías de dominio** (909 temas evaluados con evidencia `archivo §sección`):
-  arte y animación (92) · procedural y niveles (83) · simulación y economía (101) ·
-  multijugador (78) · rendimiento (105) · datos y persistencia (93) · herramientas (99) ·
-  entrada y control (98) · plataformas y legal (81) · narrativa y localización (87).
-  Más [`r3-generos-faltantes.md`](./auditorias/r3-generos-faltantes.md), hecha en el hilo principal.
-- **Dos documentos nuevos**: `04/46 — Eje Z falso` (595 líneas) y `04/47 — Beat em up` (858).
-- **Pendientes 2-6 de la ronda anterior**, cerrados: Xbox Live, colisión isométrica, remisión de
-  Box2D, versión de Vinyl, Discord/AR/*serious games*, y 9 páginas más del espejo corregidas.
-- **La skill es portable**: `SKILL.md` ya no lleva ruta absoluta, y `instalar.sh` la instala en
-  Claude Code, Codex, `~/.agents/skills` (Copilot y Gemini) y opencode.
+**Once encargos de contenido**, salidos de diez auditorías de dominio (909 temas evaluados con
+evidencia `archivo §sección`) más una auditoría propia de géneros:
 
-## Defectos verificados y NO corregidos todavía
+- **`04`** · 46 eje Z falso · 47 beat em up · 48 aventura gráfica · 49 deportes y física de mesa ·
+  50 juego de lucha · 51 colonia y constructor de bases · 52 live-ops técnico.
+- **`05/05`** entregar el juego: firmar, notarizar y subir a las tiendas.
+- **`07/23`** arte generado por IA · **`13/25`** legal de terceros · **`13/26`** comunidad propia.
+- Ampliaciones grandes en `13/07` (procedural), `13/22` (ciudades), `01/12` (entrada), `13/05` (UI),
+  `13/01` (economía), `04/45` (granja), `04/09` (crafting), `01/14` y `01/15`, `04/14`, `04/21`,
+  `07/18`, `13/12`, `08/22`, `13/10`, `12/05`, `12/08`, `04/35` (tablero hexagonal).
 
-Son fallos reales del contenido actual. Por orden de gravedad:
+## Lo que de verdad cambió la fiabilidad
 
-1. 🔴 **Guardar en `working_directory`** — 15 ocurrencias en 10 recetas de `04` (archivos 03, 04,
-   05, 06, 07, 09, 10, 11, 12, 15). Esa carpeta es de **solo lectura** en una build exportada: el
-   código funciona en el IDE y falla en Windows empaquetado, móvil y macOS con sandbox. La propia
-   biblioteca ya lo advierte en `01/14 §1` y en `06/scr_save_load.gml`. **Ojo al corregir:** leer
-   de `working_directory` (Included Files) es legítimo; solo la escritura es el defecto.
-2. 🔴 **`replay_verificar()` en `13/10 §14.3`** calcula el hash y **nunca lo compara**: da por
-   bueno cualquier replay.
-3. 🟠 **`08/22` línea 33** — el comentario dice «en bucle» y contradice la firma real de
-   `skeleton_animation_set`; produciría animaciones rotas.
-4. 🟠 **`04/09 §5.3`** — `ghost_valido` llama a `celda_construible()` y `punto_en_rango()`, que no
-   se definen en ninguna parte, y no consulta la rejilla de ocupación: permite construir encima.
-5. 🟠 **Citas cruzadas rotas** — `13/01` remite a `01/15` para «el profiler» y allí no está;
-   `01/01 §5` promete los Workspaces y no los desarrolla; `04/28` y `13/03` no se enlazan en DPI.
+**Compilar el GML de los documentos** (`validar-compilacion-docs.py`, paso 10 de `actualizar.py`):
+extrae 3501 bloques y compila 3216 contra el runtime real en 18 s. Encontró lo que ningún
+validador anterior veía — `video_draw()` con cuatro argumentos cuando no acepta ninguno, un
+ternario anidado sin paréntesis, `const` (que no existe en GML), pseudocódigo de Python etiquetado
+como GML, y decenas de identificadores con eñes que nunca habrían compilado.
 
-## Cola de redacción (el encargo está escrito en cada informe)
+**El detector de escrituras en `working_directory` estaba escrito y nunca se llamaba desde
+`main()`.** El validador pasaba en verde sin comprobarlo. Ya se ejecuta y afecta al código de salida.
 
-**Géneros que faltan** (`r3-generos-faltantes.md`): `04/48` aventura gráfica · `04/49` deportes y
-física de mesa · `04/50` juego de lucha · `04/51` colonia y constructor de bases (el hueco más
-grande, lo piden dos auditorías) · ampliar `13/07` con *marching squares* y arena granular ·
-ampliar `04/35` con el tablero hexagonal.
+**El espejo del manual está completo por primera vez**: 3119 páginas, 0 ausentes, 0 incompletas,
+0 con literales traducidos.
 
-**Correcciones que cambian lo que hoy se afirma** (`r3-multijugador-online.md`): existe
-`network_config_enable_reliable_udp` nativo y se manda al lector a una librería de terceros ·
-HTML5 **no puede alojar servidor** y solo recibe por `network_socket_ws`/`_wss`, y no se dice en
-ninguna parte · los 42 símbolos `rollback_*` dependen de Opera GX y **desaparecen en la Beta
-2026.100 R2**. Faltan además tokens, *rate limiting* y *lag compensation*.
+## Trampas del motor descubiertas al compilar
 
-**Los dos encargos confluentes** están en
-[`auditorias/r3-ENCARGOS-CONFLUENTES.md`](./auditorias/r3-ENCARGOS-CONFLUENTES.md): la última milla
-de publicación (`steamcmd`, notarización de macOS, Play, App Store) y las herramientas externas de
-perfilado.
+Valen más que cualquier documento, porque no están en el manual:
 
-**Resto por informe**: live-ops y telemetría (`r3-datos-persistencia.md`, 15 encargos) · RTL/CJK ya
-resueltos por Scribble y sin documentar (`r3-narrativa-localizacion.md`, 12) · arte generado por IA
-con criterio y contornos en pixel art (`r3-arte-animacion.md`, 15) · Voronoi, generación sin
-congelar el frame, ciudades (`r3-procedural-niveles.md`, 10) · consola de comandos in-game
-(`r3-herramientas-pipeline.md`, 9) · marcas y *fan games* (`r3-plataformas-legal.md`, 10) · IME y
-mnemónicos (`r3-input-control.md`, 3) · economía con código y cosecha (`r3-simulacion-sistemas.md`, 14).
+- **GML no admite notación científica.** `1e10` se trocea en `1` y un identificador `e10`.
+- **`function Hijo() : Padre() constructor {}` con el padre no definido crashea el
+  `AssetCompiler` entero**, y ese crash se traga los errores de todos los bloques posteriores.
+- **El ternario anidado necesita paréntesis**: `a ? x : (b ? y : z)`.
+- `const` no existe: es `#macro`. `string_pad`, `path_point_add`, `point_in_polygon`,
+  `draw_get_batch_count`, `vk_e`, `keyboard_ime_*` y la familia `locale_*` **no existen**.
+- `skeleton_animation_set(animname, [loop])` no tiene argumento de track.
+- `skeleton_animation_get_position` devuelve 0-1 normalizado, no segundos.
+- `keyboard_unset_map()` no acepta argumentos.
 
-## Dos herramientas quedaron a medio hacer
+## Lo que queda vivo
 
-- **`_indice/verificar-espejo.py`** — terminado y **ya integrado como paso 12 de
-  `actualizar.py`** (antes paso 11: se desplazó un puesto al añadir la compilación de documentos,
-  ver más abajo). Su medición actual: **3119 páginas comparadas · 0 ausentes · 508 incompletas ·
-  84 con literales traducidos**. Lo que falta es corregir lo que detecta.
+Nada bloquea el uso de la biblioteca ni su publicación. Para una ronda futura:
 
-  De esas, **6 páginas ya están corregidas** (no las repitas): `gml_pragma`, `json_encode`,
-  `Asynchronous_Functions/HTTP/HTTP`, `http_request`, `Quick_Start_Guide/Drawing` y
-  `show_debug_message`. Dos de ellas (`json_encode` y `show_debug_message`) no estaban
-  «incompletas»: eran **redacciones antiguas** de una versión anterior del manual, y hubo que
-  reescribirlas enteras contra la inglesa vigente. Cuenta con ese caso al planificar el resto.
-
-  Prioriza **los 84 literales traducidos sobre las 508 incompletas**: un literal mal traducido es
-  código que falla en silencio (`"oculto"` por `"hidden"`), mientras que una página incompleta
-  solo obliga a mirar la inglesa.
-
-## ✅ El pendiente nº 1 de rondas anteriores se cerró en esta sesión
-
-**`_indice/validar-compilacion-docs.py`** ya existía (no como `.sh`: su cabecera explica por qué —
-extraer y clasificar ~3200 bloques es análisis de texto con regex, el terreno de
-`validar-codigo-gml.py`, no el de un bucle `for` en bash), pero nadie lo había ejecutado de
-verdad ni lo tenía enganchado a `actualizar.py`. Esta sesión:
-
-- Lo ejecutó contra los ~3200 bloques ```gml compilables de los documentos y corrigió los errores
-  reales de sintaxis que encontró (varios `daño`/`añadir`/`ya_mutó`/`sueño`/`calcular_daño` con
-  ñ/tilde, un `const` inexistente en GML —usa `#macro`—, un ternario anidado sin paréntesis
-  —confirmado contra el manual: GML no encadena `?:` sin ellos—, `video_draw()` llamado con 4
-  argumentos cuando la firma real no lleva ninguno, fragmentos de struct/enum sin envolver, y dos
-  bloques de «salida de consola» mal etiquetados como ```gml).
-- Encontró y aisló un **bug real del compilador de GameMaker** (`gm-cli`/`GMAssetCompiler.dll`
-  2026.0.0.23): un `function Hijo() : Padre() constructor` cuyo `Padre` no está definido en el
-  mismo ámbito NO da un error de sintaxis — **crashea el compilador entero**
-  (`System.ArgumentNullException` en `GML2VM.AddFuncAndPatch`), reproducido de forma aislada.
-  El script ahora detecta y salta ese patrón en vez de arriesgar el crash.
-- Mide 17-25 s con el corpus actual (muy por debajo del límite de 3 min), así que se integró como
-  **paso 10 de `actualizar.py`** (antes se descartaba por una estimación de tiempo que nunca se
-  midió en vivo).
-- Última pasada limpia: **3212 de 3213 bloques compilables compilan sin error**; el único bloque
-  restante se salta a propósito (el `TestSuite` de `13/10 §4.1`, herencia de un padre no definido
-  en ese bloque — ver el motivo arriba).
-
-## Cómo retomarlo
-
-1. Los defectos verificados de arriba van primero: son fallos activos, no ausencias.
-2. Cada informe `r3-*.md` trae su «Encargo para el redactor» ya escrito, con símbolos verificados.
-3. Tandas de 6-7 agentes como mucho; con 19 en paralelo la sesión se queda sin cuota.
-4. Al cerrar cada tanda: `python3 _indice/actualizar.py` y la fila en el índice de la carpeta.
+1. Los temas 🟠 y 🟡 de los informes `r3-*.md` que no llegaron a esta tanda: ríos en la generación
+   procedural, *backtracking* recursivo de laberintos, roles de sala, CI con `duck` o Gobo (que
+   resultó inestable según su propio README), y la propiedad `Version` vía `resourcetool`.
+2. La verificación de que el transpilador de TypeScript a GML funciona con LTS 2026.0.0.23:
+   su documentación solo declara ≥2024.14.4.
+3. Vigilar lo que caduca: versiones de librerías de terceros, políticas de tienda y el estado
+   legal del arte generado por IA. Todo lleva su fecha de consulta en el texto.
