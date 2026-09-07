@@ -1,0 +1,242 @@
+# 23 · Arte generado por IA (pixel art y assets 2D)
+
+> Este documento trata la IA como **generadora de imágenes**, no como programadora. Para IA
+> como agente de código sobre este mismo proyecto (MCP, `gm-cli --ai`, `GMEXT-MLKit`), ver
+> [14 · IA y GameMaker](./14%20-%20IA%20y%20GameMaker.md) — son dos preguntas distintas y este
+> documento no repite aquella. Tampoco repite el porqué estructural de que un generador de
+> imágenes no produce pixel art de verdad (rejilla, paleta, sel-out): eso está resuelto en
+> [13 · 03 §7.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/03%20-%20Pixel%20art%20y%20resolución.md#72-ia-referencia-sí-resultado-no)
+> y aquí se enlaza, no se repite. Lo que sí cubre este documento: **qué sirve de verdad para
+> arte de juego en general (no solo pixel art)**, **por qué la consistencia es el problema real**
+> —con las técnicas que existen para paliarla— y **el estado legal**, verificado con fuentes
+> primarias con fecha, no por intuición.
+>
+> **Hueco detectado** por la auditoría `r3-arte-animacion.md`: el único documento con «IA» en el
+> título de esta biblioteca trataba la IA exclusivamente como programadora.
+
+---
+
+## 1 · Qué sirve hoy de verdad
+
+La pregunta útil no es «¿es buena la IA generativa?», sino «¿en qué punto del pipeline el
+resultado no necesita ser el asset final?». Ahí es donde funciona:
+
+| Uso | Por qué funciona | Ejemplo concreto |
+|---|---|---|
+| **Hojas de referencia y moodboards** | No hay que ser consistente con nada todavía | «Dame 6 variantes de un mago enano con sombrero cónico» antes de que el artista dibuje el diseño definitivo |
+| **Exploración de paleta y composición** | El objetivo es descartar el 90 %, no quedarte con el resultado | Probar 20 combinaciones de color de un escenario antes de pintarlo a mano |
+| **Upscalers de imagen sobre arte YA terminado, a resolución alta** | El upscaler interpola detalle sobre una imagen que **ya tiene** intención artística — no inventa forma nueva desde ruido | Ampliar una ilustración de menú, una portada o un retrato de diálogo pintado a mano que necesitas a más resolución de la que se dibujó. Herramientas: Real-ESRGAN, Topaz Gigapixel, waifu2x |
+| **Texturas orgánicas sin silueta que leer** | No hay una forma reconocible que deba mantenerse coherente entre usos | Ruido de roca, tierra, tela genérica, como punto de partida para retocar a mano en un material tileable |
+| **Retratos puntuales sin animar** | Una sola imagen por personaje, sin necesidad de que cuadre con otras 40 | Un busto de diálogo en una visual novel, si el juego declara su uso (§4) |
+| **Fondos muy lejanos, siempre desenfocados** | Nunca se ven a tamaño real ni de cerca — ya cubierto en 13 · 03 §7.2 | La capa de parallax más al fondo de todas |
+
+**El upscaler es el caso que más se malinterpreta.** Un upscaler de imagen general
+(Real-ESRGAN, Gigapixel) funciona razonablemente bien sobre **ilustración** —líneas suaves,
+degradados, pintura digital— porque su trabajo es «adivinar detalle plausible entre píxeles
+vecinos parecidos». Sobre **pixel art**, esa misma operación es destructiva: cada píxel de
+pixel art es una decisión deliberada, no una aproximación de algo más detallado, así que
+«mejorar el detalle» rompe exactamente lo que hace que sea pixel art. Hay upscalers
+específicos entrenados para pixel art (que intentan mantener bordes duros y paleta), pero
+incluso esos producen artefactos en formas complejas y **hay que revisar cada resultado a
+tamaño real**, no confiar a ciegas. Hoy no sustituyen redibujar a mano.
+
+---
+
+## 2 · Qué no sirve, y por qué es estructural (no un problema de «calidad del modelo»)
+
+| No sirve para… | Por qué es un límite estructural, no una cuestión de mejorar el modelo |
+|---|---|
+| **Consistencia de personaje entre fotogramas de una animación** | Un generador de imágenes por difusión no tiene memoria del fotograma anterior: cada generación parte de ruido nuevo. Sin una técnica específica de control (§3), el color del pelo, la forma del arma o el número de dedos cambia entre imágenes que deberían ser el mismo personaje en poses distintas |
+| **Animación coherente** | Incluso los modelos de interpolación de vídeo por IA no controlan un esqueleto ni una malla: deforman píxeles de una imagen a otra sin garantía anatómica. El resultado tiembla, deriva y produce artefactos en manos, armas y ropa — lo contrario de lo que exige un ciclo de andar limpio (ver [13 · 04](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md)) |
+| **Pixel art de verdad** | Cubierto en [13 · 03 §7.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/03%20-%20Pixel%20art%20y%20resolución.md#72-ia-referencia-sí-resultado-no): sin rejilla, sin paleta cerrada, con antialias donde no debería haberlo |
+| **Texturas *tileable* sin retoque** | Un generador genérico no garantiza que el borde derecho continúe el izquierdo y el de abajo el de arriba: eso exige un flujo dedicado (generar con desplazamiento circular + *inpainting* de la costura) que la mayoría de herramientas de consumo no ofrece por defecto |
+| **Un asset final que se publica sin revisión humana** | Aparte de lo anterior: es también el punto donde entra el riesgo legal (§4) |
+
+---
+
+## 3 · El problema de la consistencia de estilo: las técnicas reales, y su límite real
+
+Cuando alguien pregunta «¿cómo consigo que mi personaje generado por IA se vea igual en
+todas las imágenes?», estas son las técnicas que existen hoy, de la más débil a la más fuerte:
+
+| Técnica | Qué hace | Qué NO resuelve |
+|---|---|---|
+| **Seed fija** | Fija el ruido inicial de la generación. Con el **mismo prompt** y la misma seed, dos ejecuciones dan resultados parecidos | En cuanto cambias el prompt (nueva pose, nueva acción), el parecido se rompe: la seed no ancla el personaje, ancla el azar |
+| **img2img con imagen de partida fija** | En vez de partir de ruido puro, se parte siempre de la misma imagen base (o de una silueta/pose de referencia) y se genera «encima» | Mantiene composición y paleta aproximadas, pero el detalle fino (accesorios, proporciones exactas) sigue derivando cada vez |
+| **ControlNet** (u otros condicionadores estructurales: mapa de pose, de profundidad, de bordes) | Fuerza que la generación siga una **pose o silueta exacta** que tú le pasas, mientras el prompt controla el estilo | Controla la estructura, no la identidad: dos generaciones con la misma pose pero prompts ligeramente distintos pueden seguir sin ser «el mismo personaje» en textura y detalle |
+| **LoRA** (*Low-Rank Adaptation*) | Un adaptador pequeño, entrenado sobre un conjunto de imágenes **del propio personaje o estilo**, que empuja las generaciones nuevas hacia esa identidad visual | Es la técnica más efectiva de las cuatro para identidad — pero exige tener ya un conjunto de imágenes de referencia consistentes con las que entrenarlo, que es precisamente el problema que se intentaba resolver. Y sigue sin garantizar coincidencia **píxel a píxel**, solo un parecido de alto nivel |
+
+⚠️ **Ni siquiera combinando las cuatro técnicas existe hoy un flujo de IA generativa de imagen
+que entregue la consistencia píxel a píxel que exige un sprite recortado y animado** (mismo
+número de píxeles de silueta, mismo punto de anclaje del arma, mismo color exacto de rampa
+en cada fotograma). Es la razón práctica —más que la estética— de que ningún estudio publique
+hoy un set de animación jugable generado así sin una pasada de retoque humano exhaustivo
+fotograma a fotograma, que en la práctica equivale a dibujarlo de nuevo.
+
+---
+
+## 4 · El estado legal (verificado el 2026-09-07, con fuente primaria y fecha)
+
+Esto no es una opinión: son tres asuntos distintos —derechos de autor, y las políticas de
+**dos** tiendas— que conviene no confundir entre sí.
+
+### 4.1 Derechos de autor: la postura de la U.S. Copyright Office
+
+Fuente primaria: **U.S. Copyright Office**, informe
+*«Copyright and Artificial Intelligence, Part 2: Copyrightability»* (29 de enero de 2025),
+que sigue a su *«Copyright Registration Guidance: Works Containing AI-Generated Content»*
+(Registro Federal, 16 de marzo de 2023) — <https://www.copyright.gov/ai/>.
+
+- **La autoría humana es un requisito de base.** Una obra generada **íntegramente** por IA
+  no es registrable como propiedad intelectual en EE. UU.
+- **Un prompt, por detallado que sea, no basta.** La Oficina concluyó explícitamente que la
+  mera elección de instrucciones de texto —incluso instrucciones elaboradas, fruto de
+  esfuerzo humano real— no aporta el control suficiente sobre el resultado como para que el
+  usuario sea su autor.
+- **La modificación y composición humanas SÍ cuentan.** Si tomas una imagen generada y la
+  retocas, recortas, combinas o editas con intervención creativa real, esa parte del trabajo
+  —la tuya— sí es registrable; lo que sigue sin serlo es el fragmento puramente generado por
+  la máquina.
+- **Precedente**: dos solicitudes de registro con contenido generado por IA sin edición
+  humana sustancial fueron denegadas — *Théâtre D'Opéra Spatial* (septiembre de 2023) y
+  *SURYAST* (diciembre de 2023). Ambos casos confirmaron el mismo criterio.
+
+**Consecuencia práctica para un estudio pequeño**: si el arte de tu portada, tu logo o un
+sprite central del juego es sustancialmente generado por IA sin una edición humana real
+encima, **esa pieza concreta puede no estar protegida por derechos de autor en EE. UU.** —
+en teoría, cualquiera podría reutilizarla sin infringir nada tuyo. Es un riesgo de negocio
+distinto de (y añadido a) las políticas de las tiendas de abajo.
+
+### 4.2 Steam: divulgación obligatoria, con exención explícita para herramientas de desarrollo
+
+Fuente primaria: **Steamworks**, documentación oficial del *Content Survey* —
+<https://partner.steamgames.com/doc/gettingstarted/contentsurvey> (consultado 2026-09-07).
+Valve introdujo la divulgación en enero de 2024 y **reescribió el formulario el 16 de enero
+de 2026** para aclarar qué cuenta y qué no.
+
+- **Dos categorías**, ambas exigen describir la implementación «en detalle» en la encuesta:
+  - **Pre-Generated** («cualquier contenido que se incluye en tu juego y es consumido por
+    jugadores que se crea con la ayuda de herramientas de IA durante el desarrollo»):
+    sprites, música, texto, modelos generados en el estudio y que **shippean** con el juego.
+  - **Live-Generated** («cualquier contenido creado con la ayuda de herramientas de IA
+    mientras el juego se ejecuta»): diálogo o música generados en directo. Exige además
+    documentar «qué barandillas» impiden que el sistema genere contenido ilegal u ofensivo.
+- **Exención explícita para herramientas de desarrollo**: la propia documentación reconoce
+  que «muchos entornos modernos de desarrollo de juegos tienen herramientas de IA
+  integradas» y excluye del escrutinio «las ganancias de eficiencia» de usarlas. En la
+  práctica: **un asistente de código (Claude Code, Copilot, Cursor) o el andamiaje `--ai` de
+  `gm-cli` de esta misma biblioteca NO se declara** — lo que se declara es el contenido
+  final que ve o escucha el jugador.
+- Esto aparece en la ficha de la tienda como una sección **«AI Generated Content
+  Disclosure»**. El procedimiento paso a paso para rellenarlo ya está en
+  [13 · 11 §9.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#94-clasificación-por-edades-pegi-esrb-e-iarc);
+  no se repite aquí.
+
+### 4.3 itch.io: etiquetado obligatorio, con delisting como sanción en páginas de assets
+
+Fuente primaria: **itch.io**, *«Content creator quality guidelines»* —
+<https://itch.io/docs/creators/quality-guidelines> (consultado 2026-09-07). Cita textual:
+
+> *«We ask that you accurately tag your project if it contains materials produced by
+> generative AI by utilizing the AI Disclosure section on your project's edit page.»*
+
+- La divulgación se activa para **sistemas que crean contenido nuevo a partir de grandes
+  conjuntos de datos** (texto, imagen, música): ChatGPT, DALL·E, Midjourney, Stable
+  Diffusion y equivalentes.
+- **Exención explícita**: *«Projects using self-contained algorithms without external large
+  datasets don't require the use of generative AI tags»* — cubre la IA clásica de
+  videojuego (patrones de comportamiento de un NPC, pathfinding), no el arte generativo.
+- **Consecuencia de no declarar**: en páginas de **assets** (no solo juegos completos), la
+  falta de etiqueta puede dejar la página fuera de las secciones de exploración del sitio
+  (*delisting*) — más estricto que en Steam, donde la sanción no llega a ese punto.
+- **Nota de mercado, ya recogida en 13 · 03 §7.2**: buena parte de la comunidad de pixel art
+  rechaza abiertamente el arte generado (los tutoriales de Pedro Medeiros llevan la etiqueta
+  «No generative AI was used»). Declarar correctamente no es solo cumplir la norma: en esa
+  comunidad concreta, declarar mal es un coste reputacional real.
+
+⚠️ Ninguna de las tres fuentes anteriores prohíbe usar IA generativa en un juego. Las tres
+exigen **transparencia** sobre su uso; la primera (Copyright Office) además introduce un
+riesgo de propiedad intelectual sobre el resultado final que no depende de ninguna tienda.
+
+---
+
+## 5 · Dónde encaja en un pipeline real — recomendación práctica
+
+| Fase del pipeline | ¿IA generativa? | Por qué |
+|---|---|---|
+| Ideación y moodboard iniciales | **Sí** | Nunca se publica; el coste de estar mal es cero |
+| Hoja de referencia de un personaje nuevo | **Sí, con cautela** | Solo como guion visual que un artista humano redibuja después — no como fuente del sprite final |
+| Concept art de un fondo o splash no jugable | **Sí, si el juego lo declara** (§4.2, §4.3) | Menor exigencia de consistencia entre fotogramas que un personaje animado |
+| Sprite final animado y jugable | **No** | Consistencia entre fotogramas y pixel art real no resueltos hoy (§2, §3) |
+| Icono o pieza de UI puntual sin animar | **Depende — declarar siempre** | Si es una pieza central de identidad de marca (logo, icono de tienda), pesa el riesgo de propiedad intelectual del §4.1 |
+| Textura de material genérico sin silueta (roca, tierra, tela), retocada a mano después | **Sí** | No hay forma reconocible que deba mantenerse coherente entre usos |
+| *Upscaling* de un asset comprado que la licencia permite modificar | **Sí, si la licencia lo permite** | Verifica primero la licencia concreta — ver [07 · 09 §1](./09%20-%20Asset%20packs%20y%20recursos%20gráficos.md#1-regla-número-uno-la-licencia) |
+
+La recomendación corta: **usa IA generativa para todo lo que nunca llega al jugador tal
+cual, y para nada que sí lo hace sin que un humano lo reelabore.** Es exactamente el mismo
+criterio que ya aplica esta biblioteca a sus propias herramientas de imagen —`gpt-image-2`
+para hojas de modelado 3D o iconos de marca (ver `img2threejs` y los flujos de diseño del
+propio repositorio de herramientas del usuario), nunca como sustituto del sprite final.
+
+---
+
+## 6 · Checklist antes de usar IA generativa en tu arte
+
+- [ ] ¿Sabes en qué fase del pipeline estás usándola (§5), y es una fase donde sí ayuda?
+- [ ] Si el resultado va a **shippear tal cual** (no como referencia): ¿lo has descartado?
+      (§2, §5)
+- [ ] Si va a shippear una pieza retocada por un humano: ¿la edición es sustancial, no un
+      simple recorte? (afecta a si esa pieza es tuya de verdad — §4.1)
+- [ ] ¿Está declarado en el Content Survey de Steam si publicas ahí? (§4.2, con el
+      procedimiento en 13 · 11 §9.4)
+- [ ] ¿Está marcada la sección AI Disclosure de itch.io si publicas ahí? (§4.3)
+- [ ] ¿Está anotado en tu `CREDITS.md` qué se generó, con qué herramienta y en qué fecha?
+      (convención ya definida en [07 · 09 §1](./09%20-%20Asset%20packs%20y%20recursos%20gráficos.md#1-regla-número-uno-la-licencia))
+- [ ] Si es pixel art: ¿ha pasado por un artista humano que lo redibuje a rejilla y paleta
+      reales? Si no, no es pixel art — ver 13 · 03 §7.2
+
+---
+
+## 7 · Errores clásicos
+
+| Error | Consecuencia | Arreglo |
+|---|---|---|
+| Confundir «sirve para referencia» con «sirve para publicar» | El sprite final tiene antialias, paleta abierta y ninguna rejilla | §1-§2: usar solo como referencia que un humano redibuja |
+| Creer que fijar la seed resuelve la consistencia | El personaje cambia de detalle en cuanto varía el prompt | §3: seed sola es la técnica más débil de las cuatro |
+| No declarar en Steam por pensar que «solo fue para ideas» | El Content Survey exige declarar lo que **shippea**, no el proceso interno — pero si algo generado llega al juego, sí cuenta | §4.2: solo se exime el uso puramente interno/herramientas de desarrollo |
+| Publicar un asset pack en itch.io sin la etiqueta AI Disclosure | Riesgo de *delisting* de la página del asset | §4.3 |
+| Asumir que «lo generé yo, luego es mío» | Sin edición humana sustancial, la pieza puede no ser registrable como propiedad intelectual | §4.1 |
+| Usar un upscaler genérico sobre pixel art terminado | Rompe la rejilla y mezcla colores fuera de paleta | §1: los upscalers ayudan sobre ilustración, no sobre pixel art |
+
+---
+
+## Ver también
+
+- [13 · 03 §7.2 — IA: referencia sí, resultado no](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/03%20-%20Pixel%20art%20y%20resolución.md#72-ia-referencia-sí-resultado-no) — el porqué estructural específico de pixel art
+- [07 · 14 — IA y GameMaker](./14%20-%20IA%20y%20GameMaker.md) — IA como programadora (MCP, `gm-cli --ai`), no como generadora de arte
+- [07 · 09 §1 — Asset packs: la regla de la licencia y `CREDITS.md`](./09%20-%20Asset%20packs%20y%20recursos%20gráficos.md#1-regla-número-uno-la-licencia)
+- [13 · 11 §9.4 — Clasificación por edades y Content Survey de Steam](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#94-clasificación-por-edades-pegi-esrb-e-iarc) — cómo se rellena el formulario en tu ficha
+- [04 · 21 — Localización e idiomas (con traducción por IA)](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md) — el otro uso legítimo de IA generativa ya documentado en esta biblioteca, para texto en vez de imagen
+
+---
+
+## Fuentes
+
+Todas consultadas el **7 de septiembre de 2026**.
+
+- U.S. Copyright Office — *«Copyright and Artificial Intelligence, Part 2: Copyrightability»*
+  (29 de enero de 2025) — <https://www.copyright.gov/ai/>
+- U.S. Copyright Office — *«Copyright Registration Guidance: Works Containing AI-Generated
+  Content»* (Registro Federal, 16 de marzo de 2023), citada desde la misma página anterior
+- Steamworks — documentación oficial del *Content Survey*, sección de divulgación de IA
+  generativa — <https://partner.steamgames.com/doc/gettingstarted/contentsurvey>
+- itch.io — *«Content creator quality guidelines»*, sección de divulgación de IA —
+  <https://itch.io/docs/creators/quality-guidelines>
+
+⚠️ **Lo que queda marcado como no verificado directamente**: la fecha exacta de la primera
+versión de la política de Steam (enero de 2024) y la cifra de adopción (~20 % de los juegos
+del *Content Survey* a julio de 2026, más de 7 300 juegos con IA declarada a marzo de 2026)
+proceden de cobertura periodística especializada sobre el cambio del 16 de enero de 2026
+(StraySpark Studio, VG Chronicle, GameDeveloper.com), no de un comunicado con esas cifras
+firmado por Valve que se haya podido abrir directamente en esta sesión. El texto citado en
+§4.2 sobre categorías y exenciones **sí** procede de la página oficial de Steamworks.

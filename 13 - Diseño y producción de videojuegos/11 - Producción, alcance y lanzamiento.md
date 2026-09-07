@@ -878,6 +878,11 @@ Reglas de Steam verificadas (06-09-2026) que **condicionan la planificación**:
 **No planifiques trabajo de desarrollo para el día del lanzamiento.** Ese día se atiende, se mira y
 se parchea.
 
+> «Build final subida» no es un solo clic: el alta de la app en Steamworks, `steamcmd` y las ramas
+> beta, la firma y notarización de macOS, la firma de Windows, y el trámite de Google Play y App
+> Store están en
+> [05 · 05](<../05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md>).
+
 ---
 
 ## 7 · Post-lanzamiento
@@ -1054,12 +1059,97 @@ Lanzamiento: <…> · Este documento: <…>
 - Decisiones técnicas que repetiría / que no: <…>
 ```
 
+### 8.6 EULA mínimo
+
+> ⚠️ **Esto no es asesoramiento legal**, igual que el resto de §9. Un EULA (*End User License
+> Agreement*, licencia de usuario final) es lo que le dices al jugador sobre **qué puede hacer
+> con tu juego**, distinto de la política de privacidad (§9.3, sobre sus datos) y del análisis de
+> marcas y fan games de
+> [13 · 25](./25%20-%20Legal%20de%20terceros%20-%20marcas%2C%20fan%20games%20y%20parodia.md)
+> (sobre la propiedad intelectual de *otros*, no la tuya). Un juego pequeño **puede publicarse sin
+> EULA** —la mayoría de tiendas no lo exigen como requisito de publicación, a diferencia de la
+> política de privacidad—, pero sin él no tienes por escrito ni el límite de responsabilidad ni la
+> prohibición de ingeniería inversa, y ambos cuestan caro el día que hagan falta.
+
+**Qué cubre, como mínimo, un EULA razonable para un estudio pequeño:**
+
+- **Licencia de uso, no de propiedad**: el jugador compra el derecho a jugar, no una copia del
+  código ni del arte — la distinción que ya usa
+  [13 · 11 §12.5](#125-cesi%C3%B3n-de-derechos-por-qu%C3%A9-lo-pagu%C3%A9-no-es-es-m%C3%ADo) para
+  encargos de arte, aplicada ahora al revés: tú retienes la propiedad, el jugador solo licencia
+  el uso.
+- **Prohibición de ingeniería inversa, reventa y redistribución** del ejecutable fuera de la
+  tienda donde se compró.
+- **Limitación de responsabilidad**: el juego se entrega «tal cual» (*as is*), sin garantía de
+  que funcione en cualquier configuración, y tu responsabilidad como estudio no supera lo que el
+  jugador pagó por él.
+- **Terminación por incumplimiento**: si el jugador rompe los términos (piratea, hace trampas en
+  modo competitivo, redistribuye el ejecutable), la licencia se revoca.
+- **Ley aplicable y jurisdicción**: qué país/tribunales rigen el contrato si hay disputa — esto sí
+  depende por completo de dónde tributes y de dónde vendas, como el resto de §9.
+
+```markdown
+# EULA (Licencia de Usuario Final) · <Nombre del juego>
+Versión: 0.1 · Última actualización: AAAA-MM-DD
+
+Este es un acuerdo de licencia entre tú (el jugador) y <Estudio/Nombre> para el uso del software
+«<Nombre del juego>» ("el Juego"). Al instalar o ejecutar el Juego, aceptas estos términos.
+
+## 1. Concesión de licencia
+Se te concede una licencia limitada, no exclusiva e intransferible para instalar y usar el Juego
+con fines personales y no comerciales, en los dispositivos que permita la plataforma donde lo
+adquiriste. Esta licencia no te transfiere ningún derecho de propiedad sobre el Juego, su código,
+su arte o su música.
+
+## 2. Restricciones
+No puedes: (a) realizar ingeniería inversa, descompilar o desensamblar el Juego, salvo en la
+medida en que la ley aplicable lo permita expresamente pese a esta restricción; (b) revender,
+alquilar, prestar o redistribuir el Juego fuera de la plataforma de compra autorizada; (c) usar el
+Juego para fines ilegales o para desarrollar un producto competidor.
+
+## 3. Propiedad intelectual
+El Juego, incluidos su código, arte, música y diseño, es propiedad de <Estudio/Nombre> y está
+protegido por las leyes de propiedad intelectual aplicables. Esta licencia no te concede ningún
+derecho sobre esas marcas o creaciones más allá del uso descrito en la sección 1.
+
+## 4. El Juego se entrega "tal cual"
+El Juego se proporciona "tal cual", sin garantías de ningún tipo, expresas o implícitas, incluidas
+—entre otras— garantías de comerciabilidad o idoneidad para un fin concreto. No garantizamos que
+el Juego funcione sin errores en todas las configuraciones de hardware o software.
+
+## 5. Limitación de responsabilidad
+En la medida máxima permitida por la ley aplicable, <Estudio/Nombre> no será responsable de daños
+indirectos, incidentales o consecuentes derivados del uso del Juego, y su responsabilidad total no
+superará el importe que pagaste por él.
+
+## 6. Terminación
+Esta licencia termina automáticamente si incumples cualquiera de estas condiciones. Al terminar,
+debes dejar de usar el Juego y eliminar todas las copias en tu posesión.
+
+## 7. Ley aplicable
+Este acuerdo se rige por las leyes de <tu país/jurisdicción>, sin perjuicio de los derechos que la
+legislación de protección al consumidor de tu país de residencia te reconozca de forma imperativa.
+
+## 8. Contacto
+Preguntas sobre esta licencia: <email de contacto>.
+```
+
+⚠️ Es una plantilla de partida, no un contrato listo para publicar: revísala con un profesional
+si tu juego maneja datos sensibles, pagos recurrentes o distribución en un país con requisitos de
+consumo específicos (la UE, por ejemplo, reconoce derechos de consumidor que ningún EULA puede
+anular por contrato — ver la nota de la sección 7 de la propia plantilla).
+
 ---
 
 ## 9 · Legal y administrativo mínimo
 
 > ⚠️ **Nada de esta sección es asesoramiento legal ni fiscal**, y buena parte depende del país en
 > el que vivas y tributes. Sirve para saber qué existe y qué preguntar.
+>
+> Esta sección cubre tu propia licencia y tus propios datos. El riesgo simétrico —usar sin
+> permiso el nombre, los personajes o la marca de **otra persona** (fan games, parodia, el nombre
+> de una consola en tu ficha)— tiene su propio documento, con casos reales verificados y fecha:
+> [13 · 25 — Legal de terceros: marcas, fan games y parodia](./25%20-%20Legal%20de%20terceros%20-%20marcas%2C%20fan%20games%20y%20parodia.md).
 
 ### 9.1 La licencia de GameMaker
 
@@ -1109,6 +1199,77 @@ exigente y aplica por la residencia del jugador, no por la tuya— y el trato de
 tiene reglas propias. Si **no** envías nada fuera, dilo explícitamente: es más corto, más honesto y
 mejor argumento comercial que una política genérica copiada.
 
+**RGPD/GDPR, en lo que afecta a un juego de un estudio pequeño** (no es asesoría legal: es el
+armazón mínimo para no diseñar a ciegas; la última palabra la tiene un abogado si el volumen de
+datos o de jugadores lo justifica):
+
+- **Base legal para telemetría de juego.** Con el marco de consentimiento de **§7 arriba**
+  ("Telemetría con consentimiento": preguntar antes, «no» tan fácil como «sí»), la base es el **consentimiento**
+  explícito del artículo 6.1.a — la más simple de justificar para un estudio sin departamento
+  legal. La alternativa, **interés legítimo** (6.1.f), evita pedir permiso pero exige poder
+  justificar por qué el dato es necesario y proporcionado si alguien lo pregunta; para telemetría
+  de diseño (muertes por sala, embudos) que no hace falta para que el juego funcione, pedir
+  consentimiento es el camino que menos dudas deja.
+- **Derecho de acceso y de borrado.** Un jugador puede pedir qué datos tienes sobre él y que los
+  borres. Con la telemetría local-primero de §7 arriba (el JSON vive en el disco del jugador
+  hasta que él consiente enviarlo), la respuesta práctica más simple es **no acumular un
+  identificador estable de jugador en el backend**: si cada sesión es un pseudónimo nuevo sin
+  ligar a una cuenta (el patrón de `sesion: $"{fecha}#{irandom(9999)}"` de
+  [`13 · 01 §9.5`](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#95--telemetría-contar-muertes-por-sala-y-volcarlas-a-json)),
+  no hay a quién asociarle un borrado porque no hay identidad que borrar. Si en cambio ligas
+  telemetría a una cuenta (login, IAP, multijugador con perfil), sí necesitas un mecanismo real
+  de "borra todo lo mío" antes de lanzar.
+- **Plazo de retención.** El RGPD exige guardar datos personales **solo mientras hagan falta**,
+  no indefinidamente. Para telemetría de diseño, una retención de unos pocos meses (lo que dura
+  ajustar el balance de una versión) es defendible; conservar años de eventos de jugadores que
+  ya no juegan no lo es. Documenta el plazo en la política de privacidad, aunque sea aproximado.
+- **Notificación de brecha.** Si tu backend propio (no el de un tercero como Firebase, que ya
+  tiene su propio cumplimiento) sufre una fuga de datos personales, el RGPD exige notificarlo a
+  la autoridad de protección de datos en un plazo corto (72 horas desde que tienes constancia,
+  según el texto del reglamento). ⚠️ No verificado con una fuente primaria en esta sesión el
+  detalle exacto de excepciones y umbrales: si tu juego llega a manejar datos personales de
+  verdad (no solo telemetría anónima), confírmalo con una fuente legal antes de necesitarlo.
+
+**Datos de menores — COPPA (EE. UU.) y el umbral de edad del RGPD.** Son dos regímenes distintos,
+y confundirlos es el error más común:
+
+- **COPPA** (*Children's Online Privacy Protection Act*, EE. UU., en vigor desde 2000 y con una
+  norma final revisada por la FTC que entró en vigor el 23 de junio de 2025) exige
+  **consentimiento verificable de un padre o tutor** antes de recoger cualquier dato personal de
+  un menor de **13 años**, y se aplica si tu juego está **dirigido a niños** o si **sabes a
+  sabiendas** que recoges datos de menores de 13, con independencia de dónde esté tu estudio.
+  Verificado en la Federal Trade Commission, *Complying with COPPA: Frequently Asked Questions* —
+  <https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions>
+  (consultado 07-09-2026): *«operators must obtain verifiable parental consent before collecting
+  any personal information from a child»*, salvo excepciones concretas; la propia FTC explica que
+  el Congreso limitó la protección a menores de 13 años *«recognizing that younger children are
+  particularly vulnerable to overreaching by marketers»*. Un juego para todos los públicos
+  (clasificación PEGI 3 / ESRB Everyone, §9.4) que no verifica la edad de nadie está, en la
+  práctica, obligado a tratar a **todo** su público como potencialmente sujeto a COPPA si no
+  recoge ningún dato personal — la salida más simple para un estudio pequeño casi siempre es **no
+  recoger datos personales de nadie**, en vez de construir un flujo de verificación parental.
+  **En la práctica, cuando el juego lleva anuncios**, el efecto directo de quedar sujeto a COPPA
+  (o a su equivalente de plataforma) es que esos anuncios tienen que ser **no personalizados** —
+  la misma exigencia que ya documenta
+  [05 · 05 §5.6](<../05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md#56-cuestionario-de-contenido-y-público-objetivo>)
+  para el formulario de *«Target audience and content»* de Google Play, que es **dónde** se
+  declara esto en la práctica en esa tienda concreta — no se repite aquí ese trámite.
+- **RGPD**: el umbral de "puede dar consentimiento él mismo" varía **por país de la UE entre 13 y
+  16 años** (cada Estado miembro fija el suyo dentro de ese rango, artículo 8 del RGPD); por
+  debajo del umbral local hace falta el consentimiento de quien tenga la patria potestad. ⚠️ No
+  verificado en esta sesión el umbral exacto país por país: si publicas en la UE y tratas datos
+  personales de menores, compruébalo en la fuente vigente de cada mercado, no asumas 13 ni 16
+  como regla única. **España** fija el umbral en **14 años**: el tratamiento de datos de un menor
+  basado en su propio consentimiento solo es lícito a partir de esa edad; por debajo, hace falta
+  el consentimiento de quien tenga la patria potestad o la tutela. Verificado en el texto
+  consolidado, artículo 7 de la Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos
+  Personales y garantía de los derechos digitales — <https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673>
+  (consultado 07-09-2026).
+- **La salida que ya recomienda esta biblioteca sigue siendo la más barata**: el marco de
+  consentimiento de arriba ("recoge lo mínimo… identificadores de máquina, ubicación, nombre de
+  usuario: no") aplicado con criterio evita la mayoría de estas obligaciones por la vía de no
+  generar el dato que las dispara, en vez de cumplirlas una por una.
+
 ### 9.4 Clasificación por edades: PEGI, ESRB e IARC
 
 **IARC** (*International Age Rating Coalition*) evita tener que pedir clasificación a cada organismo
@@ -1134,6 +1295,11 @@ contenido pregenerado y generado en vivo—. Hay páginas específicas para los 
 de **Alemania** e **Indonesia**. ⚠️ La lista de tiendas que sí usan IARC no se pudo leer (la página
 *Storefronts* de globalratings.com carga su contenido por JavaScript y no devolvió datos):
 compruébalo en la tienda donde vayas a publicar.
+
+> El detalle de qué cuenta como IA generativa a efectos de esa declaración (con exención para
+> herramientas de desarrollo), la política equivalente de itch.io y el riesgo de propiedad
+> intelectual sobre arte generado sin edición humana están en
+> [07 · 23 — Arte generado por IA §4](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#4--el-estado-legal-verificado-el-2026-09-07-con-fuente-primaria-y-fecha).
 
 ### 9.5 Impuestos de las tiendas
 
@@ -1506,6 +1672,8 @@ durante semanas, no para el primer día en que cuesta arrancar.
 - [04 · 15 — Game feel y juice](../04%20-%20Recetas%20por%20g%C3%A9nero/15%20-%20Game%20feel%20y%20juice.md) — el trabajo del 25 % final · [04 · 27 — Accesibilidad](../04%20-%20Recetas%20por%20g%C3%A9nero/27%20-%20Accesibilidad.md) · [04 · 21 — Localización e idiomas](../04%20-%20Recetas%20por%20g%C3%A9nero/21%20-%20Localizaci%C3%B3n%20e%20idiomas%20%28con%20traducci%C3%B3n%20por%20IA%29.md)
 - [04 · 20 — Servicios de plataforma](../04%20-%20Recetas%20por%20g%C3%A9nero/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md) — logros, anuncios, compras y nube
 - [05 · 02 — Publicar y exportar](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md) · [01 · 16 — Exportar y publicar](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) · [01 · 15 — Depuración y rendimiento](../01%20-%20Fundamentos/15%20-%20Depuraci%C3%B3n%20y%20rendimiento.md)
+- [05 · 05 — Entregar el juego: firmar, notarizar y subir a las tiendas](<../05 - Referencia/05 - Entregar el juego - firmar, notarizar y subir a las tiendas.md>) — el trámite técnico de Steam, macOS, Windows, Google Play y App Store que este documento asume resuelto en §6.8 y §9
+- [13 · 25 — Legal de terceros: marcas, fan games y parodia](./25%20-%20Legal%20de%20terceros%20-%20marcas%2C%20fan%20games%20y%20parodia.md) · [13 · 26 — Comunidad propia: Discord, moderación y gestión de crisis](./26%20-%20Comunidad%20propia%20-%20Discord%2C%20moderaci%C3%B3n%20y%20gesti%C3%B3n%20de%20crisis.md) — el resto del legal de §9 (propiedad de terceros) y del post-lanzamiento de §7 (comunidad y crisis) que este documento no repite
 - [07 · 13 — GM CLI](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md) — `compile`, `package`, ResourceTool y los workflows de GitHub Actions
 - [07 · 08 — itch.io: jams, assets y juegos](../07%20-%20Ecosistema/08%20-%20itch.io%20-%20jams%2C%20assets%20y%20juegos.md) · [12 · 06 — itch.io: assets, herramientas y jams](../12%20-%20Utilidades%20e%20integraciones/06%20-%20itch.io%20-%20assets%2C%20herramientas%20y%20jams.md)
 - [07 · 09 — Asset packs y recursos gráficos](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gr%C3%A1ficos.md) (§1 es la tabla de licencias) · [07 · 10 — Comunidades y dónde preguntar](../07%20-%20Ecosistema/10%20-%20Comunidades%20y%20d%C3%B3nde%20preguntar.md) · [07 · 11 — Blogs, newsletters y podcasts](../07%20-%20Ecosistema/11%20-%20Blogs%2C%20newsletters%20y%20podcasts.md)
@@ -1554,6 +1722,10 @@ Todas consultadas el **6 de septiembre de 2026**.
 
 **Trabajar con otras personas (§12)**
 - Real Decreto Legislativo 1/1996, Ley de Propiedad Intelectual, texto consolidado — BOE, <https://www.boe.es/buscar/act.php?id=BOE-A-1996-8930> (06-09-2026) · artículos 43 (transmisión *inter vivos*, cesión limitada a lo expresamente pactado) y 51 (presunción de cesión solo para trabajador asalariado), base de §12.5. ⚠️ Derecho español: otras jurisdicciones difieren en el detalle.
+
+**Datos de menores — COPPA y RGPD (§9.3, 07-09-2026)**
+- Federal Trade Commission, *Complying with COPPA: Frequently Asked Questions* — <https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions> · umbral de 13 años, consentimiento parental verificable, norma final revisada en vigor desde el 23-06-2025
+- Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales, texto consolidado — BOE, <https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673> · artículo 7, umbral español de 14 años para el consentimiento propio del menor
 
 **Salud del desarrollador (§13)**
 - Wikipedia (en inglés), *Crunch (video games)* — <https://en.wikipedia.org/wiki/Crunch_(video_games)> (06-09-2026) · distinción *crunch time*/*crunch culture*, encuesta IGDA 2004, encuesta Take This 2019 (53 %), conclusión de rendimientos decrecientes, casos de *Red Dead Redemption 2*, *Metroid Prime* y Core Design — base de §13.1

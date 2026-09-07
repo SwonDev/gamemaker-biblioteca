@@ -1032,20 +1032,20 @@ if (hit_flash > 0)
 // scr_hit_complete
 // ---------------------------------------------------------------------------
 
-/// @func hit_complete(_atacante, _victima, _daño, _direccion)
+/// @func hit_complete(_atacante, _victima, _dano, _direccion)
 /// @desc Aplica un golpe CON TODAS LAS CAPAS DE FEEDBACK.
 ///       Es la función que debes llamar cada vez que algo recibe daño.
 /// @param {Id.Instance} _victima    Quién recibe
-/// @param {Real}        _daño       Cuánto
+/// @param {Real}        _dano       Cuánto
 /// @param {Real}        _direccion  Ángulo del golpe (hacia dónde empuja)
-function hit_complete(_victima, _daño, _direccion)
+function hit_complete(_victima, _dano, _direccion)
 {
     if (!instance_exists(_victima)) return;
 
     var _v = _victima;
 
     // --- 1. Daño --------------------------------------------------------------
-    _v.hp -= _daño;
+    _v.hp -= _dano;
 
     // --- 2. Flash en el sprite (shader o image_blend) -------------------------
     _v.hit_flash = 8;
@@ -1060,17 +1060,17 @@ function hit_complete(_victima, _daño, _direccion)
     fx_impact(_v.x, _v.y, _direccion + 180, 1.0);
 
     // --- 6. Hit stop (proporcional al daño) ------------------------------------
-    hit_stop(clamp(round(_daño * 0.25), 1, 8));
+    hit_stop(clamp(round(_dano * 0.25), 1, 8));
 
     // --- 7. Screen shake (proporcional al daño) ---------------------------------
-    camera_shake(clamp(_daño * 0.012, 0.08, 0.45));
+    camera_shake(clamp(_dano * 0.012, 0.08, 0.45));
 
     // --- 8. Audio con pitch aleatorio -------------------------------------------
     var _snd = audio_play_sound(sndHit, 10, false);
     audio_sound_pitch(_snd, random_range(0.90, 1.10));
 
     // --- 9. Número flotante ------------------------------------------------------
-    fx_floating_text(_v.x, _v.y - 16, string(_daño), c_yellow);
+    fx_floating_text(_v.x, _v.y - 16, string(_dano), c_yellow);
 
     // --- 10. Muerte ---------------------------------------------------------------
     if (_v.hp <= 0)
@@ -1377,7 +1377,7 @@ disparo, `_direccion_disparo + 180`):
 
 ```gml
 // --- 7. Screen shake + zoom punch (proporcionales al MISMO daño) ------------
-var _trauma = clamp(_daño * 0.012, 0.08, 0.45);
+var _trauma = clamp(_dano * 0.012, 0.08, 0.45);
 camera_shake(_trauma);
 zoom_punch(_trauma);
 
@@ -1419,7 +1419,7 @@ vibra cada tipo de golpe.
 ```gml
 // --- Añadir a hit_complete() (§5.7), junto al resto de capas del golpe --------
 // Requiere haptics_iniciar() llamado una vez al arrancar la partida (04 · 27 §4.1).
-haptics_pulso(0, clamp(_daño * 0.03, 0.15, 0.90), clamp(round(_daño * 0.5), 6, 22));
+haptics_pulso(0, clamp(_dano * 0.03, 0.15, 0.90), clamp(round(_dano * 0.5), 6, 22));
 ```
 
 La tabla y la línea de arriba son la única pieza nueva: la magnitud sale del mismo `_daño` que

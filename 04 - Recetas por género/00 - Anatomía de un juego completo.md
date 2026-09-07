@@ -145,8 +145,11 @@ video_open("prologo.mp4");     // en Included Files
 
 /// obj_intro · Draw — dibujar el frame actual a pantalla completa
 if (video_get_status() == video_status_playing) {
-    var _w = display_get_gui_width(), _h = display_get_gui_height();
-    video_draw(0, 0, _w, _h);
+    var _data = video_draw();      // sin argumentos: devuelve [estado, superficie, ...]
+    if (_data[0] == 0) {
+        var _w = display_get_gui_width(), _h = display_get_gui_height();
+        draw_surface_stretched(_data[1], 0, 0, _w, _h);
+    }
 }
 
 /// obj_intro · Step — al terminar (o si pulsan saltar), al juego

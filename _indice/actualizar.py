@@ -13,9 +13,9 @@ Hace, en orden y parando al primer fallo real:
      carpeta nueva).
   4. Comprueba que MAPA.json no apunta a nada inexistente.
   5. Comprueba la ortografía española en los documentos nuevos.
-  … y varias comprobaciones más (cobertura, descubrimiento, código GML) hasta la 10:
- 10. Regenera el índice de la skill `gamemaker-biblioteca` y comprueba sus rutas.
- 11. Compara el espejo español del manual con el inglés (ver verificar-espejo.py):
+  … y varias comprobaciones más (cobertura, descubrimiento, código GML) hasta la 11:
+ 11. Regenera el índice de la skill `gamemaker-biblioteca` y comprueba sus rutas.
+ 12. Compara el espejo español del manual con el inglés (ver verificar-espejo.py):
      páginas ausentes, incompletas o con literales de la API traducidos.
 
 Sale con 0 solo si todo está correcto. Cualquier otra cosa es trabajo pendiente
@@ -82,7 +82,10 @@ PAT_TILDE = re.compile(r"\b(" + "|".join(SIN_TILDE) + r")\b", re.I)
 #  · etiquetas de enlaces externos      → son títulos citados literalmente
 #    (un vídeo llamado «juego de naves basico» se cita tal cual: cambiarlo
 #     falsearía la fuente)
-COD = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+# El código inline a veces se parte en dos líneas (las rutas de esta biblioteca
+# llevan espacios y se envuelven): se permite UN salto, no más — con más, un
+# acento grave suelto se comería medio documento.
+COD = re.compile(r"```.*?```|`[^`\n]*(?:\n[^`\n]*)?`", re.S)
 CITA = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 
 
@@ -91,7 +94,10 @@ def revisar_ortografia():
     for raiz, dirs, files in os.walk(RAIZ):
         dirs[:] = [d for d in dirs
                    if d not in {".git", "09 - Manual oficial", "11 - Código descargado",
-                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes"}
+                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes",
+                                # Los informes citan literalmente la salida de este
+                                # script, con la palabra que marca incluida.
+                                "auditorias"}
                    and not d.startswith(".")]
         for f in files:
             if not f.endswith(".md"):
@@ -344,14 +350,25 @@ def main():
     if r.returncode != 0:
         problemas.append("hay código que llama a funciones del runtime que no existen")
 
-    paso(10, "Skill para agentes (gamemaker-biblioteca): índice generado y rutas citadas")
+    paso(10, "Compilación real del GML de los documentos (¿es sintaxis válida?)")
+    r = subprocess.run([PY, os.path.join(IND, "validar-compilacion-docs.py")],
+                       capture_output=True, text=True)
+    for l in r.stdout.splitlines():
+        if (l.strip().startswith(("✗", "✓")) or "bloques se van a compilar" in l
+                or l.strip().startswith("Tiempo total")):
+            print("  " + l.strip())
+    if r.returncode != 0:
+        problemas.append("hay bloques ```gml de la documentación que no compilan "
+                          "(python3 _indice/validar-compilacion-docs.py para el detalle)")
+
+    paso(11, "Skill para agentes (gamemaker-biblioteca): índice generado y rutas citadas")
     r = subprocess.run([PY, os.path.join(IND, "sincronizar-skill.py")],
                        capture_output=True, text=True)
     print("\n".join("  " + l for l in r.stdout.splitlines()))
     if r.returncode != 0:
         problemas.append("la skill cita rutas que ya no existen (actualiza references/mapa-disciplinas.md)")
 
-    paso(11, "Espejo español del manual (¿va a la par del inglés?)")
+    paso(12, "Espejo español del manual (¿va a la par del inglés?)")
     r = subprocess.run([PY, os.path.join(IND, "verificar-espejo.py"), "--resumen"],
                        capture_output=True, text=True)
     print("  " + r.stdout.strip())

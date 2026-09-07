@@ -122,38 +122,64 @@ un script cruza las dos fuentes de verdad y genera el CSV:
 ```python
 # generar_hoja_grabacion.py — cruza el grafo de diálogo con la tabla de idiomas
 # y genera la hoja de grabación (CSV) sin copiar nada a mano.
-import json, csv, sys
+# Reanudable: si ya existe una hoja de una pasada anterior, conserva "estado" y
+# "direccion" de las líneas que ya estaban — el director no pierde su trabajo
+# cada vez que el guion crece.
+import json, csv, sys, os
 
 idioma = sys.argv[1] if len(sys.argv) > 1 else "es"
+ruta_csv = f"hoja_grabacion_{idioma}.csv"
 
 nodos = json.load(open("datafiles/narrativa/nodos.json", encoding="utf-8"))
 textos = json.load(open(f"datafiles/idiomas/{idioma}.json", encoding="utf-8"))
+
+# lo que ya había: clave → { estado, direccion } de la pasada anterior
+previo = {}
+if os.path.exists(ruta_csv):
+    with open(ruta_csv, newline="", encoding="utf-8") as f:
+        for fila in csv.DictReader(f):
+            previo[fila["clave"]] = {"estado": fila.get("estado", ""), "direccion": fila.get("direccion", "")}
 
 filas = []
 for id_nodo, nodo in nodos.items():
     personaje = nodo.get("quien", "")
     for clave in nodo.get("lineas", []):
+        traducida = clave in textos
+        anterior = previo.get(clave)
         filas.append({
             "clave": clave,
             "personaje": personaje,
             "escena": id_nodo,
             "texto": textos.get(clave, f"[[{clave}]]"),   # mismo aviso que txt() en tiempo real
-            "direccion": "",                                # la rellena el director, no el script
+            # la dirección la escribe el director (13 · 24 §2.4), nunca el script
+            "direccion": anterior["direccion"] if anterior else "",
             "archivo_esperado": f"voz_{clave}_{idioma}.wav",
+            # estado: borrador / traducido / revisado / grabado. El script solo AVANZA
+            # el estado automático (sin traducir → borrador, traducido → traducido);
+            # "revisado" y "grabado" son manuales y, si ya estaban puestos, se conservan
+            "estado": (anterior["estado"] if anterior and anterior["estado"] in ("revisado", "grabado")
+                       else ("traducido" if traducida else "borrador")),
         })
 
-with open(f"hoja_grabacion_{idioma}.csv", "w", newline="", encoding="utf-8") as f:
+with open(ruta_csv, "w", newline="", encoding="utf-8") as f:
     escritor = csv.DictWriter(f, fieldnames=list(filas[0].keys()))
     escritor.writeheader()
     escritor.writerows(filas)
 
-print(f"{len(filas)} líneas → hoja_grabacion_{idioma}.csv")
+print(f"{len(filas)} líneas → {ruta_csv}")
 ```
 
 > 💡 **Correr esto cada vez que el guion cambie** es la garantía de que la hoja de grabación
-> nunca queda desfasada respecto al juego real: el CSV se regenera, no se corrige a mano.
-> `[[clave]]` en la columna de texto significa lo mismo que en `txt()` de `04 · 21` §2: falta
-> traducir esa línea antes de poder grabarla en ese idioma.
+> nunca queda desfasada respecto al juego real: el CSV se regenera, pero **el progreso ya
+> anotado no se pierde** — solo las líneas nuevas nacen en `borrador`. `[[clave]]` en la
+> columna de texto significa lo mismo que en `txt()` de `04 · 21` §2: falta traducir esa línea
+> antes de poder marcarla `revisado` ni grabarla en ese idioma.
+>
+> 🔺 **Si no quieres mantener este script**, [`small_pp_localization_tool`](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md#8-localización)
+> ya exporta una hoja de traducción a hoja de cálculo, verificada en
+> `11 - Código descargado/librerias/localizacion/small_pp_localization_tool`; resuelve el mismo
+> problema —una hoja para el traductor o el director, sin copiar texto a mano— sin que tengas
+> que escribir ni mantener nada propio.
 
 ### 2.4 Dirección de sala
 
@@ -881,6 +907,7 @@ function voz_qa_reporte(_idiomas)
 - [`08 · 24` — Audio avanzado](../08%20-%20Referencia%20GML%20completa/24%20-%20Audio%20avanzado%20-%20buffers,%20colas,%20sincronía%20y%20grabación.md) — `tono_generar()`/`ruido_generar()` para la síntesis de la vía B del §6
 - [`04 · 29` — 3D en GameMaker](../04%20-%20Recetas%20por%20género/29%20-%203D%20en%20GameMaker.md) — si el juego es 3D, el sonido posicional y `audio_listener_orientation` cambian de base
 - [`01 · 13` — Audio](../01%20-%20Fundamentos/13%20-%20Audio.md) — la API completa de *audio groups* y *streaming*
+- [`12 · 05` §8 — Catálogo de librerías de localización](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md#8-localización) — `small_pp_localization_tool`, alternativa ya hecha a `generar_hoja_grabacion.py` (§2.3)
 
 ---
 

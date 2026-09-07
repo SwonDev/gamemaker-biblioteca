@@ -126,6 +126,12 @@ desde el origen sin destino fijo, deteniéndose cuando el coste acumulado supera
 — BFS puro bastaría si todas las celdas costaran 1, pero en cuanto el barro cuesta más que la
 hierba, BFS da resultados incorrectos y hace falta la cola de prioridad.
 
+Todo esto asume una rejilla **cuadrada**. Un tablero **hexagonal** (*Battle for Wesnoth*,
+*Civilization*) no cambia el diseño — sigue habiendo coste, alcance y línea de tiro — solo la
+geometría: cada celda tiene 6 vecinos, no 4 u 8, y «distancia» se calcula distinto. §5.15-§5.17
+retoman exactamente este mismo catálogo (vecindad, rango, movimiento por presupuesto y línea de
+tiro) sobre hexágonos.
+
 ### 1.7 Terreno y altura como multiplicadores de decisión
 
 *Fire Emblem* trata el terreno como una variable de combate, no de decorado: un bosque cuesta
@@ -1020,7 +1026,7 @@ function accion_ejecutar(_actor, _datos)
     {
         case "atacar":
             var _obj = _datos.objetivo;
-            var _bruto = max(1, round(_actor.stats.calcular_daño(_actor.stats, _obj.stats)));   // 04 · 04 §5.0
+            var _bruto = max(1, round(_actor.stats.calcular_dano(_actor.stats, _obj.stats)));   // 04 · 04 §5.0
             if (global.mapa_activo != undefined)   // bono de terreno/altura (§5.13), sólo en modo táctico
             {
                 _bruto = round(resolver_bono_posicion(_actor, _obj, global.mapa_activo) * _bruto);
@@ -1546,6 +1552,335 @@ function ia_turno_tactico(_actor, _mapa, _unidades)
 }
 ```
 
+### 5.15 Tablero hexagonal: vecindad y distancia
+
+Todo lo de §5.9-§5.14 asume una rejilla cuadrada. Un tablero **hexagonal** (*Into the Breach*
+en el fondo usa una rejilla cuadrada, pero *Battle for Wesnoth* o *Civilization* son hex) cambia
+la geometría, no el diseño: sigue habiendo coste de movimiento, línea de tiro y IA de
+posicionamiento — solo cambia cómo se calculan «vecino», «distancia» y «celda bajo el cursor».
+
+**No repitas la conversión pantalla↔hex:** `hex_a_pixel()`, `pixel_a_hex()` y `redondear_hex()`
+ya están resueltas, verificadas y con las fórmulas de Red Blob Games citadas, en
+[`13 · 13` §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos).
+Este apartado las da por incluidas en el proyecto y añade justo lo que le falta a esa sección
+para un tablero **jugable**: vecindad, distancia, rango de ataque, movimiento con presupuesto
+(pathfinding) y línea de tiro — el mismo catálogo de §5.10-§5.12, sobre hexágonos.
+
+`13 · 13` §7.4 trabaja en **coordenadas axiales** `(q, r)` — dos ejes, como una rejilla cuadrada
+deformada — porque son las que hacen falta para convertir a píxeles. Vecindad y distancia son
+más simples en **coordenadas cúbicas** `(x, y, z)` con la restricción `x + y + z = 0` (tres ejes,
+uno redundante): la distancia entre dos hexágonos es sencillamente
+`max(|dx|, |dy|, |dz|)`, igual que en una rejilla cuadrada con movimiento diagonal libre. La
+propia `redondear_hex()` de `13 · 13` §7.4 ya pasa por cúbicas por dentro (`_s = -_q - _r`) para
+redondear bien cerca de los vértices — aquí se reutiliza esa misma relación (`s = -q - r`) para
+no tener que arrastrar un tercer campo en cada struct: basta axial, y `hex_distancia()` hace la
+conversión en la propia fórmula.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_hex_tactico — parte 1: vecindad y distancia
+// ---------------------------------------------------------------------------
+// Requiere HEX_SIZE y hex_a_pixel()/pixel_a_hex()/redondear_hex() de
+// 13 · 13 §7.4 — ese documento no se repite aquí, solo se enlaza (arriba).
+
+// Los 6 vecinos en axial. El mismo desplazamiento sirve para punta arriba y
+// lado plano arriba: la orientación solo cambia el DIBUJO (hex_a_pixel(),
+// 13 · 13 §7.4), nunca la vecindad. Orden y valores: Amit Patel, «Hexagonal
+// Grids» (Red Blob Games) — ver Fuentes, §9.
+#macro HEX_DIR_Q [ 1,  1,  0, -1, -1,  0]
+#macro HEX_DIR_R [ 0, -1, -1,  0,  1,  1]
+
+/// @func hex_vecinos(_q, _r)
+/// @desc Los 6 vecinos de un hexágono, en coordenadas axiales.
+/// @param {Real} _q
+/// @param {Real} _r
+/// @returns {Array<Struct>} [{q,r}, ...] × 6, mismo orden que HEX_DIR_Q/HEX_DIR_R.
+function hex_vecinos(_q, _r)
+{
+    var _out = array_create(6);
+    for (var i = 0; i < 6; i++)
+    {
+        _out[i] = { q: _q + HEX_DIR_Q[i], r: _r + HEX_DIR_R[i] };
+    }
+    return _out;
+}
+
+/// @func hex_distancia(_q1, _r1, _q2, _r2)
+/// @desc Distancia en pasos entre dos hexágonos: la distancia cúbica
+///       `max(|dx|,|dy|,|dz|)` escrita en axial (con `s = -q-r`, igual que
+///       redondear_hex() en 13 · 13 §7.4) da exactamente esta fórmula, sin
+///       tener que construir el struct cúbico de tres campos.
+/// @returns {Real}
+function hex_distancia(_q1, _r1, _q2, _r2)
+{
+    var _dq = _q2 - _q1;
+    var _dr = _r2 - _r1;
+    return (abs(_dq) + abs(_dr) + abs(_dq + _dr)) / 2;
+}
+
+/// @func HexCosteGrid()
+/// @desc El equivalente hexagonal de GridPonderado (06 · scr_grid_pathfinding.gml,
+///       reutilizada tal cual en §5.9) para lo mínimo que hace falta aquí:
+///       coste de movimiento por celda, y si bloquea (movimiento Y línea de
+///       tiro — a diferencia de TERRENO_DEF en §5.9, esto no separa las dos
+///       cosas; si tu tablero hex necesita esa distinción, amplíalo con un
+///       segundo sparse struct, mismo patrón). Sparse por clave "q,r" en vez
+///       de un array denso: un tablero hexagonal casi nunca es un rectángulo
+///       que se pueda reservar de antemano — mismo patrón que `objWorldGrid`
+///       (04 · 09 §5.3).
+function HexCosteGrid() constructor
+{
+    costes = {};   // "q,r" → coste (Real); ausente = 1 (llano); negativo = bloqueada
+
+    clave = function(_q, _r) { return string(_q) + "," + string(_r); };
+
+    set_coste = function(_q, _r, _coste)
+    {
+        costes[$ clave(_q, _r)] = _coste;
+    };
+
+    bloquear = function(_q, _r)
+    {
+        costes[$ clave(_q, _r)] = -1;
+    };
+
+    get_coste = function(_q, _r)
+    {
+        var _k = clave(_q, _r);
+        return variable_struct_exists(costes, _k) ? costes[$ _k] : 1;
+    };
+}
+```
+
+### 5.16 Tablero hexagonal: rango de movimiento y pathfinding
+
+`alcance_movimiento()` (§5.10) es Dijkstra por presupuesto sobre una rejilla cuadrada. Sobre
+hexágonos es el **mismo algoritmo**: cambia de dónde salen los vecinos (`hex_vecinos()` en vez
+de las 4/8 direcciones cuadradas — un hexágono no tiene «diagonales» que decidir, siempre son
+6) y cómo se indexan los nodos (una clave `"q,r"` dispersa, porque un tablero hex no tiene un
+`columnas × filas` denso al que mapear un índice). El `padre` que devuelve **es** el
+pathfinding: `hex_reconstruir_ruta()` hace exactamente lo que `reconstruir_ruta()` (§5.10) hace
+para rejilla cuadrada — caminar hacia atrás por `padre` hasta el origen.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_hex_tactico — parte 2: hasta dónde puede llegar una unidad, y por dónde
+// ---------------------------------------------------------------------------
+
+/// @func hex_alcance_movimiento(_grid, _q0, _r0, _presupuesto)
+/// @desc Todos los hexágonos alcanzables desde (_q0,_r0) gastando como mucho
+///       `_presupuesto`, sobre una HexCosteGrid (§5.15). `string_split()` y
+///       `real()` son funciones NATIVAS del runtime (verificadas con
+///       buscar.py) para deshacer la clave "q,r" — no la función que 04 · 09
+///       §5.4 define con el mismo nombre para otra cosa.
+/// @param {Struct} _grid          Una HexCosteGrid (§5.15).
+/// @param {Real}   _q0
+/// @param {Real}   _r0
+/// @param {Real}   _presupuesto
+/// @returns {Struct} { alcanzables: Array<{q,r,coste}>, padre: Struct "q,r"->"q,r" }
+function hex_alcance_movimiento(_grid, _q0, _r0, _presupuesto)
+{
+    var _clave0   = string(_q0) + "," + string(_r0);
+    var _g        = {};
+    var _padre    = {};
+    var _cerrado  = {};
+    var _abiertos = ds_priority_create();
+
+    _g[$ _clave0] = 0;
+    ds_priority_add(_abiertos, _clave0, 0);
+
+    var _alcanzables = [];
+
+    while (!ds_priority_empty(_abiertos))
+    {
+        var _actual = ds_priority_delete_min(_abiertos);
+        if (variable_struct_exists(_cerrado, _actual)) continue;
+        _cerrado[$ _actual] = true;
+
+        var _pos = string_split(_actual, ",");
+        var _qa  = real(_pos[0]);
+        var _ra  = real(_pos[1]);
+        array_push(_alcanzables, { q: _qa, r: _ra, coste: _g[$ _actual] });
+
+        var _vecinos = hex_vecinos(_qa, _ra);
+        for (var i = 0; i < 6; i++)
+        {
+            var _v  = _vecinos[i];
+            var _kv = string(_v.q) + "," + string(_v.r);
+            if (variable_struct_exists(_cerrado, _kv)) continue;
+
+            var _coste_celda = _grid.get_coste(_v.q, _v.r);
+            if (_coste_celda < 0) continue;   // bloqueada
+
+            var _nuevo_g = _g[$ _actual] + _coste_celda;
+            if (_nuevo_g > _presupuesto) continue;   // se acaba el presupuesto: no se expande
+
+            if (!variable_struct_exists(_g, _kv) || _nuevo_g < _g[$ _kv])
+            {
+                _g[$ _kv]     = _nuevo_g;
+                _padre[$ _kv] = _actual;
+                ds_priority_add(_abiertos, _kv, _nuevo_g);
+            }
+        }
+    }
+
+    ds_priority_destroy(_abiertos);
+    return { alcanzables: _alcanzables, padre: _padre };
+}
+
+/// @func hex_reconstruir_ruta(_padre, _q_destino, _r_destino)
+/// @desc Misma idea que reconstruir_ruta() (§5.10), sobre el `padre`
+///       disperso que devuelve hex_alcance_movimiento(). Para mover la
+///       unidad casilla a casilla por la ruta, o para dibujarla bajo el
+///       cursor antes de confirmar (igual que §5.11).
+/// @returns {Array<Struct>} [{q,r}, ...] del origen al destino.
+function hex_reconstruir_ruta(_padre, _q_destino, _r_destino)
+{
+    var _invertida = [];
+    var _clave = string(_q_destino) + "," + string(_r_destino);
+
+    while (_clave != undefined)
+    {
+        var _pos = string_split(_clave, ",");
+        array_push(_invertida, { q: real(_pos[0]), r: real(_pos[1]) });
+        _clave = variable_struct_exists(_padre, _clave) ? _padre[$ _clave] : undefined;
+    }
+
+    var _ruta = [];
+    for (var i = array_length(_invertida) - 1; i >= 0; i--) array_push(_ruta, _invertida[i]);
+    return _ruta;
+}
+```
+
+### 5.17 Tablero hexagonal: alcance de ataque, línea de tiro y resaltado
+
+Dos preguntas de §1.8, sobre hex: **¿a qué distancia llega mi arma?** (un radio fijo, sin mirar
+coste — `hex_en_rango()`) y **¿hay algo en medio?** (`hex_linea()`, hermano hexagonal de
+`linea_de_tiro()`, §5.12). El barrido de `hex_en_rango()` es el algoritmo estándar de Red Blob
+Games para «hex range»: recorre `dx` de `-rango` a `rango` en cúbicas, acota `dy` para que
+`dx+dy+dz=0` sin salirse del radio, y convierte cada punto cúbico de vuelta a axial — la misma
+relación `s = -q-r` de §5.15, en la dirección contraria.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_hex_tactico — parte 3: alcance de ataque y línea de tiro
+// ---------------------------------------------------------------------------
+
+/// @func hex_en_rango(_q0, _r0, _rango)
+/// @desc Todos los hexágonos a `_rango` pasos o menos de (_q0,_r0), SIN
+///       mirar coste de movimiento: el alcance de un arma no reparte
+///       presupuesto de movimiento, solo cuenta distancia. Es «la zona de
+///       amenaza» de §1.8 (celdas_en_rango(), §5.11) trasladada a hex: para
+///       la unión alrededor de VARIAS celdas alcanzables, llama a esto una
+///       vez por cada `{q,r}` de hex_alcance_movimiento().alcanzables (§5.16)
+///       y une los resultados, igual que hace celdas_en_rango() con
+///       alcance_movimiento() (§5.10-§5.11).
+/// @returns {Array<Struct>} [{q,r}, ...], incluye el propio (_q0,_r0).
+function hex_en_rango(_q0, _r0, _rango)
+{
+    var _out = [];
+    for (var _dx = -_rango; _dx <= _rango; _dx++)
+    {
+        var _desde = max(-_rango, -_dx - _rango);
+        var _hasta = min( _rango, -_dx + _rango);
+        for (var _dy = _desde; _dy <= _hasta; _dy++)
+        {
+            var _dz = -_dx - _dy;                          // cúbicas: x+y+z=0
+            array_push(_out, { q: _q0 + _dx, r: _r0 + _dz });  // axial: q=x, r=z
+        }
+    }
+    return _out;
+}
+
+/// @func hex_linea(_grid, _q1, _r1, _q2, _r2)
+/// @desc Recorre los hexágonos entre dos celdas — hermano hexagonal de
+///       linea_de_tiro() (§5.12): interpola en axial con lerp() (nativa) y
+///       redondea con redondear_hex() (13 · 13 §7.4, no se repite aquí) en
+///       cada paso, en vez de recorrer píxel a píxel.
+/// @param {Struct} _grid  Una HexCosteGrid (§5.15).
+/// @returns {Bool}
+function hex_linea(_grid, _q1, _r1, _q2, _r2)
+{
+    var _n = hex_distancia(_q1, _r1, _q2, _r2);
+    if (_n == 0) return true;
+
+    for (var i = 1; i < _n; i++)
+    {
+        var _t = i / _n;
+        var _h = redondear_hex(lerp(_q1, _q2, _t), lerp(_r1, _r2, _t));   // 13 · 13 §7.4
+
+        if (_grid.get_coste(_h.q, _h.r) < 0) return false;
+    }
+    return true;
+}
+
+/// @func hex_resaltar_celdas(_celdas, _origen_x, _origen_y, _color, [_alfa], [_punta_arriba])
+/// @desc Un hexágono relleno semitransparente por celda — equivalente
+///       hexagonal de resaltar_celdas() (§5.11). GameMaker no trae
+///       "draw_hexagon": se dibuja a mano con un abanico de triángulos
+///       (pr_trianglefan), y draw_vertex() toma el color/alfa que ya esté
+///       puesto con draw_set_color()/draw_set_alpha() — por eso se guardan y
+///       se restauran, igual que en resaltar_celdas().
+/// @param {Array<Struct>} _celdas    [{q,r}, ...]
+/// @param {Real}          _origen_x  Origen de la rejilla hex, en píxeles del mundo.
+/// @param {Real}          _origen_y
+/// @param {Real}          _color
+/// @param {Real}          _alfa
+/// @param {Bool}          _punta_arriba  Misma orientación que hex_a_pixel() (13 · 13 §7.4).
+function hex_resaltar_celdas(_celdas, _origen_x, _origen_y, _color, _alfa = 0.35, _punta_arriba = true)
+{
+    var _c_previo = draw_get_color();
+    var _a_previo = draw_get_alpha();
+    draw_set_color(_color);
+    draw_set_alpha(_alfa);
+
+    var _offset = _punta_arriba ? 30 : 0;   // vértices en 30°/90°/… o en 0°/60°/…
+
+    for (var i = 0; i < array_length(_celdas); i++)
+    {
+        var _c  = hex_a_pixel(_celdas[i].q, _celdas[i].r, _punta_arriba);   // 13 · 13 §7.4
+        var _cx = _origen_x + _c.x;
+        var _cy = _origen_y + _c.y;
+
+        draw_primitive_begin(pr_trianglefan);
+        draw_vertex(_cx, _cy);   // centro: el abanico de triángulos parte de aquí
+        for (var v = 0; v <= 6; v++)
+        {
+            var _ang = _offset + 60 * (v mod 6);
+            draw_vertex(_cx + dcos(_ang) * HEX_SIZE, _cy - dsin(_ang) * HEX_SIZE);
+        }
+        draw_primitive_end();
+    }
+
+    draw_set_color(_c_previo);
+    draw_set_alpha(_a_previo);
+}
+```
+
+```gml
+// obj_cursor_tactico_hex — Draw, mientras se elige destino de movimiento
+// El mismo uso jugable de §5.11, sobre hexágonos: mover una unidad, calcular
+// el alcance de un ataque y mostrar las casillas accesibles.
+var _mov = hex_alcance_movimiento(hex_grid, unidad.q, unidad.r, unidad.puntos_movimiento);
+hex_resaltar_celdas(_mov.alcanzables, origen_x, origen_y, c_aqua, 0.30);   // azul: puede moverse aquí
+
+var _amenaza = [];
+for (var i = 0; i < array_length(_mov.alcanzables); i++)
+{
+    var _c = _mov.alcanzables[i];
+    _amenaza = array_concat(_amenaza, hex_en_rango(_c.q, _c.r, unidad.alcance_ataque));
+}
+hex_resaltar_celdas(_amenaza, origen_x, origen_y, c_red, 0.20);            // rojo: y desde ahí, atacar aquí
+
+if (hay_celda_bajo_cursor)
+{
+    var _ruta = hex_reconstruir_ruta(_mov.padre, cursor_q, cursor_r);
+    hex_resaltar_celdas(_ruta, origen_x, origen_y, c_yellow, 0.45);       // amarillo: la ruta concreta
+
+    var _hay_tiro = hex_linea(hex_grid, unidad.q, unidad.r, cursor_q, cursor_r);
+}
+```
+
 ---
 
 ## 6. Gestión del estado: lo que se añade
@@ -1629,7 +1964,7 @@ serializar = function()
 
 ## Ver también
 
-- [04 · 04 — RPG / Action RPG](./04%20-%20RPG%20_%20Action%20RPG.md) — `Stats`, `calcular_daño()`
+- [04 · 04 — RPG / Action RPG](./04%20-%20RPG%20_%20Action%20RPG.md) — `Stats`, `calcular_dano()`
   y el `BattleManager` mínimo (§5.6) al que este documento sustituye como referencia.
 - [04 · 32 — Sistema de daño y efectos de estado](./32%20-%20Sistema%20de%20daño%20y%20efectos%20de%20estado.md) —
   `EstadoCombate`, `MotorEfectos`, `dano_resolver()` y el pipeline de capas que este documento
@@ -1656,7 +1991,10 @@ serializar = function()
   cuatro estados sobre los que se construye el menú de batalla de §5.7.
 - [13 · 13 — Matemáticas aplicadas al juego §7](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md) —
   mundo↔celda, *snapping* e isométrico/hexágonos: la base de coordenadas de rejilla de la que
-  `linea_de_tiro()` toma la advertencia de `floor` frente a `round`.
+  `linea_de_tiro()` toma la advertencia de `floor` frente a `round`. Su §7.4 —
+  [hexágonos](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos) —
+  trae `hex_a_pixel()`/`pixel_a_hex()`/`redondear_hex()`, que §5.15-§5.17 de este documento dan
+  por incluidas y no repiten.
 - [13 · 01 — Diseño de juego: core loop, mecánicas, balance y dificultad §4.4 y §9.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md) —
   TTK, el panel de balance en caliente al que apuntan los ⚠️ de §5.13.
 - [01 · 14 — Persistencia y archivos](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) —
@@ -1684,6 +2022,12 @@ serializar = function()
   Sylvester sobre decisiones significativas: ambos ya citados y no reabiertos en esta sesión —
   se referencian como criterio de diseño consolidado, no como cifra verificada; ver la misma
   advertencia en `04 · 31` y `04 · 32`.
+- Amit J. Patel, *Hexagonal Grids* (Red Blob Games; última modificación 24 de julio de 2026) —
+  <https://www.redblobgames.com/grids/hexagons/>. §5.15-§5.17 de este documento reutilizan sus
+  6 direcciones axiales (`HEX_DIR_Q`/`HEX_DIR_R`), la fórmula de distancia cúbica y el algoritmo
+  de barrido «hex range» de `hex_en_rango()`; la conversión píxel↔hex de la misma fuente ya está
+  en [13 · 13 §7.4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#74-hexágonos)
+  y no se repite aquí.
 
 **Manual oficial de GameMaker LTS 2026** (espejo local en `09 - Manual oficial/`; todos los
 símbolos de GML de este documento comprobados con `_indice/buscar.py` contra el runtime
@@ -1703,6 +2047,10 @@ símbolos de GML de este documento comprobados con `_indice/buscar.py` contra el
 - `keyboard_check_pressed`/`gamepad_button_check_pressed`/`vk_up`/`vk_down`/`vk_enter`/
   `vk_escape`/`gp_padu`/`gp_padd`/`gp_face1`/`gp_face2` — familia *Keyboard/Gamepad Input*, para
   la navegación del menú de batalla (§5.7).
+- `string_split`/`real`/`lerp`/`array_concat` — nativas del runtime (no la función `string_split`
+  que `04 · 09` §5.4 define con el mismo nombre para otro propósito), y
+  `draw_primitive_begin`/`draw_vertex`/`draw_primitive_end`/`pr_trianglefan`/`dcos`/`dsin` —
+  familia *Drawing/Primitives*, usadas en §5.15-§5.17 para el tablero hexagonal.
 
 > ⚠️ **Lo que NO está verificado en este documento.** Todos los símbolos de GML existen en el
 > runtime `2026.0.0.23` (comprobados uno a uno con `buscar.py`), pero el código **no se ha

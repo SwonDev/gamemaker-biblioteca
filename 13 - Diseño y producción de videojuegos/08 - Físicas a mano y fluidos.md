@@ -1843,6 +1843,14 @@ function blobs_dibujar(_surf, _gotas, _umbral = 140, _col = c_lime)
 > 🔺 **Devuelve siempre el estado.** `gpu_set_alphatestref(0)` y
 > `gpu_set_alphatestenable(false)` al terminar: si te los dejas puestos, el resto del juego se
 > dibuja con recorte de alfa y los sprites con bordes suaves salen dentados.
+>
+> 🔗 **Alternativa vectorial: marching squares.** Si el escalón del corte de alfa no te vale
+> (necesitas el contorno como polilínea, no solo un dibujo recortado — por ejemplo para chocar
+> contra él, o para dibujarlo con un grosor de línea propio), la técnica está en
+> [13 · 07 §3 ter](./07%20-%20Generaci%C3%B3n%20procedural%20avanzada.md#3-ter--marching-squares-contornos-suaves):
+> recorre el mismo campo de alfa acumulado con `marching_squares_lista()` en vez de recortarlo.
+> Más caro de calcular, sin dentado y con un contorno que puedes usar para algo más que dibujar.
+> No dupliques el acumulado: sigue siendo `blobs_dibujar()` quien lo genera.
 
 ---
 

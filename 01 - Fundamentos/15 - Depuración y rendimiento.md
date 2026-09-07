@@ -6,6 +6,12 @@
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Garbage_Collection/Garbage_Collection.htm>
 > - <https://manual.gamemaker.io/lts/en/Introduction/The_Output_Window.htm>
 > - <https://manual.gamemaker.io/lts/en/Introduction/Compiling.htm>
+> - <https://manual.gamemaker.io/lts/en/IDE_Tools/The_Debugger/The_Profiler.htm>
+> - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/OS_And_Compiler/os_get_info.htm> (API gráfica real por plataforma, §11)
+> - <https://renderdoc.org/> y <https://renderdoc.org/docs/getting_started/faq.html> (RenderDoc: plataformas y APIs soportadas, consultado 2026-09-07)
+> - <https://github.com/odditica/renderdoc-gms2-kit> (kit de la comunidad para capturar builds de GMS2, consultado 2026-09-07)
+> - <https://gamemaker.io/en/help/articles/android-troubleshooting> (adb oficial de GameMaker, consultado 2026-09-07 vía curl con User-Agent — 403 sin él)
+> - <https://developer.android.com/studio/profile/android-profiler> (Android Profiler, requisitos de versión)
 
 ---
 
@@ -163,6 +169,24 @@ exception_unhandled_handler(function(_excepcion)
 ```
 
 > 💡 Esto es invaluable para diagnosticar fallos en builds que envías a testers.
+
+### El Profiler
+
+La ventana del Debugger tiene una segunda pestaña, **Profile**, con su propio botón de
+activar/desactivar. Mientras está activo, registra cuánto tarda cada evento, script y función en
+cada *step*, en microsegundos — es el bisturí que usas después de que el Debug Overlay del §4 te
+haya dicho *en qué categoría* (Update, Draw, GC…) está el problema, para encontrar la línea exacta.
+
+- **Pantalla de la hora**: alterna entre **total** (tiempo/llamadas acumulados durante toda la
+  sesión de perfilado) y **medio** (por step).
+- **Ver Modo**: `Top Down` sigue la jerarquía de la pila de llamadas (evento → script → función);
+  `Bottom Up` lista cada función individual y expande hacia arriba quién la llamó — mejor para
+  responder «¿desde cuántos sitios distintos se llama a esto?».
+- **Ver objetivo**: `GML` (tus eventos, scripts y funciones), `Motor` (llamadas internas del
+  runtime) o `Ambos`.
+- Doble clic en cualquier fila abre ese código en la ventana **Fuente**.
+- Las cuatro columnas (**Nombre**, **Tiempo**, **Llamadas**, **Paso %**) se ordenan haciendo clic
+  en su cabecera.
 
 ---
 
@@ -385,6 +409,12 @@ gc_target_frame_time(2);   // 2 ms por frame
 gc_collect();
 ```
 
+> 💡 **¿Cuál es «un momento seguro» de verdad?** La pantalla de carga real de
+> [04 · 41 §3.3](../04%20-%20Recetas%20por%20g%C3%A9nero/41%20-%20Transiciones%2C%20carga%20y%20pausa.md#33-la-pantalla-de-carga-real):
+> el jugador ya espera ahí, no hay animación crítica en curso, y es el sitio natural para
+> colgar un `gc_collect()` explícito justo antes de entrar en la room nueva, en vez de dejar
+> que el GC decida disparar en mitad de una escena de acción.
+
 > ⚠️ **En HTML5 la recogida la hace el motor de JavaScript**, así que ninguna de estas funciones afecta a su funcionamiento y `gc_get_stats()` devuelve `0` en todos los campos.
 
 ### Referencias débiles
@@ -471,6 +501,35 @@ _pos.y = y;
 procesar(_pos);
 ```
 
+#### Crear `function()` dentro del Step
+
+Una función anónima (o un `method()`) creada dentro de un bucle o del Step es, para el GC, la
+misma asignación que un struct o un array: cada `function() {...}` reserva memoria nueva que
+alguien tendrá que recoger más tarde. El principio de arriba («no crees structs/arrays en el
+Step») se aplica igual a los *closures*: el que se ve raro es justo el que más se repite —
+pasar un callback a `array_foreach()`, a un Time Source o a un sistema de eventos escribiendo
+la función en el sitio en vez de guardarla antes.
+
+```gml
+// ❌ Crea una función nueva cada frame, solo para usarla una vez
+// Step
+array_foreach(enemigos_cerca, function(_enemigo) {
+    _enemigo.alerta = true;
+});
+
+// ✅ La función se crea UNA VEZ (en el Create) y se reutiliza
+// Create
+_marcar_alerta = function(_enemigo) {
+    _enemigo.alerta = true;
+};
+// Step
+array_foreach(enemigos_cerca, _marcar_alerta);
+```
+
+> 💡 Si el callback necesita datos de la instancia que lo llama (`self`), créalo una vez con
+> `method(id, function() {...})` en el Create y guárdalo en una variable — no lo re-envuelvas
+> con `method()` en cada Step: eso también asigna un método nuevo cada vez.
+
 #### `with()` sobre objetos con muchas instancias
 
 ```gml
@@ -496,6 +555,81 @@ if (vida != vida_anterior)
 }
 draw_text(10, 10, texto_vida);
 ```
+
+#### Overdraw
+
+**Overdraw** es que el mismo píxel de pantalla se rellene más de una vez en el mismo
+fotograma. No es exclusivo de 2D, pero un juego 2D lo dispara con facilidad porque casi todo
+lo que hace bonito a un juego —parallax, VFX aditivo, niebla, paneles de UI semitransparentes,
+luces por superficie ([04 · 24](../04%20-%20Recetas%20por%20g%C3%A9nero/24%20-%20Iluminación%202D.md))—
+son capas que se dibujan unas encima de otras cubriendo la misma zona de pantalla.
+
+**Qué lo dispara, en orden de frecuencia real:**
+
+- **Capas de parallax muy grandes que se solapan** entre sí en vez de recortarse a lo visible.
+- **Partículas aditivas apiladas** sin límite — ya avisado en
+  [04 · 39 §1.4 y §3.12](../04%20-%20Recetas%20por%20g%C3%A9nero/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#312-presupuesto-medido-y-culling-de-emisores):
+  el propio manual de partículas señala el overdraw como «la causa principal de tirones en
+  móvil».
+- **Sprites con mucho margen transparente**: un sprite de 128×128 cuya silueta real ocupa
+  32×32 sigue costando el rectángulo completo salvo que se recorte el lienzo o se filtre por
+  alfa (ver más abajo).
+- **Paneles de UI semitransparentes apilados** (fondo del HUD + panel de diálogo + tooltip,
+  todos con alfa, todos ocupando la pantalla entera).
+
+**Cómo medirlo — GameMaker no tiene un contador nativo de overdraw**, así que se infiere de
+tres formas, de la más rápida a la más precisa:
+
+1. **Debug Overlay, ventana FPS en modo Stacked** (§4, más arriba en este documento): si
+   **Draw** domina el tiempo de fotograma y ya has descartado texture swaps (Paso 3) y exceso
+   de instancias, el sospechoso siguiente es overdraw.
+2. **Prueba A/B directa**: desactiva la capa sospechosa (una luz, una capa de parallax, un
+   emisor) y compara el FPS del overlay con y sin ella. Es el método más fiable porque no
+   necesita instrumentación — simplemente aísla la variable.
+3. **Visualización de overdraw «casera»**: sustituye temporalmente todo lo que se dibuja por
+   un color plano muy tenue en modo aditivo. Las zonas con más capas superpuestas acumulan
+   más brillo, así que se ven literalmente más claras cuantas más veces se han redibujado.
+
+   ```gml
+   /// obj_control_debug · Draw GUI — activar con una tecla, nunca en build de release
+   if (ver_overdraw)
+   {
+       gpu_set_blendmode(bm_add);
+       with (obj_dibujable)              // el padre de todo lo que se dibuja en el juego
+       {
+           draw_sprite_ext(sprite_index, image_index, x, y,
+                            image_xscale, image_yscale, image_angle,
+                            c_white, 0.05);           // alfa muy bajo: se acumula por capa
+       }
+       gpu_set_blendmode(bm_normal);
+   }
+   ```
+
+**Mitigación:**
+
+- **Menos capas aditivas solapadas** en el mismo punto de pantalla — el mismo consejo que ya
+  da [04 · 39 §1.4](../04%20-%20Recetas%20por%20g%C3%A9nero/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#14-silueta-y-lectura-a-distancia-aditivo-frente-a-normal):
+  aditivo solo en lo que emite luz de verdad.
+- **`gpu_set_alphatestenable(true)` + `gpu_set_alphatestref(valor)`**: descarta los píxeles
+  con alfa por debajo del umbral **antes** de escribir en el framebuffer, así que las zonas
+  totalmente transparentes de un sprite con mucho margen no llegan a mezclarse.
+
+  ```gml
+  /// Draw — recortar el coste de un sprite con mucho margen transparente
+  gpu_set_alphatestenable(true);
+  gpu_set_alphatestref(1);       // descarta cualquier píxel casi invisible (0-1 de 255)
+  draw_self();
+  gpu_set_alphatestenable(false);
+  ```
+
+  > ⚠️ Esto no reduce el coste del *fragment shader* en sí —se sigue evaluando cada píxel—,
+  > pero sí evita el coste de mezclar y escribir los que de todas formas no se verían.
+- **Recorta el lienzo del sprite al contenido real** en el editor de imagen, en vez de dejar
+  un margen grande «por si acaso» — menos overdraw y menos memoria de textura a la vez.
+- **Desactiva capas fuera de cámara** con el mismo patrón que ya usan las partículas
+  (`part_emitter_enable(false)` en [04 · 39 §3.12](../04%20-%20Recetas%20por%20g%C3%A9nero/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md#312-presupuesto-medido-y-culling-de-emisores))
+  y las instancias (`instance_deactivate_all` / `instance_activate_region`, arriba en este
+  mismo apartado): una luz o una capa que no se ve no debería seguir dibujándose.
 
 ### Paso 3: la ventana Texture
 
@@ -719,6 +853,319 @@ if (debug_mode || !code_is_compiled())
 
 ---
 
+## 10. Depurar un guardado en producción
+
+Un bug de guardado casi nunca lo ves tú: te llega como un mensaje de un jugador ("se me borró
+la partida", "cargué y no era mi progreso"), sin tu IDE delante y sin poder poner un breakpoint.
+Esta sección cubre las tres piezas que hacen ese caso resoluble: **mirar** el save sin salir
+del juego, **editarlo** a mano para reproducir el escenario, y **pedirle al jugador el fichero
+correcto** sin pedirle de paso datos que no necesitas.
+
+### 10.1 Inspector de guardado con el Debug Overlay
+
+`dbg_text()` muestra el contenido de una variable como texto; combinado con las funciones de
+[`06 · Assets y Scripts/scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml)
+(§4 arriba tiene el resto de controles `dbg_*`), esto es un inspector completo en menos de 30
+líneas, sin salir del juego ni escribir una pantalla propia:
+
+```gml
+// ═══ obj_debug · Create (solo en builds de desarrollo, junto al resto de dbg_view) ═══
+inspector_slot = "slot1";
+inspector_json = "(pulsa Inspeccionar)";
+
+if (debug_mode)
+{
+    dbg_view("Inspector de guardado", false);
+    dbg_section("Guardado");
+    dbg_text_input(ref_create(self, "inspector_slot"), "Slot");
+    dbg_button("Inspeccionar", ref_create(self, "inspector_refrescar"));
+    dbg_button("Copiar JSON", ref_create(self, "inspector_copiar"));
+    dbg_text_separator("Contenido (solo lectura)");
+    dbg_text(ref_create(self, "inspector_json"));
+}
+
+inspector_refrescar = function()
+{
+    // load_game_raw() ya desenvuelve el checksum y migra el formato interno:
+    // aquí solo se lee para MIRAR, nunca se llama a save_game() por accidente.
+    var _sobre = load_game_raw(inspector_slot);
+    inspector_json = is_struct(_sobre)
+        ? json_stringify(_sobre.datos, true)              // con indentación: legible
+        : $"(no hay guardado válido en el slot '{inspector_slot}')";
+}
+
+inspector_copiar = function()
+{
+    clipboard_set_text(inspector_json);   // para pegarlo en un issue o en un chat
+}
+```
+
+> ⚠️ **Es de solo lectura a propósito.** `dbg_text_input` permite editar texto en pantalla, pero
+> reconstruir un struct arbitrario desde un textbox editado a mano es frágil y easy de dejar en
+> un estado a medias. Para forzar un valor concreto, la vía segura es la §10.2 de abajo: editar
+> el struct **en memoria** con las mismas herramientas de §4 (`dbg_slider`, `dbg_checkbox`… sobre
+> `obj_jugador`) y dejar que `save_game()` lo persista con el checksum recalculado solo.
+>
+> 💡 `dbg_view(..., false)` lo crea **oculto**: ábrelo desde el menú *Debug* del propio overlay
+> cuando lo necesites, no en cada partida.
+
+### 10.2 Editar un save a mano para forzar un escenario de prueba
+
+El fichero es JSON en texto plano — `game_save_id + "save_slot1.json"` (rutas por plataforma en
+§1 de [`01 · 14`](./14%20-%20Persistencia%20y%20archivos.md#dónde-está-el-save-area-en-cada-plataforma))
+— así que en principio basta abrirlo con cualquier editor de texto, cambiar un valor y guardar.
+En la práctica hay un matiz desde que existe el checksum de
+[`01 · 14 §12 bis`](./14%20-%20Persistencia%20y%20archivos.md#12-bis-checksum-como-verificación-real-calcular-guardar-aparte-comparar-y-rechazar):
+
+- El campo `"datos"` del fichero es el **JSON de tus datos ya escapado** dentro del JSON
+  exterior (comillas como `\"`), no un objeto anidado legible a simple vista. Sigue siendo
+  editable a mano — busca la clave que te interese entre las comillas escapadas, por ejemplo
+  cambia `\"vida\":100` por `\"vida\":1` — pero es más incómodo que un JSON plano.
+- Si lo editas así, el `checksum` que va al lado **ya no coincide**, y `load_game()` lo
+  rechazará. La forma honesta de forzar el escenario sin pelearte con el hash: **borra por
+  completo la clave `"checksum"`** del sobre exterior. Sin esa clave, la verificación se salta
+  igual que con un guardado de antes de que existiera — es el mismo camino de compatibilidad que
+  usan los saves viejos, y no rompe nada más.
+- La alternativa más cómoda, casi siempre mejor: usa el inspector de §10.1 para ver el valor
+  actual, cambia el dato **en memoria** (con una `dbg_slider`/`dbg_checkbox` como en §4, o
+  directamente en el Debugger) y llama a `save_game()` de nuevo. El checksum sale recalculado
+  solo y el fichero queda íntegro.
+
+### 10.3 Pedirle a un jugador el fichero que hace falta, sin que te mande datos personales
+
+Cuando el reporte llega de fuera (Discord, un ticket, una reseña), pedir "mándame tu carpeta de
+guardado entera" es pedir de más: esa carpeta puede tener saves de otros slots, capturas de
+pantalla (§4·10.6 de otros documentos) y, en Windows, la propia **ruta ya contiene el nombre de
+usuario del sistema** (`C:\Users\<Usuario>\AppData\Local\...`, tabla completa en
+[`01 · 14 §1`](./14%20-%20Persistencia%20y%20archivos.md#dónde-está-el-save-area-en-cada-plataforma)).
+Ninguna de las dos cosas hace falta para depurar un guardado roto.
+
+**Lo que sí hace falta, y nada más:**
+
+1. **El fichero de guardado concreto del slot afectado** (`save_slot1.json`, no la carpeta
+   entera) — es JSON con tus propios campos de partida; si tu juego no mete en el save nada de
+   identidad real (nombre del sistema, email, ubicación — la misma regla de "no PII" de
+   [`13 · 11 §7`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#7--post-lanzamiento)
+   punto 2), el fichero no trae nada personal que proteger.
+2. **`partida.log`**, si tienes el registro con niveles de
+   [`13 · 10 §7.2`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#72-un-log-con-niveles-que-sobrevive-al-cierre)
+   conectado (`scr_save_load.gml` ya lo hace si defines `global.save_logger`, ver su cabecera):
+   trae la secuencia de qué falló y cuándo, sin que el jugador tenga que describirlo de memoria.
+
+**Cómo pedirlo sin que tenga que navegar rutas de sistema**: dale un botón, no una ruta.
+
+```gml
+// ═══ obj_menu_opciones · botón "Copiar informe de guardado" ═══
+function generar_informe_soporte(_slot)
+{
+    var _sobre = load_game_raw(_slot);   // ya sin checksum, ya migrado
+
+    var _informe = {
+        slot          : _slot,
+        gm_version    : GM_version,
+        plataforma    : os_type,
+        guardado      : is_struct(_sobre) ? _sobre.datos  : "(no se pudo cargar)",
+        version_save  : is_struct(_sobre) ? _sobre.version : -1
+    };
+
+    clipboard_set_text(json_stringify(_informe, true));
+}
+```
+
+El jugador pega el resultado en el ticket/Discord con un solo "copiar y pegar" — sin abrir un
+explorador de archivos, sin que la ruta con su nombre de usuario aparezca en ningún sitio, y sin
+mandar la carpeta entera. `GM_version` (`08 · 19`) y `os_type` dan el contexto técnico que de
+verdad hace falta para reproducir el bug, no una identidad.
+
+> ⚠️ **Pide esto solo cuando el jugador está reportando un problema, nunca lo envíes tú solo
+> desde el juego.** Automatizar este envío sin que el jugador lo pida convertiría un dato de
+> depuración puntual en telemetría no consentida — la misma línea que traza
+> [`13 · 11 §7`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#7--post-lanzamiento)
+> punto 1 ("pregunta antes de enviar nada").
+
+---
+
+## 11. Herramientas externas de perfilado
+
+Todo lo anterior en este documento (Debugger, Profiler, Debug Overlay) ocurre **dentro** de
+GameMaker. Hay una pregunta distinta que ningún documento de esta biblioteca respondía hasta
+ahora: ¿qué se puede ver **desde fuera**, con las herramientas de la plataforma — RenderDoc,
+Instruments, Android Profiler — cuando el Profiler del §3 no basta porque el problema está en
+la GPU misma, en el sistema operativo, o hace falta un frame-by-frame de verdad?
+
+**Respuesta corta y honesta primero:** las tres funcionan, con matices y ninguna está integrada
+oficialmente por YoYo Games. Ninguna de las tres «habla GML» — todas ven el proceso nativo que
+GameMaker produce (ejecutable Windows, app Xcode, APK/AAB), nunca tu código fuente `.gml`. Sirven
+para confirmar o descartar un sospechoso que ya localizaste con el Debug Overlay/Profiler, no
+para sustituirlos como primera parada — sigue siendo el §1 "mide antes de optimizar".
+
+### 11.1 RenderDoc (captura de frame en Windows)
+
+**Qué API gráfica hay detrás importa antes que nada.** GameMaker no lo publica como un dato
+suelto en ningún sitio, pero el propio runtime lo revela a través de
+[`os_get_info()`](../08%20-%20Referencia%20GML%20completa/19%20-%20Sistema%2C%20compilador%20y%20entorno.md#os_get_info--información-detallada-del-sistema):
+en **Windows Desktop y UWP** el mapa devuelto trae claves `video_d3d11_device`,
+`video_d3d11_context` y `video_d3d11_swapchain`. **GameMaker exporta Windows sobre Direct3D 11**,
+no OpenGL (Xbox Series X/S usa D3D12, pero eso no es un target que compiles ni pruebes en un PC
+de escritorio).
+
+RenderDoc soporta oficialmente D3D11 (hasta 11.4), D3D12, Vulkan y OpenGL/OpenGL ES — Windows,
+Linux y Android «out of the box» — según su propia FAQ. Eso pone a un build de Windows dentro de
+lo que RenderDoc sabe capturar sin trucos. En la práctica hay un obstáculo conocido y ya
+resuelto por la comunidad, no por YoYo Games: **los builds de desarrollo de GMS2 se ejecutan
+desde puntos de montaje temporales**, lo que hace que «File → Launch Application» apuntando al
+ejecutable que lanza el IDE no encuentre nada estable que capturar. La herramienta
+[`renderdoc-gms2-kit`](https://github.com/odditica/renderdoc-gms2-kit) (script de PowerShell,
+código abierto) resuelve justo eso: localiza el build temporal más reciente y genera un archivo
+de ajustes `.cap` con rutas absolutas que RenderDoc sí puede cargar («Launch Application → Load
+Settings»); funciona con builds VM y YYC.
+
+**La vía más simple, y la que recomienda esta biblioteca:** no captures el build temporal del
+IDE. Exporta el juego a una carpeta real (`gm-cli package` o *Build → Create Executable* en el
+IDE) y apunta RenderDoc directamente al `.exe` exportado con «File → Launch Application». Sin
+puntos de montaje temporales de por medio, no hace falta ningún script externo.
+
+```
+RenderDoc → File → Launch Application
+  Executable Path: C:\ruta\a\tu_build_exportado\tu_juego.exe
+  Working Directory: (la misma carpeta)
+  → Launch
+```
+
+Con el juego capturado bajo RenderDoc puedes inspeccionar, frame a frame: cada *draw call*, sus
+texturas de entrada, el estado de blend/depth/stencil, el pipeline completo y el contenido de
+cada render target — exactamente el nivel de detalle que ni el Debug Overlay ni el Profiler dan,
+porque ambos miden **tiempo**, no **estado de la GPU**.
+
+> ⚠️ **RenderDoc no tiene versión de macOS.** Su propia documentación lista Windows, Linux,
+> Android y Nintendo Switch (bajo NDA) como plataformas soportadas; el soporte de macOS es
+> "pretty early [...] not usable for debugging yet and is not officially supported" según los
+> propios mantenedores. Esto significa que **el export de macOS no se puede capturar con
+> RenderDoc en absoluto** — ni siquiera intentándolo desde otra máquina, porque RenderDoc como
+> aplicación host no corre ahí. Si necesitas depurar gráficos en macOS, la única vía de esta
+> biblioteca es Instruments (§11.2).
+>
+> ⚠️ **Linux/Ubuntu** exporta sobre OpenGL (mismo `os_get_info()`, sección macOS/Ubuntu, que
+> reporta `gl_vendor_string`/`gl_renderer_string`). RenderDoc soporta OpenGL 3.2+ en Linux, así
+> que en teoría un build de Ubuntu debería poder capturarse en una máquina Linux — pero esta
+> biblioteca no ha podido verificarlo en vivo (no hay una máquina Linux disponible en esta
+> sesión) y no hay ningún reporte de la comunidad de GameMaker específico para Linux + RenderDoc,
+> a diferencia del kit de Windows. Trátalo como plausible, no confirmado.
+>
+> ⚠️ **Android** usa OpenGL ES (`GL_VERSION`/`GL_RENDERER` en `os_get_info()`), y RenderDoc sí
+> tiene un flujo de captura para Android (GLES y Vulkan) con `adb` de por medio. No hay ningún
+> reporte encontrado de alguien haciéndolo específicamente con un APK de GameMaker: el
+> procedimiento genérico de RenderDoc para Android debería aplicar igual que a cualquier app,
+> pero márcalo como sin verificar para este motor en concreto.
+
+### 11.2 Instruments (macOS e iOS)
+
+Esto no hace falta inventarlo: **al compilar para macOS o iOS, GameMaker invoca a Xcode para
+construir la app** — ya documentado en
+[`05 · 05 §6.1`](../05%20-%20Referencia/05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md#61-del-xarchive-de-gamemaker-a-xcode)
+para la firma y notarización — no se repite aquí. Lo relevante para perfilado es la
+consecuencia directa: el resultado **es un proyecto/app de Xcode como cualquier otro**, así que
+se perfila exactamente igual — sin ningún paso especial de GameMaker:
+
+```
+Xcode → abre el .xcodeproj que GameMaker generó (o el .app ya compilado)
+  → Product → Profile  (⌘I)
+  → elige la plantilla: Time Profiler, Allocations, Leaks, Energy Log...
+```
+
+También funciona por línea de comandos, útil para automatizar una captura sin abrir Xcode:
+
+```sh
+xcrun xctrace record --template 'Time Profiler' --time-limit 30s \
+  --output /tmp/juego.trace --launch -- /ruta/a/tu_juego.app
+```
+
+**Lo que SÍ da Instruments, sin matices:** CPU total y por hilo, uso de memoria nativa
+(Allocations/Leaks — útil para fugas de recursos que el GC de GML nunca ve, §8 de este
+documento), energía/batería en iOS, y actividad de disco/red del proceso. Todo esto es
+información a nivel de **proceso del sistema operativo**, así que es tan válida para un build de
+GameMaker como para cualquier app nativa — no depende de que Instruments entienda GML.
+
+> ⚠️ **La limitación real: el código GML no aparece en el stack como tal.** GameMaker no expone
+> tu `.gml` a Xcode de ningún modo — no hay un mapa de "esta línea GML = esta línea del stack".
+> Lo que Instruments SÍ ve depende de cómo se ejecuta tu juego:
+>
+> - **VM (intérprete):** tu GML nunca se compila a código nativo. El stack de Time Profiler
+>   muestra el bucle del intérprete del runtime de GameMaker (funciones C++ internas,
+>   repetidas miles de veces), no tus funciones. Sirve para saber "el intérprete está ocupado",
+>   no en qué evento.
+> - **YYC (nativo):** aquí sí hay algo más útil, porque el **YYC traduce tu GML a C++ y lo
+>   compila** ([`01 · 01 §6`](./01%20-%20El%20IDE%20y%20el%20flujo%20de%20trabajo.md#6-ejecutar-y-compilar-vm-vs-yyc)) —
+>   esto genera un `.cpp` real por cada evento (confirmado mirando el árbol de un proyecto YYC
+>   exportado: aparece un archivo por evento, con nombres como
+>   `gml_Object_obj_bench_Create_0.gml.cpp`). El símbolo que ves en el stack de Instruments es
+>   ese nombre generado — reconocible (dice de qué objeto y qué evento viene), pero **no es tu
+>   código línea a línea**: no puedes poner un breakpoint fuente en tu `.gml` desde Xcode, solo
+>   saber qué evento consume el tiempo. Combínalo con el nombre para localizar el objeto y
+>   contrasta con el Profiler del §3 (que sí ve línea a línea, pero solo mide, no perfila la GPU
+>   ni memoria nativa) para bajar al detalle exacto.
+>
+> ⚠️ **GPU-específico (Metal System Trace, GPU Frame Capture) no está verificado para este
+> motor.** El manual de GameMaker no confirma en ningún sitio si el runtime de iOS/tvOS emite
+> llamadas Metal nativas o pasa por una capa de compatibilidad OpenGL ES — la única referencia
+> primaria encontrada (`os_get_info()`, sección iOS/tvOS) solo menciona "claves adicionales que
+> contienen información gráfica de OpenGL", sin aclarar el backend real de 2026. No se afirma
+> aquí si los instrumentos de GPU de Xcode (pensados para Metal) muestran algo útil sobre un
+> build de GameMaker: pruébalo tú mismo si lo necesitas, y no asumas ninguna de las dos cosas.
+
+### 11.3 Android Profiler / `adb` (Android)
+
+Igual que en macOS/iOS: no hay una integración especial de GameMaker con Android Studio. Lo que
+hay es la vía oficial de GameMaker para **conectar y depurar el dispositivo**, documentada en su
+propia ayuda oficial
+(<https://gamemaker.io/en/help/articles/android-troubleshooting>, consultada el 2026-09-07 —
+`gamemaker.io` sigue devolviendo 403 a peticiones sin cabecera `User-Agent`, igual que ya
+documentaba `00-auditoria-externa-inicial.md`; con `curl -A "Mozilla/5.0..."` responde 200):
+configurar `adb` en el PATH, comprobar el dispositivo con `adb devices` y ver el log en vivo con
+`adb logcat`. Eso es *debugging* básico (conexión, mensajes de error), no *profiling*.
+
+Para perfilar de verdad (CPU, memoria, batería, red por proceso) se usa el **Android Profiler**
+de Android Studio — herramienta 100% de Google, no de GameMaker, y por eso funciona exactamente
+igual con un APK/AAB exportado desde GameMaker que con cualquier otro:
+
+```
+Android Studio → Profile → selecciona el proceso del juego en el dispositivo conectado
+  (compatible con Android 5.0 / API 21 en adelante, según la documentación oficial de Android)
+```
+
+Alternativa sin abrir Android Studio, directamente desde `adb`:
+
+```sh
+adb devices                              # confirma que el dispositivo aparece
+adb shell dumpsys meminfo <package_name> # foto de memoria del proceso
+adb shell top -m 10                      # CPU en vivo, los 10 procesos que más consumen
+adb logcat | grep -i "tu_juego\|fatal"   # log filtrado, útil para crashes nativos
+```
+
+**Qué se ve y qué no:** igual que Instruments, esto es perfilado **a nivel de proceso del
+sistema operativo** — memoria total, CPU, batería, tráfico de red — no perfilado de GML línea a
+línea. GameMaker exporta Android sobre OpenGL ES (`os_get_info()`, sección Android:
+`GL_VERSION`/`GL_RENDERER`/`GL_VENDOR`), así que si además necesitas ver *draw calls* concretos,
+la ruta es RenderDoc para Android (§11.1, sin verificar para este motor) o el propio Debug
+Overlay del §4 conectado al dispositivo — no el Android Profiler, que no distingue *draw calls*
+individuales.
+
+> ⚠️ No se ha encontrado ningún reporte de la comunidad de GameMaker usando el Android Profiler
+> con un build propio — el procedimiento de arriba es el genérico de Android (válido para
+> cualquier APK) aplicado a este caso, no una receta verificada específicamente con GameMaker.
+
+### 11.4 Cuándo compensa salir de GameMaker
+
+| Síntoma | Empieza en… | Sal a herramienta externa si… |
+|---|---|---|
+| FPS bajo, no sabes si es CPU o GPU | Debug Overlay §4 (Stacked) | El overlay ya dice "Draw" y necesitas saber **qué** *draw call* concreto pesa — RenderDoc |
+| Un evento/script concreto es lento | Profiler §3 | Ya sabes la línea y necesitas contexto de sistema (memoria nativa, energía) — Instruments/Android Profiler |
+| El juego se cierra solo en móvil | `adb logcat` / Instruments Crash Reporter | El log de GameMaker no explica nada: es un crash nativo del runtime, no una excepción GML capturable |
+| Sospechas de una fuga de memoria nativa (no del GC de GML) | §8 de este documento (checklist) | El `gc_get_stats()` no cuadra con lo que reporta el sistema operativo — Allocations/Leaks (Instruments) o `dumpsys meminfo` (Android) |
+| Quieres inspeccionar texturas/estado de la GPU frame a frame | — no hay equivalente dentro de GameMaker — | Directamente RenderDoc (Windows) |
+
+---
+
 ## Resumen
 
 1. **Tres capas:** Feather (estático), Debugger (IDE), Debug Overlay (runtime).
@@ -733,3 +1180,5 @@ if (debug_mode || !code_is_compiled())
 10. **Ordena los dibujos por textura** y **desactiva instancias fuera de cámara** para las dos mayores ganancias.
 11. **YYC multiplica ×2–×3 la lógica**, pero no el dibujado.
 12. Usa `debug_mode` para que el HUD de depuración **se apague solo** en el build final.
+13. **Un `dbg_view` con `dbg_text()` es un inspector de guardado gratis.** Pide al jugador solo el fichero del slot y el log, nunca la carpeta entera — la ruta de Windows ya lleva su nombre de usuario.
+14. **Fuera de GameMaker: RenderDoc (Windows, D3D11) para frame GPU, Instruments (macOS/iOS, vía el proyecto Xcode que ya genera GameMaker) y Android Profiler/`adb` (Android) para CPU/memoria/energía a nivel de proceso.** Ninguna «habla GML»: úsalas después del Profiler del §3, no en vez de él. ⚠️ RenderDoc no tiene versión de macOS.

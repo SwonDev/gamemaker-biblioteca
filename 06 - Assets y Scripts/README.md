@@ -185,8 +185,9 @@ tween_to(obj_menu, { image_alpha: 0 }, 0.3, ease_in_quad, function() {
 
 ### `scr_save_load.gml` — Guardado robusto
 
-**Incluye:** `save_game`, `load_game`, `load_game_safe`, `load_game_raw`, `save_exists`,
-`save_get_meta`, `save_list`, `delete_save`, `save_export_string`, `save_import_string`.
+**Incluye:** `save_game`, `load_game`, `load_game_safe`, `load_game_recover`, `load_game_raw`,
+`save_exists`, `save_get_meta`, `save_list`, `save_backup`, `save_backup_path`, `delete_save`,
+`save_export_string`, `save_import_string`.
 
 ```gml
 // Guardar
@@ -196,16 +197,29 @@ save_game("slot1", { nivel: room_get_name(room), vida: obj_player.hp });
 var _datos = load_game_safe("slot1", function(_d) {
     return struct_exists(_d, "vida") && _d.vida > 0;
 });
+
+// Cargar con red de seguridad: si "slot1" falla, prueba las copias rotativas
+var _datos_recuperados = load_game_recover("slot1");
 ```
 
-**Las tres reglas que respeta:**
+**Las cinco reglas que respeta** (detalle completo, con el porqué de cada una, en
+[`01 · 14 §9, §12 bis y §12 ter`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md#9-sistema-de-guardado-completo-recomendado)):
 
 1. **Escritura segura** — escribe en un temporal, lo valida releyéndolo y solo entonces reemplaza la partida. Si el juego se corta a medias, la partida sigue intacta.
 2. **Versión de esquema** — constante `SAVE_VERSION`. Si cambias la forma de los datos, súbela y define `global.save_migrar`.
 3. **Carpeta correcta** — usa `game_save_id`, válida en todas las plataformas. **Nunca** `working_directory`.
+4. **Integridad real** — checksum que se COMPARA al cargar (`sha1_string_utf8`), no solo se calcula. Un fichero corrompido o editado a mano de forma que rompa los datos se **rechaza**.
+5. **Red de seguridad** — cada guardado nuevo empuja el anterior a una cadena de copias rotativas (`SAVE_BACKUP_COUNT`, por defecto 3). Si el save principal no pasa la validación, `load_game_recover()` prueba las copias antes de rendirse.
 
 > ⚠️ `json_stringify` guarda los **assets por nombre**. Si renombras un sprite, una partida vieja
 > puede romper. De ahí la validación.
+>
+> 💡 Los fallos de `save_game()` y `__save_read_raw()` van a `show_debug_message()` de siempre,
+> y también a un log persistente si tu proyecto define
+> `global.save_logger = function(_nivel, _texto) { registrar(_nivel, _texto); }` con el
+> `registrar()` de
+> [`13 · 10 §7.2`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#72-un-log-con-niveles-que-sobrevive-al-cierre).
+> Sin ese hook, el script se comporta exactamente igual que antes.
 
 ---
 
@@ -460,7 +474,8 @@ offline.
 `ds_priority_destroy` · `json_stringify` · `json_parse` · `file_text_open_write` ·
 `file_text_open_read` · `file_text_write_string` · `file_text_read_string` · `file_text_readln` ·
 `file_text_eof` · `file_text_close` · `file_exists` · `file_delete` · `file_rename` ·
-`file_copy` · `directory_exists` · `directory_create` · `game_save_id` · `instance_create_layer` ·
+`file_copy` · `directory_exists` · `directory_create` · `game_save_id` · `sha1_string_utf8` ·
+`instance_create_layer` ·
 `instance_create_depth` · `instance_destroy` · `instance_exists` · `instance_number` ·
 `instance_deactivate_object` · `instance_activate_object` · `instance_count` ·
 `variable_instance_get` · `variable_instance_set` · `variable_struct_get` ·

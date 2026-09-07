@@ -859,6 +859,540 @@ antes de sembrar, de forma que las celdas del borde arranquen con más probabili
 
 ---
 
+## 3 bis · Poda de callejones sin salida
+
+Un autómata celular ya conectado (§3.1) sigue lleno de **puntas ciegas**: celdas de suelo con un
+único vecino transitable. Algunas son intencionadas (un cofre al fondo de un ramal), pero la
+mayoría son ruido que alarga el recorrido sin añadir nada. Dos usos opuestos para la misma
+detección: **rellenarlas** (mazmorra más directa) o **marcarlas** como candidatas a sala secreta
+en vez de tocarlas — la tercera capa de secretos de
+[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15--rutas-alternativas-y-secretos).
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_callejones
+// Verificado: array_create, array_length, array_push
+// ---------------------------------------------------------------------------
+
+/// @func contar_vecinos_suelo(_celdas, _ancho, _alto, _fx, _fy)
+/// @desc Vecinos de SUELO en las 4 direcciones ortogonales (sin diagonales):
+///       un callejón sin salida es una cuestión de conectividad de paso, no
+///       de vecindad de muro como `contar_muros` (§3).
+function contar_vecinos_suelo(_celdas, _ancho, _alto, _fx, _fy)
+{
+    var _n  = 0;
+    var _dx = [1, -1, 0, 0];
+    var _dy = [0, 0, 1, -1];
+
+    for (var _d = 0; _d < 4; _d++)
+    {
+        var _vx = _fx + _dx[_d];
+        var _vy = _fy + _dy[_d];
+        if (_vx < 0 || _vy < 0 || _vx >= _ancho || _vy >= _alto) continue;
+        if (_celdas[_vy * _ancho + _vx] == 0) _n++;
+    }
+
+    return _n;
+}
+
+/// @func encontrar_callejones(_cueva)
+/// @desc Celdas de suelo con EXACTAMENTE 1 vecino de suelo: por definición,
+///       la punta de un callejón sin salida (o de una cámara de acceso único).
+/// @return {Array<Real>} Índices dentro de _cueva.celdas
+function encontrar_callejones(_cueva)
+{
+    var _ancho = _cueva.ancho;
+    var _alto  = _cueva.alto;
+    var _lista = [];
+
+    for (var _fy = 0; _fy < _alto; _fy++)
+        for (var _fx = 0; _fx < _ancho; _fx++)
+        {
+            var _i = _fy * _ancho + _fx;
+            if (_cueva.celdas[_i] == 1) continue;
+            if (contar_vecinos_suelo(_cueva.celdas, _ancho, _alto, _fx, _fy) == 1)
+                array_push(_lista, _i);
+        }
+
+    return _lista;
+}
+
+/// @func podar_callejones(_cueva, _max_pasadas)
+/// @desc Rellena de muro los callejones, PASADA A PASADA: al sellar la punta,
+///       su vecino puede convertirse en la nueva punta (erosión desde el
+///       final del ramal hacia la sala de la que cuelga). Se detiene cuando
+///       no aparecen más o se agota el tope — un ramal corto desaparece
+///       entero; uno que lleva a una sala grande se acorta hasta la puerta.
+/// @return {Real} Cuántas celdas se sellaron en total.
+function podar_callejones(_cueva, _max_pasadas)
+{
+    var _selladas = 0;
+
+    for (var _pasada = 0; _pasada < _max_pasadas; _pasada++)
+    {
+        var _callejones = encontrar_callejones(_cueva);
+        if (array_length(_callejones) == 0) break;
+
+        for (var _i = 0; _i < array_length(_callejones); _i++)
+            _cueva.celdas[_callejones[_i]] = 1;
+
+        _selladas += array_length(_callejones);
+    }
+
+    return _selladas;
+}
+```
+
+> ⚠️ **Poda sin criterio se come ramales enteros que sí importan.** Si el mapa tiene una entrada
+> y una salida marcadas (§10), exclúyelas de `encontrar_callejones` (o limita `_max_pasadas`):
+> de lo contrario un pasillo recto hacia la meta, que solo tiene puertas en sus dos extremos, se
+> rellena igual que cualquier ramal muerto.
+
+Para la variante de **secretos**, no rellenes nada: usa `encontrar_callejones()` directamente y
+reserva esas celdas para una sala pequeña con un ítem, un tesoro o un atajo — la técnica de
+señalización y recompensa ya está en
+[13 · 02 §1.5](./02%20-%20Diseño%20de%20niveles.md#15--rutas-alternativas-y-secretos).
+
+---
+
+## 3 ter · Marching squares: contornos suaves
+
+`cueva_celular()` (§3) devuelve un campo **binario**: 1 muro, 0 suelo. Pintado a tilemap
+celda a celda, cada esquina es un ángulo recto — funciona, pero se nota la rejilla. *Marching
+squares* extrae el **contorno** de ese campo como una polilínea que corta las celdas por donde
+corresponde, no por sus bordes: el mismo dato, una silueta mucho más orgánica encima.
+
+**La idea, en una frase de Jamie Wong** (*Metaballs and Marching Squares*, 2014): cada celda de
+la rejilla se examina esquina a esquina, y las cuatro esquinas —dentro o fuera del contorno—
+generan *"2⁴ posibles configuraciones"*, numeradas 0-15 al leerlas como un número binario. Con
+esa tabla, y con interpolación lineal en el borde donde el campo cruza el umbral, la línea deja
+de tener solo ángulos de 90° y 45° y pasa por el punto exacto donde el valor cambia.
+
+### La tabla de 16 casos
+
+Esquinas numeradas en sentido horario desde arriba-izquierda: `SI` (bit 1), `SD` (bit 2), `ID`
+(bit 4), `II` (bit 8). El caso es la suma de los bits de las esquinas que están **dentro**
+(≥ umbral). Los bordes de la celda son N (arriba), E (derecha), S (abajo), O (izquierda).
+
+| Caso | Esquinas dentro | Segmento(s) | Caso | Esquinas dentro | Segmento(s) |
+|---|---|---|---|---|---|
+| 0 | ninguna | — (celda vacía) | 8 | II | S–O |
+| 1 | SI | O–N | 9 | SI, II | N–S |
+| 2 | SD | N–E | 10 | SD, II | *silla* |
+| 3 | SI, SD | O–E | 11 | SI, SD, II | E–S |
+| 4 | ID | E–S | 12 | ID, II | O–E |
+| 5 | SI, ID | *silla* | 13 | SI, ID, II | N–E |
+| 6 | SD, ID | N–S | 14 | SD, ID, II | O–N |
+| 7 | SI, SD, ID | O–S | 15 | todas | — (celda llena) |
+
+Los casos **5** y **10** son la *silla de montar*: dos esquinas opuestas dentro y las otras dos
+fuera admite dos lecturas distintas (¿están las dos esquinas "dentro" conectadas por el centro, o
+separadas?). El desempate estándar mira el promedio de las 4 esquinas contra el umbral.
+
+### Del binario al continuo: por qué hace falta suavizar el campo primero
+
+Con un campo estrictamente 0/1, el cruce de cada borde cae **siempre en su punto medio**: mejor
+que los escalones de un tile, pero sigue siendo una rejilla de segmentos de igual longitud, no
+una curva. Para un contorno de verdad, cada **vértice** de la rejilla necesita un valor continuo.
+El truco barato: la fracción de las hasta 4 celdas que tocan ese vértice que son muro — reutiliza
+exactamente el conteo de `contar_muros` (§3), a otra escala.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_marching_squares
+// Verificado: draw_primitive_begin, draw_primitive_end, draw_vertex, pr_linelist
+// ---------------------------------------------------------------------------
+
+/// @func valor_vertice_cueva(_cueva, _vx, _vy)
+/// @desc Valor continuo [0, 1] en el VÉRTICE (_vx, _vy) de la rejilla: fracción
+///       de las hasta 4 celdas que lo tocan que son muro. Fuera del mapa
+///       cuenta como muro (mismo criterio de borde sellado que `contar_muros`).
+function valor_vertice_cueva(_cueva, _vx, _vy)
+{
+    var _ancho = _cueva.ancho;
+    var _alto  = _cueva.alto;
+    var _suma  = 0;
+
+    var _ox = [-1, 0, -1, 0];
+    var _oy = [-1, -1, 0, 0];
+
+    for (var _k = 0; _k < 4; _k++)
+    {
+        var _cx = _vx + _ox[_k];
+        var _cy = _vy + _oy[_k];
+
+        if (_cx < 0 || _cy < 0 || _cx >= _ancho || _cy >= _alto) { _suma += 1; continue; }
+        _suma += _cueva.celdas[_cy * _ancho + _cx];
+    }
+
+    return _suma / 4;
+}
+
+/// @func campo_vertices_cueva(_cueva)
+/// @desc Precalcula el campo continuo en TODOS los vértices de golpe: una
+///       rejilla de (ancho+1)×(alto+1) valores. Se hace una vez (§2.9);
+///       `marching_squares_lista` la recorre muchas veces si hace falta.
+function campo_vertices_cueva(_cueva)
+{
+    var _vancho = _cueva.ancho + 1;
+    var _valto  = _cueva.alto + 1;
+    var _campo  = array_create(_vancho * _valto, 0);
+
+    for (var _vy = 0; _vy < _valto; _vy++)
+        for (var _vx = 0; _vx < _vancho; _vx++)
+            _campo[_vy * _vancho + _vx] = valor_vertice_cueva(_cueva, _vx, _vy);
+
+    return { ancho: _vancho, alto: _valto, valores: _campo };
+}
+
+/// @func borde_interpolado(_a, _b, _umbral)
+/// @desc Fracción [0, 1] a lo largo de un borde donde el campo cruza el
+///       umbral, por interpolación lineal entre sus dos esquinas. Es esto lo
+///       que evita que el cruce caiga siempre en el punto medio.
+function borde_interpolado(_a, _b, _umbral)
+{
+    if (abs(_a - _b) < 0.00001) return 0.5;
+    return clamp((_umbral - _a) / (_b - _a), 0, 1);
+}
+
+/// @func marching_squares_lista(_campo, _tam_celda, _umbral)
+/// @desc Recorre el campo de vértices (`campo_vertices_cueva` u otro campo
+///       escalar del mismo formato) y devuelve la lista de segmentos del
+///       contorno, en coordenadas de PÍXEL.
+/// @return {Array<Struct>} [{ x1, y1, x2, y2 }, ...]
+function marching_squares_lista(_campo, _tam_celda, _umbral)
+{
+    var _ancho = _campo.ancho;   // vértices: hay una celda menos en cada eje
+    var _alto  = _campo.alto;
+    var _v     = _campo.valores;
+    var _segmentos = [];
+
+    for (var _fy = 0; _fy < _alto - 1; _fy++)
+    {
+        for (var _fx = 0; _fx < _ancho - 1; _fx++)
+        {
+            var _si = _v[_fy       * _ancho + _fx];       // superior-izquierda
+            var _sd = _v[_fy       * _ancho + _fx + 1];   // superior-derecha
+            var _id = _v[(_fy + 1) * _ancho + _fx + 1];   // inferior-derecha
+            var _ii = _v[(_fy + 1) * _ancho + _fx];       // inferior-izquierda
+
+            var _caso = (_si >= _umbral ? 1 : 0) | (_sd >= _umbral ? 2 : 0)
+                      | (_id >= _umbral ? 4 : 0) | (_ii >= _umbral ? 8 : 0);
+
+            if (_caso == 0 || _caso == 15) continue;   // celda toda fuera o toda dentro
+
+            var _px = _fx * _tam_celda;
+            var _py = _fy * _tam_celda;
+
+            var _n_x = _px + borde_interpolado(_si, _sd, _umbral) * _tam_celda;
+            var _n_y = _py;
+            var _s_x = _px + borde_interpolado(_ii, _id, _umbral) * _tam_celda;
+            var _s_y = _py + _tam_celda;
+            var _o_x = _px;
+            var _o_y = _py + borde_interpolado(_si, _ii, _umbral) * _tam_celda;
+            var _e_x = _px + _tam_celda;
+            var _e_y = _py + borde_interpolado(_sd, _id, _umbral) * _tam_celda;
+
+            switch (_caso)
+            {
+                case 1:  array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _n_x, y2: _n_y }); break;
+                case 2:  array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _e_x, y2: _e_y }); break;
+                case 3:  array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _e_x, y2: _e_y }); break;
+                case 4:  array_push(_segmentos, { x1: _e_x, y1: _e_y, x2: _s_x, y2: _s_y }); break;
+                case 6:  array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _s_x, y2: _s_y }); break;
+                case 7:  array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _s_x, y2: _s_y }); break;
+                case 8:  array_push(_segmentos, { x1: _s_x, y1: _s_y, x2: _o_x, y2: _o_y }); break;
+                case 9:  array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _s_x, y2: _s_y }); break;
+                case 11: array_push(_segmentos, { x1: _e_x, y1: _e_y, x2: _s_x, y2: _s_y }); break;
+                case 12: array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _e_x, y2: _e_y }); break;
+                case 13: array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _e_x, y2: _e_y }); break;
+                case 14: array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _n_x, y2: _n_y }); break;
+
+                case 5:   // silla SI+ID: el promedio de las 4 esquinas desempata
+                    var _centro5 = (_si + _sd + _id + _ii) / 4;
+                    if (_centro5 < _umbral)
+                    {
+                        array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _n_x, y2: _n_y });
+                        array_push(_segmentos, { x1: _e_x, y1: _e_y, x2: _s_x, y2: _s_y });
+                    }
+                    else
+                    {
+                        array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _e_x, y2: _e_y });
+                        array_push(_segmentos, { x1: _s_x, y1: _s_y, x2: _o_x, y2: _o_y });
+                    }
+                    break;
+
+                case 10:   // silla SD+II: mismo criterio, complementario
+                    var _centro10 = (_si + _sd + _id + _ii) / 4;
+                    if (_centro10 < _umbral)
+                    {
+                        array_push(_segmentos, { x1: _n_x, y1: _n_y, x2: _e_x, y2: _e_y });
+                        array_push(_segmentos, { x1: _s_x, y1: _s_y, x2: _o_x, y2: _o_y });
+                    }
+                    else
+                    {
+                        array_push(_segmentos, { x1: _o_x, y1: _o_y, x2: _n_x, y2: _n_y });
+                        array_push(_segmentos, { x1: _e_x, y1: _e_y, x2: _s_x, y2: _s_y });
+                    }
+                    break;
+            }
+        }
+    }
+
+    return _segmentos;
+}
+
+/// @func dibujar_contorno(_segmentos, _color)
+/// @desc Dibuja la lista de segmentos como polilínea. La lista se calcula UNA
+///       vez fuera de Draw (§2.9); dibujarla cada frame es barato.
+function dibujar_contorno(_segmentos, _color)
+{
+    draw_set_color(_color);
+    draw_primitive_begin(pr_linelist);
+
+    for (var _i = 0; _i < array_length(_segmentos); _i++)
+    {
+        var _s = _segmentos[_i];
+        draw_vertex(_s.x1, _s.y1);
+        draw_vertex(_s.x2, _s.y2);
+    }
+
+    draw_primitive_end();
+}
+```
+
+**Uso**, sobre una cueva ya generada y podada:
+
+```gml
+// objMundo — Create, tras cueva_celular() + conservar_region_mayor() + podar_callejones()
+var _campo = campo_vertices_cueva(cueva);
+contorno = marching_squares_lista(_campo, TAM_CELDA, 0.5);
+
+// objMundo — Draw
+dibujar_contorno(contorno, c_white);
+```
+
+> 🔎 **Sobre el propio tilemap, o encima.** El tilemap sigue siendo lo más barato para el relleno
+> (§2.8): marching squares no lo sustituye, se **superpone** como un contorno vectorial —el borde
+> de la roca, una veta de mineral, la silueta que separa cueva de fondo. Para terreno
+> **destructible** (§9), recalcula el contorno solo tras `excavar()`, nunca en Draw ni en cada
+> Step; si el mapa es grande, repártelo con el patrón de §14.
+>
+> 🔗 **La misma técnica sirve para los *metaballs* de
+> [13 · 08 §12](./08%20-%20Físicas%20a%20mano%20y%20fluidos.md#12--metaballs-agua-y-limo-estilizados).**
+> Aquella sección funde gotas con `gpu_set_alphatestref` (recorte de alfa, borde con escalones a
+> propósito, aspecto de dibujo animado). Si en vez de eso corres `marching_squares_lista()` sobre
+> el campo de alfa acumulado de las gotas —sustituyendo `valor_vertice_cueva` por un muestreo del
+> alfa en cada vértice— el borde sale suave y vectorial, más caro de calcular pero sin dentado.
+> No dupliques el dibujo de las gotas: la función `blobs_dibujar()` de aquella sección sigue
+> siendo quien las acumula.
+
+---
+
+## 3 quater · Otras familias: difusión limitada por agregación y multi-agente
+
+Autómatas celulares (§3) aplican **una regla local por igual a todo el mapa**. Estas dos familias
+cambian el enfoque: en vez de una regla sobre una rejilla completa, **un agente que se mueve y
+decide** va escribiendo el mapa a su paso. Son nicho frente al resto del documento, pero cubren
+dos texturas que ni el ruido ni el autómata dan: ramificación orgánica y composición por rasgos.
+
+### Difusión limitada por agregación (DLA)
+
+DLA simula un fenómeno físico real —partículas en movimiento browniano que se pegan al chocar con
+un agregado ya formado— para generar estructuras **ramificadas**: vetas de mineral, rayos, raíces,
+y cuevas con muchos túneles estrechos y pocos bucles. RogueBasin lo resume en una frase: crea una
+semilla, suelta un caminante que se mueve al azar, y **"move the walker around until it collides
+with a floor tile; then carve out another floor tile where that walker was"** — se excava la
+posición del caminante, no la celda con la que chocó. Repetido miles de veces, el resultado es
+siempre **una única región conectada** (cada celda nueva toca, por construcción, algo que ya
+estaba conectado a la semilla): a diferencia del autómata celular de §3, **no hace falta**
+`conservar_region_mayor()`.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_dla
+// Verificado: array_create, array_length (ya usados en este documento)
+// ---------------------------------------------------------------------------
+
+/// @func dla_cueva(_ancho, _alto, _semilla, _particulas, _pasos_max)
+/// @desc Difusión limitada por agregación sobre rejilla (Witten y Sander,
+///       1981; la adaptación a mazmorras es de RogueBasin). Cada caminante
+///       nace en un punto al azar del mapa y avanza en las 4 direcciones
+///       hasta TOCAR una celda de suelo; entonces se excava SU posición y se
+///       descarta. Si agota `_pasos_max` sin tocar nada, se descarta sin
+///       excavar nada (ver la nota de rendimiento más abajo).
+/// @param {Real} _particulas  Cuantas más, más densa y menos ramificada sale
+/// @param {Real} _pasos_max   Tope de pasos por caminante
+/// @return {Struct} { ancho, alto, celdas, semilla, adheridas }
+function dla_cueva(_ancho, _alto, _semilla, _particulas, _pasos_max)
+{
+    var _rng    = new RNG(_semilla);
+    var _celdas = array_create(_ancho * _alto, 1);   // todo muro
+
+    var _cx0 = _ancho div 2;
+    var _cy0 = _alto div 2;
+    _celdas[_cy0 * _ancho + _cx0] = 0;   // la semilla: un único punto de suelo
+
+    var _dx = [1, -1, 0, 0];
+    var _dy = [0, 0, 1, -1];
+    var _adheridas = 0;
+
+    for (var _p = 0; _p < _particulas; _p++)
+    {
+        var _wx = _rng.range(1, _ancho - 2);
+        var _wy = _rng.range(1, _alto - 2);
+
+        repeat (_pasos_max)
+        {
+            var _toca = false;
+            for (var _d = 0; _d < 4; _d++)
+            {
+                var _vx = _wx + _dx[_d];
+                var _vy = _wy + _dy[_d];
+                if (_vx < 0 || _vy < 0 || _vx >= _ancho || _vy >= _alto) continue;
+                if (_celdas[_vy * _ancho + _vx] == 0) { _toca = true; break; }
+            }
+
+            if (_toca)
+            {
+                _celdas[_wy * _ancho + _wx] = 0;
+                _adheridas++;
+                break;
+            }
+
+            var _d2 = _rng.int(3);
+            _wx = clamp(_wx + _dx[_d2], 1, _ancho - 2);
+            _wy = clamp(_wy + _dy[_d2], 1, _alto - 2);
+        }
+    }
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas, semilla: _semilla, adheridas: _adheridas };
+}
+```
+
+> ⚡ **Rendimiento.** Con la semilla en el centro y caminantes naciendo en cualquier punto del
+> mapa, la mayoría de los pasos se gastan vagando por celdas vacías antes de acercarse siquiera al
+> agregado — es la trampa clásica de DLA. Dos salidas, sin complicar el código de arriba: reduce
+> el mapa, o compara `adheridas` contra `_particulas` pedidas (si son muy distintas, sube
+> `_pasos_max`). Para mapas grandes, `dla_cueva()` es de manual el candidato ideal para repartir
+> partícula a partícula entre varios `Step` con el patrón de §14.
+>
+> RogueBasin también señala el defecto del resultado: *"loops are quite infrequent... dead ends
+> are common"* — si quieres más bucles, combina el resultado con `podar_callejones()` (§3 bis)
+> **en sentido inverso** (no rellenar, sino cavar un túnel adicional entre dos ramas cercanas), o
+> simplemente acéptalo: para una veta de mineral o una raíz, los callejones sin salida no son un
+> defecto, son el aspecto correcto.
+
+### Generación multi-agente
+
+La idea, llevada a su extremo, es la de Doran y Parberry (*Controlled Procedural Terrain
+Generation Using Software Agents*, 2010, resumida en el capítulo 4 de Shaker, Togelius y Nelson):
+en vez de una única regla, se lanzan **varios tipos de agente especializados** —de costa, de
+suavizado, de playa, de montaña, de río— que recorren el mapa y lo modifican cada uno a su manera,
+compartiendo la misma rejilla. Cada agente tiene su propio **presupuesto de pasos** ("tokens" en
+el paper) y su propio comportamiento; el mapa final es la suma de sus rasgos, no una regla
+uniforme aplicada a todo. Adaptado a una mazmorra 2D en vez de un terreno 3D, la versión mínima es
+un `Cavador`: un agente que camina y excava un pincel de un tamaño dado a su paso.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_multiagente
+// ---------------------------------------------------------------------------
+
+/// @func Cavador(_px, _py, _pasos, _ancho_pincel)
+/// @desc Un agente digger con presupuesto de pasos y pincel propios. Varios
+///       cavadores con parámetros distintos, lanzados desde puntos distintos
+///       y escribiendo en LA MISMA rejilla, son la generación multi-agente:
+///       cada uno aporta un rasgo (una sala amplia, un pasillo largo y
+///       estrecho) en vez de aplicar una única regla por igual a todo el mapa.
+function Cavador(_px, _py, _pasos, _ancho_pincel) constructor
+{
+    px = _px;
+    py = _py;
+    pasos_restantes = _pasos;
+    pincel = _ancho_pincel;
+
+    /// @desc Un paso: excava el pincel centrado en (px, py) y se mueve.
+    ///       `_rng` la pone quien orquesta: todos los cavadores comparten UN
+    ///       único generador para que el mapa entero dependa de una semilla.
+    /// @return {Bool} true si dio el paso, false si ya no le quedaban
+    paso = function(_celdas, _ancho, _alto, _rng)
+    {
+        if (pasos_restantes <= 0) return false;
+
+        var _radio = (pincel - 1) div 2;
+        for (var _oy = -_radio; _oy <= _radio; _oy++)
+            for (var _ox = -_radio; _ox <= _radio; _ox++)
+            {
+                var _cx = clamp(px + _ox, 1, _ancho - 2);
+                var _cy = clamp(py + _oy, 1, _alto - 2);
+                _celdas[_cy * _ancho + _cx] = 0;
+            }
+
+        var _dx = [1, -1, 0, 0];
+        var _dy = [0, 0, 1, -1];
+        var _d  = _rng.int(3);
+        px = clamp(px + _dx[_d], 1, _ancho - 2);
+        py = clamp(py + _dy[_d], 1, _alto - 2);
+
+        pasos_restantes--;
+        return true;
+    };
+}
+
+/// @func cueva_multiagente(_ancho, _alto, _semilla, _cavadores_cfg)
+/// @desc Varios Cavador() trabajando a la vez, TURNÁNDOSE un paso cada uno
+///       (no uno entero de golpe) para que ninguno termine mucho antes que
+///       el resto — el mismo motivo por el que §14 reparte el trabajo en
+///       trozos pequeños en vez de de una tacada.
+/// @param {Array<Struct>} _cavadores_cfg [{ px, py, pasos, pincel }, ...]
+function cueva_multiagente(_ancho, _alto, _semilla, _cavadores_cfg)
+{
+    var _rng    = new RNG(_semilla);
+    var _celdas = array_create(_ancho * _alto, 1);
+
+    var _cavadores = [];
+    for (var _i = 0; _i < array_length(_cavadores_cfg); _i++)
+    {
+        var _c = _cavadores_cfg[_i];
+        array_push(_cavadores, new Cavador(_c.px, _c.py, _c.pasos, _c.pincel));
+    }
+
+    var _quedan = array_length(_cavadores);
+    while (_quedan > 0)
+    {
+        _quedan = 0;
+        for (var _i = 0; _i < array_length(_cavadores); _i++)
+            if (_cavadores[_i].paso(_celdas, _ancho, _alto, _rng)) _quedan++;
+    }
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas, semilla: _semilla };
+}
+```
+
+```gml
+// Uso: cuatro agentes con roles distintos, la misma semilla de siempre.
+var _cueva = cueva_multiagente(96, 64, global.semilla, [
+    { px: 48, py: 32, pasos: 400, pincel: 5 },   // una sala grande en el centro
+    { px: 10, py: 10, pasos: 250, pincel: 1 },   // un pasillo estrecho y largo
+    { px: 85, py: 55, pasos: 250, pincel: 1 },
+    { px: 20, py: 50, pasos: 150, pincel: 3 }
+]);
+conservar_region_mayor(_cueva);   // §3.1: aquí SÍ hace falta, a diferencia de DLA
+```
+
+> ⚠️ A diferencia de DLA, **los agentes no garantizan conectividad**: cada uno pasea por su
+> cuenta y puede que dos cavadores nunca lleguen a tocarse. Siempre `conservar_region_mayor()` (o
+> cavar un túnel de emergencia entre las regiones más grandes) después de correrlos.
+
+| Técnica | Conectividad | Textura | Coste típico |
+|---|---|---|---|
+| Autómata celular (§3) | No garantizada — hace falta §3.1 | Cavernas redondeadas, uniformes | Bajo, `O(celdas · pasadas)` |
+| DLA | Garantizada por construcción | Ramificada, muchos callejones | Medio-alto, depende de cuántos pasos se agotan |
+| Multi-agente | No garantizada — hace falta §3.1 | Compuesta: cada agente aporta un rasgo distinto | Medio, controlable agente a agente |
+
+---
+
 ## 4 · Poisson-disc: distribuir cosas sin que se amontonen
 
 Colocar 200 árboles con `irandom` produce grumos y calvas: el azar uniforme **no** parece
@@ -1000,6 +1534,199 @@ for (var _i = 0; _i < array_length(_puntos); _i++)
 > truco barato es generar con el `r` **más pequeño** que necesites y luego **descartar** puntos
 > en las zonas que deban ir más despejadas (como arriba con `_i mod 3`). El resultado sigue sin
 > solapamientos y no complica el algoritmo.
+
+---
+
+## 4 bis · Voronoi: regiones y formas orgánicas
+
+Un diagrama de Voronoi reparte el plano en tantas regiones como semillas: cada punto pertenece a
+la región de la semilla **más cercana**. Amit Patel lo resume bien en *Polygonal Map Generation
+for Games* (2010, actualizado 2025): en vez de generar un mapa celda a celda, genera **unos
+cientos de regiones** —cada una reconocible, con nombre, con vecinos bien definidos— en vez de
+decenas de miles de celdas sueltas. Es la herramienta que faltaba para tres huecos del documento:
+**biomas por territorio** (fronteras nítidas, no el degradado de un umbral de ruido, §2.7), **for-
+mas de sala orgánicas** para una mazmorra, y **varios continentes** en el mismo mapa.
+
+### Por fuerza bruta, no por el algoritmo de Fortune
+
+El algoritmo de referencia (Fortune, `O(n log n)`, con una cola de eventos y un árbol de playa)
+es complejo de implementar bien y no hace falta en GameMaker: para las rejillas de este documento
+(unos cientos de celdas por lado, unas pocas decenas o centenas de semillas) basta **fuerza
+bruta**: por cada celda de la rejilla, recorrer todas las semillas con `point_distance()` y
+quedarse con la más cercana. Coste `O(celdas · semillas)` — con 200×200 celdas y 80 semillas son
+3,2 millones de comparaciones, unos pocos milisegundos en la VM (mídelo con `get_timer()`, §2.9).
+Si subes de escala, repártelo con el mismo patrón de generación por pasos de §14.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_voronoi
+// Verificado: point_distance, array_create, array_length (ya usados en el documento)
+// Depende de muestreo_poisson() (§4) — NO se redefine aquí.
+// ---------------------------------------------------------------------------
+
+/// @func diagrama_voronoi(_ancho, _alto, _radio_semillas, _semilla)
+/// @param {Real} _radio_semillas  Separación mínima entre semillas (Poisson-
+///        disc, §4): sin esto, dos semillas casi pegadas producen una región
+///        minúscula, casi un punto — el mismo motivo por el que §4 usa
+///        Poisson-disc en vez de `irandom` a secas.
+/// @return {Struct} { ancho, alto, semillas, regiones } — `regiones[i]` es el
+///         ÍNDICE de la semilla más cercana a la celda `i`, no un color.
+function diagrama_voronoi(_ancho, _alto, _radio_semillas, _semilla)
+{
+    var _semillas   = muestreo_poisson(_ancho, _alto, _radio_semillas, _semilla);
+    var _n_semillas = array_length(_semillas);
+    var _regiones   = array_create(_ancho * _alto, 0);
+
+    for (var _fy = 0; _fy < _alto; _fy++)
+    {
+        for (var _fx = 0; _fx < _ancho; _fx++)
+        {
+            var _mejor      = 0;
+            var _mejor_dist = infinity;
+
+            for (var _s = 0; _s < _n_semillas; _s++)
+            {
+                var _d = point_distance(_fx, _fy, _semillas[_s].px, _semillas[_s].py);
+                if (_d < _mejor_dist) { _mejor_dist = _d; _mejor = _s; }
+            }
+
+            _regiones[_fy * _ancho + _fx] = _mejor;
+        }
+    }
+
+    return { ancho: _ancho, alto: _alto, semillas: _semillas, regiones: _regiones };
+}
+```
+
+### Relajación de Lloyd: regiones más uniformes
+
+Poisson-disc ya evita amontonamientos, pero las regiones resultantes siguen siendo desiguales en
+forma. La relajación de Lloyd las regulariza: mueve cada semilla al **centroide** de su propia
+región y recalcula el diagrama entero. Patel: *"running it twice gives good results"* — más
+iteraciones dan regiones más uniformes pero más redondas y menos orgánicas; para formas de sala
+1-2 pasadas bastan.
+
+```gml
+/// @func voronoi_relajar_lloyd(_diagrama, _iteraciones)
+/// @desc Mueve cada semilla al centroide de su región y recalcula, tantas
+///       veces como _iteraciones. Modifica _diagrama.semillas y
+///       _diagrama.regiones en el sitio; también los devuelve.
+function voronoi_relajar_lloyd(_diagrama, _iteraciones)
+{
+    var _ancho    = _diagrama.ancho;
+    var _alto     = _diagrama.alto;
+    var _semillas = _diagrama.semillas;
+    var _n        = array_length(_semillas);
+
+    repeat (_iteraciones)
+    {
+        var _suma_x = array_create(_n, 0);
+        var _suma_y = array_create(_n, 0);
+        var _cuenta = array_create(_n, 0);
+
+        for (var _fy = 0; _fy < _alto; _fy++)
+            for (var _fx = 0; _fx < _ancho; _fx++)
+            {
+                var _r = _diagrama.regiones[_fy * _ancho + _fx];
+                _suma_x[_r] += _fx;
+                _suma_y[_r] += _fy;
+                _cuenta[_r]++;
+            }
+
+        for (var _s = 0; _s < _n; _s++)
+        {
+            if (_cuenta[_s] == 0) continue;   // región vaciada por el redondeo: se deja donde está
+            _semillas[_s].px = _suma_x[_s] / _cuenta[_s];
+            _semillas[_s].py = _suma_y[_s] / _cuenta[_s];
+        }
+
+        for (var _fy = 0; _fy < _alto; _fy++)
+            for (var _fx = 0; _fx < _ancho; _fx++)
+            {
+                var _mejor      = 0;
+                var _mejor_dist = infinity;
+                for (var _s = 0; _s < _n; _s++)
+                {
+                    var _d = point_distance(_fx, _fy, _semillas[_s].px, _semillas[_s].py);
+                    if (_d < _mejor_dist) { _mejor_dist = _d; _mejor = _s; }
+                }
+                _diagrama.regiones[_fy * _ancho + _fx] = _mejor;
+            }
+    }
+
+    return _diagrama;
+}
+```
+
+### Tres aplicaciones
+
+**1 · Biomas por territorio.** Cada **semilla** (no cada celda) tira un bioma; la celda hereda el
+de su región. Frente al umbral de ruido de §2.7, esto da fronteras **nítidas** entre territorios
+— el aspecto de un mapa político o de provincias, no de un gradiente climático.
+
+```gml
+/// @func biomas_por_territorio(_diagrama, _semilla)
+/// @desc Bioma: el enum de §2.7. Reutilízalo, no lo redefinas.
+function biomas_por_territorio(_diagrama, _semilla)
+{
+    var _rng = new RNG(_semilla);
+    var _n   = array_length(_diagrama.semillas);
+    var _bioma_por_semilla = array_create(_n, Bioma.Hierba);
+
+    for (var _s = 0; _s < _n; _s++)
+        _bioma_por_semilla[_s] = _rng.pick([Bioma.Hierba, Bioma.Bosque, Bioma.Roca, Bioma.Nieve]);
+
+    var _biomas = array_create(array_length(_diagrama.regiones), Bioma.Hierba);
+    for (var _i = 0; _i < array_length(_diagrama.regiones); _i++)
+        _biomas[_i] = _bioma_por_semilla[_diagrama.regiones[_i]];
+
+    return _biomas;
+}
+```
+
+**2 · Formas de sala orgánicas.** Deja como suelo el interior de cada región y como muro la franja
+de frontera entre regiones vecinas — el resultado son salas de polígono irregular, en las antípo-
+das de las rectangulares de BSP (`04 · 05 §5.2`).
+
+```gml
+/// @func voronoi_a_cueva(_diagrama, _grosor_muro)
+/// @desc SUELO en el interior de cada región; MURO en la franja de
+///       _grosor_muro celdas alrededor de cada frontera entre regiones.
+function voronoi_a_cueva(_diagrama, _grosor_muro)
+{
+    var _ancho  = _diagrama.ancho;
+    var _alto   = _diagrama.alto;
+    var _celdas = array_create(_ancho * _alto, 1);
+
+    for (var _fy = 0; _fy < _alto; _fy++)
+        for (var _fx = 0; _fx < _ancho; _fx++)
+        {
+            var _r = _diagrama.regiones[_fy * _ancho + _fx];
+            var _es_frontera = false;
+
+            for (var _oy = -_grosor_muro; _oy <= _grosor_muro && !_es_frontera; _oy++)
+                for (var _ox = -_grosor_muro; _ox <= _grosor_muro; _ox++)
+                {
+                    var _vx = clamp(_fx + _ox, 0, _ancho - 1);
+                    var _vy = clamp(_fy + _oy, 0, _alto - 1);
+                    if (_diagrama.regiones[_vy * _ancho + _vx] != _r) { _es_frontera = true; break; }
+                }
+
+            if (!_es_frontera) _celdas[_fy * _ancho + _fx] = 0;
+        }
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas };
+}
+```
+
+Pasa el resultado por `marching_squares_lista()` (§3 ter) para redondear las esquinas de las
+salas, o excava corredores entre regiones vecinas con el mismo patrón en L de `04 · 05 §5.2`.
+
+**3 · Continentes múltiples.** En vez de un bioma, asigna a cada semilla "tierra" o "agua" según
+una muestra de ruido de **baja frecuencia** (§2.5, 1-2 octavas) en la posición de la semilla. Cada
+grupo de territorios de tierra separado de otro por territorios de agua es, de hecho, un
+continente distinto: varias masas de tierra en el mismo mapa, no la isla única o el "continente
+infinito" que son los dos únicos casos que cubre `_isla` en §2.7.
 
 ---
 
@@ -1263,6 +1990,37 @@ function ColapsoOndas(_ancho, _alto, _tiles, _semilla) constructor
         show_debug_message("WFC: sin solución tras todos los intentos");
         return undefined;
     };
+
+    /// @desc UN colapso + su propagación. Pensada para intercalar entre otros
+    ///       muchos Step sin bloquear el frame (§14) en vez de resolver la
+    ///       rejilla entera de golpe con `resolver()`. Antes de la primera
+    ///       llamada, invoca `reiniciar(0)` una vez.
+    /// @return {Bool} true si YA no queda nada que avanzar (resuelto o
+    ///         contradicho); en ese caso comprueba `contradiccion` para saber
+    ///         cuál de los dos pasó.
+    resolver_un_paso = function()
+    {
+        if (contradiccion) return true;
+
+        var _c = siguiente_celda();
+        if (_c == -1) return true;   // todo colapsado: no queda trabajo
+
+        colapsar(_c);
+        propagar(_c);
+        return contradiccion;
+    };
+
+    /// @desc Vuelca la onda YA resuelta (sin contradicción) a un array plano
+    ///       de índices de tile. Solo tiene sentido tras `resolver_un_paso()`
+    ///       haber devuelto true con `contradiccion == false`.
+    volcar_a_indices = function()
+    {
+        var _salida = array_create(ancho * alto, 0);
+        for (var _k = 0; _k < ancho * alto; _k++)
+            for (var _t = 0; _t < n_tiles; _t++)
+                if (onda[_k][_t]) { _salida[_k] = tiles[_t].indice; break; }
+        return _salida;
+    };
 }
 ```
 
@@ -1290,6 +2048,179 @@ else
 > colapso. Con 8 tiles y 24×16 celdas va sobrada; con 40 tiles y 100×100 celdas **se te va a
 > varios segundos en la VM**. Si necesitas mapas grandes: resuelve por regiones solapadas, o
 > compila a YYC, o cambia a autotiling. Mide con `get_timer()` antes de asumir nada.
+
+---
+
+## 5 bis · Autotiling clásico: bitmask de vecinos → índice de tile
+
+WFC (§5) resuelve el caso general —cualquier número de terrenos, reglas de adyacencia
+arbitrarias— a costa de propagación y de un «Plan B» obligatorio si falla. Para el caso más
+frecuente con diferencia —**dos terrenos que se tocan** (hierba/tierra, suelo/vacío)— hay una
+técnica mucho más barata y **100 % determinista**: el autotiling clásico por *bitmask* de
+vecinos, la misma idea que usa el editor de tile sets de GameMaker
+([13 · 02 §3.3](./02%20-%20Diseño%20de%20niveles.md#33-tiles-tile-set-autotiles-y-pinceles))
+pero **calculada a mano**, porque —ya lo dice ese mismo apartado— **los autotiles del editor
+no son accesibles desde código**: si generas el nivel proceduralmente, el cálculo de bordes lo
+haces tú.
+
+La idea es siempre la misma: por cada celda del terreno, mira qué vecinos son **del mismo
+terreno** y **cuáles no**; codifica esa información en un número (el *bitmask*); usa ese
+número para elegir qué pieza del tile set dibujar ahí. Dos variantes, según cuántos vecinos
+miras:
+
+| Esquema | Vecinos que mira | Piezas necesarias | Cuándo |
+|---|---|---|---|
+| **16 baldosas** («edge autotiling») | Los 4 ortogonales (N, E, S, O) | 16 | Casi siempre: transiciones simples entre dos terrenos |
+| **47 baldosas** («blob autotiling») | Los 8 vecinos (+ diagonales NE, SE, SO, NO) | 47 | Solo si necesitas distinguir una esquina interior de una exterior — ver §3.3 |
+
+### El bitmask de 4 vecinos (16 baldosas)
+
+Convención estándar: cada lado con el mismo terreno suma una potencia de 2 —
+**N = 1, E = 2, S = 4, O = 8**—, así que el resultado es un número de **0 a 15** que codifica
+exactamente los 16 casos posibles (aislada, cuatro remates de un solo lado, cuatro esquinas,
+cuatro bordes rectos de dos lados opuestos... hasta la pieza rodeada por los cuatro lados).
+
+```gml
+/// @func vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, _dx, _dy, _terreno)
+/// @desc  true si la celda vecina existe (dentro de la grid) y es del mismo terreno.
+///        Fuera del mapa se trata como "distinto terreno" — el borde del nivel siempre
+///        se dibuja como límite, nunca como si continuara fuera.
+function vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, _dx, _dy, _terreno)
+{
+    var _nx = _cx + _dx, _ny = _cy + _dy;
+    if (_nx < 0 || _nx >= _ancho || _ny < 0 || _ny >= _alto) return false;
+    return _grid[_ny * _ancho + _nx] == _terreno;
+}
+
+/// @func bitmask_4_vecinos(_grid, _ancho, _alto, _cx, _cy, _terreno)
+/// @desc  Bitmask de 4 bits (N=1, E=2, S=4, O=8) para autotiling de 16 piezas. Devuelve 0-15.
+function bitmask_4_vecinos(_grid, _ancho, _alto, _cx, _cy, _terreno)
+{
+    var _n = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  0, -1, _terreno);
+    var _e = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  1,  0, _terreno);
+    var _s = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  0,  1, _terreno);
+    var _o = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, -1,  0, _terreno);
+
+    return (_n * 1) + (_e * 2) + (_s * 4) + (_o * 8);
+}
+```
+
+**El truco que evita cualquier tabla de traducción**: numera tus 16 baldosas en el tile set
+**en ese mismo orden** —índice 0 = pieza aislada (sin ningún vecino), índice 15 = pieza
+rodeada por los cuatro lados, y los 14 casos intermedios siguiendo la misma suma de bits—, y
+el *bitmask* pasa a ser directamente el índice de tile. Sin tabla, sin `switch`:
+
+```gml
+/// obj_generador · pintar terreno con autotiling de 16 piezas, sin tabla de traducción
+var _tm = layer_tilemap_get_id(layer_get_id("Tiles_Terreno"));
+
+for (var _cy = 0; _cy < alto; _cy++)
+{
+    for (var _cx = 0; _cx < ancho; _cx++)
+    {
+        if (grid[_cy * ancho + _cx] != TERRENO_SUELO) continue;
+
+        var _mascara = bitmask_4_vecinos(grid, ancho, alto, _cx, _cy, TERRENO_SUELO);
+        tilemap_set(_tm, tile_set_index(0, _mascara), _cx, _cy);
+    }
+}
+```
+
+### El bitmask de 8 vecinos (47 baldosas)
+
+Con 8 vecinos habría, en teoría, 256 combinaciones — pero la mayoría son geométricamente
+imposibles de dibujar como una única pieza de borde: una esquina en diagonal (por ejemplo,
+NE) solo tiene sentido visual si **sus dos lados ortogonales también son del mismo
+terreno** (N **y** E). Si N está pero E no, esa «esquina» no se puede dibujar como transición
+limpia. Aplicando esa regla a las 256 combinaciones crudas quedan exactamente **47**
+distintas — el origen del nombre.
+
+```gml
+/// @func bitmask_8_vecinos_blob(_grid, _ancho, _alto, _cx, _cy, _terreno)
+/// @desc  Bitmask de 8 bits con la regla de validez de esquina del "blob tileset": una
+///        diagonal solo cuenta si sus dos lados ortogonales también son del mismo terreno.
+function bitmask_8_vecinos_blob(_grid, _ancho, _alto, _cx, _cy, _terreno)
+{
+    var _n  = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  0, -1, _terreno);
+    var _e  = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  1,  0, _terreno);
+    var _s  = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  0,  1, _terreno);
+    var _o  = vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, -1,  0, _terreno);
+    var _ne = _n && _e && vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  1, -1, _terreno);
+    var _se = _s && _e && vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy,  1,  1, _terreno);
+    var _so = _s && _o && vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, -1,  1, _terreno);
+    var _no = _n && _o && vecino_mismo_terreno(_grid, _ancho, _alto, _cx, _cy, -1, -1, _terreno);
+
+    return (_n*1) + (_e*2) + (_s*4) + (_o*8) + (_ne*16) + (_se*32) + (_so*64) + (_no*128);
+}
+```
+
+A diferencia del caso de 16, aquí **sí hace falta una tabla**: el resultado de la función de
+arriba es uno de 47 valores válidos, pero repartidos sin orden dentro del rango 0-255 —no hay
+forma de que el número sea directamente el índice. En vez de escribir esa tabla a mano (y
+arriesgarte a transcribirla mal), constrúyela **una vez, por enumeración**, que es
+autoverificable: recorre los 16 casos ortogonales y, para cada uno, todas las combinaciones
+de las esquinas que sí son geométricamente posibles en ese caso.
+
+```gml
+/// @func construir_tabla_blob_47()
+/// @desc  Genera, una sola vez, la tabla que traduce cada máscara cruda válida (0-255) a un
+///        índice compacto 0-46. El orden es determinista pero es UNA convención entre varias
+///        posibles: coloca tus 47 baldosas del tile set en ese mismo orden, o vuelca la tabla
+///        con show_debug_message() y adapta tu tile set a lo que veas.
+/// @return {Id.DsMap} máscara cruda (0-255) → índice compacto (0-46)
+function construir_tabla_blob_47()
+{
+    var _tabla = ds_map_create();
+    var _siguiente = 0;
+
+    for (var _orto = 0; _orto < 16; _orto++)
+    {
+        var _n = (_orto & 1) != 0, _e = (_orto & 2) != 0;
+        var _s = (_orto & 4) != 0, _o = (_orto & 8) != 0;
+
+        // Qué esquinas son geométricamente posibles con este juego de lados.
+        var _puede_ne = _n && _e, _puede_se = _s && _e;
+        var _puede_so = _s && _o, _puede_no = _n && _o;
+        var _num_esquinas = _puede_ne + _puede_se + _puede_so + _puede_no;
+
+        for (var _c = 0; _c < power(2, _num_esquinas); _c++)
+        {
+            // Reparte los bits de _c entre las esquinas posibles, en orden NE, SE, SO, NO.
+            var _bit = 0, _ne = 0, _se = 0, _so = 0, _no = 0;
+            if (_puede_ne) { _ne = (_c >> _bit) & 1; _bit++; }
+            if (_puede_se) { _se = (_c >> _bit) & 1; _bit++; }
+            if (_puede_so) { _so = (_c >> _bit) & 1; _bit++; }
+            if (_puede_no) { _no = (_c >> _bit) & 1; _bit++; }
+
+            var _mascara = _orto + (_ne*16) + (_se*32) + (_so*64) + (_no*128);
+            _tabla[? _mascara] = _siguiente;
+            _siguiente++;
+        }
+    }
+
+    show_debug_message($"tabla blob: {_siguiente} piezas generadas (debe ser 47)");
+    return _tabla;
+}
+```
+
+```gml
+/// obj_generador · Create — construir la tabla una sola vez
+tabla_blob = construir_tabla_blob_47();
+```
+
+```gml
+/// obj_generador · pintar terreno con autotiling de 47 piezas
+var _mascara = bitmask_8_vecinos_blob(grid, ancho, alto, _cx, _cy, TERRENO_SUELO);
+var _indice  = tabla_blob[? _mascara];
+tilemap_set(_tm, tile_set_index(0, _indice), _cx, _cy);
+```
+
+> ⚠️ Ni GameMaker ni ninguna fuente oficial documentan una **numeración estándar universal**
+> para las 47 piezas: cada tile set las dibuja en el orden que le resulta cómodo a su autor.
+> Lo único garantizado —y lo que sí hace este algoritmo— es que hay **exactamente 47** casos
+> válidos y que la asignación es **determinista y estable** entre ejecuciones: genera la tabla
+> una vez, vuélcala con `show_debug_message()` para ver el orden, y dibuja tu tile set (o
+> reordénalo) para que coincida.
 
 ---
 
@@ -2364,7 +3295,8 @@ Antes de dar por bueno un generador:
 | Leer y escribir el mismo array en un autómata | Las cuevas «se derriten» hacia una esquina | Buffer doble y `array_copy` al final de la pasada |
 | Autómata sin conectar regiones | Cuevas aisladas donde el jugador no puede llegar | `conservar_region_mayor` o excavar túneles |
 | WFC sin backtracking ni reintento | El generador devuelve `undefined` y la room sale vacía | Reintentar con semilla derivada, tope y **plan B** |
-| WFC sobre una rejilla grande | Segundos de congelación al generar | Reducir tiles, trocear la rejilla, o autotiling |
+| WFC sobre una rejilla grande | Segundos de congelación al generar | Reducir tiles, autotiling, o repartir la resolución en pasos (§14) |
+| Generación completa en un solo Step | El juego se congela un instante al generar, o al cargar una room | Reescribir el generador como retomable y repartirlo con un presupuesto de ms por frame (§14) |
 | Poisson con anillo `r·(1+u)` | Puntos amontonados a distancia casi exacta `r` | `r·sqrt(1 + 3u)`: uniforme por área (Bridson) |
 | Gramática recursiva sin tope | Cuelgue o desbordamiento de pila | Parámetro `_profundidad` que decrece siempre |
 | L-system con demasiadas iteraciones | Cadenas de millones de caracteres | Tope de longitud además del de iteraciones |
@@ -2372,6 +3304,244 @@ Antes de dar por bueno un generador:
 | Arrays 2D anidados en mapas grandes | El generador tarda el triple sin motivo aparente | Array plano `celdas[fy * ancho + fx]` |
 | Guardar el mapa entero en el save | Saves enormes que rompen al cambiar de versión | Semilla + diff; y valida la cabecera al cargar |
 | Sin métricas | «A veces sale mal» y nadie sabe cuándo | `medir_nivel` + umbrales escritos + volcado a PNG |
+| Campo binario sin suavizar en marching squares | El contorno pasa siempre por el punto medio de cada borde: mejor que un tile, pero no es curvo | `valor_vertice_cueva()` (§3 ter): un valor continuo por vértice, no el array 0/1 directo |
+| DLA con caminantes naciendo lejos del agregado | Miles de pasos gastados en celdas vacías; `adheridas` muy por debajo de `_particulas` | Mapa más pequeño, más `_pasos_max`, o repartir partícula a partícula con §14 |
+
+---
+
+## 14 · Generar sin congelar el frame
+
+Todo el código de este documento asume, hasta aquí, que la generación entera cabe en una sola
+llamada: un `Step`, un `Create`. Con mapas pequeños (los de los ejemplos) eso no se nota. Con un
+autómata celular sobre 500×500 celdas, un WFC de 40 tiles sobre 100×100, o unos cuantos miles de
+partículas de DLA (§3 quater), la generación se va a decenas o cientos de milisegundos — y a 60
+fps, un solo frame son 16,6 ms. El síntoma no es solo un frame perdido: es un tirón visible, o la
+room que tarda en aparecer con la pantalla congelada.
+
+**La solución no es hacerlo más rápido: es partirlo.** Ejecutar una fracción del trabajo por
+frame, con un presupuesto de milisegundos, y ceder el resto al siguiente. Para eso el generador
+tiene que dejar de ser una función que hace todo de una vez y pasar a ser un **objeto que recuerda
+en qué punto se quedó** entre una llamada y la siguiente.
+
+### 14.1 Reescribir un generador como retomable
+
+El cambio de forma es siempre el mismo: en vez de un `for` que recorre `_ancho * _alto` celdas de
+una tacada, guarda el índice de la celda en curso como campo del struct, y una función `avanzar()`
+que retoma desde ahí. Aquí, sobre `cueva_celular()` (§3):
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_generador_por_pasos
+// Verificado: get_timer, array_create, array_copy (ya usados en el documento);
+//             time_source_create, time_source_start, time_source_destroy,
+//             time_source_units_frames, time_source_game, call_later
+// ---------------------------------------------------------------------------
+
+/// @func GeneradorPorPasos(_ancho, _alto, _semilla, _relleno, _pasos_dobles, _pasos_simples)
+/// @desc Reescritura RETOMABLE de cueva_celular() (§3): en vez de hacer las
+///       `_pasos_dobles + _pasos_simples` pasadas de golpe, guarda en qué
+///       pasada y en qué celda se quedó. `avanzar()` puede llamarse muchas
+///       veces; cada vez procesa solo lo que quepa en el presupuesto.
+function GeneradorPorPasos(_ancho, _alto, _semilla, _relleno, _pasos_dobles, _pasos_simples) constructor
+{
+    ancho = _ancho;
+    alto  = _alto;
+    n     = _ancho * _alto;
+
+    rng = new RNG(_semilla);
+
+    celdas = array_create(n, 1);
+    for (var _fy = 1; _fy < alto - 1; _fy++)
+        for (var _fx = 1; _fx < ancho - 1; _fx++)
+            celdas[_fy * ancho + _fx] = rng.chance(_relleno) ? 1 : 0;
+
+    otro = array_create(n, 1);
+
+    total_pasadas = _pasos_dobles + _pasos_simples;
+    pasos_dobles  = _pasos_dobles;
+    pasada_actual = 0;
+    celda_actual  = 0;    // índice DENTRO de la pasada en curso
+    terminado     = false;
+
+    /// @desc Procesa hasta _presupuesto_ms de trabajo REAL, medido con
+    ///       get_timer() (que da microsegundos: de ahí el ×1000). Puede
+    ///       quedarse a mitad de una pasada — por eso se guarda celda_actual,
+    ///       no solo la pasada.
+    /// @return {Bool} true si terminó en esta llamada; false si queda trabajo
+    avanzar = function(_presupuesto_ms)
+    {
+        if (terminado) return true;
+
+        var _t0 = get_timer();
+
+        while ((get_timer() - _t0) < _presupuesto_ms * 1000)
+        {
+            var _usar_r2 = (pasada_actual < pasos_dobles);
+            var _fx = celda_actual mod ancho;
+            var _fy = celda_actual div ancho;
+
+            var _r1 = contar_muros(celdas, ancho, alto, _fx, _fy, 1);
+            var _es_muro = (_r1 >= 5);
+
+            if (!_es_muro && _usar_r2)
+            {
+                var _r2 = contar_muros(celdas, ancho, alto, _fx, _fy, 2);
+                _es_muro = (_r2 <= 2);
+            }
+
+            otro[celda_actual] = _es_muro ? 1 : 0;
+            celda_actual++;
+
+            if (celda_actual >= n)
+            {
+                // Pasada completa: intercambiar buffers y pasar a la siguiente.
+                array_copy(celdas, 0, otro, 0, n);
+                celda_actual = 0;
+                pasada_actual++;
+
+                if (pasada_actual >= total_pasadas)
+                {
+                    terminado = true;
+                    return true;
+                }
+            }
+        }
+
+        return false;   // se acabó el presupuesto de este frame; queda trabajo
+    };
+
+    /// @desc Progreso [0, 1] para una barra de carga.
+    progreso = function()
+    {
+        return (pasada_actual + celda_actual / n) / total_pasadas;
+    };
+}
+```
+
+### 14.2 Impulsarlo desde el Step de una instancia
+
+El patrón más simple: una instancia de "pantalla de carga" con su propio `Step`, que llama a
+`avanzar()` con un presupuesto fijo cada frame y pinta una barra con `progreso()`.
+
+```gml
+// ---------------------------------------------------------------------------
+// objGeneradorAsincrono — Create
+// ---------------------------------------------------------------------------
+generador       = new GeneradorPorPasos(192, 128, global.semilla, 0.40, 4, 3);
+PRESUPUESTO_MS  = 3;   // ms por frame dedicados a generar; el resto es tuyo
+
+// ---------------------------------------------------------------------------
+// objGeneradorAsincrono — Step
+// ---------------------------------------------------------------------------
+if (!generador.terminado)
+{
+    if (_boton_cancelar_pulsado())   // lo que sea que detecte tu UI de pausa
+    {
+        // Nada que destruir: hasta que avanzar() devuelve true no se ha
+        // instanciado ni pintado nada (§1.3, separar generación de
+        // presentación) — cancelar es simplemente dejar de llamar a avanzar().
+        generador = undefined;
+        room_goto(rm_menu);
+        exit;
+    }
+
+    var _listo = generador.avanzar(PRESUPUESTO_MS);
+
+    if (_listo)
+    {
+        conservar_region_mayor(generador);    // §3.1, ya con el mapa completo
+        pintar_mundo(generador, mapa_tiles);  // §2.8
+        room_goto(rm_juego);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// objGeneradorAsincrono — Draw GUI
+// ---------------------------------------------------------------------------
+if (!generador.terminado)
+{
+    draw_set_color(c_dkgray);
+    draw_rectangle(100, 550, 700, 580, false);
+    draw_set_color(c_lime);
+    draw_rectangle(100, 550, 100 + 600 * generador.progreso(), 580, false);
+}
+```
+
+### 14.3 Alternativa: un Time Source en vez de un Step propio
+
+Si quien lanza la generación no tiene por qué tener un `Step` que viva hasta el final —por
+ejemplo, un controlador persistente al que un botón de menú solo le da la orden— un **Time Source**
+que se repite cada frame (`time_source_units_frames`, periodo 1, repeticiones -1) hace lo mismo sin
+depender de ningún evento, y se autodestruye al terminar:
+
+```gml
+// objControladorCarga — al pulsar "Nueva partida"
+generador = new GeneradorPorPasos(192, 128, global.semilla, 0.40, 4, 3);
+
+ts_generacion = time_source_create(
+    time_source_game,
+    1,
+    time_source_units_frames,
+    function()
+    {
+        if (generador.avanzar(3))   // 3 ms de presupuesto por frame
+        {
+            time_source_destroy(ts_generacion);
+            conservar_region_mayor(generador);
+            pintar_mundo(generador, mapa_tiles);
+            room_goto(rm_juego);
+        }
+    },
+    [], -1
+);
+time_source_start(ts_generacion);
+```
+
+> ⚠️ **Destrúyelo si cancelas o cambias de room a mano.** Igual que con cualquier Time Source
+> (`01 · 06 §8`), si el jugador sale antes de que termine, comprueba `time_source_exists(...)` y
+> destrúyelo tú: si no, sigue disparándose sobre un generador que ya nadie lee.
+
+### 14.4 El mismo patrón sobre WFC
+
+`ColapsoOndas` (§5.3) ya tiene el método `resolver_un_paso()`: UN colapso y su propagación, en vez
+de la rejilla entera. Se conduce igual que `GeneradorPorPasos`, con la salvedad de que una
+contradicción a mitad de camino obliga a reiniciar con otra semilla derivada — el mismo criterio
+de reintento de §5.3, solo que ahora repartido en el tiempo:
+
+```gml
+// objWFCAsincrono — Step
+if (!wfc_listo)
+{
+    var _t0 = get_timer();
+    while ((get_timer() - _t0) < PRESUPUESTO_MS * 1000)
+    {
+        if (_wfc.resolver_un_paso())
+        {
+            if (_wfc.contradiccion)
+            {
+                intento++;
+                if (intento >= MAX_INTENTOS) { wfc_listo = true; generar_nivel_de_respaldo(); break; }
+                _wfc.reiniciar(intento);      // otra semilla derivada (§5.3)
+            }
+            else
+            {
+                mapa_wfc = _wfc.volcar_a_indices();
+                wfc_listo = true;
+            }
+            break;
+        }
+    }
+}
+```
+
+### 14.5 Cuándo NO hace falta
+
+Repartir la generación tiene un coste de complejidad — un objeto con estado en vez de una función
+pura, una pantalla de carga que dibujar. Si `get_timer()` (§2.9) mide que tu generador entero tarda
+menos de 1-2 ms, no lo repartas: es una solución para un problema que todavía no tienes. El
+umbral operativo: si el presupuesto por frame razonable (2-4 ms, dejando el resto a juego y
+render) no le basta a `avanzar()` para completar la generación en un solo `Step`, es cuando toca
+partirlo.
 
 ---
 
@@ -2389,6 +3559,11 @@ Antes de dar por bueno un generador:
 - [`02 · 08 — Package Manager y Prefabs`](../02%20-%20Novedades%202026/08%20-%20Package%20Manager%20y%20Prefabs.md) — distribuir piezas de contenido entre proyectos.
 - [`12 · 05 — Pipeline de arte, audio y niveles`](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte,%20audio%20y%20niveles.md) — librerías GML ya escritas de WFC, autómatas celulares y terreno destructible.
 - [`13 · 01 — Diseño de juego`](./01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop,%20mec%C3%A1nicas,%20balance%20y%20dificultad.md) — la curva de dificultad que el generador ejecuta.
+- [`13 · 02 — Diseño de niveles`](./02%20-%20Dise%C3%B1o%20de%20niveles.md#15--rutas-alternativas-y-secretos) — §1.5: las tres capas de secretos que reutiliza la poda de callejones (§3 bis).
+- [`13 · 08 — Físicas a mano y fluidos`](./08%20-%20F%C3%ADsicas%20a%20mano%20y%20fluidos.md#12--metaballs-agua-y-limo-estilizados) — §12: metaballs por recorte de alfa; marching squares (§3 ter) es la alternativa vectorial.
+- [`13 · 22 — Diseño de mundo y exploración`](./22%20-%20Dise%C3%B1o%20de%20mundo%20y%20exploraci%C3%B3n.md#33-bis--ciudades-y-redes-de-calles) — §3.3 bis: trazado de calles apoyado en el `NodoManzana` derivado del BSP de este documento.
+- [`01 · 06 — Eventos y ciclo del juego`](../01%20-%20Fundamentos/06%20-%20Eventos%20y%20ciclo%20del%20juego.md#8-time-sources-la-alternativa-moderna-a-los-alarm) — §8: Time Sources y `call_later`, la base de §14.
+- [`01 · 07 — Funciones, métodos y ámbito`](../01%20-%20Fundamentos/07%20-%20Funciones%2C%20m%C3%A9todos%20y%20%C3%A1mbito.md#7-closures-clausuras) — §7: closures, lo que hace posible capturar `generador` dentro del callback de un Time Source en §14.
 
 ---
 
@@ -2403,6 +3578,8 @@ Todas consultadas el **6 de septiembre de 2026**.
 - `room_duplicate` — <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Asset_Management/Rooms/room_duplicate.htm>
 - `room_instance_add` — <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Asset_Management/Rooms/room_instance_add.htm>
 - `dbg_slider_int` — <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Debugging/dbg_slider_int.htm>
+- `time_source_create` — <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Time_Sources/time_source_create.htm>
+- `call_later` — <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Time_Sources/call_later.htm>
 
 **Ruido**
 
@@ -2414,9 +3591,23 @@ Todas consultadas el **6 de septiembre de 2026**.
 
 - RogueBasin, *Cellular Automata Method for Generating Random Cave-Like Levels* — <http://www.roguebasin.com/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels> · la regla `R1(p) >= 5 || R2(p) <= 2`, relleno inicial del 40 % y la secuencia de 4 + 3 pasadas. ⚠️ La página devuelve **403** al acceso directo; se leyó a través de un proxy de lectura sobre esa misma URL.
 
+**Marching squares**
+
+- Jamie Wong, *Metaballs and Marching Squares*, 19-08-2014 — <https://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/> · las `2⁴` configuraciones de un campo binario, la interpolación lineal en el borde para evitar ángulos de 90°/45°, y la relación directa con la suma de campos de un metaball.
+- Paul Bourke, *Polygonising a Scalar Field*, 05-1994 (tablas de Cory Bloyd y Geoffrey Heller) — <https://paulbourke.net/geometry/polygonise/> · la versión 3D (marching cubes) del mismo principio, y la fórmula de interpolación `P = P1 + (isovalue - V1)(P2 - P1)/(V2 - V1)` que aquí se traduce a `borde_interpolado()`.
+
+**Difusión limitada por agregación y multi-agente**
+
+- RogueBasin, *Diffusion-limited aggregation* — <https://www.roguebasin.com/index.php/Diffusion-limited_aggregation> · el caminante que se excava a sí mismo al tocar la estructura, la garantía de conectividad, y por qué los bucles son infrecuentes. ⚠️ La página devuelve **403** al acceso directo; se leyó a través de un proxy de lectura sobre esa misma URL.
+- J. Doran e I. Parberry, *Controlled Procedural Terrain Generation Using Software Agents*, IEEE Transactions on Computational Intelligence and AI in Games 2(2), 2010, resumido en Noor Shaker, Julian Togelius y Mark J. Nelson, *Procedural Content Generation in Games*, cap. 4 (*Fractals, noise and agents with applications to landscapes*), Springer 2016 — <https://www.pcgbook.com/chapter04.pdf> · agentes especializados (costa, suavizado, playa, montaña, río) con presupuesto de "tokens" propio, escribiendo todos sobre el mismo mapa — el origen de `Cavador` y `cueva_multiagente`.
+
 **Muestreo**
 
 - Robert Bridson, *Fast Poisson Disk Sampling in Arbitrary Dimensions*, SIGGRAPH 2007 sketch — <https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf> · celda `r/√n`, lista activa, `k = 30`, anillo `[r, 2r]`, `2N-1` iteraciones.
+
+**Voronoi**
+
+- Amit Patel, *Polygonal Map Generation for Games*, 09-2010 (act. 01-2025) — <http://www-cs-students.stanford.edu/~amitp/game-programming/polygon-map-generation/> · Voronoi por semillas para mapas de "unos cientos de polígonos", la relajación de Lloyd (mover cada semilla al centroide, dos pasadas bastan), y su aplicación a biomas y ríos.
 
 **Wave Function Collapse**
 

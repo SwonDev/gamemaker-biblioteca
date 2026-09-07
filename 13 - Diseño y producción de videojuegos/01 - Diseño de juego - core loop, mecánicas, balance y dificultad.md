@@ -546,6 +546,114 @@ entera, ordenas, comparas, pintas la curva y detectas el atípico de un vistazo.
 
 El código de carga —CSV y JSON— está en [§9.3](#93--datos-de-balance-en-included-files).
 
+### 4.6 · Precio dinámico: oferta y demanda
+
+§4.1 da el vocabulario (*pool*, fuente, sumidero, convertidor, intercambiador) pero un precio
+**fijo** no reacciona a nada: cuesta lo mismo si el mercado está inundado que si está seco. El
+informe de auditoría de esta biblioteca (r3-2026-09-06, temas 26-27) lo marca como el hueco más
+concreto de la economía — hay teoría, cero código. La versión mínima que merece la pena
+programar no modela consumidores ni curvas de demanda académicas: **ata el precio al stock**,
+que es la señal que el propio jugador ya está mirando cuando decide si comprar ahora o esperar.
+
+```
+  precio = precio_base × (stock_referencia / stock_actual) ^ elasticidad
+```
+
+- **`elasticidad = 0`**: precio fijo — vuelves a §4.1 sin más.
+- **`elasticidad` bajo (0,3-0,5)**: el precio se mueve, pero sin que el jugador lo note frame a
+  frame; sirve para dar la sensación de un mercado vivo sin volverlo impredecible.
+- **`elasticidad` alto (0,8-1,2)**: el precio reacciona fuerte a cada compra; útil para recursos
+  que quieres que el jugador **note** que está agotando (el último ítem de una tirada limitada).
+
+**El error que hay que evitar:** un `stock` en 0 sin clamp dispara una división por cero (el
+factor tendería a infinito). El código de §9.8 acota el resultado a una banda razonable
+(0,4×-3×) antes de devolverlo — sin ese clamp, el primer jugador que vacíe una tienda ve un
+precio absurdo en el segundo objeto.
+
+### 4.7 · Tienda de un NPC: margen y stock que se agota y repone
+
+[04 · 08 §5.2](../04%20-%20Recetas%20por%20género/08%20-%20Tower%20Defense.md#52-definiciones-de-torre)
+ya tiene el patrón correcto para una pieza del problema: `valor_venta()` devuelve el 70 % de lo
+invertido al vender una torre de vuelta. Eso **es** un margen (comprar a 100, recomprar a 70),
+pero es de un solo objeto y sin existencias — el informe de auditoría (tema 31) marca la falta de
+una tienda de verdad: **catálogo con stock propio**, que se agota al vender y se repone con el
+tiempo, y un **margen** (*spread*) entre lo que la tienda cobra y lo que paga.
+
+**Por qué el margen no es un capricho.** Es el sumidero de §4.1 escondido dentro de un
+intercambiador: si la tienda compra y vende al mismo precio, comprar-y-revender-inmediatamente es
+oro gratis (rompe la regla de §4.3: un recurso que sale de la nada). El margen —vender caro,
+comprar barato— es lo que hace que la tienda absorba parte de cada transacción en vez de
+limitarse a mover el oro de sitio.
+
+**Por qué el stock se repone despacio, no de golpe.** Una tienda que se rellena al instante no
+comunica escasez: el jugador nunca decide "compro ahora antes de que se agote" si sabe que en un
+frame vuelve a estar llena. El código de §9.8 (`TiendaNPC.step()`) repone un 10 % del máximo cada
+pocos minutos — sustituye ese contador por tu propio reloj de día
+([04 · 09 §5.5](../04%20-%20Recetas%20por%20género/09%20-%20Survival%20y%20crafting.md#55-ciclo-díanoche))
+si tu juego ya tiene uno.
+
+### 4.8 · Mercado entre jugadores y sus riesgos
+
+El intercambiador de §4.1 («mueve recursos entre entidades, no crea ni destruye nada») es
+exactamente lo que describe un mercado entre jugadores — y es la pieza que el informe de
+auditoría marca como no implementada en ningún sitio de la biblioteca (tema 32), más allá de una
+línea suelta en [13 · 20 §1.4](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md#14--la-economía-de-negocio-con-el-vocabulario-de-13--01-4)
+avisando de que, si existe, «necesita su propia fricción contra el lavado de bienes robados».
+
+Tres riesgos que un mercado entre jugadores introduce y que un intercambiador NPC (§4.7) no
+tiene, porque ahí el jugador negocia contra el sistema, no contra otra persona:
+
+| Riesgo | Qué pasa si no se cubre | Mitigación |
+|---|---|---|
+| **Duplicación de objetos** (*dupe*) | Un fallo de sincronía deja el objeto en los dos inventarios a la vez — rompe §4.1 de la peor forma posible: una fuente que nadie diseñó | El servidor es la única autoridad: el cliente nunca decide que una transacción se completó, solo la pide ([04 · 14 — Multijugador](../04%20-%20Recetas%20por%20género/14%20-%20Multijugador.md) para las opciones de red de esta biblioteca) |
+| **Manipulación de precios** (bots que compran y revenden para inflar) | El precio deja de reflejar escasez real | Límite de listados activos por jugador, y un historial de precio medio visible para que el resto no compre a ciegas |
+| **Lavado de bienes robados** (vender lo obtenido con un exploit antes de que se detecte y revierta) | El exploit se "blanquea" en la economía de otros jugadores que compraron de buena fe | Comisión de mercado (§9.9, `MERCADO_COMISION`) que encarece el lavado en volumen, y un margen de tiempo antes de que el pago del vendedor esté disponible para gastar |
+
+**La comisión no es solo para financiar el mercado.** Es también el sumidero que evita que listar
+y comprar entre alianzas de jugadores sea una forma gratuita de mover oro sin fricción — la
+misma regla de §4.3, aplicada a una economía con más de un jugador.
+
+### 4.9 · Monedas múltiples: para qué sirve cada una
+
+No hace falta un sistema nuevo: la biblioteca ya tiene las dos piezas, en dos documentos
+distintos, y lo que falta es la tabla de **cuándo usar cada una**.
+
+| Moneda | De qué sirve | Ya implementada en |
+|---|---|---|
+| **Única** | La opción por defecto. Añadir una segunda moneda sin una razón de diseño concreta es complejidad sin beneficio | — |
+| **De partida frente a meta** (ligera que se pierde al morir / persistente que no) | Comunica el riesgo de una muerte permanente sin hacerla brutal: lo perdido es la moneda de partida, lo ganado en meta queda | [13 · 16 §2.6](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#26-el-patrón-de-monedas-múltiples-partida-frente-a-meta) — `moneda_transferir_a_meta()`, de un solo sentido |
+| **Dura frente a blanda** (comprada con dinero real / ganada jugando) | Separa el *pool* que financia el juego del que gana quien no paga — la base de cualquier F2P | [13 · 20 §1.4](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md#14--la-economía-de-negocio-con-el-vocabulario-de-13--01-4) |
+| **De prestigio** (tercera moneda, solo cosméticos o sumideros muy tardíos) | Da algo que comprar cuando ya no queda nada más — ⚠️ patrón habitual del género, sin una fuente concreta con nombre verificada en esta biblioteca | Mismo patrón de `moneda_transferir_a_meta()` que la de meta, aplicada a un tercer campo |
+
+**La regla que las tres comparten, y que no se repite dos veces:** la conversión circula en **un
+solo sentido** — partida → meta, blanda ← dura, nunca al revés. [13 · 16 §2.6](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#26-el-patrón-de-monedas-múltiples-partida-frente-a-meta)
+explica por qué: revertirla rompe el riesgo que la separación debía comunicar en primer lugar.
+
+### 4.10 · Cómo se detecta que una economía está rota — medirla, no intuirla
+
+§4.3 ya da el método artesanal: registrar `oro_en_el_bolsillo` en un playtest y mirar la forma de
+la curva. Eso basta para un prototipo de una sesión; no basta para saber si la economía sigue
+sana **después del lanzamiento**, con cientos de partidas que ningún diseñador ha mirado a ojo.
+Dos herramientas que ya están escritas en esta biblioteca, aplicadas a la economía en vez de
+reescribirlas:
+
+1. **Antes de lanzar — simulación.** [13 · 21](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo,%20Machinations%20y%20estrategias%20dominantes.md)
+   corre miles de partidas simuladas y lee **percentiles**, no medias — el mismo error que
+   [§7.4](#74--cómo-registrar) señala para la telemetría de playtest se repite aquí si solo miras
+   el promedio de oro final. Antes de que un jugador real toque la economía, una pasada de Monte
+   Carlo sobre el bucle de ganancia/gasto encuentra el mismo tipo de desastre que un balance a
+   mano no ve: una build que genera oro más rápido de lo que cualquier sumidero puede absorber.
+2. **Después de lanzar — telemetría real.** El pipeline de §9.5 (`telemetria_registrar()`) no
+   necesita un sistema aparte para economía: dos tipos de evento nuevos —`moneda_ganada` y
+   `moneda_gastada`— sobre el mismo `telemetria_volcar()` bastan para calcular la métrica que
+   de verdad importa: **el ratio entre lo que entra y lo que sale**. El código está en §9.10.
+
+**La cifra que hay que vigilar:** un ratio ganado/gastado sostenido por encima de 1,3-1,5 durante
+varias sesiones (no una sola partida de un jugador ahorrador) es inflación real, no ruido. Un
+ratio por debajo de 0,9 sostenido es un muro: el sumidero está costando más de lo que la fuente
+da, y el jugador se queda sin poder comprar nada. La franja 0,9-1,3 es una economía viva —
+exactamente la lectura de la tabla de §4.3, con un número en vez de un dibujo a ojo.
+
 ---
 
 ## 5 · Onboarding: enseñar sin texto
@@ -1059,6 +1167,335 @@ jq '[.eventos[] | select(.tipo=="muerte") | .sala]
 Con cinco testers, `rm_zona1_07` acumulando 34 de 46 muertes no es una opinión: es un muro.
 Vuelves a §3.2 y decides si ese pico va donde está o si le falta el diente anterior.
 
+### 9.7 · De volcado local a backend real: `http_request` con cola y reintento
+
+Todo lo de arriba escribe en el disco del jugador y se queda ahí — perfecto para un playtest
+con amigos, insuficiente en cuanto quieres agregar datos de cientos de partidas sin pedirle a
+cada tester que te mande el JSON a mano. La pieza que falta es **enviarlo**, y las cuatro
+reglas de por qué/cuándo se puede enviar telemetría **ya están escritas y no se repiten aquí**:
+[`13 · 11 §7`](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#7--post-lanzamiento)
+("Telemetría con consentimiento" — pregunta antes, recoge lo mínimo, sin consentimiento sin
+envío, política de privacidad). Esta sección es solo el **cómo técnico** una vez que esas
+cuatro reglas ya se cumplen.
+
+**El archivo que ya escribe `telemetria_volcar()` ES la cola.** No hace falta inventar una
+estructura de cola nueva: basta con intentar enviar ese mismo JSON y, si falla, dejarlo donde
+está para el próximo intento.
+
+```gml
+/// scr_telemetria (continuación) — envío por HTTP
+
+#macro TELEMETRIA_ENDPOINT ""   // ⚠️ tu backend propio va aquí, fuera del código versionado
+                                 //    en un build real (variable de entorno / Included File
+                                 //    no versionado). Vacío = no se envía nada, solo se guarda
+                                 //    en local, exactamente como en §9.5.
+
+/// @description Intenta enviar la cola pendiente al backend. NO bloquea el frame:
+///              http_request() es asíncrono, la respuesta llega sola al evento
+///              Async - HTTP. Llámala una vez por sala (Room End, donde ya se llama a
+///              telemetria_volcar()), nunca en el Step: no hay ninguna ganancia en
+///              reintentar más a menudo y sí un coste de batería en móvil.
+function telemetria_enviar()
+{
+    if (!TELEMETRIA_ACTIVA) return;
+    if (TELEMETRIA_ENDPOINT == "") return;                                  // sin backend: no-op
+    if (!variable_global_exists("telemetria_consentida") || !global.telemetria_consentida) return;
+
+    var _ruta_cola = game_save_id + TELEMETRIA_ARCHIVO;
+    if (!file_exists(_ruta_cola)) return;                                   // nada pendiente
+
+    // Si ya hay un envío en vuelo, no lances otro por encima: el async_load del
+    // primero se resolvería antes de que sepamos a cuál de los dos pertenece.
+    if (variable_global_exists("telemetria_envio_id") && global.telemetria_envio_id != -1) return;
+
+    var _f = file_text_open_read(_ruta_cola);
+    var _cuerpo = "";
+    while (!file_text_eof(_f)) { _cuerpo += file_text_read_string(_f); file_text_readln(_f); }
+    file_text_close(_f);
+
+    var _headers = ds_map_create();
+    ds_map_add(_headers, "Content-Type", "application/json");
+
+    global.telemetria_envio_id = http_request(TELEMETRIA_ENDPOINT, "POST", _headers, _cuerpo);
+
+    ds_map_destroy(_headers);
+}
+```
+
+```gml
+/// obj_arranque · Async - HTTP — la respuesta llega aquí, en el frame que sea
+if (variable_global_exists("telemetria_envio_id") && async_load[? "id"] == global.telemetria_envio_id)
+{
+    if (async_load[? "status"] == 0)
+    {
+        // Éxito confirmado por el servidor: la cola ya está entregada, se borra.
+        // Un nuevo telemetria_volcar() puede escribir encima sin pisar nada en vuelo.
+        var _ruta_cola = game_save_id + TELEMETRIA_ARCHIVO;
+        if (file_exists(_ruta_cola)) { file_delete(_ruta_cola); }
+    }
+    else if (async_load[? "status"] < 0)
+    {
+        // Sin red, DNS caído, servidor caído... El archivo NO se borra: sigue siendo
+        // la cola, y el próximo Room End vuelve a intentar el mismo envío. Un evento
+        // de telemetría nunca se pierde por un fallo de red puntual.
+        show_debug_message("telemetria: envío falló (sin red o servidor caído), se reintenta luego");
+    }
+    // status == 1 ("descargando") no aplica a subir un JSON pequeño: se ignora.
+
+    global.telemetria_envio_id = -1;
+}
+```
+
+**Las tres decisiones que evitan castigar la batería y el frame**, explícitas porque son las
+que se suelen hacer mal:
+
+1. **Un intento por sala, no un temporizador.** `telemetria_enviar()` se llama en el mismo sitio
+   que ya llama a `telemetria_volcar()` (tabla de §9.5, evento **Room End**): reutiliza una
+   cadencia que ya existe, en vez de añadir un `alarm` o un contador de frames que reintente
+   cada N segundos aunque no haya nada nuevo que mandar.
+2. **`http_request()` nunca bloquea.** Es asíncrona por diseño — la llamada vuelve al instante y
+   la respuesta llega al evento Async - HTTP cuando toque — así que un envío lento (o que nunca
+   responde) no le quita ni un frame al jugador. El único cuidado real es no lanzar un segundo
+   `http_request()` mientras el primero sigue en vuelo (el `if` de `telemetria_envio_id != -1`
+   de arriba), no por rendimiento sino para no confundir qué `id` de `async_load` pertenece a
+   cuál.
+3. **El fallo se queda en disco, no en memoria.** Si el archivo de cola solo viviera en una
+   variable, un cierre del juego mientras no hay red se lo llevaría por delante. Al ser el mismo
+   fichero que ya escribe `telemetria_volcar()`, sobrevive al cierre igual que cualquier otro
+   dato guardado — la cola **es** la persistencia, no algo aparte de ella.
+
+> 🔺 **`TELEMETRIA_ENDPOINT` es un marcador, no una URL real.** No escribas la dirección de tu
+> backend ni ninguna clave de API en el código fuente versionado: en un proyecto real sale de
+> una variable de entorno del pipeline de build o de un Included File que **no** se sube al
+> repositorio. La regla es la misma que para cualquier secreto — nunca en el código.
+>
+> ⚠️ **Sigue sin ser una cola con reintentos exponenciales ni con límite de tamaño.** Para un
+> volumen de eventos de un juego de un estudio pequeño (unos pocos KB por sesión, un intento por
+> sala) esto basta; si el volumen crece mucho, la cola puede acumular varias sesiones sin enviar
+> — vigila el tamaño del archivo, no solo que exista.
+
+### 9.8 · Precio dinámico y tienda de un NPC, en código
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_economia_dinamica — §4.6-§4.7, en código.
+// Verificado: power, ceil, clamp, floor, min, array_length — todas ya en uso
+// en este documento o en el resto de la biblioteca.
+// ---------------------------------------------------------------------------
+
+/// @func precio_dinamico(_precio_base, _stock, _stock_referencia, _elasticidad = 0.6)
+/// @desc Precio que sube cuando el stock escasea y baja cuando sobra, respecto a un
+///       "stock de referencia" (el nivel al que el precio ES precio_base). No modela
+///       consumidores ni curvas académicas de oferta/demanda: es la versión mínima que
+///       resuelve los temas 26-27 del informe de auditoría de esta biblioteca
+///       (r3-2026-09-06) — "precio que reacciona a stock/consumo".
+/// @param {Real} _precio_base       Precio cuando _stock == _stock_referencia.
+/// @param {Real} _stock             Unidades disponibles AHORA.
+/// @param {Real} _stock_referencia  Unidades "normales" (ni escaso ni sobrante).
+/// @param {Real} _elasticidad       0 = precio fijo. Con 1, el precio se duplica si el
+///                                  stock cae a la mitad, y viceversa. 0,4-0,8 se lee
+///                                  como "reacciona sin ser errático" (§4.6).
+/// @return {Real} Precio, redondeado hacia arriba: el redondeo nunca lo regala la tienda.
+function precio_dinamico(_precio_base, _stock, _stock_referencia, _elasticidad = 0.6)
+{
+    // clamp(_stock, 1, ...) evita la división por cero de un stock en 0: sin este clamp,
+    // ratio → 0 y power(0, -elasticidad) → infinity (§4.6, el error a evitar).
+    var _ratio  = clamp(_stock, 1, _stock_referencia * 4) / _stock_referencia;
+    var _factor = power(_ratio, -_elasticidad);
+    return ceil(_precio_base * clamp(_factor, 0.4, 3.0));   // banda 0,4×-3×: nunca regalado, nunca absurdo
+}
+
+/// @func TiendaNPC(_catalogo)
+/// @desc Tienda con margen compra/venta y stock que se agota al vender y se repone con
+///       el tiempo (§4.7). Generaliza el spread de
+///       [04 · 08 §5.2](../04%20-%20Recetas%20por%20género/08%20-%20Tower%20Defense.md#52-definiciones-de-torre)
+///       (`valor_venta() = coste * 0.7`, ahí solo para recomprar UNA torre) a un catálogo
+///       completo con existencias.
+/// @param {Array<Struct>} _catalogo  [{ id, precio_base, stock, stock_max, stock_referencia }]
+function TiendaNPC(_catalogo) constructor
+{
+    catalogo = _catalogo;
+    margen_compra = 0.5;    // lo que el NPC paga AL JUGADOR: 50 % del precio de venta calculado
+    margen_venta  = 1.0;    // lo que el NPC cobra AL JUGADOR: precio_dinamico() sin recargo extra
+    frames_por_reposicion = 60 * 60 * 5;   // 5 minutos a 60 fps — cambia por tu reloj de día si lo tienes
+    contador_reposicion = 0;
+
+    buscar = function(_item_id)
+    {
+        for (var _i = 0; _i < array_length(catalogo); _i++)
+        {
+            if (catalogo[_i].id == _item_id) return catalogo[_i];
+        }
+        return undefined;
+    };
+
+    /// @desc Precio al que el jugador COMPRA.
+    precio_venta = function(_item_id)
+    {
+        var _def = buscar(_item_id);
+        if (_def == undefined) return -1;
+        return floor(precio_dinamico(_def.precio_base, _def.stock, _def.stock_referencia) * margen_venta);
+    };
+
+    /// @desc Precio al que el jugador VENDE (el NPC compra). Siempre por debajo de
+    ///       precio_venta(): esa diferencia ES el sumidero (§4.1) que financia la tienda y
+    ///       evita que comprar-y-revender-inmediatamente sea oro gratis (§4.3, §4.7).
+    precio_compra = function(_item_id)
+    {
+        var _def = buscar(_item_id);
+        if (_def == undefined) return -1;
+        return floor(precio_dinamico(_def.precio_base, _def.stock, _def.stock_referencia) * margen_compra);
+    };
+
+    /// @desc El jugador COMPRA _cantidad unidades. Descuenta stock unidad a unidad: el
+    ///       precio sube para el siguiente comprador, igual que en una tienda con
+    ///       existencias finitas de verdad.
+    /// @return {Real} Coste total, o -1 si no hay stock suficiente.
+    vender_a_jugador = function(_item_id, _cantidad)
+    {
+        var _def = buscar(_item_id);
+        if (_def == undefined || _def.stock < _cantidad) return -1;
+
+        var _total = 0;
+        for (var _i = 0; _i < _cantidad; _i++)
+        {
+            _total += precio_dinamico(_def.precio_base, _def.stock, _def.stock_referencia) * margen_venta;
+            _def.stock -= 1;   // el precio de CADA unidad se recalcula con el stock ya descontado
+        }
+        return floor(_total);
+    };
+
+    /// @desc El jugador VENDE _cantidad unidades a la tienda. Sube el stock (hasta el
+    ///       máximo): vender de vuelta abarata la SIGUIENTE compra de ese objeto.
+    /// @return {Real} Lo que paga la tienda en total.
+    comprar_de_jugador = function(_item_id, _cantidad)
+    {
+        var _def = buscar(_item_id);
+        if (_def == undefined) return 0;
+
+        var _total = 0;
+        for (var _i = 0; _i < _cantidad; _i++)
+        {
+            _total += precio_dinamico(_def.precio_base, _def.stock, _def.stock_referencia) * margen_compra;
+            _def.stock = min(_def.stock_max, _def.stock + 1);
+        }
+        return floor(_total);
+    };
+
+    /// @desc Llamar una vez por Step. Repone stock poco a poco, nunca de golpe (§4.7): una
+    ///       tienda que se llena al instante no comunica escasez.
+    step = function()
+    {
+        contador_reposicion++;
+        if (contador_reposicion < frames_por_reposicion) return;
+        contador_reposicion = 0;
+
+        for (var _i = 0; _i < array_length(catalogo); _i++)
+        {
+            var _def = catalogo[_i];
+            _def.stock = min(_def.stock_max, _def.stock + max(1, floor(_def.stock_max * 0.1)));
+        }
+    };
+}
+```
+
+### 9.9 · Mercado entre jugadores, en código
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_mercado_jugadores — §4.8, en código. Modelo de datos y validación de UNA
+// transacción; el transporte de red (qué jugador ve qué listado, cómo llega
+// la orden de compra al dueño de la partida) depende de tu backend — ver
+// 04 · 14 Multijugador para las opciones de red de esta biblioteca. En
+// cualquier topología con más de un cliente, esta validación debe correr en
+// el lado con autoridad (servidor o host), NUNCA solo en el cliente que
+// compra: es la mitigación del riesgo de duplicación de §4.8.
+// Verificado: irandom, string, date_current_datetime, floor — ya en uso.
+// ---------------------------------------------------------------------------
+
+#macro MERCADO_COMISION 0.05   // 5 % — el sumidero de §4.1 que financia el propio mercado
+
+/// @func ListadoMercado(_vendedor_id, _item_id, _cantidad, _precio_unidad)
+function ListadoMercado(_vendedor_id, _item_id, _cantidad, _precio_unidad) constructor
+{
+    id            = string(irandom(999999)) + "_" + string(date_current_datetime());
+    vendedor_id   = _vendedor_id;
+    item_id       = _item_id;
+    cantidad      = _cantidad;
+    precio_unidad = _precio_unidad;
+    activo        = true;
+}
+
+/// @func mercado_comprar(_listado, _comprador_inventario, _comprador_billetera, _cantidad)
+/// @desc Valida y ejecuta una compra sobre UN listado. La comisión se cobra al VENDEDOR
+///       (se descuenta de lo que recibe), no al comprador: el precio que ve el comprador
+///       es el precio que paga, sin sorpresas.
+/// @param {Struct.ListadoMercado} _listado
+/// @param {Struct} _comprador_inventario  Un `Inventory` (04 · 04 §5.2).
+/// @param {Struct} _comprador_billetera   Puede ser el MISMO `Inventory`: ya tiene un
+///                                        campo `oro` (04 · 04 §5.2) — no hace falta un
+///                                        struct aparte solo para la moneda.
+/// @return {Struct} { exito, pago_vendedor, comision }
+function mercado_comprar(_listado, _comprador_inventario, _comprador_billetera, _cantidad)
+{
+    var _fallo = { exito: false, pago_vendedor: 0, comision: 0 };
+
+    if (!_listado.activo)                     return _fallo;
+    if (_cantidad > _listado.cantidad)        return _fallo;
+
+    var _coste = _listado.precio_unidad * _cantidad;
+    if (_comprador_billetera.oro < _coste)    return _fallo;
+    if (!_comprador_inventario.add(_listado.item_id, _cantidad)) return _fallo;   // inventario lleno
+
+    _comprador_billetera.oro -= _coste;
+    _listado.cantidad -= _cantidad;
+    if (_listado.cantidad <= 0) _listado.activo = false;
+
+    var _pago_vendedor = floor(_coste * (1 - MERCADO_COMISION));
+    return { exito: true, pago_vendedor: _pago_vendedor, comision: _coste - _pago_vendedor };
+}
+```
+
+### 9.10 · Telemetría de faucet/sink: medir si la economía está rota
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_economia_telemetria — §4.10, en código. Reutiliza
+// telemetria_registrar()/telemetria_volcar() de §9.5 TAL CUAL: la economía no
+// necesita un pipeline de telemetría aparte, solo dos tipos de evento nuevos
+// sobre el que ya existe.
+// ---------------------------------------------------------------------------
+
+/// @func economia_registrar_fuente(_cantidad, _origen)
+/// @desc Llama a esto en CADA sitio donde el jugador gana moneda — venta de loot, misión
+///       completada, cofre. `_origen` identifica la fuente (§4.1) para poder desglosar
+///       después cuál infla más.
+function economia_registrar_fuente(_cantidad, _origen)
+{
+    telemetria_registrar("moneda_ganada", { cantidad: _cantidad, origen: _origen });
+}
+
+/// @func economia_registrar_sumidero(_cantidad, _destino)
+function economia_registrar_sumidero(_cantidad, _destino)
+{
+    telemetria_registrar("moneda_gastada", { cantidad: _cantidad, destino: _destino });
+}
+```
+
+Con [`jq`](https://jqlang.github.io/jq/), el mismo patrón que §9.6 usa para muertes por sala:
+
+```sh
+GANADO=$(jq '[.eventos[] | select(.tipo=="moneda_ganada")  | .cantidad] | add // 0' telemetria.json)
+GASTADO=$(jq '[.eventos[] | select(.tipo=="moneda_gastada") | .cantidad] | add // 0' telemetria.json)
+echo "ratio ganado/gastado: $(echo "scale=2; $GANADO / $GASTADO" | bc)"
+```
+
+**La cifra que hay que vigilar (§4.10):** un ratio sostenido por encima de 1,3-1,5 en varias
+sesiones es inflación real; por debajo de 0,9 sostenido es un muro. La franja 0,9-1,3 es una
+economía viva. Antes de tener datos de jugadores reales, la misma pregunta se responde con
+[13 · 21](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo,%20Machinations%20y%20estrategias%20dominantes.md)
+corriendo el bucle de ganancia/gasto miles de veces.
+
 ---
 
 ## 10 · Checklist
@@ -1076,11 +1513,15 @@ Vuelves a §3.2 y decides si ese pico va donde está o si le falta el diente ant
 - [ ] Cada recurso tiene **fuente y sumidero**, y la realimentación positiva tiene freno
 - [ ] Los números vivos están en `balance.json`, no repartidos por el código
 - [ ] Existe un **golpe estándar**, y el TTK de cada enemigo está calculado, no adivinado
+- [ ] Si hay un mercado (NPC o entre jugadores), tiene **margen** o **comisión** (§4.7-§4.8): sin
+      sumidero propio, comprar-y-revender es oro gratis
+- [ ] Cualquier precio dinámico está acotado (§4.6, §9.8): un stock en 0 sin `clamp` dispara el precio a infinito
 
 **Antes de enseñárselo a alguien**
 
 - [ ] `obj_panel_balance` ajusta sin recompilar, y `balance_restaurar()` tiene botón
 - [ ] La telemetría registra `sala_entra`, `sala_sale` y `muerte`, y **vuelca en Room End**
+- [ ] Si `TELEMETRIA_ENDPOINT` no está vacío, hay consentimiento explícito antes de `telemetria_enviar()` (§9.7, marco completo en 13 · 11 §7)
 - [ ] La primera pantalla contesta *quién soy · qué puedo hacer · adónde voy · qué me mata* sin texto
 - [ ] Cada mecánica tiene sus cuatro encuentros: presentar, ampliar, combinar, examinar
 
@@ -1106,6 +1547,9 @@ Vuelves a §3.2 y decides si ese pico va donde está o si le falta el diente ant
 | **Fiarse de la media en la telemetría** | Es lo que sale por defecto | Mediana, siempre |
 | **Refactorizar el prototipo en vez de tirarlo** | Da pena borrar código que funciona | El prototipo entrega **una respuesta**, no código |
 | **DDA oculta sobre la vida del jefe** | Parece elegante | El jugador la nota y su victoria deja de ser suya; usa asistencia explícita |
+| **Tienda NPC sin margen** | Comprar y revender de vuelta es oro gratis, rompe §4.3 | `TiendaNPC` (§9.8) siempre vende más caro de lo que compra |
+| **Mercado entre jugadores validado solo en el cliente** | Duplicación de objetos: el mismo ítem en dos inventarios (§4.8) | El servidor/host valida `mercado_comprar()` (§9.9), nunca el cliente en solitario |
+| **Vigilar la media de oro por jugador en vez del ratio ganado/gastado** | Un jugador rico esconde a diez arruinados | `economia_registrar_fuente()`/`economia_registrar_sumidero()` (§9.10) y el ratio, no la media |
 
 ---
 
@@ -1118,6 +1562,9 @@ Vuelves a §3.2 y decides si ese pico va donde está o si le falta el diente ant
 - [04 · Índice de recetas](../04%20-%20Recetas%20por%20género/_INDICE-RECETAS.md) — la ruta de aprendizaje por géneros y el criterio para avanzar de fase
 - [04 · 11 — Arcade y juegos de un botón](../04%20-%20Recetas%20por%20género/11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md) — una curva de dificultad **ya implementada** (`DifficultyCurve`)
 - [04 · 05 — Roguelike](../04%20-%20Recetas%20por%20género/05%20-%20Roguelike%20y%20generación%20procedural.md) (dificultad por piso, loot ponderado) y [04 · 08 — Tower Defense](../04%20-%20Recetas%20por%20género/08%20-%20Tower%20Defense.md) (economía de oleadas: el caso más claro de fuentes y sumideros)
+- [04 · 04 — RPG / Action RPG §5.2](../04%20-%20Recetas%20por%20género/04%20-%20RPG%20_%20Action%20RPG.md#52-inventario-y-equipamiento) — `Inventory` con su campo `oro`, reutilizado como billetera en §9.9 · [04 · 14 — Multijugador](../04%20-%20Recetas%20por%20género/14%20-%20Multijugador.md) — autoridad de servidor para el mercado de §4.8
+- [13 · 16 §2.6](./16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md#26-el-patrón-de-monedas-múltiples-partida-frente-a-meta) y [13 · 20 §1.4](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md#14--la-economía-de-negocio-con-el-vocabulario-de-13--01-4) — monedas múltiples (§4.9)
+- [13 · 21 — Balance por simulación](./21%20-%20Balance%20por%20simulación%20-%20Monte%20Carlo,%20Machinations%20y%20estrategias%20dominantes.md) — Monte Carlo y percentiles, la herramienta de §4.10 para antes del lanzamiento
 - [04 · 25 — Menú de opciones y ajustes](../04%20-%20Recetas%20por%20género/25%20-%20Menú%20de%20opciones%20y%20ajustes.md) · [04 · 27 — Accesibilidad](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md) — dónde vive la asistencia explícita
 - [01 · 15 — Depuración y rendimiento](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md) — el Debug Overlay y las vistas `dbg_*` explicadas de cero
 - [01 · 14 — Persistencia y archivos](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) — el *sandbox*, la regla de resolución y `json_stringify` / `json_parse`

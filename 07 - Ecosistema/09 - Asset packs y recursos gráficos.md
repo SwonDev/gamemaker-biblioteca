@@ -21,6 +21,39 @@
 asset externo: nombre, autor, origen (URL) y licencia. Te ahorrará un disgusto en el momento
 de publicar.
 
+**Fuentes tipográficas: la licencia del pack no es la licencia de la fuente.** Es el matiz que
+más se pasa por alto —también citado de pasada en
+[13 · 11 §5](<../13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md#5--assets-y-pipeline>)—:
+una fuente incluida en un asset pack CC0 no hereda automáticamente esa licencia, porque **una
+fuente es software con su propio archivo de licencia**, casi siempre distinto del resto del pack.
+La licencia libre más común en fuentes gratuitas es la **SIL Open Font License (OFL)**: permite
+uso comercial, modificación e incrustación (*embedding*) sin coste, con dos condiciones reales —
+**no se puede vender la fuente por sí sola** (sí empaquetada dentro de tu juego) y, si la
+modificas y redistribuyes, la fuente modificada **también** tiene que quedar bajo OFL (es
+*copyleft*, igual que GPL, pero solo para el archivo de fuente, no para el resto de tu proyecto).
+Verificado en TLDRLegal, *SIL Open Font License v1.1 (OFL-1.1) Explained in Plain English* —
+<https://www.tldrlegal.com/license/open-font-license-ofl-explained> (consultado 07-09-2026). Es
+también la licencia mayoritaria en Google Fonts, junto a una minoría en Apache 2.0 (Roboto y
+variantes) — verificado en Hacker News, hilo con cita directa a la documentación de Google Fonts
+(07-09-2026). **Lo que NO cubre OFL ni ninguna fuente «gratis para uso personal»**: si una fuente
+dice explícitamente «*personal use only*» o «*free for non-commercial use*», usarla en un juego
+que se vende —o que lleva anuncios— es exactamente el mismo problema que CC-BY-NC de la tabla de
+arriba, solo que aplicado a tipografía en vez de a arte.
+
+**Qué significa de verdad el «contagio» de GPL.** La tabla de arriba lo resume en una celda; en
+la práctica: si tu proyecto **enlaza** una librería bajo GPL —la incluyes compilada dentro de tu
+ejecutable, no solo la usas como herramienta externa—, la GPL exige que **tu propio código
+también se publique bajo GPL** al distribuir el juego. Es la razón de fondo por la que ninguna
+librería catalogada en
+[07 · 02 — Librerías esenciales de la comunidad](./02%20-%20Librer%C3%ADas%20esenciales%20de%20la%20comunidad.md)
+es GPL: una dependencia GPL obligaría a abrir el código fuente completo de tu juego, algo que casi
+ningún estudio comercial quiere. **MIT, Apache 2.0 y LGPL no contagian** de esta forma: MIT y
+Apache permiten enlazar en un proyecto cerrado sin condición añadida (solo aviso de licencia);
+LGPL permite enlazar dinámicamente sin contagiar el proyecto que la usa, aunque sí exige que la
+propia librería LGPL —si la modificas— publique esos cambios. Si dudas de la licencia exacta de
+una dependencia antes de enlazarla, trátala como GPL hasta comprobarlo: el coste de equivocarte al
+revés es mucho mayor.
+
 ---
 
 ## 2. Bancos de assets

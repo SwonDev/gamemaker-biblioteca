@@ -8,6 +8,7 @@
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Asset_Management/Instances/instance_id_get.htm>
 > - <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Asset_Management/Instances/Instance_Variables/collision_space.htm>
 > - `gm-cli manual read "instance_create_layer"` / `"instance_create_depth"`
+> - Blog oficial de GameMaker, *How to optimise your games in GameMaker* (§8: instancias vs partículas/asset layers)
 
 ---
 
@@ -401,7 +402,123 @@ if (object_is_ancestor(obj_slime, obj_enemigo)) { ... }
 
 ---
 
-## 8. Activar y desactivar instancias
+## 8. Cuándo NO usar una instancia
+
+Todo lo anterior en este documento asume que lo que quieres crear necesita ser una instancia:
+eventos propios, colisión, un `id` con el que referirte a ella. Pero **no todo lo que aparece en
+pantalla necesita eso**, y las fuentes oficiales de GameMaker lo señalan como uno de los errores
+de rendimiento más comunes: *"people frequently fall into using objects when they should use
+particle systems, data structures, or asset layers instead"* (blog oficial de GameMaker, *How to
+optimise your games in GameMaker*). Esta sección compara el coste real de una instancia frente a
+sus tres alternativas para elementos **puramente visuales o estáticos**.
+
+### Qué paga una instancia que no pagan sus alternativas
+
+Cada instancia activa, tenga o no código en sus eventos, arrastra:
+
+- **Un `id`** (handle) que el motor mantiene vivo y resoluble mientras la instancia exista.
+- **Entrada en las listas de colisión** de su objeto — aunque el evento Collision esté vacío o
+  no exista, la instancia sigue teniendo bounding box/máscara calculada
+  ([`01 · 08 §4`](./08%20-%20Movimiento%20y%20colisiones.md#4-elegir-la-forma-de-la-máscara)).
+- **Paso por Step y Draw** del motor en cada frame, aunque tus propios eventos estén vacíos —
+  hay un coste de comprobación por instancia antes de decidir que no hay nada que ejecutar.
+- **Sus propias variables de instancia** (`x`, `y`, `image_index`, `depth`…), reservadas por
+  instancia, no compartidas.
+
+Ninguna de las tres alternativas de abajo carga con **todo** eso: cada una recorta justo la
+parte que un elemento decorativo o estático no necesita.
+
+### Alternativa 1 — Sistema de partículas nativo (efecto visual, sin colisión, vive y muere solo)
+
+Cuando lo único que hace el "objeto" es aparecer, animarse y desaparecer —chispas, humo, hojas
+cayendo, un destello de impacto— un sistema de partículas nativo (`part_system_create_layer()`,
+`part_type_create()`, `part_emitter_create()`, todas verificadas y ya desarrolladas con recetas
+completas en
+[`04 · 39 — VFX, diseño y catálogo de efectos`](../04%20-%20Recetas%20por%20género/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md);
+no se repite el catálogo aquí) resuelve lo mismo sin crear ni una sola instancia:
+
+```gml
+// ❌ Una instancia por chispa: cada una con id, colisión y sus propios eventos
+for (var _i = 0; _i < 20; _i++)
+{
+    instance_create_layer(x, y, "Effects", obj_chispa);
+}
+
+// ✅ Un sistema de partículas: cientos de "chispas" sin ninguna instancia
+var _ps = part_system_create_layer("Effects", true);
+var _pt = part_type_create();
+part_type_sprite(_pt, spr_chispa, false, false, false);
+part_type_life(_pt, 15, 30);
+part_type_speed(_pt, 1, 3, 0, 0);
+part_particles_create(_ps, x, y, _pt, 20);   // las 20 "chispas" de golpe
+```
+
+El sistema de partículas gestiona internamente el equivalente a miles de "instancias" con una
+estructura de datos contigua, no con el aparato completo de instancia de GameMaker — es el mismo
+principio de Data Locality que mide
+[`13 · 23 §3.4`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/23%20-%20Catálogo%20de%20patrones%20en%20GML.md#34-data-locality-—-medido-no-folclore),
+aplicado por el propio motor. A cambio, **pierdes** colisión, eventos individuales y control fino
+por partícula — si necesitas que una "chispa" concreta reaccione a algo, no es candidata a
+partícula.
+
+### Alternativa 2 — Asset layer (decoración estática que nunca cambia)
+
+Un árbol de fondo, un cartel, un charco decorativo: si **nunca** se mueve, no colisiona y no
+tiene lógica propia, no hace falta ni una instancia ni un sistema de partículas — es un
+**elemento de capa**, colocado con `layer_sprite_create()` o directamente desde el editor de
+rooms como *Asset Layer*.
+
+```gml
+// ❌ Una instancia solo para que un sprite se quede quieto en un sitio
+instance_create_layer(400, 220, "Decoracion", obj_arbol_decorativo);
+// obj_arbol_decorativo no tiene ni un evento con código: pura decoración
+
+// ✅ Elemento de asset layer: mismo resultado visual, cero instancias
+layer_sprite_create("Decoracion", 400, 220, spr_arbol);
+```
+
+Esto es exactamente lo que la propia biblioteca ya recomienda para fondos con scroll
+(`layer_background_create()`, cubierto en
+[`01 · 10 §3`](./10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md#3-capas-layers)) y para
+elementos colocados desde el editor: si lo arrastraste al Room Editor como *Asset Layer* en vez
+de como instancia, GameMaker ya no le da ninguna de las cargas de la lista de arriba.
+
+### Alternativa 3 — Tile/tilemap (elementos repetitivos de nivel)
+
+Paredes, suelos, decoración que se repite en rejilla: un **tile** no es una instancia ni un
+asset layer suelto — es una celda dentro de un `tilemap`, la estructura más barata de las tres
+para elementos repetitivos. Ya cubierto en detalle (`tilemap_set`, colisión con tile maps,
+capas de tile) en
+[`01 · 10 §4`](./10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md#4-tile-maps-y-tile-sets);
+la regla de esta sección es simplemente **cuál elegir primero**:
+
+```gml
+// ❌ 200 instancias de obj_pared, una por celda de un muro de piedra
+// ✅ Un tilemap de 200 celdas con el mismo sprite de piedra, sin ninguna instancia
+```
+
+### Tabla de decisión
+
+| Necesito… | Uso… |
+|---|---|
+| Colisión, `id`, eventos propios, algo que reacciona | **Instancia** |
+| Un efecto visual que nace, se anima y muere solo, sin colisión | **Sistema de partículas** (`part_system_create_layer`) — [`04 · 39`](../04%20-%20Recetas%20por%20género/39%20-%20VFX%20-%20diseño%20y%20catálogo%20de%20efectos.md) |
+| Decoración estática que nunca se mueve ni colisiona | **Asset layer** (`layer_sprite_create`/`layer_background_create`) — [`01 · 10 §3`](./10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md#3-capas-layers) |
+| Elementos repetitivos de nivel en rejilla (suelo, paredes) | **Tilemap** — [`01 · 10 §4`](./10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md#4-tile-maps-y-tile-sets) |
+| Sí necesito instancia, pero crear/destruir muchas es el cuello de botella | **Object Pool** — [`06/scr_pool.gml`](../06%20-%20Assets%20y%20Scripts/scr_pool.gml), reutiliza en vez de crear/destruir |
+
+> 💡 **La pregunta que decide todo:** ¿esta "cosa" necesita reaccionar a algo (colisión, input,
+> su propio Step) en algún momento de su vida? Si la respuesta es no, no es una instancia — es
+> una de las otras tres. Si la respuesta es sí pero crear/destruirla muchas veces por partida
+> pesa, sigue siendo instancia, pero pooleada (`06/scr_pool.gml`).
+
+Símbolos verificados con `python3 _indice/buscar.py`: `part_system_create_layer`,
+`part_type_create`, `part_emitter_create`, `part_type_sprite`, `part_type_life`,
+`part_type_speed`, `part_particles_create`, `layer_sprite_create`, `layer_background_create`.
+
+---
+
+## 9. Activar y desactivar instancias
 
 **Desactivar** una instancia significa que **deja de procesar ninguno de sus eventos**, aunque sigue existiendo en el juego.
 
@@ -482,7 +599,7 @@ instance_activate_region(
 
 ---
 
-## 9. ⚠️ `instance_change()` está DEPRECADA
+## 10. ⚠️ `instance_change()` está DEPRECADA
 
 > **WARNING** *«Starting with GameMaker 2024.14, this function is deprecated and can only be used if "Allow instance_change" under Deprecated Behaviours is enabled. It is recommended to instead use `instance_destroy()` and `instance_create_layer()` (or `instance_create_depth()`) to replace an existing instance with an instance of a new object.»*
 
@@ -548,7 +665,7 @@ Ventajas: control total, funciona con físicas (si transfieres lo que necesites)
 
 ---
 
-## 10. `instance_copy()`
+## 11. `instance_copy()`
 
 Copia la instancia que ejecuta el código, devolviendo el handle de la nueva.
 
@@ -568,7 +685,7 @@ with (_clon)
 
 ---
 
-## 11. Instancias persistentes
+## 12. Instancias persistentes
 
 ```gml
 persistent = true;
@@ -595,7 +712,7 @@ global.puntuacion = 0;
 
 ---
 
-## 12. Ejemplo completo: sistema de enemigos con herencia
+## 13. Ejemplo completo: sistema de enemigos con herencia
 
 ```
 obj_entidad          (padre base: nunca se instancia)
@@ -726,5 +843,6 @@ show_debug_message($"Quedan {_total} enemigos");
 4. `instance_destroy()` no elimina al instante: **Destroy → Clean Up → termina el evento**. Cuidado con el código posterior.
 5. **La herencia de objetos** te da agrupación para colisiones, compartición de comportamiento y sobreescritura selectiva con `event_inherited()`.
 6. **Crea un padre base y nunca lo instancies**: úsalo solo como etiqueta.
-7. **Desactivar** instancias es una gran optimización, pero hazlo en una alarma, no en el Step, y recuerda el argumento de **collision space**.
-8. ⚠️ **`instance_change()` está deprecada desde 2024.14.** Usa `instance_destroy()` + `instance_create_layer()` pasando un struct con el estado.
+7. **Si no necesita colisión, `id` ni eventos propios, no es una instancia**: un efecto visual que nace y muere solo es un sistema de partículas, decoración estática es un asset layer, y elementos repetitivos de nivel son un tilemap.
+8. **Desactivar** instancias es una gran optimización, pero hazlo en una alarma, no en el Step, y recuerda el argumento de **collision space**.
+9. ⚠️ **`instance_change()` está deprecada desde 2024.14.** Usa `instance_destroy()` + `instance_create_layer()` pasando un struct con el estado.

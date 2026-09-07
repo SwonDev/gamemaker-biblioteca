@@ -561,6 +561,226 @@ function mundo_poi_distribuir(_zona_ancho, _zona_alto, _radio_min, _semilla, _cu
 > [13 · 02 §2.6](./02%20-%20Diseño%20de%20niveles.md#26-tipos-de-estructura) recomienda para la
 > estructura del mundo entero, aplicada aquí a su contenido.
 
+### 3.3 bis · Ciudades y redes de calles
+
+Una ciudad como zona de mundo no es una sala grande con más POIs (§3.3): tiene una **red de
+calles** que organiza cómo se llega a cada uno. Parish y Müller, en el artículo que fundó el
+campo (*Procedural Modeling of Cities*, SIGGRAPH 2001), identifican tres patrones de trazado —
+**rejilla**, **radial** y **orgánico**— y observan que la red de calles es la clave: una vez
+existe, las **manzanas** (los huecos entre calles) y sus **parcelas** se derivan solas.
+
+| Patrón | Aspecto | Cuándo | Cómo se traza aquí |
+|---|---|---|---|
+| **Rejilla** | Ensanche planificado, distrito moderno | Ciudad nueva, campamento militar, zona colonial | Calles cada N celdas, en las dos direcciones |
+| **Radial** | Anillos + avenidas desde un centro | Capital histórica en torno a una plaza o castillo | Anillos concéntricos + avenidas que irradian del centro |
+| **Orgánico** | Calles irregulares, manzanas de tamaño variable | Casco antiguo, ciudad crecida sin plan | Subdivisión recursiva al estilo BSP (`04 · 05 §5.2`) |
+
+**Rejilla y radial** son las dos formas más baratas de escribir en GML: ninguna necesita
+recursión, solo aritmética sobre `mod` y distancia/ángulo al centro.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_mundo_calles
+// Verificado: array_create, point_distance, point_direction, radtodeg
+// ---------------------------------------------------------------------------
+
+/// @func generar_calles_rejilla(_ancho, _alto, _tam_manzana, _ancho_calle)
+/// @desc El patrón más simple: calles cada _tam_manzana celdas, en las dos
+///       direcciones. Manzanas uniformes, aspecto de ensanche planificado.
+/// @return {Struct} { ancho, alto, celdas } — 1 = calle, 0 = manzana
+function generar_calles_rejilla(_ancho, _alto, _tam_manzana, _ancho_calle)
+{
+    var _celdas = array_create(_ancho * _alto, 0);
+    var _paso   = _tam_manzana + _ancho_calle;
+
+    for (var _fy = 0; _fy < _alto; _fy++)
+        for (var _fx = 0; _fx < _ancho; _fx++)
+            if ((_fx mod _paso) < _ancho_calle || (_fy mod _paso) < _ancho_calle)
+                _celdas[_fy * _ancho + _fx] = 1;
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas };
+}
+
+/// @func generar_calles_radial(_ancho, _alto, _cx, _cy, _anillos, _avenidas, _ancho_calle)
+/// @desc Anillos concéntricos cada (radio_max / _anillos) píxeles, más
+///       _avenidas calles rectas que irradian desde (_cx, _cy).
+function generar_calles_radial(_ancho, _alto, _cx, _cy, _anillos, _avenidas, _ancho_calle)
+{
+    var _celdas = array_create(_ancho * _alto, 0);
+
+    var _radio_max = point_distance(_cx, _cy, 0, 0);
+    _radio_max = max(_radio_max, point_distance(_cx, _cy, _ancho, 0));
+    _radio_max = max(_radio_max, point_distance(_cx, _cy, 0, _alto));
+    _radio_max = max(_radio_max, point_distance(_cx, _cy, _ancho, _alto));
+
+    var _paso_anillo = _radio_max / _anillos;
+    var _paso_angulo = 360 / _avenidas;
+
+    for (var _fy = 0; _fy < _alto; _fy++)
+    {
+        for (var _fx = 0; _fx < _ancho; _fx++)
+        {
+            var _d = point_distance(_cx, _cy, _fx, _fy);
+            var _en_anillo = (_d mod _paso_anillo) < _ancho_calle;
+
+            var _en_avenida = false;
+            if (_d > 1)
+            {
+                // El ancho de la avenida en PÍXELES se convierte a grados en
+                // ESTE radio (arco = radio × ángulo): a más lejos del centro,
+                // menos grados hacen falta para el mismo ancho en el suelo.
+                var _ang       = point_direction(_cx, _cy, _fx, _fy);
+                var _semiancho = radtodeg(_ancho_calle / _d);
+                var _resto     = _ang mod _paso_angulo;
+                _en_avenida = (_resto < _semiancho) || (_resto > _paso_angulo - _semiancho);
+            }
+
+            if (_en_anillo || _en_avenida) _celdas[_fy * _ancho + _fx] = 1;
+        }
+    }
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas };
+}
+```
+
+**Orgánico**, reutilizando el `BSPNode` de `04 · 05 §5.2` sin repetir su código: la misma
+subdivisión recursiva que allí tallaba salas, aquí talla **calles en el corte** entre dos mitades
+en vez de una habitación dentro de cada hoja. El resultado es una red de calles **conectada por
+construcción** (cada corte une a las dos mitades que separa) con manzanas de tamaño irregular.
+
+```gml
+/// @func NodoManzana(_x, _y, _w, _h)
+/// @desc Igual que BSPNode (04 · 05 §5.2), pero para MANZANAS: la hoja no se
+///       excava por dentro (se deja como parcela); lo que se excava es la
+///       CALLE en el corte entre los dos hijos.
+function NodoManzana(_x, _y, _w, _h) constructor
+{
+    x = _x; y = _y; w = _w; h = _h;
+    izq = noone;
+    der = noone;
+}
+
+/// @func generar_calles_bsp(_ancho, _alto, _rng, _tam_minimo, _ancho_calle)
+/// @return {Struct} { ancho, alto, celdas, manzanas } — celdas: 1 calle, 0 manzana
+function generar_calles_bsp(_ancho, _alto, _rng, _tam_minimo, _ancho_calle)
+{
+    var _celdas = array_create(_ancho * _alto, 0);
+    var _minimo = _tam_minimo * 2 + _ancho_calle;
+
+    var _raiz = new NodoManzana(0, 0, _ancho, _alto);
+    var _pendientes = [_raiz];
+    var _manzanas = [];
+
+    while (array_length(_pendientes) > 0)
+    {
+        var _n = array_pop(_pendientes);
+
+        if (_n.w < _minimo && _n.h < _minimo)
+        {
+            array_push(_manzanas, { x: _n.x, y: _n.y, w: _n.w, h: _n.h });
+            continue;
+        }
+
+        var _horizontal = (_n.w >= _n.h);
+        if (_horizontal && _n.w < _minimo) _horizontal = false;
+        if (!_horizontal && _n.h < _minimo) _horizontal = true;
+
+        if (_horizontal)
+        {
+            var _corte = _rng.range(_tam_minimo, _n.w - _tam_minimo - _ancho_calle);
+            _n.izq = new NodoManzana(_n.x, _n.y, _corte, _n.h);
+            _n.der = new NodoManzana(_n.x + _corte + _ancho_calle, _n.y,
+                                      _n.w - _corte - _ancho_calle, _n.h);
+
+            for (var _cy = _n.y; _cy < _n.y + _n.h; _cy++)
+                for (var _cx = _n.x + _corte; _cx < _n.x + _corte + _ancho_calle; _cx++)
+                    _celdas[_cy * _ancho + _cx] = 1;
+        }
+        else
+        {
+            var _corte2 = _rng.range(_tam_minimo, _n.h - _tam_minimo - _ancho_calle);
+            _n.izq = new NodoManzana(_n.x, _n.y, _n.w, _corte2);
+            _n.der = new NodoManzana(_n.x, _n.y + _corte2 + _ancho_calle,
+                                      _n.w, _n.h - _corte2 - _ancho_calle);
+
+            for (var _cy = _n.y + _corte2; _cy < _n.y + _corte2 + _ancho_calle; _cy++)
+                for (var _cx = _n.x; _cx < _n.x + _n.w; _cx++)
+                    _celdas[_cy * _ancho + _cx] = 1;
+        }
+
+        array_push(_pendientes, _n.izq);
+        array_push(_pendientes, _n.der);
+    }
+
+    return { ancho: _ancho, alto: _alto, celdas: _celdas, manzanas: _manzanas };
+}
+
+/// @func subdividir_manzana(_manzana, _rng, _ancho_parcela_min)
+/// @desc Reparte una manzana en parcelas de edificio, con el mismo patrón de
+///       corte que generar_calles_bsp() pero SIN dejar calle entre ellas: la
+///       separación la marca el borde del edificio, no una calle nueva.
+/// @return {Array<Struct>} [{ x, y, w, h }, ...]
+function subdividir_manzana(_manzana, _rng, _ancho_parcela_min)
+{
+    var _pendientes = [_manzana];
+    var _parcelas = [];
+
+    while (array_length(_pendientes) > 0)
+    {
+        var _n = array_pop(_pendientes);
+
+        if (_n.w < _ancho_parcela_min * 2 || _n.h < _ancho_parcela_min * 2 || !_rng.chance(0.8))
+        {
+            array_push(_parcelas, _n);
+            continue;
+        }
+
+        if (_n.w >= _n.h)
+        {
+            var _corte = _rng.range(_ancho_parcela_min, _n.w - _ancho_parcela_min);
+            array_push(_pendientes, { x: _n.x, y: _n.y, w: _corte, h: _n.h });
+            array_push(_pendientes, { x: _n.x + _corte, y: _n.y, w: _n.w - _corte, h: _n.h });
+        }
+        else
+        {
+            var _corte2 = _rng.range(_ancho_parcela_min, _n.h - _ancho_parcela_min);
+            array_push(_pendientes, { x: _n.x, y: _n.y, w: _n.w, h: _corte2 });
+            array_push(_pendientes, { x: _n.x, y: _n.y + _corte2, w: _n.w, h: _n.h - _corte2 });
+        }
+    }
+
+    return _parcelas;
+}
+```
+
+**Uso:** trazar la red y repartir edificios por manzana.
+
+```gml
+var _rng    = new RNG(global.semilla + 5051);
+var _calles = generar_calles_bsp(96, 64, _rng, 6, 2);
+
+for (var _i = 0; _i < array_length(_calles.manzanas); _i++)
+{
+    var _parcelas = subdividir_manzana(_calles.manzanas[_i], _rng, 4);
+    for (var _p = 0; _p < array_length(_parcelas); _p++)
+    {
+        var _pc = _parcelas[_p];
+        // instance_create_layer(...) o pintado a tilemap: lo tuyo desde aquí.
+    }
+}
+```
+
+> 🔗 **Alternativa orgánica por crecimiento: L-system sobre una retícula.** Si en vez de subdividir
+> un rectángulo entero de golpe quieres que la red **crezca** desde un punto (un cruce inicial que
+> se ramifica calle a calle, como en el propio Parish y Müller, que gobiernan el crecimiento con
+> un mapa de densidad de población), reutiliza `expandir_lsistema()` y `dibujar_lsistema()` de
+> [13 · 07 §6.1](./07%20-%20Generaci%C3%B3n%20procedural%20avanzada.md#61-l-systems-plantas-ríos-y-calles)
+> con un giro de 90° y una regla que decida al azar seguir recto, girar o ramificarse en cruce —
+> el mismo intérprete de tortuga que ya dibuja el árbol binario de esa tabla, con otro ángulo y
+> otro alfabeto. Aquí, sin ese mapa de densidad, el resultado es más simple pero sigue el mismo
+> principio: la calle crece, no se recorta de un rectángulo ya lleno. Para una **zona de mundo**
+> completa, la subdivisión BSP de arriba es más fiable y más fácil de acotar por tamaño.
+
 ### 3.4 La brújula: apuntar al punto de interés no descubierto más cercano
 
 ```gml
@@ -746,8 +966,12 @@ if (_mapa.foco >= 0
   mapa completo (desplazamiento, zoom, estados de sala, viaje rápido) que §3.6 engancha sin
   reescribir.
 - [13 · 07 — Generación procedural avanzada](./07%20-%20Generación%20procedural%20avanzada.md)
-  §4 — el muestreo de Poisson-disc que §3.3 envuelve; §10 — el BFS de rejilla, distinto en
+  §4 — el muestreo de Poisson-disc que §3.3 envuelve; §6.1 — L-systems, la alternativa orgánica
+  por crecimiento que §3.3 bis referencia sin repetir; §10 — el BFS de rejilla, distinto en
   propósito del BFS de grafo de zonas de §3.2.
+- [04 · 05 — Roguelike y generación procedural](../04%20-%20Recetas%20por%20género/05%20-%20Roguelike%20y%20generación%20procedural.md)
+  §5.2 — el `BSPNode` del que `NodoManzana` (§3.3 bis) es una adaptación para calles en vez de
+  salas; §5.0 — el struct `RNG` que reutilizan `generar_calles_bsp()` y `subdividir_manzana()`.
 - [13 · 10 — Testing y QA](./10%20-%20Testing%20y%20QA.md) §3.1 — `scr_pruebas`, el sitio natural
   para envolver `mundo_grafo_validar_progresion()` como prueba automática.
 - [13 · 11 — Producción, alcance y lanzamiento](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md)
@@ -834,18 +1058,29 @@ Consultadas el **6 de septiembre de 2026**.
   [13 · 02 Fuentes](./02%20-%20Diseño%20de%20niveles.md): <https://gamemaker.io/en/blog/multiple-levels-tutorial>;
   reutilizado como fuente de la arquitectura de rooms conectadas que 04 · 06 implementa y este
   documento diseña por adelantado.
+- **Yoav I. H. Parish y Pascal Müller, *Procedural Modeling of Cities*, SIGGRAPH 2001** —
+  <https://dl.acm.org/doi/10.1145/383259.383292>. El artículo fundacional del campo: clasifica el
+  trazado de calles en los tres patrones —rejilla, radial, orgánico— que estructura §3.3 bis, y
+  establece que la red de calles (no los edificios) es la clave de un modelo de ciudad creíble.
+  Consultado a través de su resumen y de la reseña histórica de SIGGRAPH
+  (<https://history.siggraph.org/learning/procedural-modeling-of-cities-by-parish-and-muller/>);
+  el sistema completo usa L-systems con restricciones globales (mapas de densidad y elevación) que
+  §3.3 bis simplifica a propósito para GML, según se indica en esa sección.
 
 **Verificación de la API.** Todos los símbolos del runtime usados en este documento —
-`array_push`, `array_length`, `array_create`, `struct_get_names`, `variable_struct_exists`,
-`point_distance`, `point_direction`, `place_meeting`, `display_get_gui_width`,
-`string_starts_with`, `draw_sprite_ext`, `infinity`, `show_debug_message`, `keyboard_check_pressed`,
-`vk_enter`, `gamepad_button_check_pressed`, `gp_face1`, `audio_play_sound`— se comprobaron uno a
+`array_push`, `array_pop`, `array_length`, `array_create`, `struct_get_names`,
+`variable_struct_exists`, `point_distance`, `point_direction`, `place_meeting`,
+`display_get_gui_width`, `string_starts_with`, `draw_sprite_ext`, `infinity`, `max`, `radtodeg`,
+`show_debug_message`, `keyboard_check_pressed`, `vk_enter`, `gamepad_button_check_pressed`,
+`gp_face1`, `audio_play_sound`— se comprobaron uno a
 uno con `python3 "_indice/buscar.py" <símbolo>` contra el runtime instalado antes de escribirse.
 Ninguno está marcado como obsoleto. Las funciones que **no** son del runtime —
 `mundo_grafo_nuevo`, `mundo_zona_registrar`, `mundo_conexion_crear`, `mundo_zonas_distancias`,
 `mundo_grafo_validar_progresion`, `mundo_poi_distribuir`, `brujula_direccion`,
-`viaje_rapido_permitido`— son código propio de este documento; ninguna usa un prefijo de familia
-reservada del runtime (`mundo_*` y `brujula_*` no coinciden con ninguna familia nativa). Las
+`viaje_rapido_permitido`, `generar_calles_rejilla`, `generar_calles_radial`, `NodoManzana`,
+`generar_calles_bsp`, `subdividir_manzana`— son código propio de este documento; ninguna usa un
+prefijo de familia reservada del runtime (`mundo_*`, `brujula_*` y `generar_calles_*` no coinciden
+con ninguna familia nativa). Las
 funciones `muestreo_poisson()` (13 · 07 §4), `atractor_crear()` / `camara_atraccion_evaluar()`
 (13 · 19 §3.6), `cinematica_encolar()` / `cinematica_reproducir()` (13 · 19 §3.11),
 `mapa_actualizar()` / `mapa_sala_marcar()` / `ir_a_escena()` / `aviso_lanzar()` (13 · 05 §3.5 j) y

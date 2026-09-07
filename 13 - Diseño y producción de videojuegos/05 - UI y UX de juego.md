@@ -413,6 +413,27 @@ function foco_rejilla(_indice, _dx, _dy, _columnas, _total, _envolver_x = true) 
 > fila; `_indice mod _columnas`, la columna. Es la conversión índice ↔ celda que vas a repetir
 > en el inventario (§3.5e) y en el mapa.
 
+> 💡 **Teclas de acceso rápido (mnemonics) en menús con pestañas.** Además de la navegación por
+> flechas de arriba, un menú con varias pestañas —el propio ejemplo de
+> [04 · 25 §5.4](../04%20-%20Recetas%20por%20género/25%20-%20Menú%20de%20opciones%20y%20ajustes.md#54-perfiles-teclado--mando-1--mando-2),
+> que ya cambia de pestaña con Q/E y hombro izquierdo/derecho— puede añadir un **salto directo**
+> por letra: pulsar la inicial subrayada de una pestaña o de una opción del menú principal la
+> selecciona sin recorrer las intermedias. No es una segunda forma de navegar, es un atajo
+> **encima** de la que ya existe:
+>
+> ```gml
+> // obj_opciones · Step — atajo directo, además de Q/E; NO sustituye la navegación por flechas
+> if (keyboard_check_pressed(ord("C"))) perfil_activo = "controles";   // pestaña "Controles"
+> if (keyboard_check_pressed(ord("V"))) perfil_activo = "video";       // pestaña "Vídeo"
+> if (keyboard_check_pressed(ord("A"))) perfil_activo = "audio";       // pestaña "Audio"
+> ```
+>
+> Dibuja la letra subrayada (o en otro color) dentro de la etiqueta de la pestaña, para que el
+> atajo sea descubrible sin tener que probarlo a ciegas. Dos límites reales: no hay forma de
+> pedirle esto a un **mando** (los mnemonics son un patrón de teclado, el mando ya tiene su
+> propio atajo de hombros) y dos pestañas que empiecen por la misma letra no pueden compartir
+> tecla — resuélvelo con la inicial de una palabra distinta del rótulo si hace falta.
+
 ### 2.3 Ratón, táctil y mando a la vez: manda el último dispositivo usado
 
 Un juego de PC moderno se maneja con las tres cosas, a veces en la misma partida. La regla
@@ -1779,6 +1800,194 @@ function tienda_dibujar(_t) {
 > mismo.** Si un artículo compara daño y otro defensa, no los metas en el mismo campo `stat`:
 > usa `+N` en verde/rojo solo cuando de verdad son comparables, o el color mentirá.
 
+#### l) Campo de texto: el widget que faltaba
+
+> **Cobertura parcial detectada, unida aquí.** Hasta ahora la biblioteca resolvía esto dos
+> veces y a medias: `04 · 11` teclea altas de highscore con `keyboard_lastchar` + backspace (sin
+> cursor ni selección, pensado solo para 3-8 caracteres A-Z/0-9), y `08 · 12` documenta
+> `clipboard_get_text()`/`clipboard_has_text()` como referencia suelta, sin ningún consumidor.
+> Este widget une las dos piezas en un campo genérico — nombre de partida, chat, buscador — con
+> cursor visible, selección y pegar. **No repite ninguna de las dos**: las reutiliza.
+
+```gml
+// scr_ui_campo_texto
+// Verificado: keyboard_string, keyboard_lastchar, clipboard_get_text, clipboard_has_text,
+//             clipboard_set_text, string_copy, string_delete, string_insert, string_length,
+//             string_char_at, string_width, string_height, ord, is_callable, current_time,
+//             keyboard_check, keyboard_check_pressed, draw_line_width, draw_rectangle_color,
+//             draw_get_color, draw_set_alpha, min, max
+
+/// @func campo_texto_nuevo(_max_longitud, _texto_inicial, _filtro)
+/// @desc _filtro es OPCIONAL: una función que recibe un carácter (string de longitud 1) y
+///       devuelve true/false. Sin filtro, se acepta cualquier carácter salvo los de control
+///       (ord() < 32) — lo bastante permisivo para admitir CJK si el campo llega desde un IME
+///       (01 · 12, sección «IME y entrada de texto no ASCII»).
+function campo_texto_nuevo(_max_longitud, _texto_inicial = "", _filtro = undefined) {
+    return {
+        texto: _texto_inicial,
+        cursor: string_length(_texto_inicial) + 1,   // posiciones de string: empiezan en 1
+        seleccion: -1,             // posición del otro extremo de la selección, o -1 si no hay
+        max_longitud: _max_longitud,
+        filtro: _filtro,
+        activo: false,
+        aviso: false,              // true un frame: el último carácter tecleado se rechazó
+        parpadeo_base: 0,
+    };
+}
+
+/// @func campo_texto_activar(_campo)
+/// @desc Llamar al entrar en el campo (clic, Tab, foco de mando). Limpia el buffer de
+///       teclado para que texto tecleado ANTES de entrar no aparezca de golpe.
+function campo_texto_activar(_campo) {
+    keyboard_string     = "";
+    _campo.activo       = true;
+    _campo.parpadeo_base = current_time;   // el cursor arranca siempre visible, no a mitad de ciclo
+}
+
+/// @func campo_texto_desactivar(_campo)
+function campo_texto_desactivar(_campo) {
+    _campo.activo = false;
+    _campo.seleccion = -1;
+}
+
+/// __campo_texto_caracter_valido(_campo, _c) — uso interno
+function __campo_texto_caracter_valido(_campo, _c) {
+    if (is_callable(_campo.filtro)) return _campo.filtro(_c);
+    return (ord(_c) >= 32);   // por defecto: cualquier cosa menos caracteres de control
+}
+
+/// __campo_texto_borrar_seleccion(_campo) — uso interno
+function __campo_texto_borrar_seleccion(_campo) {
+    var _ini = min(_campo.cursor, _campo.seleccion);
+    var _fin = max(_campo.cursor, _campo.seleccion);
+    _campo.texto     = string_delete(_campo.texto, _ini, _fin - _ini);
+    _campo.cursor    = _ini;
+    _campo.seleccion = -1;
+}
+
+/// @func campo_texto_actualizar(_campo)  — Step. No hace nada si el campo no está activo.
+function campo_texto_actualizar(_campo) {
+    if (!_campo.activo) return;
+    _campo.aviso = false;
+
+    // 1 · Texto tecleado ESTE frame (teclado físico, teclado virtual o IME — ver 01 · 12).
+    //     Se vacía `keyboard_string` tras leerlo para quedarnos solo con el delta del frame:
+    //     así se puede insertar en la posición del CURSOR en vez de siempre al final, que es
+    //     lo que haría fiarse del buffer acumulado del propio sistema.
+    var _nuevo = keyboard_string;
+    keyboard_string = "";
+
+    if (_nuevo != "") {
+        var _n = string_length(_nuevo);
+        for (var _i = 1; _i <= _n; _i++) {
+            var _c = string_char_at(_nuevo, _i);
+            if (!__campo_texto_caracter_valido(_campo, _c)) { _campo.aviso = true; continue; }
+            if (string_length(_campo.texto) >= _campo.max_longitud) { _campo.aviso = true; continue; }
+
+            if (_campo.seleccion != -1) __campo_texto_borrar_seleccion(_campo);
+            _campo.texto  = string_insert(_c, _campo.texto, _campo.cursor);
+            _campo.cursor += 1;
+        }
+        // keyboard_lastchar es el último carácter FÍSICO tecleado — no filtra por sí solo
+        // (es independiente de keyboard_string, según el propio manual), pero consumirlo aquí
+        // evita que un backspace/atajo posterior lo vea como "sin procesar".
+        keyboard_lastchar = "";
+    }
+
+    // 2 · Backspace / Delete — NUNCA el backspace interno de keyboard_string: al vaciarlo cada
+    //     frame en el punto 1, ese backspace del sistema ya no tiene nada sobre lo que actuar.
+    if (keyboard_check_pressed(vk_backspace)) {
+        if (_campo.seleccion != -1) __campo_texto_borrar_seleccion(_campo);
+        else if (_campo.cursor > 1) {
+            _campo.texto  = string_delete(_campo.texto, _campo.cursor - 1, 1);
+            _campo.cursor -= 1;
+        }
+    }
+    if (keyboard_check_pressed(vk_delete)) {
+        if (_campo.seleccion != -1) __campo_texto_borrar_seleccion(_campo);
+        else if (_campo.cursor <= string_length(_campo.texto)) {
+            _campo.texto = string_delete(_campo.texto, _campo.cursor, 1);
+        }
+    }
+
+    // 3 · Cursor y selección — Shift+flecha extiende o crea la selección; flecha sola la cierra
+    var _shift = keyboard_check(vk_shift);
+    if (keyboard_check_pressed(vk_left) && _campo.cursor > 1) {
+        if (_shift) { if (_campo.seleccion == -1) _campo.seleccion = _campo.cursor; }
+        else _campo.seleccion = -1;
+        _campo.cursor -= 1;
+    }
+    if (keyboard_check_pressed(vk_right) && _campo.cursor <= string_length(_campo.texto)) {
+        if (_shift) { if (_campo.seleccion == -1) _campo.seleccion = _campo.cursor; }
+        else _campo.seleccion = -1;
+        _campo.cursor += 1;
+    }
+
+    // 4 · Pegar y copiar — el portapapeles de 08 · 12, enganchado por fin a un consumidor real
+    var _ctrl = keyboard_check(vk_control) || keyboard_check(vk_lcontrol);
+    if (_ctrl && keyboard_check_pressed(ord("V")) && clipboard_has_text()) {
+        if (_campo.seleccion != -1) __campo_texto_borrar_seleccion(_campo);
+        var _pegado  = clipboard_get_text();
+        var _espacio = _campo.max_longitud - string_length(_campo.texto);
+        if (string_length(_pegado) > _espacio) _pegado = string_copy(_pegado, 1, max(_espacio, 0));
+        _campo.texto   = string_insert(_pegado, _campo.texto, _campo.cursor);
+        _campo.cursor += string_length(_pegado);
+    }
+    if (_ctrl && keyboard_check_pressed(ord("C")) && _campo.seleccion != -1) {
+        var _ini = min(_campo.cursor, _campo.seleccion);
+        var _fin = max(_campo.cursor, _campo.seleccion);
+        clipboard_set_text(string_copy(_campo.texto, _ini, _fin - _ini));
+    }
+}
+
+/// @func campo_texto_dibujar(_campo, _px, _py)  — Draw GUI
+function campo_texto_dibujar(_campo, _px, _py) {
+    var _col_previo = draw_get_color();
+    var _alto       = string_height(_campo.texto == "" ? "Ag" : _campo.texto);
+
+    draw_text(_px, _py, _campo.texto);
+
+    if (_campo.activo) {
+        if (_campo.seleccion != -1) {
+            var _ini = min(_campo.cursor, _campo.seleccion);
+            var _fin = max(_campo.cursor, _campo.seleccion);
+            var _x1  = _px + string_width(string_copy(_campo.texto, 1, _ini - 1));
+            var _x2  = _px + string_width(string_copy(_campo.texto, 1, _fin - 1));
+            draw_set_alpha(0.35);
+            draw_rectangle_color(_x1, _py, _x2, _py + _alto, c_aqua, c_aqua, c_aqua, c_aqua, false);
+            draw_set_alpha(1);
+        }
+
+        // Cursor parpadeante: medio segundo visible, medio invisible, desde que se activó
+        // el campo — nunca `current_time mod 1000` a secas, o arranca a mitad de parpadeo
+        // según lleve encendido el juego, en vez de siempre visible al entrar en el campo.
+        if ((current_time - _campo.parpadeo_base) mod 1000 < 500) {
+            var _x_cursor = _px + string_width(string_copy(_campo.texto, 1, _campo.cursor - 1));
+            draw_line_width(_x_cursor, _py, _x_cursor, _py + _alto, 2);
+        }
+    }
+
+    draw_set_color(_col_previo);
+}
+```
+
+> ⚠️ **`keyboard_lastchar` no filtra `keyboard_string` por sí solo.** El manual las documenta
+> como variables **independientes**: limpiar `keyboard_lastchar` no borra ni retiene nada de
+> `keyboard_string`. Por eso el filtrado real ocurre carácter a carácter sobre el *delta* de
+> `keyboard_string` (punto 1 de `campo_texto_actualizar`); `keyboard_lastchar` solo se usa para
+> no dejarlo "sin consumir" de cara a otro código que lo esté mirando.
+>
+> 🔺 **Vaciar `keyboard_string` cada frame es la clave de todo el widget.** Es lo que permite
+> insertar el texto tecleado en la posición del **cursor** en vez de siempre al final, y es lo
+> que hace que el backspace/delete propios (punto 2) sean necesarios: el borrado automático que
+> el manual describe para `keyboard_string` actúa sobre el buffer del sistema, que aquí se
+> vacía cada frame antes de que ese borrado tenga nada que morder.
+>
+> 💡 **CJK/IME**: activa `keyboard_virtual_show()` al llamar a `campo_texto_activar()` si el
+> campo debe admitir japonés/chino/coreano — ver
+> [01 · 12, «IME y entrada de texto no ASCII (CJK)»](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md).
+> El widget no necesita ningún cambio: `keyboard_string` es la misma variable en los dos casos.
+
 ### 3.6 Tipografía: bitmap, TTF y SDF
 
 | | **Fuente de sprite (bitmap)** | **TTF/OTF del IDE** | **SDF** |
@@ -2012,6 +2221,8 @@ a tiempo completo. Hay librerías maduras y con licencia MIT en el
 - [03 · 35 — DragoniteSpam: el evento Draw GUI](../03%20-%20Cursos%20%28YouTube%29/35%20-%20DragoniteSpam%20-%20Getting%20Started%20-%20Evento%20Draw%20GUI.md) — la introducción, si esto te queda grande
 - [07 · 18 — Scribble, texto rico](../07%20-%20Ecosistema/18%20-%20Scribble%20-%20texto%20rico%20%28guía%20en%20español%29.md) · [10 · 10 — Input y Scribble](../10%20-%20Cursos%20en%20español/10%20-%20Herramientas%20de%20la%20comunidad%20-%20Input%20y%20Scribble.md)
 - [08 · 03 — Texto y fuentes](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md) · [08 · 05 — Superficies](../08%20-%20Referencia%20GML%20completa/05%20-%20Superficies.md) · [08 · 20 — Lo que el manual no documenta](../08%20-%20Referencia%20GML%20completa/20%20-%20Lo%20que%20el%20manual%20no%20documenta.md)
+- [08 · 12 — Strings](../08%20-%20Referencia%20GML%20completa/12%20-%20Strings.md#portapapeles) — `clipboard_get_text`/`has_text`/`set_text` y las funciones de manipulación que usa `campo_texto_actualizar()` (§3.5l)
+- [04 · 11 — Arcade y juegos de un botón](../04%20-%20Recetas%20por%20género/11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md) — la alta de highscore con `keyboard_lastchar`, el caso simple que §3.5l generaliza sin repetirlo
 - [`scr_tween.gml`](../06%20-%20Assets%20y%20Scripts/scr_tween.gml) · [`scr_math_util.gml`](../06%20-%20Assets%20y%20Scripts/scr_math_util.gml) — tweens y easing listos para copiar
 - [11 · Catálogo de código descargado](../11%20-%20Código%20descargado/_CATALOGO.md) — las librerías de UI de la comunidad
 - [05 · 04 — Convenciones y estilo GML](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md)
@@ -2097,6 +2308,13 @@ Consultadas y abiertas el **2026-09-06**.
   <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Maths_And_Numbers/Angles_And_Distance/point_distance.htm>
 - `method_get_self` (recuperar el contexto de un botón de la tienda, §3.5k):
   <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Variable_Functions/method_get_self.htm>
+- `keyboard_string` / `keyboard_lastchar` (campo de texto, §3.5l):
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Game_Input/Keyboard_Input/keyboard_string.htm> ·
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Game_Input/Keyboard_Input/keyboard_lastchar.htm>
+- `clipboard_get_text` / `clipboard_has_text` / `clipboard_set_text` (pegar y copiar, §3.5l):
+  <https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Strings/clipboard_get_text.htm>
+- `string_insert` / `string_delete` / `string_copy` (edición del texto, §3.5l):
+  <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/Strings/string_insert.htm>
 
 **Correcciones que salieron de verificar y conviene no perder**
 

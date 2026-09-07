@@ -866,7 +866,10 @@ if (!variable_global_exists("player_state"))
    (ver receta 05).
 7. **Minimapa** — comparte código con la receta 06.
 8. **Local co-op** — segundo jugador con `objPlayer2`, cámara que encuadra
-   ambos.
+   ambos. Para que cada jugador tenga sus propias teclas/botones (no solo su propio mando),
+   el punto de partida es
+   [25 · Menú de opciones §5.8](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md#58-perfiles-de-input-por-jugador-local-co-op) —
+   un `global.controles_jugador[n]` en vez de un único `global.controles`.
 
 **Cuándo pasar a otra receta:** cuando tengas 3 armas, 2 tipos de enemigo y
 una sala que se cierra, estás listo para la receta 03 (shmup), que formaliza

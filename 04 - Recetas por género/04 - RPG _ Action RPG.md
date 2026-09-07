@@ -137,7 +137,9 @@ correcta**:
 stats.attack += espada.bonus;
 
 // ✅ Base + suma de modificadores: se recalcula siempre.
-stats.get_attack() == stats.attack_base + equipo.suma("attack") + buffs.attack;
+stats.get_attack = function() {
+    return stats.attack_base + equipo.suma("attack") + buffs.attack;
+};
 ```
 
 Recalcular en vez de acumular elimina toda una familia de bugs: stats que no
@@ -148,7 +150,10 @@ vuelven a su valor, dobles equipamientos, objetos que se pierden.
 La fórmula más usada en la industria es potencial:
 
 ```gml
-xp_needed(level) = floor(base * power(level, exponente));
+function xp_needed(_level)
+{
+    return floor(base * power(_level, exponente));
+}
 ```
 
 | Exponente | Sensación | Uso |
@@ -335,7 +340,7 @@ function Stats(_vida, _ataque, _defensa, _velocidad) constructor
 
     /// @desc Fórmula de daño base.
     ///       La división por 2 evita que la defensa anule el ataque.
-    calcular_daño = function(_stats_atacante, _stats_defensor)
+    calcular_dano = function(_stats_atacante, _stats_defensor)
     {
         var _atk = _stats_atacante.get("attack");
         var _def = _stats_defensor.get("defense");
@@ -653,6 +658,88 @@ function Equipment() constructor
 }
 ```
 
+**Peso y capacidad de carga** (informe de auditoría r3-2026-09-06, tema 3: mencionado en
+`04 · 09 §4.2` como «opcional», sin campo ni fórmula en ningún sitio de la biblioteca). Se añade
+como funciones sueltas alrededor de `Inventory` de arriba, **sin tocar su constructor**: así
+cualquier código existente que llama a `new Inventory(_capacidad)` sigue compilando igual.
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_inventory_peso — extensión opcional sobre Inventory (arriba). No forma
+// parte del constructor: asigna `peso_maximo` a la instancia tras crearla
+// (o dentro de tu propio constructor si extiendes Inventory), y solo si lo
+// asignas se aplica ningún límite.
+// ---------------------------------------------------------------------------
+// var _inv = new Inventory(20);
+// _inv.peso_maximo = 60;             // opcional; sin asignar = sin límite de peso
+
+/// @func inventory_peso_total(_inventario)
+/// @desc Suma item_get_def(item_id).weight * cantidad de cada pila (§5.3). Un
+///       ítem sin campo "weight" cuenta como peso 0: no rompe catálogos que
+///       todavía no lo declaren.
+/// @return {Real}
+function inventory_peso_total(_inventario)
+{
+    var _total = 0;
+    var _len   = array_length(_inventario.slots);
+
+    for (var _i = 0; _i < _len; _i++)
+    {
+        var _slot = _inventario.slots[_i];
+        var _def  = item_get_def(_slot.item_id);
+        var _peso = (_def != undefined && variable_struct_exists(_def, "weight"))
+            ? _def.weight : 0;
+
+        _total += _peso * _slot.cantidad;
+    }
+    return _total;
+}
+
+/// @func inventory_add_con_peso(_inventario, _item_id, _cantidad)
+/// @desc Envuelve Inventory.add() (arriba) SIN modificarla: si la instancia
+///       tiene `peso_maximo` asignado, comprueba que añadir no lo supere
+///       ANTES de delegar en add() — comprobar antes que efecto, como en
+///       04 · 09 §5.1.
+/// @return {Bool}
+function inventory_add_con_peso(_inventario, _item_id, _cantidad)
+{
+    if (variable_struct_exists(_inventario, "peso_maximo")
+        && _inventario.peso_maximo != undefined)
+    {
+        var _def  = item_get_def(_item_id);
+        var _peso = (_def != undefined && variable_struct_exists(_def, "weight"))
+            ? _def.weight : 0;
+
+        if (inventory_peso_total(_inventario) + (_peso * _cantidad) > _inventario.peso_maximo)
+        {
+            return false;   // se pasaría del límite: no añade nada
+        }
+    }
+    return _inventario.add(_item_id, _cantidad);
+}
+
+/// @func jugador_penalizacion_por_peso(_inventario, _fraccion_sobrecarga = 0.85)
+/// @desc Multiplicador de velocidad según cuánto peso lleva el jugador. Por
+///       debajo de `_fraccion_sobrecarga` de `peso_maximo` no hay
+///       penalización; a partir de ahí baja de forma lineal hasta 0.4 al
+///       llegar al 100 %. Sin `peso_maximo` asignado, siempre devuelve 1.0.
+/// @return {Real} Multiplicador 0.4..1.0 para aplicar a `objPlayer.hspeed`/`vspeed`.
+function jugador_penalizacion_por_peso(_inventario, _fraccion_sobrecarga = 0.85)
+{
+    if (!variable_struct_exists(_inventario, "peso_maximo")
+        || _inventario.peso_maximo == undefined)
+    {
+        return 1.0;
+    }
+
+    var _fraccion = inventory_peso_total(_inventario) / _inventario.peso_maximo;
+    if (_fraccion <= _fraccion_sobrecarga) return 1.0;
+
+    var _exceso = (_fraccion - _fraccion_sobrecarga) / (1 - _fraccion_sobrecarga);   // 0..1
+    return lerp(1.0, 0.4, clamp(_exceso, 0, 1));
+}
+```
+
 ### 5.3 Contenido en JSON
 
 ```json
@@ -666,6 +753,7 @@ function Equipment() constructor
     "stackable": true,
     "icon": "sprIconPotion",
     "value": 25,
+    "weight": 0.2,
     "effect": { "heal": 50 }
   },
   {
@@ -677,6 +765,7 @@ function Equipment() constructor
     "slot": "weapon",
     "icon": "sprIconSword",
     "value": 150,
+    "weight": 4,
     "bonuses": { "attack": 12 }
   },
   {
@@ -688,10 +777,16 @@ function Equipment() constructor
     "slot": "armor",
     "icon": "sprIconArmor",
     "value": 100,
+    "weight": 6,
     "bonuses": { "defense": 7, "hp": 15 }
   }
 ]
 ```
+
+> ⚠️ `"weight"` es una extensión de esta biblioteca (informe de auditoría r3-2026-09-06, tema 3),
+> no un campo que exija el motor: `items_load()` de abajo no valida el JSON contra un esquema,
+> así que un ítem que no lo declare simplemente pesa 0 en `inventory_peso_total()` (§5.2) —
+> no hace falta añadirlo a todo tu catálogo de golpe, solo a lo que quieras que pese.
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -1138,7 +1233,7 @@ function ejecutar_accion_jugador(_indice)
                 return;
             }
 
-            var _dano = global.player_stats.calcular_daño(
+            var _dano = global.player_stats.calcular_dano(
                 global.player_stats, _objetivo.stats);
 
             _objetivo.stats.hp -= _dano;
@@ -1180,7 +1275,7 @@ function resolver_accion(_accion)
     {
         if (!instance_exists(_accion.origen)) return;
 
-        var _dano = _accion.origen.stats.calcular_daño(
+        var _dano = _accion.origen.stats.calcular_dano(
             _accion.origen.stats, global.player_stats);
 
         global.player_stats.hp -= _dano;

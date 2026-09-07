@@ -451,9 +451,11 @@ for (var _i = 0; _i < array_length(global.huerto); _i++) {
     global.huerto[_i] = { estado: EstadoCultivo.VACIA, tipo: -1, edad_dias: 0, regada: false };
 }
 
+#macro DIAS_VENTANA_COSECHA 3   // días que aguanta MADURA sin cosechar antes de marchitarse
+
 global.tipos_semilla = [
-    { nombre: "Nabo",   dias_por_etapa: 1, etapas: 4, valor_venta: 60 },
-    { nombre: "Patata", dias_por_etapa: 2, etapas: 3, valor_venta: 80 },
+    { id: "nabo",   nombre: "Nabo",   dias_por_etapa: 1, etapas: 4, valor_venta: 60 },
+    { id: "patata", nombre: "Patata", dias_por_etapa: 2, etapas: 3, valor_venta: 80 },
 ];
 
 /// @func huerto_indice(_col, _fila)
@@ -476,6 +478,10 @@ function cultivo_regar(_col, _fila) { global.huerto[huerto_indice(_col, _fila)].
 /// @desc Se llama UNA vez por celda, desde el oyente de "nuevo_dia" de abajo. Sin agua no hay
 ///       fallo brusco: la planta se marchita, no desaparece — el jugador puede arrancarla y
 ///       volver a intentarlo, coherente con la regla de «ausencia de fracaso duro» de §5.1.
+///       Tampoco lo hay al madurar y no cosechar a tiempo: hay DIAS_VENTANA_COSECHA de margen
+///       antes de que MADURA pase a MARCHITA (informe de auditoría r3-2026-09-06, tema 45: la
+///       versión anterior de esta función se quedaba en MADURA para siempre, sin ventana ni
+///       forma de perder la cosecha por descuido).
 function cultivo_avanzar_dia(_i)
 {
     var _c = global.huerto[_i];
@@ -488,12 +494,50 @@ function cultivo_avanzar_dia(_i)
     var _semilla       = global.tipos_semilla[_c.tipo];
     var _etapa_actual  = min(floor(_c.edad_dias / _semilla.dias_por_etapa), _semilla.etapas - 1);
     _c.estado = (_etapa_actual >= _semilla.etapas - 1) ? EstadoCultivo.MADURA : EstadoCultivo.CRECIENDO;
+
+    if (_c.estado == EstadoCultivo.MADURA) {
+        var _dias_maduro = _c.edad_dias - _semilla.dias_por_etapa * (_semilla.etapas - 1);
+        if (_dias_maduro > DIAS_VENTANA_COSECHA) { _c.estado = EstadoCultivo.MARCHITA; }
+    }
 }
 
 /// obj_calendario · Create — recorre TODO el huerto una vez por día, no una vez por frame
 senal_escuchar("nuevo_dia", function(_d) {
     for (var _i = 0; _i < array_length(global.huerto); _i++) { cultivo_avanzar_dia(_i); }
 });
+
+/// @func cultivo_cosechar(_col, _fila)
+/// @desc Cierra el bucle que cultivo_avanzar_dia() deja abierto (informe de auditoría
+///       r3-2026-09-06, tema 45: «04 · 45 §5.3 solo llega a EstadoCultivo.MADURA», sin ninguna
+///       función que retire la planta ni entregue nada). Entrega la cosecha al inventario del
+///       jugador — reutiliza `Inventory.add()` de 04 · 04 §5.2 / 04 · 09 §4.2, que ya vive en
+///       `global.inventory` en cualquier receta que haya cargado items.json — y deja la celda
+///       vacía para volver a plantar.
+/// @return {Bool} Si se cosechó algo.
+function cultivo_cosechar(_col, _fila)
+{
+    var _i = huerto_indice(_col, _fila);
+    var _c = global.huerto[_i];
+    if (_c.estado != EstadoCultivo.MADURA) { return false; }
+
+    var _semilla = global.tipos_semilla[_c.tipo];
+
+    // ⚠️ Inventory.add() (04 · 04 §5.2) llama a item_get_def() y falla en silencio (con un
+    // show_debug_message) si el id no está en items.json (04 · 04 §5.3): el `id` de cada
+    // entrada de tipos_semilla DEBE tener su ficha ahí, con el mismo id, antes de cosechar nada.
+    global.inventory.add(_semilla.id, 1);
+
+    global.huerto[_i] = { estado: EstadoCultivo.VACIA, tipo: -1, edad_dias: 0, regada: false };
+    return true;
+}
+
+/// @func cultivo_arrancar(_col, _fila)
+/// @desc Limpia una celda MARCHITA (o cualquier otra) sin entregar nada, para volver a
+///       plantar. Sin esto, una celda que se marchitó se queda ocupada para siempre.
+function cultivo_arrancar(_col, _fila)
+{
+    global.huerto[huerto_indice(_col, _fila)] = { estado: EstadoCultivo.VACIA, tipo: -1, edad_dias: 0, regada: false };
+}
 ```
 
 ### 5.4 · Sistema crítico 3 — relaciones con NPC: regalos y corazones
@@ -547,6 +591,165 @@ function corazones_de(_vn_state, _personaje, _afinidad_por_corazon = 25)
   [13 · 12 §3.5 y §6.5](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/12%20-%20Diseño%20narrativo%20y%20diálogos.md#65-un-gestor-de-misiones-mínimo-con-estado-fallada).
 - Afinidad y guardado del estado de la historia: [04 · 10 §5.2](./10%20-%20Visual%20Novel%20y%20narrativa.md#52-estado-de-la-historia).
 - Señales para desacoplar calendario, cultivos y relaciones entre sí: [04 · 16](./16%20-%20Señales%20y%20desacoplamiento.md).
+- Ganado, el otro medio del bucle de granja que faltaba: §5.6, justo debajo.
+
+### 5.6 · Ganado
+
+El informe de auditoría de esta biblioteca (r3-2026-09-06, tema 46) lo marca como el hueco más
+caro del género después de la cosecha: **cero resultados de animales de granja** en toda la
+biblioteca. *Stardew Valley* reparte su economía casi a partes iguales entre cultivos y ganado
+(huevos, leche, lana), así que un cozy sin animales solo tiene la mitad del bucle de §5.1.
+
+**Qué reutiliza, y qué NO.** `Needs()` de
+[04 · 09 §5.0](./09%20-%20Survival%20y%20crafting.md#50-necesidades) da el struct correcto —cinco
+campos 0..100, `consumir()`, `serialize()`— pero está **calibrado por fotograma**:
+`tasa_hambre = 0.030` vacía el 0..100 en unos 3 300 frames (~55 s a 60 fps), y
+`daño_por_frame()` devuelve daño **por fotograma**, no por día. Llamar a
+`needs.update()`/`needs.daño_por_frame()` una sola vez al día —la cadencia de este documento,
+la señal `nuevo_dia` de §5.2— sería 1 200 veces más lento de lo que sus propios nombres
+prometen: el mismo tipo de error de unidades que el informe de auditoría destapó en
+`skeleton_animation_get_position()` (devuelve 0..1, no segundos) en otro documento de esta
+biblioteca. Por eso `Animal()` reutiliza el **struct** de `Needs` —los campos, `consumir()`,
+`serialize()`/`deserialize()`— pero escribe su **propia** degradación diaria en
+`avanzar_dia()`, en vez de llamar a los métodos calibrados por frame.
+
+```gml
+/// scr_ganado — struct Animal(_tipo, _pos_x, _pos_y) sobre Needs() (04 · 09 §5.0, solo como
+/// contenedor de datos — ver el aviso de arriba) y la señal "nuevo_dia" (§5.2).
+/// Verificado: random(n), max, min, array_delete, array_push, ya en uso en esta biblioteca.
+/// pos_x/pos_y en vez de x/y aunque esto sea un struct y no una instancia: la regla de
+/// convenciones de esta biblioteca (05 · 04) evita x/y como variable propia sin excepción.
+
+global.tipos_animal = [
+    { id: "gallina", nombre: "Gallina", producto: "huevo", dias_produccion: 1, umbral_feliz: 60 },
+    { id: "vaca",    nombre: "Vaca",    producto: "leche", dias_produccion: 2, umbral_feliz: 55 },
+];
+
+/// @func Animal(_tipo, _pos_x, _pos_y)
+/// @param {Real} _tipo  Índice en global.tipos_animal.
+function Animal(_tipo, _pos_x, _pos_y) constructor
+{
+    tipo   = _tipo;
+    pos_x  = _pos_x;
+    pos_y  = _pos_y;
+    needs  = new Needs();      // reutiliza el struct de 04 · 09 §5.0 — NO se llama a needs.update()
+
+    dias_desde_produccion = 0;
+    dias_sin_comer        = 0;
+    edad_dias             = 0;
+
+    /// @desc Alimenta al animal HOY. Needs.consumir() (04 · 09 §5.0) es una suma con
+    ///       clamp a 100: no depende de la cadencia de llamada, se reutiliza tal cual.
+    alimentar = function()
+    {
+        needs.consumir({ hambre: 40 });
+        dias_sin_comer = 0;
+    };
+
+    /// @desc Se llama UNA vez por día, desde el oyente de "nuevo_dia" — mismo patrón que
+    ///       cultivo_avanzar_dia() de §5.3.
+    /// @return {Struct|Undefined} { producto, cantidad } si produjo hoy; { producto: "murio" }
+    ///         si murió de hambre; undefined si no pasó nada especial.
+    avanzar_dia = function()
+    {
+        edad_dias += 1;
+
+        // Degradación DIARIA propia — NO needs.update(), calibrado por frame (ver aviso arriba).
+        needs.hambre = max(0, needs.hambre - 35);
+        dias_sin_comer += 1;
+
+        if (dias_sin_comer >= 4) { return { producto: "murio", cantidad: 0 }; }
+
+        var _def   = global.tipos_animal[tipo];
+        var _feliz = (needs.hambre >= _def.umbral_feliz);
+
+        if (_feliz)
+        {
+            dias_desde_produccion += 1;
+            if (dias_desde_produccion >= _def.dias_produccion)
+            {
+                dias_desde_produccion = 0;
+                return { producto: _def.producto, cantidad: 1 };
+            }
+        }
+        return undefined;
+    };
+
+    /// @desc Probabilidad de cría simple: solo si está bien alimentado, una tirada diaria baja.
+    /// @return {Bool}
+    intentar_reproducir = function(_prob_diaria = 0.05)
+    {
+        return (needs.hambre >= global.tipos_animal[tipo].umbral_feliz) && (random(1) < _prob_diaria);
+    };
+
+    serialize = function()
+    {
+        return {
+            tipo: tipo, pos_x: pos_x, pos_y: pos_y, needs: needs.serialize(),
+            dias_desde_produccion: dias_desde_produccion,
+            dias_sin_comer: dias_sin_comer, edad_dias: edad_dias
+        };
+    };
+
+    static deserialize = function(_d)
+    {
+        var _a = new Animal(_d.tipo, _d.pos_x, _d.pos_y);
+        _a.needs                   = Needs.deserialize(_d.needs);
+        _a.dias_desde_produccion   = _d.dias_desde_produccion;
+        _a.dias_sin_comer          = _d.dias_sin_comer;
+        _a.edad_dias               = _d.edad_dias;
+        return _a;
+    };
+}
+
+global.animales = [];   // array de Animal — el corral entero, como datos (mismo criterio que §5.3)
+
+/// @func animal_registrar(_tipo, _pos_x, _pos_y)
+function animal_registrar(_tipo, _pos_x, _pos_y)
+{
+    array_push(global.animales, new Animal(_tipo, _pos_x, _pos_y));
+}
+
+/// obj_calendario · Create — recorre TODO el corral una vez por día, junto al huerto de §5.3
+senal_escuchar("nuevo_dia", function(_d) {
+    for (var _i = array_length(global.animales) - 1; _i >= 0; _i--)
+    {
+        var _animal   = global.animales[_i];
+        var _resultado = _animal.avanzar_dia();
+
+        if (_resultado == undefined) { continue; }
+
+        if (_resultado.producto == "murio")
+        {
+            // ⚠️ Sin fracaso duro (§5.1): perder un animal por descuido escuece, pero el
+            // jugador sigue jugando. Notifícalo con una señal propia en vez de un array
+            // aparte de "eventos del día": reutiliza el mismo bus de 04 · 16.
+            senal_emitir("animal_murio", { tipo: _animal.tipo, pos_x: _animal.pos_x, pos_y: _animal.pos_y });
+            array_delete(global.animales, _i, 1);
+            continue;
+        }
+
+        // Producto al inventario del jugador — mismo Inventory.add() que cultivo_cosechar()
+        // (§5.3) y con el mismo requisito: el id del producto debe existir en items.json
+        // (04 · 04 §5.3).
+        global.inventory.add(_resultado.producto, _resultado.cantidad);
+
+        if (_animal.intentar_reproducir())
+        {
+            array_push(global.animales, new Animal(_animal.tipo, _animal.pos_x + 16, _animal.pos_y));
+        }
+    }
+});
+```
+
+> 💡 **Dos motivos distintos para dos decisiones distintas.** El `for` recorre `global.animales`
+> **hacia atrás** porque `array_delete()` desplaza los elementos posteriores un hueco hacia
+> abajo: en un bucle hacia delante, borrar el índice `_i` hace que el elemento que antes estaba
+> en `_i + 1` pase a `_i` y el `for` lo salte sin procesarlo. Que la cría nazca al final del array
+> y **no** se procese el mismo día es un motivo aparte: `array_length(global.animales) - 1` se
+> evalúa **una sola vez**, al entrar en el `for` (igual que en C), así que cualquier animal que
+> `array_push()` añada más allá de esa longitud original queda fuera del rango del bucle en
+> curso, sin importar si se recorriera hacia delante o hacia atrás.
 
 ---
 
@@ -683,6 +886,53 @@ if (!is_undefined(_datos))
 > Sin tope, dejar el juego cerrado una semana es estrictamente mejor que jugar; con un tope
 > generoso (8-24 h es habitual en el género) el progreso offline sigue premiando volver, sin
 > volverse el único bucle que importa.
+
+**Con rendimientos decrecientes en vez de tope duro** (informe de auditoría r3-2026-09-06, tema
+98). `progreso_offline_aplicar()` de arriba paga en **lineal** hasta `_tope_horas` y **cero** a
+partir de ahí: un jugador que vuelve a las 8h01m con `_tope_horas = 8` pierde justo el minuto 481,
+mientras que uno que vuelve a las 7h59m no pierde nada — es un acantilado, no una curva. La
+alternativa reutiliza `progresion_logaritmica(_nivel, _base)` de
+[13 · 13 §8.1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/13%20-%20Matemáticas%20aplicadas%20al%20juego.md#81--las-cinco-formas-y-qué-comunica-cada-una)
+**tal cual, sin reescribir su fórmula** — solo se compone distinto: las horas fuera hacen de
+`_nivel`, para que cada hora adicional siga sumando algo pero cada vez menos, sin ningún corte.
+
+```gml
+/// scr_progreso_offline (continuación) — variante SIN tope duro sobre progreso_offline_aplicar()
+/// de arriba. No la sustituye: elige una de las dos según qué prefieras para tu juego.
+
+/// @func progreso_offline_aplicar_decreciente(_datos, _produccion_por_segundo, _escala_horas)
+/// @desc Las primeras horas pagan casi lo mismo que la versión lineal (para _horas_fuera
+///       pequeño frente a _escala_horas, ln(1+x) ≈ x); pasada _escala_horas, cada hora extra
+///       rinde cada vez menos, sin un tope que la corte de golpe.
+/// @param {Struct} _datos                  Lo que devolvió cargar_partida() (01 · 14 §9).
+/// @param {Real}   _produccion_por_segundo Suma de fuentes activas (13 · 01 §4.1).
+/// @param {Real}   _escala_horas           Horas a las que la curva empieza a notarse (4-8 es habitual).
+/// @return {Struct} { ganado, horas_fuera }
+function progreso_offline_aplicar_decreciente(_datos, _produccion_por_segundo, _escala_horas)
+{
+    if (!variable_struct_exists(_datos, "guardado_en")) {
+        return { ganado: 0, horas_fuera: 0 };
+    }
+
+    var _horas_fuera = date_second_span(_datos.guardado_en, date_current_datetime()) / 3600;
+
+    // progresion_logaritmica(_nivel, _base) = _base * ln(_nivel + 1) — 13 · 13 §8.1, sin tocar
+    // su cuerpo. Aquí _nivel = horas_fuera / _escala_horas y se reescala el resultado × _escala_horas
+    // para volver a "horas equivalentes", en vez del "valor bruto del nivel 1" con el que se
+    // pensó originalmente para curvas de XP.
+    var _horas_efectivas = progresion_logaritmica(_horas_fuera / _escala_horas, 1) * _escala_horas;
+
+    return {
+        ganado      : _produccion_por_segundo * _horas_efectivas * 3600,
+        horas_fuera : _horas_fuera
+    };
+}
+```
+
+> 💡 **Por qué no hace falta `clamp()`.** La curva no necesita tope porque ya se aplana sola: la
+> derivada de `escala·ln(h/escala + 1)` respecto a `h` es `escala/(h + escala)`, que vale 1 en
+> `h = 0` (paga igual que la lineal al principio) y tiende a 0 según `h` crece — cada hora extra
+> vale menos que la anterior sin que ningún `if` tenga que decirlo.
 
 El **prestigio** —reiniciar el progreso a cambio de una moneda permanente que acelera la
 siguiente vuelta— es el mismo patrón de monedas múltiples que ya construyó

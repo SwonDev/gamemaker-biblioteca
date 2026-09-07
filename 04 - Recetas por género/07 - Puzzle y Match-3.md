@@ -150,12 +150,19 @@ iguales hay consecutivas hacia la derecha / hacia abajo. Si ≥ 3, es match.
 
 ```gml
 // Horizontal
-for x, for y:
-    tipo = grid[x][y]
-    if tipo == 0: continue
-    cuenta = 1
-    while (x + cuenta < ancho && grid[x + cuenta][y] == tipo) cuenta++
-    if cuenta >= 3: registrar match
+for (var _x = 0; _x < ancho; _x++)
+{
+    for (var _y = 0; _y < alto; _y++)
+    {
+        var _tipo = grid[_x][_y];
+        if (_tipo == 0) continue;
+        var _cuenta = 1;
+        while (_x + _cuenta < ancho && grid[_x + _cuenta][_y] == _tipo) _cuenta++;
+        if (_cuenta >= 3) {
+            // registrar match
+        }
+    }
+}
 ```
 
 **Cuidado con las coincidencias superpuestas:** una línea de 5 en horizontal

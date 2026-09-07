@@ -320,27 +320,27 @@ function TDGrid() constructor
 enum TargetMode { first, last, strongest, closest }
 enum DamageType { fisico, area, hielo, laser }
 
-/// @func TowerDef(_id, _nombre, _coste, _rango, _daño, _cadencia, _tipo_daño)
+/// @func TowerDef(_id, _nombre, _coste, _rango, _dano, _cadencia, _tipo_dano)
 function TowerDef(
-    _id, _nombre, _coste, _rango, _daño, _cadencia, _tipo_daño
+    _id, _nombre, _coste, _rango, _dano, _cadencia, _tipo_dano
 ) constructor
 {
     id         = _id;
     nombre     = _nombre;
     coste      = _coste;
     rango      = _rango;        // en píxeles
-    daño       = _daño;
+    dano       = _dano;
     cadencia   = _cadencia;     // frames entre disparos
-    tipo_daño  = _tipo_daño;
+    tipo_dano  = _tipo_dano;
 
     sprite        = sprTowerArrow;
     sprite_proy   = sprArrow;
     vel_proy      = 8;
-    radio_area    = 0;          // solo para tipo_daño == area
+    radio_area    = 0;          // solo para tipo_dano == area
     factor_lentitud = 1.0;      // solo para hielo (0.5 = mitad de velocidad)
     duracion_lentitud = 0;
 
-    // Mejoras: array de { coste, rango+, daño+, cadencia- }
+    // Mejoras: array de { coste, rango+, dano+, cadencia- }
     mejoras = [];
 
     /// @desc Coste total acumulado tras N mejoras
@@ -365,7 +365,7 @@ function TowerDef(
     {
         var _s = {
             rango:    rango,
-            daño:     daño,
+            dano:     dano,
             cadencia: cadencia
         };
 
@@ -373,7 +373,7 @@ function TowerDef(
         {
             var _m = mejoras[_i];
             if (variable_struct_exists(_m, "rango"))    _s.rango    += _m.rango;
-            if (variable_struct_exists(_m, "daño"))     _s.daño     += _m.daño;
+            if (variable_struct_exists(_m, "dano"))     _s.dano     += _m.dano;
             if (variable_struct_exists(_m, "cadencia")) _s.cadencia -= _m.cadencia;
         }
 
@@ -393,8 +393,8 @@ function towers_init()
     _arrow.sprite_proy = sprArrow;
     _arrow.vel_proy    = 9;
     _arrow.mejoras = [
-        { coste: 50, daño: 8,  rango: 15 },
-        { coste: 80, daño: 12, rango: 20, cadencia: 4 }
+        { coste: 50, dano: 8,  rango: 15 },
+        { coste: 80, dano: 12, rango: 20, cadencia: 4 }
     ];
     global.tower_defs.arrow = _arrow;
 
@@ -405,8 +405,8 @@ function towers_init()
     _cannon.vel_proy    = 5;
     _cannon.radio_area  = 40;
     _cannon.mejoras = [
-        { coste: 110, daño: 20, radio_area: 10 },
-        { coste: 180, daño: 30, radio_area: 15, cadencia: 15 }
+        { coste: 110, dano: 20, radio_area: 10 },
+        { coste: 180, dano: 30, radio_area: 15, cadencia: 15 }
     ];
     global.tower_defs.cannon = _cannon;
 
@@ -427,8 +427,8 @@ function towers_init()
                               DamageType.laser);
     _laser.sprite = sprTowerLaser;
     _laser.mejoras = [
-        { coste: 160, daño: 5, rango: 25 },
-        { coste: 260, daño: 8, rango: 30, cadencia: 1 }
+        { coste: 160, dano: 5, rango: 25 },
+        { coste: 260, dano: 8, rango: 30, cadencia: 1 }
     ];
     global.tower_defs.laser = _laser;
 }
@@ -550,11 +550,11 @@ function buscar_objetivo(_rango, _modo)
 
 function disparar(_objetivo, _stats)
 {
-    switch (def.tipo_daño)
+    switch (def.tipo_dano)
     {
         case DamageType.laser:
             // Hitscan: daño instantáneo + línea de láser
-            _objetivo.hp -= _stats.daño;
+            _objetivo.hp -= _stats.dano;
 
             with (instance_create_depth(x, y, -50, objLaserBeam))
             {
@@ -571,9 +571,9 @@ function disparar(_objetivo, _stats)
             var _p = instance_create_depth(x, y - 8, -40, objProjectile);
             _p.target   = _objetivo;
             _p.velocidad = def.vel_proy;
-            _p.daño     = _stats.daño;
+            _p.dano     = _stats.dano;
             _p.sprite_index = def.sprite_proy;
-            _p.tipo_daño    = def.tipo_daño;
+            _p.tipo_dano    = def.tipo_dano;
             _p.radio_area   = def.radio_area;
             _p.factor_lentitud   = def.factor_lentitud;
             _p.duracion_lentitud = def.duracion_lentitud;
@@ -594,8 +594,8 @@ function disparar(_objetivo, _stats)
 // ---------------------------------------------------------------------------
 target      = noone;
 velocidad   = 8;
-daño        = 10;
-tipo_daño   = DamageType.fisico;
+dano        = 10;
+tipo_dano   = DamageType.fisico;
 radio_area  = 0;
 
 factor_lentitud   = 1.0;
@@ -649,7 +649,7 @@ if (target != noone && instance_exists(target) &&
 // ---------------------------------------------------------------------------
 function impactar(_enemigo)
 {
-    switch (tipo_daño)
+    switch (tipo_dano)
     {
         case DamageType.area:
             // Daño en área: todos los enemigos dentro del radio
@@ -658,7 +658,7 @@ function impactar(_enemigo)
             {
                 if (point_distance(_enemigo.x, _enemigo.y, x, y) <= other.radio_area)
                 {
-                    hp -= other.daño;
+                    hp -= other.dano;
                     _n++;
                 }
             }
@@ -673,7 +673,7 @@ function impactar(_enemigo)
             break;
 
         case DamageType.hielo:
-            _enemigo.hp -= daño;
+            _enemigo.hp -= dano;
             _enemigo.aplicar_lentitud(factor_lentitud, duracion_lentitud);
 
             with (instance_create_depth(_enemigo.x, _enemigo.y, -30, objFrostBurst))
@@ -683,7 +683,7 @@ function impactar(_enemigo)
             break;
 
         default:
-            _enemigo.hp -= daño;
+            _enemigo.hp -= dano;
 
             // Chispas
             part_particles_create(objFx.ps, x, y, objFx.pt_spark, 5);

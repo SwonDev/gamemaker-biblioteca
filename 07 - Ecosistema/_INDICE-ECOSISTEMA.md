@@ -30,6 +30,7 @@
 | 19 | [Chatterbox — diálogos Yarn (guía ES)](./19%20-%20Chatterbox%20-%20di%C3%A1logos%20Yarn%20%28gu%C3%ADa%20en%20espa%C3%B1ol%29.md) | **Guía traducida**: diálogos ramificados con Yarn, opciones, variables, el bucle IsWaiting | 1 |
 | 20 | [SNAP — datos y formatos (guía ES)](./20%20-%20SNAP%20-%20datos%20y%20formatos%20%28gu%C3%ADa%20en%20espa%C3%B1ol%29.md) | **Guía traducida**: serializar structs a/desde JSON, CSV, YAML, XML, MessagePack. API verificada | 1 |
 | 21 | [Vinyl — audio avanzado (guía ES)](./21%20-%20Vinyl%20-%20audio%20avanzado%20%28gu%C3%ADa%20en%20espa%C3%B1ol%29.md) | **Guía traducida**: mezclador por etiqueta, fundidos, ducking, sincronía con el beat. API verificada | 1 |
+| 23 | [Arte generado por IA](./23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md) | 🆕 Qué sirve hoy (referencia, upscalers, texturas) y qué no (consistencia de personaje, animación, pixel art real); técnicas de consistencia de estilo (seed, ControlNet, LoRA); estado legal verificado (U.S. Copyright Office, Content Survey de Steam, AI Disclosure de itch.io) | — |
 
 ### Documentos complementarios en `05 - Referencia`
 

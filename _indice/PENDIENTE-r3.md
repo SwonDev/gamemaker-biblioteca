@@ -63,8 +63,9 @@ mnemónicos (`r3-input-control.md`, 3) · economía con código y cosecha (`r3-s
 
 ## Dos herramientas quedaron a medio hacer
 
-- **`_indice/verificar-espejo.py`** — terminado y **ya integrado como paso 11 de
-  `actualizar.py`**. Su medición actual: **3119 páginas comparadas · 0 ausentes · 508 incompletas ·
+- **`_indice/verificar-espejo.py`** — terminado y **ya integrado como paso 12 de
+  `actualizar.py`** (antes paso 11: se desplazó un puesto al añadir la compilación de documentos,
+  ver más abajo). Su medición actual: **3119 páginas comparadas · 0 ausentes · 508 incompletas ·
   84 con literales traducidos**. Lo que falta es corregir lo que detecta.
 
   De esas, **6 páginas ya están corregidas** (no las repitas): `gml_pragma`, `json_encode`,
@@ -76,8 +77,31 @@ mnemónicos (`r3-input-control.md`, 3) · economía con código y cosecha (`r3-s
   Prioriza **los 84 literales traducidos sobre las 508 incompletas**: un literal mal traducido es
   código que falla en silencio (`"oculto"` por `"hidden"`), mientras que una página incompleta
   solo obliga a mirar la inglesa.
-- **`validar-compilacion-docs.sh`** — **no llegó a crearse**. Sigue siendo el pendiente nº 1 de la
-  ronda anterior: compilar automáticamente el GML de los documentos, no solo el de `06/`.
+
+## ✅ El pendiente nº 1 de rondas anteriores se cerró en esta sesión
+
+**`_indice/validar-compilacion-docs.py`** ya existía (no como `.sh`: su cabecera explica por qué —
+extraer y clasificar ~3200 bloques es análisis de texto con regex, el terreno de
+`validar-codigo-gml.py`, no el de un bucle `for` en bash), pero nadie lo había ejecutado de
+verdad ni lo tenía enganchado a `actualizar.py`. Esta sesión:
+
+- Lo ejecutó contra los ~3200 bloques ```gml compilables de los documentos y corrigió los errores
+  reales de sintaxis que encontró (varios `daño`/`añadir`/`ya_mutó`/`sueño`/`calcular_daño` con
+  ñ/tilde, un `const` inexistente en GML —usa `#macro`—, un ternario anidado sin paréntesis
+  —confirmado contra el manual: GML no encadena `?:` sin ellos—, `video_draw()` llamado con 4
+  argumentos cuando la firma real no lleva ninguno, fragmentos de struct/enum sin envolver, y dos
+  bloques de «salida de consola» mal etiquetados como ```gml).
+- Encontró y aisló un **bug real del compilador de GameMaker** (`gm-cli`/`GMAssetCompiler.dll`
+  2026.0.0.23): un `function Hijo() : Padre() constructor` cuyo `Padre` no está definido en el
+  mismo ámbito NO da un error de sintaxis — **crashea el compilador entero**
+  (`System.ArgumentNullException` en `GML2VM.AddFuncAndPatch`), reproducido de forma aislada.
+  El script ahora detecta y salta ese patrón en vez de arriesgar el crash.
+- Mide 17-25 s con el corpus actual (muy por debajo del límite de 3 min), así que se integró como
+  **paso 10 de `actualizar.py`** (antes se descartaba por una estimación de tiempo que nunca se
+  midió en vivo).
+- Última pasada limpia: **3212 de 3213 bloques compilables compilan sin error**; el único bloque
+  restante se salta a propósito (el `TestSuite` de `13/10 §4.1`, herencia de un padre no definido
+  en ese bloque — ver el motivo arriba).
 
 ## Cómo retomarlo
 

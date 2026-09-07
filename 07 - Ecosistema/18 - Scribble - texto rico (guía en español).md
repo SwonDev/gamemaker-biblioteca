@@ -5,6 +5,10 @@
 > auto-ajuste de línea y fuentes de calidad. Su documentación está solo en inglés; esta es una
 > **guía en español** con la API verificada contra el código descargado en
 > `11 - Código descargado/librerias/texto-y-tipografia/Scribble`.
+>
+> **También resuelve de fábrica el árabe y el hebreo** (formas contextuales y reordenamiento
+> BiDi) **y el ajuste de línea en chino/japonés/coreano sin espacios**, sin que llames a nada
+> especial — ver [§6](#6--escritura-de-derecha-a-izquierda-rtl-y-cjk).
 
 ---
 
@@ -128,6 +132,96 @@ scribble("¡[enfado]FUERA DE AQUÍ[/]!").draw(x, y);
 
 ---
 
+## 6 · Escritura de derecha a izquierda (RTL) y CJK
+
+> **La biblioteca daba a entender, por omisión, que el árabe, el hebreo o el chino eran «solo
+> cuestión de fuente»** ([`04 · 21` §4](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#4--fuentes-y-glifos--la-trampa-de-los-alfabetos-no-latinos)).
+> Es falso. Cargar los glifos correctos es necesario, pero un alfabeto RTL además necesita que
+> cada letra cambie de **forma** según su posición en la palabra (*shaping* contextual) y que el
+> **orden visual** se invierta (BiDi, *bidirectional text*). **Scribble ya hace las dos cosas,
+> sin que llames a nada.** Verificado en el propio código de la librería, dentro de
+> `11 - Código descargado/librerias/texto-y-tipografia/Scribble/`.
+
+### 6.1 `scribble(...)` ya aplica *shaping* y BiDi
+
+```gml
+/// Create — una fuente con el rango Unicode árabe (0x0600-0x06FF), como usa
+/// obj_test_arabic, el propio objeto de pruebas de Scribble para este caso
+scribble_font_set_default("fnt_noto_arabic");
+
+/// Draw — nada más. Scribble decide las formas inicial/media/final/aislada de
+/// cada letra y reordena visualmente de derecha a izquierda por su cuenta
+scribble("توقف مؤقت").wrap(400).draw(x, y);
+```
+
+Esto es, literalmente, lo que hace `obj_test_arabic` (`Create_0.gml` fija la fuente,
+`Draw_0.gml` construye el elemento con `scribble(...)` y lo dibuja con `.draw()`): no hay
+ninguna llamada a una función de *shaping* ni de reordenamiento a mano. Por dentro, el
+generador de Scribble pasa el texto por su *pipeline* de finalización BiDi
+(`__scribble_gen_5_finalize_bidi.gml`, verificado) antes de decidir en qué orden se dibujan los
+glifos. Con hebreo es igual de directo — sin *shaping* contextual (el hebreo no lo necesita),
+pero con la misma reordenación BiDi automática:
+
+```gml
+scribble_font_set_default("fnt_noto_hebrew");
+scribble("שלום עולם").draw(x, y);
+```
+
+> 🔺 **Lo único que sigue siendo cosa tuya es la fuente.** Necesita los glifos del alfabeto
+> (rango Unicode correcto en `font_add`, o una fuente que ya los traiga) — eso es
+> [`04 · 21` §4](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#4--fuentes-y-glifos--la-trampa-de-los-alfabetos-no-latinos).
+> Pero la **dirección** de escritura y la **forma** de cada letra ya no son tu problema.
+
+### 6.2 `StringArabicParse` y `StringHebrewParse`: para cuando NO usas Scribble
+
+Si por lo que sea dibujas con `draw_text` nativo en vez de con Scribble, las mismas dos
+transformaciones existen sueltas, verificadas en su propio código fuente:
+
+```gml
+/// StringArabicParse(_string) — aplica el shaping contextual árabe Y reordena BiDi;
+/// devuelve la cadena YA lista para draw_text
+draw_set_font(fnt_noto_arabic);
+draw_text(x, y, StringArabicParse("توقف مؤقت"));
+
+/// StringHebrewParse(_string) — solo reordena BiDi (el hebreo no tiene shaping contextual)
+draw_set_font(fnt_noto_hebrew);
+draw_text(x, y, StringHebrewParse("שלום עולם"));
+```
+
+Las dos llaman por dentro a `GlyphArrayBiDiReorder(_glyphArray, _rightToLeftHint, _copy)`, la
+primitiva de reordenamiento que comparten — verificado en `GlyphArrayBiDiReorder.gml`,
+`StringArabicParse.gml` y `StringHebrewParse.gml`. No hace falta llamarla directamente salvo
+que construyas tu propio *pipeline* de texto.
+
+> ⚠️ **`StringArabicParse`, `StringHebrewParse` y `GlyphArrayBiDiReorder` son de Scribble, no
+> del runtime**: no aparecen en `buscar.py`. Sus firmas se verificaron leyendo el `.gml` real,
+> como pide `AGENTS.md` para el código de librerías de terceros.
+>
+> 🔺 **Los `__scribble_gen_*` (con doble guion bajo) son el motor interno de Scribble.** Se
+> citan aquí solo como evidencia de que el comportamiento existe de verdad en el código — no se
+> llaman desde fuera de la librería.
+
+### 6.3 CJK: el ajuste de línea ya funciona sin espacios
+
+Chino, japonés y coreano no separan palabras con espacios, así que el `.wrap()` que corta por
+espacios en español o inglés no tendría dónde cortar. Scribble ya lo resuelve: por dentro, cada
+carácter CJK se marca con la constante `ISOLATED_CJK` (verificado en
+`__scribble_gen_4_build_words.gml`) y se trata como una «palabra» independiente, rompible en
+cualquier punto — así que `.wrap()` puede cortar la línea entre dos caracteres CJK
+cualesquiera, igual que cortaría entre dos palabras separadas por un espacio en español.
+
+```gml
+/// el mismo .wrap() de siempre; nada especial que llamar para que ajuste CJK
+scribble("これはテストです。長い文章でも自動的に折り返されます。").wrap(400).draw(x, y);
+```
+
+> 💡 **Las fuentes CJK y su cacheado siguen siendo tu problema** (miles de glifos: ver
+> [`04 · 21` §4](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md#4--fuentes-y-glifos--la-trampa-de-los-alfabetos-no-latinos)
+> y `font_cache_glyph`). Lo que Scribble ya resuelve es **dónde se puede cortar la línea**, no
+> qué glifos tiene la fuente.
+
+---
+
 ## Las trampas
 
 | Trampa | Consecuencia |
@@ -136,6 +230,7 @@ scribble("¡[enfado]FUERA DE AQUÍ[/]!").draw(x, y);
 | Olvidar `[/]` al cerrar formato | El color/efecto se «derrama» al resto |
 | Usar `draw_text` para diálogo con estilo | Pierdes efectos, typewriter y ajuste |
 | No llamar a `typista.in()` en Step | El typewriter no avanza |
+| Asumir que árabe/hebreo/CJK son «solo cuestión de fuente» | No pruebas `scribble()` con ese texto y crees que GameMaker no puede — sí puede (§6) |
 
 > 🔺 **Estos métodos NO están en `buscar.py`** (son de la librería, no del runtime). Verifica una
 > firma en `11 - Código descargado/librerias/texto-y-tipografia/Scribble/scripts/`.
@@ -147,4 +242,5 @@ scribble("¡[enfado]FUERA DE AQUÍ[/]!").draw(x, y);
 - [10 · Visual Novel y narrativa](../04%20-%20Recetas%20por%20género/10%20-%20Visual%20Novel%20y%20narrativa.md) — el diálogo con typewriter
 - [19 · Chatterbox — diálogos ramificados](./19%20-%20Chatterbox%20-%20diálogos%20Yarn%20%28guía%20en%20español%29.md) — Scribble dibuja, Chatterbox decide qué se dice
 - [03 · Texto y fuentes](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md) — el `draw_text` nativo
+- [21 · Localización e idiomas](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md) §4 — fuentes y glifos por idioma, complemento del §6 de aquí
 - Repo oficial: <https://github.com/JujuAdams/Scribble>

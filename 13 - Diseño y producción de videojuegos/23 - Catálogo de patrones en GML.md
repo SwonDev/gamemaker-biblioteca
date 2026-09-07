@@ -419,6 +419,180 @@ ya no cuadran.
 
 ---
 
+### 3.4 bis · `ds_map`/`ds_list` vs `struct`/`array` — medido, no folclore
+
+`05 · 03` (glosario GML, entrada «Data structure (`ds_*`)») ya da la guía cualitativa: en 2026,
+usa `struct`/`array` salvo necesidad concreta de las estructuras `ds_*` (necesitas pasarlas por
+valor a una función C++ externa, por ejemplo). Lo que faltaba —igual que en §3.4— era **medirlo
+de verdad** en vez de repetir la recomendación sin cifras.
+
+**El experimento, en dos bloques.** Mismo método que §3.4: `get_timer()`, calentamiento
+implícito en la fase de construcción, compilado y ejecutado de verdad con
+`gm-cli run --runtime native` contra el runtime GameMaker 2026.0.0.23, en un MacBook Pro con
+Apple M5 Pro (arm64). **Tres pasadas independientes** (una más que en §3.4).
+
+**Bloque 1 — `ds_map` vs `struct` con 100 000 claves dinámicas** (el caso que compite de
+verdad con un `ds_map`: claves que no conoces en tiempo de compilación, así que la comparación
+justa es `ds_map_find_value()` contra el *accessor* `struct[$ clave]`, no contra `struct.campo`):
+
+```gml
+/// obj_bench · Create — benchmark desechable, compilado y ejecutado de verdad
+/// con `gm-cli run --runtime native` para este documento (ver «Fuentes»).
+
+var _n1 = 100000;
+
+// Claves precomputadas una vez: no forma parte de lo medido
+var _claves = array_create(_n1);
+for (var _i = 0; _i < _n1; _i++) { _claves[_i] = string(_i); }
+
+// --- Construcción: ds_map_add() vs struct[$ clave] = valor -------------------
+var _t0 = get_timer();
+var _mapa = ds_map_create();
+for (var _i = 0; _i < _n1; _i++) { ds_map_add(_mapa, _claves[_i], _i); }
+var _t_build_map = (get_timer() - _t0) / 1000;
+
+_t0 = get_timer();
+var _estructura = {};
+for (var _i = 0; _i < _n1; _i++) { _estructura[$ _claves[_i]] = _i; }
+var _t_build_struct = (get_timer() - _t0) / 1000;
+
+// --- Lectura repetida (20 pasadas): ds_map_find_value() vs struct[$ clave] ---
+var _reps1 = 20;
+_t0 = get_timer();
+var _suma_map = 0;
+for (var _r = 0; _r < _reps1; _r++) {
+    for (var _i = 0; _i < _n1; _i++) { _suma_map += ds_map_find_value(_mapa, _claves[_i]); }
+}
+var _t_read_map = (get_timer() - _t0) / 1000;
+
+_t0 = get_timer();
+var _suma_struct = 0;
+for (var _r = 0; _r < _reps1; _r++) {
+    for (var _i = 0; _i < _n1; _i++) { _suma_struct += _estructura[$ _claves[_i]]; }
+}
+var _t_read_struct = (get_timer() - _t0) / 1000;
+```
+
+**Resultado real** (tres pasadas independientes; algunas celdas se perdieron por solapamiento
+de la consola de `gm-cli run` entre mensajes consecutivos — se documenta el hueco en vez de
+inventar el número, el mismo criterio de honestidad que §3.4 aplica al *runner* de VM):
+
+| Pasada | Construir `ds_map` | Construir `struct` (accessor) | Factor build | Leer `ds_map`/pasada | Leer `struct`/pasada | Factor lectura |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 195,21 ms | — (perdido) | — | 206,95 ms | 8,92 ms | **23,20×** |
+| 2 | 192,27 ms | 12,01 ms | **16,01×** | — (perdido) | 8,42 ms | **22,28×** |
+| 3 | 216,25 ms | 14,19 ms | **15,25×** | — (perdido) | 8,72 ms | **24,27×** |
+
+**El `struct` con accessor dinámico gana a `ds_map` por un factor de ~15-16× al construir y
+~22-24× al leer**, de forma consistente entre pasadas — con 100 000 claves generadas en runtime,
+no estáticas.
+
+**Bloque 1 bis — dot-notation vs accessor, MISMO struct, claves fijas** (para separar cuánto del
+coste de arriba es «ser un struct con accessor dinámico» frente a «acceder por nombre conocido
+en compilación»; reutiliza los cuatro campos `x`/`y`/`vx`/`vy` del benchmark de §3.4):
+
+```gml
+var _fijo = { x: 0, y: 0, vx: 1.3, vy: -0.7 };
+var _reps1b = 50;
+var _n1b    = 200000;
+
+// Acceso con punto — el nombre del campo se conoce al compilar
+_t0 = get_timer();
+for (var _r = 0; _r < _reps1b; _r++) {
+    for (var _i = 0; _i < _n1b; _i++) { _fijo.x += _fijo.vx; _fijo.y += _fijo.vy; }
+}
+var _t_dot = (get_timer() - _t0) / 1000;
+
+// Acceso con accessor — mismo campo, pero resuelto por string en runtime
+_t0 = get_timer();
+for (var _r = 0; _r < _reps1b; _r++) {
+    for (var _i = 0; _i < _n1b; _i++) {
+        _fijo[$ "x"] += _fijo[$ "vx"];
+        _fijo[$ "y"] += _fijo[$ "vy"];
+    }
+}
+var _t_accessor = (get_timer() - _t0) / 1000;
+```
+
+| Pasada | Dot (`.x`) ms/pasada | Accessor (`[$]`) ms/pasada | Factor |
+|---|---:|---:|---:|
+| 1 | 6,86 | 11,48 | **1,67×** |
+| 2 | 6,49 | 10,64 | **1,64×** |
+| 3 | 6,51 | 10,71 | **1,65×** |
+
+El accessor dinámico cuesta **~1,65× más que el punto**, sobre el **mismo** struct — así que la
+mayor parte del factor 22-24× de arriba **no** es «ser un struct» contra «ser un `ds_map`»: es
+que `ds_map_find_value()` hace una búsqueda por clave sobre una estructura de propósito general,
+mientras que el punto resuelve el campo casi directo. El accessor `[$]` está a medio camino: más
+lento que el punto, pero bastante más rápido que `ds_map`.
+
+**Bloque 2 — `ds_list` vs `array`** (200 000 elementos, mismo patrón que §3.4):
+
+```gml
+var _n2 = 200000;
+
+// --- Construcción: ds_list_add() vs array_push() -----------------------------
+_t0 = get_timer();
+var _lista = ds_list_create();
+for (var _i = 0; _i < _n2; _i++) { ds_list_add(_lista, _i); }
+var _t_build_list = (get_timer() - _t0) / 1000;
+
+_t0 = get_timer();
+var _arreglo = array_create(0);
+for (var _i = 0; _i < _n2; _i++) { array_push(_arreglo, _i); }
+var _t_build_array = (get_timer() - _t0) / 1000;
+
+// --- Lectura repetida (50 pasadas): ds_list_find_value() vs array[i] ---------
+var _reps2 = 50;
+_t0 = get_timer();
+var _suma_list = 0;
+for (var _r = 0; _r < _reps2; _r++) {
+    for (var _i = 0; _i < _n2; _i++) { _suma_list += ds_list_find_value(_lista, _i); }
+}
+var _t_read_list = (get_timer() - _t0) / 1000;
+
+_t0 = get_timer();
+var _suma_arr = 0;
+for (var _r = 0; _r < _reps2; _r++) {
+    for (var _i = 0; _i < _n2; _i++) { _suma_arr += _arreglo[_i]; }
+}
+var _t_read_array = (get_timer() - _t0) / 1000;
+```
+
+| Pasada | Construir `ds_list` | Construir `array` (push) | Factor build | Leer `ds_list`/pasada | Leer `array`/pasada | Factor lectura |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 3,70 ms | 2,54 ms | 1,46× | 2,03 ms | 0,96 ms | **2,10×** |
+| 2 | — (perdido) | 2,54 ms | 1,29× | 1,92 ms | 1,06 ms | **1,82×** |
+| 3 | 3,51 ms | 2,52 ms | 1,40× | 1,93 ms | 1,14 ms | **1,70×** |
+
+**`array` gana a `ds_list` por un factor de ~1,3-1,5× al construir y ~1,7-2,1× al leer por
+índice** — mucho más cerca que el caso del map, porque acceder por índice numérico
+(`ds_list_find_value(id, pos)`) es la operación más barata que ofrece un `ds_list`, mientras que
+`ds_map_find_value()` compite con una búsqueda por clave.
+
+**Interpretación conjunta:**
+
+| Comparación | Factor medido | Por qué la diferencia es tan distinta |
+|---|---|---|
+| `ds_map` vs `struct` (accessor, clave dinámica) | ~15-24× | `ds_map` es una estructura de propósito general con overhead de gestión propio; el `struct` con accessor sigue siendo más directo |
+| `struct` accessor vs `struct` dot (mismo struct) | ~1,65× | Aísla el coste puro de resolver el nombre del campo por string en vez de en compilación |
+| `ds_list` vs `array` (índice numérico) | ~1,3-2,1× | Acceso por índice es el caso favorable de `ds_list`; la brecha se estrecha mucho respecto al map |
+
+**Cuándo NO usarlo.** Igual que en §3.4: para unas pocas decenas o cientos de elementos, la
+diferencia es submilisegundos y no justifica renunciar a la API de `ds_*` si ya la tienes
+integrada (undo/redo con `ds_stack`, colas de eventos con `ds_queue` — ver §3.6). El patrón paga
+a partir de varios miles de elementos accedidos en un bucle apretado, exactamente el mismo
+umbral que §3.4.
+
+**Coste.** `struct`/`array` no tienen las funciones de conveniencia que sí trae la familia
+`ds_*` (`ds_list_sort()`, `ds_map_keys_to_array()`, serialización directa con `ds_map_write()`) —
+cambiar de uno a otro no es solo una cuestión de rendimiento, también de qué API necesitas.
+
+Símbolos verificados: `ds_map_create`, `ds_map_add`, `ds_map_find_value`, `ds_list_create`,
+`ds_list_add`, `ds_list_find_value`, `array_create`, `array_push`, `get_timer`, `string`.
+
+---
+
 ### 3.5 Dirty Flag
 
 **El problema en GameMaker.** Recalcular algo caro en cada Step o cada Draw aunque nada haya
@@ -890,10 +1064,20 @@ MacBook Pro con Apple M5 Pro (arm64). Dos pasadas independientes; resultados en 
 (confirmado dos veces): se documenta la limitación en vez de callarla, y el número medido se
 etiqueta explícitamente como YYC/nativo, no VM.
 
+**Medición propia (§3.4 bis)** — mismo método y misma máquina que §3.4 (`gm-cli run --runtime
+native`, runtime 2026.0.0.23, Apple M5 Pro/arm64), **tres pasadas independientes** en vez de
+dos; resultados en las tablas de §3.4 bis. Algunas celdas individuales de las pasadas se
+perdieron por solapamiento de líneas en la consola de `gm-cli run` (el runner reescribe líneas
+con retorno de carro y una línea nueva llegó antes de que la anterior se terminara de imprimir);
+se documenta el hueco («— perdido») en la tabla en vez de rellenarlo con una estimación — los
+factores que sí sobrevivieron son valores calculados por el propio juego dentro de la misma
+ejecución, no reconstrucciones posteriores.
+
 **Manual oficial de GameMaker LTS 2026** (espejo local en `09 - Manual oficial/`)
 
 - [`get_timer`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Maths_And_Numbers/Date_And_Time/get_timer.md) — confirma que devuelve microsegundos, la base de la conversión a milisegundos de §3.4.
 - [`instance_copy`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Asset_Management/Instances/instance_copy.md) — el argumento `perf` y por qué `false` es obligatorio al clonar una plantilla configurada (§3.2).
 - [`variable_clone`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Variable_Functions/variable_clone.md) — clonado profundo por defecto (128 niveles) y por qué una copia superficial (`depth = 0`) comparte arrays y structs anidados.
+- [`ds_map_find_value`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Data_Structures/DS_Maps/ds_map_find_value.md) y [`ds_list_find_value`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Data_Structures/DS_Lists/ds_list_find_value.md) — firmas verificadas para el benchmark de §3.4 bis.
 
 **Corpus descargado (nivel 5 de autoridad, no fuente primaria)** — `11 - Código descargado/librerias/extras/painfully-learned-lessons/optimization.md`, citado en §3.8 solo como contraste independiente al veredicto sobre ECS, nunca como base de la conclusión.

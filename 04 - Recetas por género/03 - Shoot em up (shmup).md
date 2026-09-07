@@ -190,7 +190,7 @@ estructura mínima es:
 
 ```gml
 BossPhase = {
-    pattern:  función_a_ejecutar,
+    pattern:  funcion_patron,
     duration: 300,          // frames
     hp_threshold: 0.66      // cambia de fase al bajar de este % de vida
 }
@@ -254,7 +254,7 @@ function bullet_enemy_spawn_mutante(_x, _y, _dir, _speed, _sprite, _muta_en_fram
     with (_b)
     {
         muta_en_frame = _muta_en_frame;
-        ya_mutó       = false;
+        ya_muto       = false;
         frames_vivida = 0;
     }
     return _b;
@@ -272,9 +272,9 @@ if (variable_instance_exists(id, "muta_en_frame"))
 {
     frames_vivida++;
 
-    if (!ya_mutó && frames_vivida >= muta_en_frame)
+    if (!ya_muto && frames_vivida >= muta_en_frame)
     {
-        ya_mutó   = true;
+        ya_muto   = true;
         direction = point_direction(x, y, objPlayer.x, objPlayer.y);
         speed    *= 1.6;
     }
@@ -1005,8 +1005,8 @@ function player_shoot()
     }
 }
 
-/// @func take_hit(_daño)
-function take_hit(_daño)
+/// @func take_hit(_dano)
+function take_hit(_dano)
 {
     if (invuln_time > 0) return false;
 

@@ -944,6 +944,33 @@ resuelve una herramienta, lo resuelve el proceso**.
 > (ventana de Conflicts con *Use Theirs* / *Use Mine* / *Merge*), pero la recomendación mayoritaria
 > en el foro oficial es Git externo: varios usuarios reportan que un conflicto grande tumba el IDE.
 
+> 🔺 **El conflicto que de verdad pierde trabajo sin avisar: dos ramas añaden recursos
+> distintos al `.yyp` raíz.** La regla de arriba —«quédate con una versión entera (`--ours` o
+> `--theirs`)»— es correcta cuando el conflicto es sobre **el mismo** recurso. No lo es cuando
+> cada rama añadió un recurso **distinto**: el `.yyp` es la lista de todo lo que el proyecto
+> reconoce, así que tomar una versión entera **deja huérfano en disco** el recurso que solo
+> existía en la otra rama —sus ficheros siguen en `objects/`, `sprites/`… pero el `.yyp` ya no
+> los lista—. GameMaker no avisa con un error: el proyecto abre limpio y el recurso, simplemente,
+> ya no está en el Asset Browser. Se descubre semanas después, cuando alguien busca ese enemigo o
+> ese sprite y no aparece.
+>
+> La corrección, después de resolver el conflicto con `--ours`/`--theirs`:
+> 1. Comprueba en el historial de Git (`git log --diff-filter=A -- "**/*.yy"` sobre la rama
+>    perdedora, o simplemente recordando qué añadió cada quien) qué recursos metió la rama que
+>    **no** ganó el conflicto.
+> 2. Vuelve a darlos de alta con `gm-cli resourcetool eval "create <tipo> <nombre> ..."` —los
+>    ficheros del recurso siguen en disco, solo falta la entrada en el `.yyp`— o arrastrando la
+>    carpeta del recurso al Asset Browser del IDE, que ofrece re-vincularlo.
+> 3. Si el proyecto usa el `gml-parser` de Bscotch (§1 de
+>    [`12 · 08`](../12%20-%20Utilidades%20e%20integraciones/08%20-%20Tooling%20externo%20-%20CLI%2C%20parsers%20e%20ingeniería%20inversa.md#1--stitch-bscotch--el-kit-de-pipeline-más-serio)),
+>    su método `project.addAssetToYyp('ruta/al/recurso.yy')` hace exactamente este paso 2 desde
+>    Node: está pensado, en palabras de su propio README, para «recuperar recursos huérfanos».
+>
+> Ninguna herramienta detecta el huérfano por ti — ni `gm-cli`, ni el plugin de Git del IDE, ni
+> YYP Maker (§3 de [`12 · 01`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md#3-compilar-y-automatizar)):
+> la única defensa real es que, tras fusionar una rama que añadió assets, **abras el proyecto y
+> mires si todo lo nuevo de esa rama sigue en el Asset Browser** antes de seguir trabajando encima.
+
 ### 3.14 Depuración estructurada
 
 **a) Una capa de log con niveles.** `show_debug_message` a pelo produce, a los dos meses, una
@@ -1137,6 +1164,54 @@ fronteras; [ ] cada sistema con estado tiene su `dbg_view`.
 | 6 | **`room_goto` con estado suelto** | Cambiar de room destruye las instancias no persistentes: lo que no esté en un persistente se pierde **en silencio** | Ninguna room se cambia directamente: se pasa por la función de escena, que serializa antes de salir y restaura al entrar (§3.2 y [04 · 00 §2](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md#2--el-gestor-de-escenas--el-esqueleto-del-arco)) |
 | 7 | **Definir funciones dentro de Step** | Se crea un método nuevo **cada frame** (60 objetos × 60 fps = 3 600 por segundo que el recolector debe limpiar) y el nombre no existe fuera del evento | Las funciones, en un script; los métodos atados a la instancia, en el **Create** |
 | 8 | **Reimplementar en GML lo que el motor hace en C++** (colisiones propias, envoltorios OOP sobre arrays) | El runtime está en C++ y tu GML no: un envoltorio OOP sobre arrays puede ser **hasta 11 veces más lento**, y ahora mantienes dos sistemas | Arquitectura es decidir **quién llama a qué**, no reescribir el motor. Y **perfila antes de optimizar** ([01 · 15 §6](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#6-rendimiento-dónde-está-el-cuello-de-botella)). Única excepción documentada: el sistema de físicas integrado, que casi nadie usa (1 de 21) |
+
+---
+
+## 6 · Onboarding de un compañero nuevo
+
+No es contenido nuevo: es el punto de entrada único que hoy no existe. Cada pieza de esta lista
+ya está escrita en algún sitio de esta biblioteca o de un proyecto bien llevado; lo que faltaba
+era el orden en que alguien que se incorpora debería leerlas. Dale esta lista —tal cual, o
+convertida en un `ONBOARDING.md` del propio proyecto— a quien se una, sea un contratado de
+[`13 · 11` §12](11%20-%20Producción%2C%20alcance%20y%20lanzamiento.md#12--trabajar-con-otras-personas)
+o un colaborador que se queda.
+
+- [ ] **1. Lee el `CLAUDE.md`/`AGENTS.md` del proyecto** (o el equivalente que tenga) antes de
+      tocar nada: son las reglas de ESE repositorio, y priman sobre cualquier convención general.
+- [ ] **2. Lee este documento entero** (`13 · 06`), no solo esta sección — es el mapa de cómo
+      está organizado el código: Asset Browser por dominio (§3.1), gestores y localizador (§3.2,
+      §3.3), dónde va la lógica y dónde el dibujado (§3.5), datos dirigidos (§3.8).
+- [ ] **3. Antes de la primera rama, entiende la disciplina de Git de §3.13**: por qué no se
+      edita un `.yy`/`.yyp` a mano, qué hace `.gitattributes` con esos ficheros, y sobre todo
+      **el reparto de rooms** — pregunta *ahora*, no después de un conflicto, quién es dueño de
+      cada room que vayas a tocar.
+- [ ] **4. Busca las decisiones ya tomadas antes de proponer una nueva**: la carpeta
+      `decisiones/` del proyecto tiene un ADR por cada elección cara de revertir —formato de
+      guardado, librería externa, estructura de las salas— ([`13 · 11` §3.5](11%20-%20Producción%2C%20alcance%20y%20lanzamiento.md#35-registro-de-decisiones-adr-ligero)).
+      Si tu duda ya tiene un ADR, léelo antes de volver a discutirla.
+- [ ] **5. Lee el `DIARIO.md`** de las últimas semanas
+      ([`13 · 11` §3.6](11%20-%20Producción%2C%20alcance%20y%20lanzamiento.md#36-el-diario-de-desarrollo))
+      si existe: tres líneas por sesión te dan más contexto real que una reunión de media hora.
+- [ ] **6. Comprueba que compilas antes de escribir una línea**: `gm-cli compile --errors-only`
+      contra el proyecto tal y como está, para descartar que un problema de entorno (toolchain,
+      licencia) sea tuyo y no del código ([`13 · 10` §8.1](10%20-%20Testing%20y%20QA.md#81-la-puerta-obligatoria)).
+- [ ] **7. Revisa las convenciones de nombres antes del primer commit**: `snake_case`, prefijos
+      `obj_ spr_ snd_ rm_ scr_`, nada de nombres reservados —
+      [`05 · 04`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md). Un PR que no
+      las sigue es la revisión más tediosa de dar y de recibir.
+- [ ] **8. Antes de crear algo, busca si ya existe**: `python3 "_indice/buscar.py" --codigo
+      "<lo que sea>"` para ver cómo lo resuelve el resto del proyecto, y
+      [`11 · Código descargado/_CATALOGO.md`](../11%20-%20Código%20descargado/_CATALOGO.md) para
+      no reescribir una librería que el proyecto ya trae.
+- [ ] **9. Pregunta quién es dueño de qué** si el equipo reparte por sistemas (audio, UI, IA):
+      no está escrito en ningún sitio automáticamente — es la primera pregunta de una
+      conversación, no un documento que se lea solo.
+
+**Lo que esta lista no sustituye**: un README técnico propio del proyecto (cómo se instala el
+toolchain, a quién preguntar) sigue sin tener plantilla en esta biblioteca — reconocido como hueco
+abierto en la auditoría de herramientas y pipeline
+(`_indice/auditorias/r3-herramientas-pipeline.md`, tema 87). Esta lista cubre el **orden de
+lectura**; un README de instalación sigue siendo trabajo del proyecto concreto.
 
 ---
 

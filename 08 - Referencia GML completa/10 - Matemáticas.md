@@ -733,7 +733,9 @@ show_debug_message($"{handle_as_string} ({typeof(handle_as_string)})");
 show_debug_message($"{handle_from_string} ({typeof(handle_from_string)})");
 ```
 
-```gml
+Salida:
+
+```text
 ref sprite spr_player (ref)
 ref sprite spr_player (string)
 ref sprite spr_player (ref)

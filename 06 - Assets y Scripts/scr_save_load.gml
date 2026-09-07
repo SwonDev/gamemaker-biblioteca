@@ -3,7 +3,7 @@
 // Guardado y carga de partidas con structs + JSON, escritura segura y
 // control de versión de esquema.
 //
-// TRES REGLAS QUE ESTE SCRIPT RESPETA
+// CINCO REGLAS QUE ESTE SCRIPT RESPETA
 //   1. ESCRITURA SEGURA: nunca se escribe directamente sobre la partida
 //      buena. Se escribe en un temporal, se válida y solo entonces se
 //      reemplaza. Si el juego se cierra a medias, la partida sigue intacta.
@@ -12,15 +12,29 @@
 //      romper. Por eso hay versión de esquema y validación.
 //   3. CARPETA CORRECTA: se usa `game_save_id`, que es la carpeta de guardado
 //      válida en TODAS las plataformas. NO uses `working_directory`.
+//   4. INTEGRIDAD REAL: el guardado lleva un checksum que se COMPRUEBA al
+//      cargar, no solo se calcula (ver 01 · 14 §12 bis). Un fichero
+//      corrompido o editado a mano de forma que rompa los datos se
+//      RECHAZA, en vez de devolver una partida a medias.
+//   5. RED DE SEGURIDAD: cada guardado nuevo empuja el anterior a una
+//      cadena de copias rotativas (`SAVE_BACKUP_COUNT`). Si el save
+//      principal no pasa la validación, `load_game_recover()` prueba las
+//      copias antes de rendirse.
 //
 // Funciones nativas usadas (verificadas con gm-cli manual read):
 //   json_stringify, json_parse, file_text_open_write, file_text_open_read,
 //   file_text_write_string, file_text_read_string, file_text_readln,
 //   file_text_eof, file_text_close, file_exists, file_delete, file_rename,
-//   directory_exists, directory_create, is_struct, struct_exists,
-//   date_current_datetime, date_datetime_string, game_save_id
+//   directory_exists, directory_create, is_struct, is_string, struct_exists,
+//   date_current_datetime, date_datetime_string, sha1_string_utf8, is_method,
+//   variable_global_exists, game_save_id
 //
-// Dependencias: ninguna.
+// Dependencias: ninguna obligatoria. Opcional: si tu juego define
+//   global.save_logger = function(_nivel, _texto) { registrar(_nivel, _texto); }
+// (con `registrar()` de 13 · 10 §7.2, el log con niveles que sobrevive al
+// cierre), los fallos de guardado/carga quedan también en `partida.log`, no
+// solo en la consola de desarrollo. Sin ese hook, este script se comporta
+// exactamente como antes: solo `show_debug_message()`.
 //
 // USO RAPIDO
 //   // Guardar
@@ -42,6 +56,10 @@
 //       }
 //   }
 //
+//   // Cargar con red de seguridad: si "slot1" no pasa la validación,
+//   // intenta las copias de seguridad antes de rendirse.
+//   var _d = load_game_recover("slot1");
+//
 //   // Borrar
 //   delete_save("slot1");
 // ============================================================================
@@ -49,6 +67,23 @@
 #macro SAVE_VERSION 1          // Subelo cada vez que cambies la forma de los datos
 #macro SAVE_EXTENSION ".json"
 #macro SAVE_TEMP_SUFFIX ".tmp"
+#macro SAVE_BACKUP_COUNT 3     // copias de seguridad rotativas a conservar por slot. 0 = desactivado.
+#macro SAVE_LOG_NIVEL_ERROR 3  // = NIVEL.ERROR si usas el enum de 13 · 10 §7.2 tal cual
+
+
+/// @function __save_log(_nivel, _texto)
+/// @desc    Registra un mensaje de este script. Siempre va a Output; si el juego
+///          define `global.save_logger` (ver cabecera), también se le reenvía
+///          para que quede en un log persistente. Uso interno.
+/// @param   {Real}   _nivel  Nivel del mensaje. Usa SAVE_LOG_NIVEL_ERROR para fallos.
+/// @param   {String} _texto
+function __save_log(_nivel, _texto) {
+    show_debug_message(_texto);
+
+    if (variable_global_exists("save_logger") && is_method(global.save_logger)) {
+        global.save_logger(_nivel, _texto);
+    }
+}
 
 
 /// @function save_get_path(_slot)
@@ -66,6 +101,17 @@ function save_get_path(_slot) {
 /// @returns {String}
 function __save_get_temp_path(_slot) {
     return game_save_id + "save_" + string(_slot) + SAVE_TEMP_SUFFIX;
+}
+
+
+/// @function save_backup_path(_slot, _n)
+/// @desc    Ruta de la copia de seguridad número `_n` de un slot (1 = la más
+///          reciente, `SAVE_BACKUP_COUNT` = la más vieja que se conserva).
+/// @param   {String} _slot
+/// @param   {Real}   _n
+/// @returns {String}
+function save_backup_path(_slot, _n) {
+    return game_save_id + "save_" + string(_slot) + ".bak" + string(_n) + SAVE_EXTENSION;
 }
 
 
@@ -88,28 +134,97 @@ function save_exists(_slot) {
 }
 
 
+/// @function save_backup(_slot, _n)
+/// @desc    Rota `_n` copias de seguridad del slot ANTES de que se sobrescriba:
+///          bak(_n-1) -> bak(_n), ..., bak1 -> bak2, y el save actual (si existe)
+///          pasa a ser bak1. `save_game()` la llama sola en cada guardado; solo
+///          hace falta llamarla a mano si quieres forzar una copia fuera de ese
+///          flujo. Con `_n <= 0` no hace nada (backups desactivados).
+/// @param   {String} _slot
+/// @param   {Real}   _n     Cuántas copias conservar (normalmente SAVE_BACKUP_COUNT).
+/// @returns {Bool}          True siempre que no haga falta nada más (incluida la
+///                          rotación desactivada).
+function save_backup(_slot, _n) {
+    if (_n <= 0) { return true; }
+
+    // De la más vieja a la más nueva, para no pisar una copia antes de moverla.
+    var _i = _n;
+    repeat (_n - 1) {
+        var _origen  = save_backup_path(_slot, _i - 1);
+        var _destino = save_backup_path(_slot, _i);
+        if (file_exists(_origen)) {
+            if (file_exists(_destino)) { file_delete(_destino); }
+            file_rename(_origen, _destino);
+        }
+        _i--;
+    }
+
+    // El save que había hasta ahora (si lo había) pasa a ser la copia más reciente.
+    var _actual = save_get_path(_slot);
+    if (file_exists(_actual)) {
+        var _bak1 = save_backup_path(_slot, 1);
+        if (file_exists(_bak1)) { file_delete(_bak1); }
+        file_rename(_actual, _bak1);
+    }
+
+    return true;
+}
+
+
+/// @function __save_envelope_checksum_ok(_sobre)
+/// @desc    Comprueba la integridad de un sobre ya parseado, SIN reserializar
+///          `datos`. Uso interno.
+///
+///          Por qué no se reserializa: `json_stringify` no garantiza el orden
+///          de las claves de un struct (01 · 14 §8), así que comparar el hash
+///          de un struct vuelto a convertir a texto podría rechazar un
+///          guardado perfectamente válido solo porque las claves salieron en
+///          otro orden. Por eso, desde que existe el checksum, `datos` se
+///          guarda como el TEXTO JSON exacto que se hasheó al escribir (un
+///          string sobrevive el parseo byte a byte, a diferencia de un
+///          struct) — ver `save_game()` más abajo y 01 · 14 §12 bis.
+///
+///          Un guardado del formato anterior (sin checksum, `datos` ya como
+///          struct/array) se acepta tal cual: no hay nada que comprobar.
+/// @param   {Struct} _sobre  El sobre ya parseado (con `.datos` sin desenvolver).
+/// @returns {Bool}
+function __save_envelope_checksum_ok(_sobre) {
+    if (!is_struct(_sobre) || !struct_exists(_sobre, "datos")) { return false; }
+    if (!is_string(_sobre.datos)) { return true; }                   // formato antiguo
+    if (!struct_exists(_sobre, "checksum")) { return true; }         // nada que comprobar
+
+    return (sha1_string_utf8(_sobre.datos) == _sobre.checksum);
+}
+
+
 /// @function save_game(_slot, _datos)
-/// @desc    Guarda un struct (o un array) como partida. Escritura segura.
+/// @desc    Guarda un struct (o un array) como partida. Escritura segura, con
+///          checksum de integridad y copia de seguridad rotativa del save
+///          anterior antes de reemplazarlo.
 /// @param   {String}        _slot   Nombre del slot.
 /// @param   {Struct|Array}  _datos  Tus datos. Deben ser serializables a JSON.
 /// @returns {Bool}                  True si se guardo correctamente.
 function save_game(_slot, _datos) {
     if (!is_struct(_datos) && !is_array(_datos)) {
-        show_debug_message("save_game: los datos deben ser un struct o un array.");
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: los datos deben ser un struct o un array.");
         return false;
     }
 
     if (!save_ensure_dir()) {
-        show_debug_message("save_game: no se pudo crear la carpeta de guardado.");
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: no se pudo crear la carpeta de guardado.");
         return false;
     }
 
     // Envolvemos los datos con metadatos. La versión es lo que nos permitirá
-    // migrar partidas viejas cuando cambiemos la estructura.
+    // migrar partidas viejas cuando cambiemos la estructura. `datos` se guarda
+    // como TEXTO JSON (no como struct anidado) para que el checksum se pueda
+    // comprobar sin reserializar nada — ver __save_envelope_checksum_ok().
+    var _datos_json = json_stringify(_datos);
     var _sobre = {
         version  : SAVE_VERSION,
         fecha    : date_datetime_string(date_current_datetime()),
-        datos    : _datos
+        checksum : sha1_string_utf8(_datos_json),
+        datos    : _datos_json
     };
 
     var _ruta_final = save_get_path(_slot);
@@ -118,7 +233,7 @@ function save_game(_slot, _datos) {
     // --- PASO 1: escribir en el temporal ------------------------------------
     var _f = file_text_open_write(_ruta_temp);
     if (_f == -1) {
-        show_debug_message("save_game: no se pudo abrir " + _ruta_temp);
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: no se pudo abrir " + _ruta_temp);
         return false;
     }
 
@@ -128,21 +243,38 @@ function save_game(_slot, _datos) {
 
     // --- PASO 2: validar lo escrito -----------------------------------------
     // Leemos el temporal y lo parseamos. Si algo fue mal (disco lleno, corte
-    // de luz), aquí lo detectamos ANTES de tocar la partida buena.
+    // de luz), aquí lo detectamos ANTES de tocar la partida buena. Además de
+    // la forma (version/datos), comprobamos que el checksum recién escrito
+    // coincide: si el disco corrompió algo al escribir, se descubre aquí y
+    // no al cargar la partida días después.
     var _leido = __save_read_raw(_ruta_temp);
     if (!is_struct(_leido) || !struct_exists(_leido, "version") || !struct_exists(_leido, "datos")) {
-        show_debug_message("save_game: el temporal no es válido. Se descarta.");
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: el temporal no es válido. Se descarta.");
+        if (file_exists(_ruta_temp)) { file_delete(_ruta_temp); }
+        return false;
+    }
+    if (!__save_envelope_checksum_ok(_leido)) {
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: el checksum del temporal no coincide. Se descarta.");
         if (file_exists(_ruta_temp)) { file_delete(_ruta_temp); }
         return false;
     }
 
-    // --- PASO 3: reemplazar -------------------------------------------------
-    // Borramos el destino y renombramos el temporal. `file_rename` sobre un
-    // fichero existente falla en algunos targets, de ahi el delete previo.
+    // --- PASO 3: copia de seguridad y reemplazo ------------------------------
+    // El save que había hasta ahora (si lo había) pasa a ser la copia de
+    // seguridad más reciente ANTES de escribir la nueva partida encima. Si
+    // el juego se apaga justo aquí: el `.tmp` de este guardado sigue en
+    // disco (recuperable a mano) y el save anterior sigue accesible como
+    // bak1 aunque el archivo principal haya "desaparecido" un instante —
+    // `load_game_recover()` lo encuentra igual.
+    save_backup(_slot, SAVE_BACKUP_COUNT);
+
+    // Por si los backups están desactivados o algo no se movió: `file_rename`
+    // sobre un destino existente falla en algunos targets, de ahí el borrado
+    // previo como red de seguridad.
     if (file_exists(_ruta_final)) { file_delete(_ruta_final); }
 
     if (!file_rename(_ruta_temp, _ruta_final)) {
-        show_debug_message("save_game: fallo el reemplazo final.");
+        __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: fallo el reemplazo final.");
         return false;
     }
 
@@ -176,7 +308,7 @@ function __save_read_raw(_ruta) {
     try {
         _parseado = json_parse(_contenido);
     } catch (_e) {
-        show_debug_message("__save_read_raw: JSON corrupto en " + _ruta);
+        __save_log(SAVE_LOG_NIVEL_ERROR, "__save_read_raw: JSON corrupto en " + _ruta);
         return undefined;
     }
 
@@ -184,18 +316,54 @@ function __save_read_raw(_ruta) {
 }
 
 
-/// @function load_game_raw(_slot)
-/// @desc    Carga el sobre completo (versión + fecha + datos).
-/// @param   {String} _slot
-/// @returns {Struct|Undefined}  El sobre, o `undefined` si no hay nada válido.
-function load_game_raw(_slot) {
-    var _sobre = __save_read_raw(save_get_path(_slot));
+/// @function __save_load_envelope(_ruta)
+/// @desc    Lee, valida y verifica el checksum de un sobre en una ruta dada,
+///          y devuelve `datos` ya DESENVUELTO (struct/array usable, no el
+///          texto JSON interno). La usan tanto `load_game_raw()` (sobre el
+///          save principal) como `load_game_recover()` (sobre cada backup):
+///          es el único sitio donde vive la lógica de verificación. Uso interno.
+/// @param   {String} _ruta
+/// @returns {Struct|Undefined}  El sobre con `.datos` ya desenvuelto, o
+///                              `undefined` si no hay nada válido.
+function __save_load_envelope(_ruta) {
+    var _sobre = __save_read_raw(_ruta);
 
-    if (!is_struct(_sobre)) { return undefined; }
+    if (!is_struct(_sobre))                { return undefined; }
     if (!struct_exists(_sobre, "version")) { return undefined; }
-    if (!struct_exists(_sobre, "datos")) { return undefined; }
+    if (!struct_exists(_sobre, "datos"))   { return undefined; }
+
+    if (!__save_envelope_checksum_ok(_sobre)) {
+        __save_log(SAVE_LOG_NIVEL_ERROR, "__save_load_envelope: checksum no coincide en " + _ruta + ", se rechaza.");
+        return undefined;
+    }
+
+    if (is_string(_sobre.datos)) {
+        // Formato con checksum: `datos` es el JSON de los datos reales, tal
+        // cual se escribió. Ahora que ya se verificó, se parsea de verdad.
+        try {
+            _sobre.datos = json_parse(_sobre.datos);
+        } catch (_e) {
+            __save_log(SAVE_LOG_NIVEL_ERROR, "__save_load_envelope: el JSON interno de datos esta corrupto en " + _ruta);
+            return undefined;
+        }
+    }
+    // Si `datos` NO era un string, es un guardado del formato anterior a esta
+    // verificación (struct/array directo): se acepta tal cual.
 
     return _sobre;
+}
+
+
+/// @function load_game_raw(_slot)
+/// @desc    Carga el sobre completo (versión + fecha + datos), verificando su
+///          checksum si lo trae. `datos` siempre vuelve como struct/array
+///          usable: el formato interno de verificación es un detalle de este
+///          script, no algo que el resto del juego necesite conocer.
+/// @param   {String} _slot
+/// @returns {Struct|Undefined}  El sobre, o `undefined` si no hay nada válido
+///                              o la integridad no coincide.
+function load_game_raw(_slot) {
+    return __save_load_envelope(save_get_path(_slot));
 }
 
 
@@ -260,6 +428,45 @@ function load_game_safe(_slot, _validador) {
 }
 
 
+/// @function load_game_recover(_slot, _validador)
+/// @desc    Como `load_game_safe()`, pero si el save principal del slot no
+///          existe, no pasa el checksum o no pasa el validador, prueba las
+///          copias de seguridad rotativas (la más reciente primero) antes de
+///          rendirse. Úsala en la pantalla de "cargar partida" en vez de
+///          `load_game()` cuando quieras la red de seguridad completa.
+///          ⚠️ No restaura automáticamente el backup como save principal:
+///          solo te devuelve los datos utilizables. Si quieres que el
+///          siguiente `save_game()` parta de ahí, guárdalo tú explícitamente.
+/// @param   {String}   _slot
+/// @param   {Function} _validador  Opcional. Igual que en `load_game_safe()`.
+/// @returns {Struct|Array|Undefined}
+function load_game_recover(_slot, _validador = undefined) {
+    var _datos = load_game_safe(_slot, _validador);
+    if (!is_undefined(_datos)) { return _datos; }
+
+    __save_log(SAVE_LOG_NIVEL_ERROR,
+        "load_game_recover: '" + string(_slot) + "' no es válido, probando copias de seguridad...");
+
+    var _n;
+    for (_n = 1; _n <= SAVE_BACKUP_COUNT; _n++) {
+        var _ruta_bak = save_backup_path(_slot, _n);
+        if (!file_exists(_ruta_bak)) { continue; }
+
+        var _sobre = __save_load_envelope(_ruta_bak);
+        if (!is_struct(_sobre)) { continue; }
+
+        var _candidato = _sobre.datos;
+        if (is_method(_validador) && !_validador(_candidato)) { continue; }
+
+        __save_log(SAVE_LOG_NIVEL_ERROR, "load_game_recover: recuperado desde " + _ruta_bak);
+        return _candidato;
+    }
+
+    __save_log(SAVE_LOG_NIVEL_ERROR, "load_game_recover: no se encontró ninguna copia usable para '" + string(_slot) + "'.");
+    return undefined;
+}
+
+
 /// @function save_get_meta(_slot)
 /// @desc    Devuelve solo los metadatos (versión y fecha) sin cargar los datos.
 ///          Ideal para pintar la pantalla de "elige partida".
@@ -279,6 +486,8 @@ function save_get_meta(_slot) {
 /// @function delete_save(_slot)
 /// @desc    Borra una partida. También limpia los temporales huérfanos que
 ///          haya podido dejar un intento de guardado fallido.
+///          ⚠️ NO borra las copias de seguridad rotativas: quedan disponibles
+///          para `load_game_recover()` aunque el slot principal se borre.
 /// @param   {String} _slot
 /// @returns {Bool}  True si se borro algo.
 function delete_save(_slot) {

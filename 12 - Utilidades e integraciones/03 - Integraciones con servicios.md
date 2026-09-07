@@ -27,6 +27,15 @@
 > [Allchievements](https://github.com/JujuAdams/Allchievements) unifica la API sobre varios
 > back-ends.
 > 📁 `librerias/integraciones/` contiene `steamworks.gml`, `Parworks`, `GOG.gml` y `Allchievements`.
+>
+> **Epic Games, dos cosas distintas que esta tabla puede confundir:** `GMEXT-EpicOnlineServices`
+> da acceso a **Epic Online Services** (EOS) — logros, sesiones, matchmaking, amigos —, **no**
+> publica tu juego en la **Epic Games Store**. Son productos separados del mismo Epic. ⚠️ No se
+> encontró en esta biblioteca ningún *target* de build ni proceso oficial de GameMaker para
+> distribuir en Epic Games Store (no confirmado en
+> [05 · 02 §1](<../05 - Referencia/02 - Publicar y exportar.md>), el detalle de exportación de
+> GameMaker); si necesitas ese canal de distribución, confírmalo directamente con Epic antes de
+> planificarlo.
 
 ---
 

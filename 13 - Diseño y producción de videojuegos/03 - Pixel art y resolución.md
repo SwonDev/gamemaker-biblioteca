@@ -560,6 +560,84 @@ Cómo romper la repetición **sin dibujar cien tiles**:
 4. **Autotiles** para los bordes: GameMaker trae *auto tiling* de 16 y 47 piezas en el editor
    de tilesets. Lo cubre [03 · 17 — Autotiles](../03%20-%20Cursos%20%28YouTube%29/17%20-%20DragoniteSpam%20-%20Getting%20Started%20-%20Autotiles.md).
 
+### 3.9 Contorno (*outline*) selectivo
+
+El contorno es la técnica de estilo más elemental del pixel art y, a la vez, la más mal
+entendida: no es una única decisión («¿lleva línea o no?»), son **dos decisiones
+independientes** — qué color lleva la línea, y dónde se dibuja.
+
+**Decisión 1 — de qué color es la línea:**
+
+| Estilo | Cómo se hace | Efecto |
+|---|---|---|
+| **Contorno negro puro** | Un píxel de `#000000` (o casi) rodeando toda la silueta | Máximo contraste con cualquier fondo; look «Game Boy» / cómic clásico. Riesgo: aísla el sprite del entorno como una pegatina recortada — cuanto más colorido el fondo, más artificial se ve |
+| **Contorno selectivo (de color extraído de la rampa)** | El tono **más oscuro de la rampa de ese color** (la sombra final de §2.2 *Hue shifting*), no negro puro | El sprite se integra mejor con el escenario; es el estilo dominante en pixel art moderno de gama alta (*Celeste*, *Owlboy*, *Eastward*). Exige tener ya la rampa de cada color resuelta |
+| **Contorno perdido (*lost edges*)** | El contorno selectivo, pero **se interrumpe** donde el valor ya separa dos zonas por sí solo — por ejemplo donde el lado iluminado de un brazo casi toca un fondo claro | La técnica más avanzada: la línea «entra y sale» de la silueta según haga falta, en vez de rodearla entera. Cuesta más disciplina de valor (§2.3) pero da el resultado menos plano |
+
+**Decisión 2 — dónde se dibuja la línea:**
+
+- **Borde externo únicamente**: separa la silueta completa del fondo. Es lo mínimo necesario
+  para que el sprite se lea sobre cualquier escenario, y lo único imprescindible en
+  resoluciones muy bajas.
+- **Líneas internas**: separan zonas *dentro* del propio sprite que el sombreado por sí solo
+  no distingue (el borde entre una manga y el torso, del mismo material y casi el mismo
+  valor). Solo compensan a partir de sprites medianos-grandes (24-32 px de alto en adelante);
+  por debajo, cada línea interna es un cluster entero gastado en separar en vez de en dar
+  volumen — exactamente el coste que se explica a continuación.
+
+**El coste real: contorno frente a presupuesto de píxeles.** Un contorno externo de 1 px
+alrededor de un sprite de 16×16 no añade 1 px de silueta: **la resta**, porque ese anillo de
+contorno ocupa espacio que antes podía ser rampa de luz/sombra (§2.2, §3.5). En un sprite de
+16 px de alto, un contorno de 1 px arriba y 1 px abajo ya es un 12 % del alto total dedicado
+a separación, no a volumen. Es la razón real —no solo estética— de que juegos de resolución
+muy baja (8-16 px) prescindan del contorno por completo y confíen únicamente en el contraste
+de valor con el fondo (§2.3): a esa escala, cada píxel de contorno es un píxel que no puede
+ser sombra, luz ni detalle.
+
+**Regla práctica**: si tu paleta de escenario ya separa bien el personaje por valor (prueba
+de escala de grises de §2.3), el contorno es redundante y cuesta píxeles que no necesitas. Si
+el fondo es denso, oscuro o cambia mucho de color (un shmup con fondos variados, por
+ejemplo), el contorno externo compensa su coste porque es la única garantía de legibilidad
+constante.
+
+**Implementación en GameMaker — tres vías, no confundirlas:**
+
+1. **Dibujado a mano en el sprite** (la vía por defecto). El contorno es parte de los
+   píxeles del sprite: coste de ejecución cero, pero fijo — para cambiarlo hay que reeditar
+   el sprite en Aseprite. Es la vía correcta para el 95 % de los casos de este documento.
+2. **Contorno en tiempo real por shader**, para resaltar dinámicamente un objeto (selección,
+   objeto interactivo, *outline* de un enemigo marcado). Ya está resuelto con vertex+fragment
+   shader completos en [08 · 06 §6.2 — Contorno (outline)](../08%20-%20Referencia%20GML%20completa/06%20-%20Shaders.md#62-contorno-outline);
+   no se repite aquí.
+3. **Sprite dilatado sin shader** (el truco «del pobre», útil si el proyecto no quiere montar
+   un pipeline de shaders para un solo efecto puntual): dibujar el sprite desplazado 1 px en
+   8 direcciones con un color plano forzado, y el sprite real encima.
+
+   ```gml
+   /// obj_objeto_interactivo · Draw — contorno por sprite dilatado (sin shader)
+   if (resaltado)
+   {
+       // gpu_set_fog fuerza un color plano sobre cualquier dibujado 2D (08 · 23 §3.1, vía C:
+       // truco verificado en su comportamiento oficial, no como técnica de contorno documentada)
+       gpu_set_fog(true, color_contorno, 0, 1);
+       for (var _i = 0; _i < 8; _i++)
+       {
+           var _dir = _i * 45;
+           draw_sprite_ext(sprite_index, image_index,
+                            x + lengthdir_x(1, _dir), y + lengthdir_y(1, _dir),
+                            image_xscale, image_yscale, image_angle, c_white, image_alpha);
+       }
+       gpu_set_fog(false, c_black, 0, 1);
+   }
+
+   draw_self();   // el sprite real, siempre encima de las 8 copias del contorno
+   ```
+
+   > ⚠️ Nueve dibujados por instancia (8 copias + el sprite real) es barato para unos pocos
+   > objetos resaltados, pero **no lo apliques a docenas de instancias a la vez**: multiplica
+   > directamente el *overdraw* de esa zona de pantalla — ver
+   > [01 · 15 — Overdraw](../01%20-%20Fundamentos/15%20-%20Depuración%20y%20rendimiento.md#overdraw).
+
 ---
 
 ## 4 · Animación en pixel art
@@ -945,6 +1023,13 @@ Si no llamas a `display_set_gui_size()`, la GUI toma el tamaño de la ventana y 
 art se dibujará **a la escala del monitor**, mezclando píxeles de dos tamaños distintos en la
 misma pantalla. Es el segundo error más común después de la interpolación.
 
+> 📱 **En móvil el problema se agrava**: no hay dos o tres relaciones de aspecto como en
+> escritorio, sino una decena, y además entra en juego la **densidad de píxeles (DPI)** — los
+> mismos píxeles de pantalla pueden ser una pantalla de 5" o de 7". La estrategia de altura fija
+> con anchura variable, el *letterbox* como alternativa sin código, y la conversión de DPI a
+> píxeles de GUI están en
+> [04 · 28 §4 «Resolución y escalado en móvil»](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md).
+
 ### 6.5 Posiciones fraccionarias y el redondeo de la cámara
 
 Un decimal en la posición de la cámara desplaza **la escena entera** medio píxel, y con la
@@ -1171,6 +1256,12 @@ Y una nota de mercado que no es opinión: buena parte de la comunidad de pixel a
 abiertamente el arte generado, hasta el punto de que los tutoriales de Pedro Medeiros llevan
 la etiqueta «No generative AI was used». Si publicas en itch.io o Steam, **declara lo que uses**.
 
+> Para el resto del criterio —qué sirve de IA generativa fuera del pixel art (upscalers,
+> texturas, retratos), el problema de la consistencia de estilo (seeds, ControlNet, LoRA) y
+> el estado legal verificado con fecha (derechos de autor, Content Survey de Steam, AI
+> Disclosure de itch.io)— ver
+> [07 · 23 — Arte generado por IA](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md).
+
 ### 7.3 Placeholders: cajas grises con disciplina
 
 Lo más rápido y lo más profesional es **no dibujar nada todavía**. Un rectángulo de color plano
@@ -1287,6 +1378,7 @@ Tres reglas para que el placeholder no se convierta en deuda:
 - [01 · 10 — Rooms, capas, cámaras y viewports](../01%20-%20Fundamentos/10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md) · [01 · 11 — Dibujo y renderizado](../01%20-%20Fundamentos/11%20-%20Dibujo%20y%20renderizado.md)
 - [04 · 15 — Game feel y juice](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md) — *squash & stretch*, *hit stop*, flash de impacto
 - [04 · 27 — Accesibilidad](../04%20-%20Recetas%20por%20género/27%20-%20Accesibilidad.md) — daltonismo y legibilidad
+- [04 · 28 §4 — Resolución y escalado en móvil](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md) — relación de aspecto variable, *letterbox* y DPI en Android/iOS
 - [`06 · scr_camera.gml`](../06%20-%20Assets%20y%20Scripts/scr_camera.gml) — cámara con zona muerta, suavizado y redondeo
 
 ---

@@ -110,6 +110,18 @@ modelo con servidor:
 El cliente puede predecir localmente para que se sienta inmediato (ver 4.4),
 pero **el servidor siempre tiene la última palabra**.
 
+**Esta regla no es solo para partidas en tiempo real.** Si tu juego tiene cualquier backend
+propio —leaderboard, cuenta de usuario, guardado remoto—, "nunca confíes en el cliente" se
+traduce en tres piezas concretas que esta biblioteca ya cubre, aunque no vivan en este
+documento: **autenticar** cada petición con un token en vez de confiar en quién dice ser el
+cliente ([`04 · 17`](17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md) §6),
+**limitar cuántas veces** se puede llamar a ese backend antes de aceptar más peticiones
+([`13 · 10`](../13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md) §14.7),
+y **validar en servidor** lo que el cliente afirma (puntuaciones, replays, resultado de una
+partida — ya resuelto en
+[`13 · 10`](../13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md) §14
+completo).
+
 ### 2.3 Jerarquía de objetos
 
 ```
@@ -1204,7 +1216,7 @@ function LobbyState() constructor
     max_jugadores = 4;
     partida_empezada = false;
 
-    añadir = function(_id_red, _nombre)
+    anadir = function(_id_red, _nombre)
     {
         if (struct_names_count(jugadores) >= max_jugadores) return false;
 
@@ -1276,8 +1288,45 @@ function LobbyState() constructor
    cliente.
 2. **Áreas de interés** — no envíes entidades lejanas. En un mundo grande es
    la optimización que más rinde.
-3. **UDP fiable propio** — números de secuencia + acuse de recibo +
-   retransmisión selectiva. Es lo que hace ENet (y por eso existe GMS ENet).
+3. **UDP fiable NATIVO, antes de salir a por una librería de terceros** — el motor ya trae
+   esto en una línea por extremo. `network_set_config()` acepta las constantes
+   `network_config_enable_reliable_udp` / `network_config_disable_reliable_udp`, que activan o
+   desactivan una capa de acuse de recibo y reenvío de paquetes perdidos **sobre un socket UDP
+   ya creado** (verificado contra el manual oficial,
+   [`Networking/network_set_config`](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Networking/network_set_config.md)):
+
+   ```gml
+   // En AMBOS extremos de la conexión, antes de enviar nada por ese socket:
+   network_set_config(network_config_enable_reliable_udp, socket);
+   // network_set_config(network_config_disable_reliable_udp, socket);   // para desactivarlo
+   ```
+
+   Tres cosas que dice el manual y que hay que respetar:
+
+   - **Actívalo en los DOS lados** antes de mandar datos por ese socket; lo que se envía o
+     recibe antes de activarlo no se ve afectado.
+   - Añade una **cabecera de 12 bytes** a cada paquete UDP (la información que GameMaker usa
+     para comprobar errores y reenviar lo que falte) — cuenta con eso en el presupuesto de
+     ancho de banda de §4.3.
+   - **No garantiza el orden de llegada**, solo que llegue: "fiable" aquí significa
+     retransmisión, no secuenciación. El snapshot de §5.2 ya resuelve el orden con su propio
+     número de tick; si tu protocolo necesita orden en otro tipo de mensaje, sigue siendo cosa
+     tuya. Puedes activarlo y desactivarlo varias veces sobre el mismo socket, e incluso tener
+     dos sockets UDP simultáneos con configuraciones distintas.
+   - No funciona en el objetivo **HTML5** (el propio manual lo dice sin rodeos, la misma
+     restricción de servidor de la §4.1: no puedes crear ni configurar sockets de servidor ahí).
+
+   Símbolos verificados: `network_set_config`, `network_config_enable_reliable_udp`,
+   `network_config_disable_reliable_udp`.
+
+   **Cuándo SÍ conviene GMS ENet (u otra librería de terceros) en su lugar:** cuando necesitas
+   algo que la opción nativa no da — varios **canales** independientes por conexión (unos
+   fiables y otros no, sin que un paquete perdido en uno bloquee a los demás), control de
+   congestión más fino, o **interoperabilidad** con un servidor que no sea GameMaker y ya hable
+   el protocolo ENet (muy común si tu backend está en C/C++, o si reusas infraestructura de
+   otro motor). Para un juego GameMaker↔GameMaker sin esas necesidades,
+   `network_config_enable_reliable_udp` resuelve el caso común sin sumar una dependencia
+   externa que no hacía falta.
 4. **Rollback completo** — solo si haces un juego de lucha o peleas 1v1 con
    mucho *timing*. Exige determinismo absoluto.
 5. **Voz** — Photon ya la trae. Si lo haces tú, es otro proyecto aparte.
@@ -1295,7 +1344,9 @@ primer juego online:
 
 1. Haz primero la versión **local** del juego y que funcione bien.
 2. Añade **split-screen local** (dos viewports). Te obliga a separar input de
-   lógica sin sufrir la red.
+   lógica sin sufrir la red — incluido dar a cada jugador su propio esquema de teclas/botones,
+   no solo su propio mando: ver
+   [25 · Menú de opciones §5.8](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md#58-perfiles-de-input-por-jugador-local-co-op).
 3. Después añade red con autoridad del servidor.
 4. Solo entonces piensa en rollback.
 
@@ -1347,14 +1398,14 @@ salidas reales cuando decidas que sí quieres una.
 Una **sala** (*room* o *lobby*) es distinta de la partida en sí: es la sala de espera donde
 los jugadores se agrupan, ven quién más hay y confirman que están listos, **antes** de que
 empiece la simulación de la §3. El §6 ya define una `LobbyState` para *una* sala activa
-(`jugadores`, `añadir`, `quitar`, `todos_listos`). Lo que falta para un **directorio con
+(`jugadores`, `anadir`, `quitar`, `todos_listos`). Lo que falta para un **directorio con
 varias salas simultáneas** es: un identificador listable, quién manda en la sala, si es
 pública o privada, y una forma de echar a alguien que no sea "yo me borro a mí mismo".
 
 `SalaMultijugador` **hereda** de `LobbyState` (sintaxis verificada: la misma que usa
 `BasicMathsTestSuite() : TestSuite() constructor` en
 [`13 · 10 — Testing y QA`](../13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md) §4.1)
-para no repetir `jugadores`, `añadir`, `quitar` ni `todos_listos`:
+para no repetir `jugadores`, `anadir`, `quitar` ni `todos_listos`:
 
 ```gml
 // ═══════════ scr_salas ═══════════
@@ -1404,7 +1455,7 @@ function sala_crear(_anfitrion_id, _nombre, _max_jugadores)
     var _id   = string(global.siguiente_id_sala++);
     var _sala = new SalaMultijugador(_id, _nombre, _anfitrion_id, _max_jugadores);
 
-    _sala.añadir(_anfitrion_id, "Anfitrión");     // heredado de LobbyState
+    _sala.anadir(_anfitrion_id, "Anfitrión");     // heredado de LobbyState
     global.salas[$ _id] = _sala;
     return _sala;
 }
@@ -1438,7 +1489,7 @@ function sala_unirse(_id_sala, _id_red, _nombre)
     var _s = global.salas[$ _id_sala];
     if (_s.estado != "esperando") return false;
 
-    return _s.añadir(_id_red, _nombre);   // false si ya está llena (LobbyState.añadir, §6)
+    return _s.anadir(_id_red, _nombre);   // false si ya está llena (LobbyState.anadir, §6)
 }
 
 /// @func sala_expulsar(_id_sala, _quien_expulsa, _id_red_objetivo)
@@ -1455,13 +1506,16 @@ function sala_expulsar(_id_sala, _quien_expulsa, _id_red_objetivo)
 comparten un solo espacio):
 
 ```gml
-// Amplía el enum NetMsg de la §5.0 con esto:
+// Amplía el enum NetMsg de la §5.0 con estos valores (mismo enum, no uno nuevo):
+enum NetMsg
+{
     room_create        = 60,
     room_list_request  = 61,
     room_list          = 62,   // servidor → cliente: resultado de room_list_request
     room_join          = 63,
     room_join_denied   = 64,   // sala llena, ya empezada, o no existe
     room_kicked        = 65    // servidor → cliente expulsado
+}
 ```
 
 Solo hace falta escribir el codificador del mensaje que no es trivial — el listado, porque

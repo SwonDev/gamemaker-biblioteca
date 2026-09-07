@@ -172,8 +172,15 @@ def grep(subdirs, patron, exts, limite=40):
     args += [os.path.join(RAIZ, d) for d in subdirs
              if os.path.exists(os.path.join(RAIZ, d))]
     r = subprocess.run(args, capture_output=True, text=True)
+    lineas = r.stdout.splitlines()
+    # Las coincidencias de PALABRA COMPLETA van primero. Sin esto, buscar «respec»
+    # devuelve cincuenta «respecto» y entierra el documento que de verdad habla de
+    # respec; lo mismo con «pi» dentro de «pixel» o «copia».
+    exacta = re.compile(r"\b" + re.escape(patron) + r"\b", re.I)
+    justas = [l for l in lineas if exacta.search(l)]
+    resto = [l for l in lineas if not exacta.search(l)]
     n = 0
-    for linea in r.stdout.splitlines():
+    for linea in justas + resto:
         print(linea.replace(RAIZ + os.sep, "")[:240])
         n += 1
         if n >= limite:

@@ -426,6 +426,109 @@ perciben injustas. `mask_index = spr_jugador_mascara;` en el Create y listo.
 > jugador altera sus colisiones. Por eso el squash se aplica en el Draw con `draw_sprite_ext()`,
 > que es lo que hace [04 · 15 §5.3](../04%20-%20Recetas%20por%20g%C3%A9nero/15%20-%20Game%20feel%20y%20juice.md).
 
+### 3.10 Blend/crossfade entre animaciones de sprite
+
+§3.5 resuelve el **corte seco**: `sprite_index` cambia y el fotograma nuevo aparece de golpe.
+Es lo correcto la mayoría de las veces, pero hay un caso donde un corte se ve mal — dos poses
+muy distintas entre sí (brazos arriba → brazos abajo) que cambian en un fotograma de juego —
+y ahí surge la pregunta: **¿por qué no interpolar, como se interpola una mezcla de Spine
+(`skeleton_animation_mix`, [08 · 22 §1](../08%20-%20Referencia%20GML%20completa/22%20-%20Animación%20esqueletal%20%28Spine%29.md#1--reproducir-y-mezclar-animaciones))?**
+
+**Por qué en 2D no se interpola como en un esqueleto.** `skeleton_animation_mix` funciona
+porque Spine anima **huesos**: interpolar significa calcular ángulos y posiciones
+intermedias válidas entre dos poses del mismo esqueleto, y el motor redibuja la malla sobre
+esos huesos interpolados — el resultado es una pose real que nunca se dibujó a mano, pero
+que es anatómicamente coherente. Un sprite por fotogramas **no tiene huesos**: cada
+fotograma es un mapa de píxeles plano e independiente, sin correspondencia con el anterior.
+No hay «ángulo intermedio» que calcular entre dos bitmaps. Lo único que se puede interpolar
+entre dos imágenes planas es su **opacidad**, y superponer dos siluetas con alfa cruzado no
+es una pose intermedia: es una doble exposición translúcida de dos poses distintas al mismo
+tiempo. Por eso un fundido de sprites nunca se ve tan limpio como una mezcla esqueletal — es
+una limitación de qué información existe en cada técnica, no una cuestión de pulir el código.
+
+**Lo que se hace en su lugar, de más a menos barato:**
+
+1. **Frame de transición dibujado a mano.** La solución honesta: un artista dibuja 1-3
+   fotogramas intermedios reales entre el final de una animación y el principio de la
+   siguiente (el clásico *in-between* de animación tradicional — ver
+   [13 · 04 §1.1](#11-cuáles-importan-de-verdad-y-en-qué-orden), anticipación). Cuesta arte,
+   pero es la única vía que da una pose intermedia de verdad, no una aproximación.
+2. **Cortar en la pose que coincide.** Si dos animaciones comparten una pose parecida en
+   algún punto de su ciclo (el fotograma «pies juntos» de andar y de correr, por ejemplo), se
+   retrasa el cambio de `sprite_index` hasta que `image_index` llega a ese fotograma
+   concreto. No hace falta dibujar nada nuevo: solo estructurar el bucle para que ese punto de
+   corte exista y comprobarlo antes de cambiar. Es la técnica más barata que sí evita el salto.
+3. **Fundido por alfa cruzado (crossfade real)**, cuando ni 1 ni 2 son viables (cambio de
+   estado brusco, sin frame común, sin presupuesto de arte para *in-betweens*): superponer el
+   fotograma saliente con `image_alpha` decreciente y el entrante con `image_alpha` creciente
+   durante 2-4 fotogramas.
+
+   ```gml
+   /// obj_personaje · Evento Create — estado del crossfade
+   en_crossfade      = false;
+   crossfade_t       = 0;
+   crossfade_dur     = 4;              // fotogramas de fundido: 2-4, nunca más
+   spr_saliente      = sprite_index;
+   idx_saliente       = 0;
+   ```
+
+   ```gml
+   /// obj_personaje · función iniciar_crossfade(_spr_nuevo)
+   /// @desc Cambia de sprite con fundido cruzado en vez de corte seco.
+   function iniciar_crossfade(_spr_nuevo)
+   {
+       spr_saliente  = sprite_index;
+       idx_saliente  = image_index;
+       sprite_index  = _spr_nuevo;
+       image_index   = 0;
+       en_crossfade  = true;
+       crossfade_t   = 0;
+   }
+   ```
+
+   ```gml
+   /// obj_personaje · Evento Step — avanzar el fundido
+   if (en_crossfade)
+   {
+       crossfade_t += 1;
+       if (crossfade_t >= crossfade_dur) en_crossfade = false;
+   }
+   ```
+
+   ```gml
+   /// obj_personaje · Evento Draw
+   if (en_crossfade)
+   {
+       var _progreso = crossfade_t / crossfade_dur;                    // 0..1
+
+       draw_sprite_ext(spr_saliente, idx_saliente, x, y,
+                        image_xscale, image_yscale, image_angle,
+                        c_white, 1 - _progreso);                       // el que se va
+
+       image_alpha = _progreso;                                       // el que entra
+       draw_self();
+       image_alpha = 1;
+   }
+   else
+   {
+       draw_self();
+   }
+   ```
+
+   > ⚠️ **El fundido cruzado se nota como fundido**: durante 2-4 fotogramas se ven las dos
+   > siluetas superpuestas y translúcidas. Funciona bien para transiciones de UI, cambios de
+   > estado abstractos (normal → «cargado de energía») o *morphs* deliberadamente borrosos.
+   > **No lo uses para ciclos de locomoción** (andar → correr): ahí una pose intermedia falsa
+   > se nota más que un corte limpio, y las opciones 1 o 2 dan mejor resultado por menos coste
+   > de ejecución.
+
+| Técnica | Coste | Cuándo |
+|---|---|---|
+| Corte seco (§3.5) | Cero | La mayoría de los casos; poses de entrada/salida parecidas |
+| Frame de transición a mano | Arte | Cambio de pose grande, presupuesto de artista disponible |
+| Cortar en la pose que coincide | Diseño del ciclo | Ciclos que comparten una pose (andar↔correr) |
+| Crossfade por alfa | Un `image_alpha` extra por fotograma | Transiciones de UI o de estado abstracto, no locomoción |
+
 ---
 
 ## 4 · Animación procedural en código
@@ -606,6 +709,118 @@ En el Draw, un `draw_sprite(spr_capa_eslabon, i, puntos[i].px, puntos[i].py)` po
 `tension` da terciopelo pesado; subirla, una cinta ligera. Para la versión con física real
 —Verlet, restricciones iterativas, fluidos— ver
 [13 · 08 — Físicas a mano y fluidos](./08%20-%20F%C3%ADsicas%20a%20mano%20y%20fluidos.md).
+
+### 4.5 Cinemática inversa (IK): lo que la cadena de §4.4 NO resuelve
+
+**La cadena de eslabones de §4.4 no es IK.** Es un *seguimiento con retardo*: cada punto
+persigue al anterior con un `lerp` y una restricción de distancia, perfecto para pelo, capa
+o cola —algo que se puede quedar «un poco atrás» sin que nadie lo note—, pero **no garantiza
+que el extremo llegue a un punto exacto**. La cinemática inversa resuelve un problema
+distinto: dado un objetivo concreto (un pie que debe tocar el suelo en una pendiente, una
+mano que debe agarrarse a un saliente), **calcular el ángulo exacto de cada hueso para que el
+extremo de la cadena llegue justo ahí**, sin retardo ni aproximación.
+
+**Solución exacta para 2 huesos (la ley del coseno).** Un brazo (hombro-codo-mano) o una
+pierna (cadera-rodilla-pie) son casi siempre **2 huesos**, y para 2 huesos existe una solución
+**analítica y exacta**: con las dos longitudes de hueso y la distancia al objetivo, la ley del
+coseno da el ángulo interno de la articulación intermedia sin iterar.
+
+```gml
+/// @func resolver_ik_dos_huesos(_ox, _oy, _tx, _ty, _long1, _long2, _lado)
+/// @desc  Cinemática inversa EXACTA de una cadena de 2 huesos (ley del coseno).
+/// @param {Real} _ox, _oy   Origen fijo de la cadena (hombro, cadera).
+/// @param {Real} _tx, _ty   Punto objetivo que debe alcanzar el extremo (mano, pie).
+/// @param {Real} _long1     Longitud del primer hueso (brazo/muslo).
+/// @param {Real} _long2     Longitud del segundo hueso (antebrazo/pierna).
+/// @param {Real} _lado      1 o -1: hacia qué lado se dobla la articulación intermedia.
+/// @return {Struct}         { codo_x, codo_y, angulo1, angulo2 }, ángulos en grados.
+function resolver_ik_dos_huesos(_ox, _oy, _tx, _ty, _long1, _long2, _lado)
+{
+    var _dist = point_distance(_ox, _oy, _tx, _ty);
+    // El objetivo puede estar fuera de alcance: recorta a lo que la cadena puede estirar/encoger.
+    _dist = clamp(_dist, abs(_long1 - _long2) + 0.01, _long1 + _long2 - 0.01);
+
+    var _cos_codo    = (_long1*_long1 + _long2*_long2 - _dist*_dist) / (2 * _long1 * _long2);
+    var _cos_base    = (_long1*_long1 + _dist*_dist - _long2*_long2) / (2 * _long1 * _dist);
+    var _offset_base = darccos(clamp(_cos_base, -1, 1));   // §4.5: darccos, no arccos (grados)
+
+    var _dir_objetivo = point_direction(_ox, _oy, _tx, _ty);
+    var _angulo1 = _dir_objetivo + _offset_base * _lado;
+
+    var _codo_x = _ox + lengthdir_x(_long1, _angulo1);
+    var _codo_y = _oy + lengthdir_y(_long1, _angulo1);
+    var _angulo2 = point_direction(_codo_x, _codo_y, _tx, _ty);
+
+    return { codo_x: _codo_x, codo_y: _codo_y, angulo1: _angulo1, angulo2: _angulo2 };
+}
+```
+
+```gml
+/// obj_personaje · Evento Step — el pie derecho se planta en el punto de suelo detectado
+var _ik = resolver_ik_dos_huesos(cadera_x, cadera_y, pie_objetivo_x, pie_objetivo_y,
+                                  largo_muslo, largo_pierna, 1);
+rodilla_x = _ik.codo_x;  rodilla_y = _ik.codo_y;
+angulo_muslo  = _ik.angulo1;
+angulo_pierna = _ik.angulo2;
+```
+
+Con un esqueleto Spine, estos dos ángulos se aplican a los huesos reales con
+`skeleton_bone_state_set` sobre la animación en marcha — el mismo patrón que apuntar la
+cabeza al ratón en [08 · 22 §3](../08%20-%20Referencia%20GML%20completa/22%20-%20Animación%20esqueletal%20%28Spine%29.md#3--manipular-huesos-y-slots-por-código),
+pero aplicado a dos huesos calculados en vez de a uno leído del ratón. Con sprites por
+fotogramas, sobre un personaje construido por piezas (torso, muslo, pierna como sprites
+separados, ver [13 · 04 §3.8](#38-del-estado-al-sprite)), los dos ángulos se pasan
+directamente al `image_angle` de cada pieza.
+
+**Aproximación iterativa para cadenas de 3+ huesos (CCD).** Para colas, tentáculos o brazos
+robóticos con más de 2 segmentos, la ley del coseno ya no da una solución cerrada. La técnica
+estándar es **CCD** (*Cyclic Coordinate Descent*): rotar cada hueso, del extremo hacia la
+base, lo justo para acercar el extremo al objetivo, y repetir unas pocas pasadas hasta que
+converge. No es exacto en una sola pasada como el de 2 huesos, pero funciona con cualquier
+longitud de cadena.
+
+```gml
+/// @func resolver_ik_ccd(_puntos, _tx, _ty, _iteraciones)
+/// @desc  Cyclic Coordinate Descent: aproxima el extremo de una cadena de N huesos a un
+///        objetivo, rotando cada articulación desde el extremo hacia la base.
+/// @param {Array<Struct>} _puntos   Posiciones { px, py } de cada articulación, base→extremo,
+///                                  ya colocadas a la distancia correcta entre sí (ver §4.4).
+/// @param {Real} _tx, _ty           Objetivo para el extremo de la cadena.
+/// @param {Real} _iteraciones       2-4 suele bastar para una cadena de 3-4 huesos.
+function resolver_ik_ccd(_puntos, _tx, _ty, _iteraciones)
+{
+    var _n = array_length(_puntos);
+
+    repeat (_iteraciones)
+    {
+        for (var _i = _n - 2; _i >= 0; _i--)
+        {
+            var _art     = _puntos[_i];
+            var _extremo = _puntos[_n - 1];
+
+            var _dir_actual   = point_direction(_art.px, _art.py, _extremo.px, _extremo.py);
+            var _dir_objetivo = point_direction(_art.px, _art.py, _tx, _ty);
+            var _giro         = angle_difference(_dir_objetivo, _dir_actual);
+
+            // Rota alrededor de _art todos los puntos posteriores, manteniendo su distancia.
+            for (var _j = _i + 1; _j < _n; _j++)
+            {
+                var _d = point_distance(_art.px, _art.py, _puntos[_j].px, _puntos[_j].py);
+                var _a = point_direction(_art.px, _art.py, _puntos[_j].px, _puntos[_j].py) + _giro;
+                _puntos[_j].px = _art.px + lengthdir_x(_d, _a);
+                _puntos[_j].py = _art.py + lengthdir_y(_d, _a);
+            }
+        }
+    }
+}
+```
+
+| | Cadena de §4.4 (retardo) | IK de 2 huesos (ley del coseno) | CCD (N huesos) |
+|---|---|---|---|
+| Qué resuelve | Sigue al cuerpo con un desfase natural | Alcanza un punto **exacto** | Aproxima un punto en cadenas largas |
+| Exactitud | Ninguna — es deliberadamente flácido | Exacta, una sola pasada | Converge tras varias iteraciones |
+| Coste | Un `lerp` por eslabón | Trigonometría fija, barato | `_iteraciones × huesos`, ajustable |
+| Úsalo para | Pelo, capa, cola, cadena de una maza | Pie/mano que debe tocar un punto concreto | Tentáculo, cola larga con objetivo, brazo robótico |
 
 ---
 
@@ -1034,6 +1249,10 @@ carísimo. **Spine** resuelve eso: el esqueleto se anima fuera de GameMaker y el
 reproduce con las 48 funciones `skeleton_*`, con mezcla entre animaciones (`skeleton_animation_mix`),
 manipulación de huesos y sistemas de equipamiento vía *attachments*. Está entero en
 [08 · 22](../08%20-%20Referencia%20GML%20completa/22%20-%20Animaci%C3%B3n%20esqueletal%20%28Spine%29.md).
+
+> ⚠️ **DragonBones no es una alternativa a Spine en GameMaker**: no tiene soporte nativo ni
+> extensión oficial. Verificación completa en
+> [08 · 22 §6](../08%20-%20Referencia%20GML%20completa/22%20-%20Animaci%C3%B3n%20esqueletal%20%28Spine%29.md#6--dragonbones-por-qué-no-es-una-alternativa-hoy-verificado).
 
 Dos cosas de aquí aplican allí: **`image_index` sigue funcionando** sobre un sprite de Spine, y los
 eventos *Animation Update* y *Animation Event* **son exclusivos de Spine** — no tienen nada que ver

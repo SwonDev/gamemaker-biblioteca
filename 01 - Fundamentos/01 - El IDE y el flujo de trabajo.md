@@ -163,6 +163,12 @@ Docking en la parte inferior con pestañas. Puedes arrastrar las pestañas a otr
 
 > Los *Syntax Errors* se actualizan con un pequeño retardo mientras tecleas (para no reportar código a medio escribir). Dos casos **no** impiden compilar pero conviene revisar: variable declarada y nunca usada, y variable usada sin declarar. Normalmente es un *typo*.
 
+### Los Workspaces
+
+Un **Workspace** es una pestaña en la parte superior del IDE donde acoplas ventanas de editor (código de objetos, Room Editor, Sprite Editor…) mientras trabajas. No hay un único workspace obligatorio: pulsa el **+** junto a las pestañas para crear otro y así separar contextos que no quieres ver a la vez — por ejemplo, uno para el jugador y sus scripts, otro para la IA de los enemigos, otro para el editor de niveles. Cada pestaña se renombra con doble clic. Arrastrando una pestaña fuera de la ventana principal la conviertes en una **ventana flotante** independiente (útil con varios monitores); sigue siendo el mismo proyecto abierto dos veces visualmente, nunca dos proyectos distintos.
+
+Dentro de cualquier workspace, clic derecho abre un menú rápido: **Assets** crea un recurso nuevo y enfoca el workspace en su editor; **Windows** lista las ventanas abiertas en ese workspace; **Ir a** (**Ctrl/Cmd + T**) busca por nombre entre assets, funciones, Game Options y preferencias, y al seleccionar un resultado lo abre —o lo enfoca, si ya estaba abierto— en el workspace actual. El propio IDE recuerda qué había acoplado en cada workspace entre sesiones, así que la organización que montes se queda ahí la próxima vez que abras el proyecto.
+
 ---
 
 ## 6. Ejecutar y compilar: VM vs YYC

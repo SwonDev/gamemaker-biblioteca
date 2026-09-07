@@ -453,7 +453,7 @@ if (tilemap_get_mask(mapa) == -1) show_debug_message("Sin máscara propia");
 var _transform = tile_mirror | tile_flip | tile_rotate;
 tilemap_set_global_mask(_transform | 0b11111111);
 
-const BIT_SOLIDO = (1 << 9);
+#macro BIT_SOLIDO (1 << 9)   // GML no tiene `const`: la constante se declara con #macro
 
 // Marcar un tile como sólido
 var _datos = tilemap_get(mapa, 5, 5);

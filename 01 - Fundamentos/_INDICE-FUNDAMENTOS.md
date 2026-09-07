@@ -37,16 +37,16 @@ Cada archivo:
 | **03** | [Handles — el cambio clave de 2026](./03%20-%20Handles%20-%20el%20cambio%20clave%20de%202026.md) | ⭐ **El capítulo crítico si vienes de 2023 o antes**. Qué es un handle, comparación, reciclado de índices, migración |
 | **04** | [Structs y constructores (POO en GML)](./04%20-%20Structs%20y%20constructores%20%28POO%20en%20GML%29.md) | Struct literales, `constructor` + `new`, herencia con `:`, `static`, static chain, `delete`, `method()`, JSON |
 | **05** | [Arrays y estructuras de datos](./05%20-%20Arrays%20y%20estructuras%20de%20datos.md) | Arrays 1D/2D, `array_*`, accessors, DS lists/maps/grids/stacks/queues/priority, cuándo usar cada uno |
-| **06** | [Eventos y ciclo del juego](./06%20-%20Eventos%20y%20ciclo%20del%20juego.md) | Orden EXACTO de eventos, Create/Destroy/Clean Up, alarms, draw events, `delta_time`, Time Sources |
+| **06** | [Eventos y ciclo del juego](./06%20-%20Eventos%20y%20ciclo%20del%20juego.md) | Orden EXACTO de eventos, Create/Destroy/Clean Up, alarms, draw events, `delta_time`, Time Sources, vsync y frame pacing (`display_set_timing_method`) |
 | **07** | [Funciones, métodos y ámbito](./07%20-%20Funciones,%20métodos%20y%20ámbito.md) | Script functions vs methods, argumentos, opcionales, `static`, closures, recursión, `method()`, JSDoc/Feather |
 | **08** | [Movimiento y colisiones](./08%20-%20Movimiento%20y%20colisiones.md) | `move_and_collide()`, `place_meeting`, `instance_place`, máscaras, bounding boxes, collision space, physics |
-| **09** | [Instancias, objetos y herencia](./09%20-%20Instancias,%20objetos%20y%20herencia.md) | `instance_create_*`, `with()`, `other`, desactivación, parent objects, `instance_change` ⚠️ deprecada |
+| **09** | [Instancias, objetos y herencia](./09%20-%20Instancias,%20objetos%20y%20herencia.md) | `instance_create_*`, `with()`, `other`, desactivación, parent objects, `instance_change` ⚠️ deprecada, cuándo NO usar una instancia (partículas/asset layers/tilemap) |
 | **10** | [Rooms, capas, cámaras y viewports](./10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md) | Rooms, navegación, persistencia, layers, tilemaps, cámaras, viewports, transiciones |
 | **11** | [Dibujo y renderizado](./11%20-%20Dibujo%20y%20renderizado.md) | Draw targets, application surface, surfaces y sus formatos, shaders, blend modes, draw GUI, batching |
 | **12** | [Input — teclado, ratón y gamepad](./12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md) | `keyboard_check`, mouse, gamepad, Device Input, librería **Input** |
 | **13** | [Audio](./13%20-%20Audio.md) | `audio_play_sound_ext`, buses, efectos, grupos, 3D (emitters/listeners), sync, web audio |
 | **14** | [Persistencia y archivos](./14%20-%20Persistencia%20y%20archivos.md) | Sandbox, working_directory/game_save_id, INI, JSON, buffers, guardado de structs, Test Framework |
-| **15** | [Depuración y rendimiento](./15%20-%20Depuración%20y%20rendimiento.md) | Feather, debugger, Debug Overlay, GC, optimización, checklist de limpieza |
+| **15** | [Depuración y rendimiento](./15%20-%20Depuración%20y%20rendimiento.md) | Feather, debugger, Debug Overlay, GC, optimización, overdraw, checklist de limpieza, herramientas externas de perfilado (RenderDoc/Instruments/Android Profiler) |
 | **16** | [Exportar y publicar](./16%20-%20Exportar%20y%20publicar.md) | Targets, opciones por plataforma, firma, empaquetado, requisitos de cada tienda |
 | **17** | [GML Visual (Drag and Drop)](./17%20-%20GML%20Visual%20%28Drag%20and%20Drop%29.md) | Qué es y para quién, cómo se lee un bloque, las 27 familias de acciones, **tabla de equivalencias acción → GML**, `Convert to GML`, limitaciones reales, depuración |
 

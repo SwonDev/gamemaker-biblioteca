@@ -630,6 +630,142 @@ var _checksum = md5_string_utf8(_json);
 
 ---
 
+## 12 bis. Checksum como verificación real: calcular, guardar aparte, comparar y rechazar
+
+El punto anterior calcula un checksum (`md5_string_utf8`) pero no dice qué hacer con él. Un
+checksum que se calcula y no se compara en ningún sitio no protege nada: es exactamente el
+defecto que tenía el replay firmado de
+[13 · 10 §14.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#143-replay-firmado-la-única-verificación-real-para-un-ranking-de-un-jugador)
+antes de corregirlo. El flujo completo tiene **cuatro pasos**, no uno:
+
+1. **Calcular** el hash de los datos, antes de escribir nada.
+2. **Guardarlo aparte** del propio dato que protege (si viviera dentro del mismo bloque que
+   hashea, hashear el bloque completo incluiría al propio hash: problema circular).
+3. **Recalcularlo al leer**, sobre los mismos bytes que se hashearon al escribir.
+4. **Comparar y, si no coincide, rechazar** — no seguir cargando una partida que puede tener
+   cualquier campo corrompido o retocado a mano.
+
+### ⚠️ La trampa: reserializar un struct para comparar el hash
+
+El error natural es calcular el checksum sobre los **datos ya parseados**: `sha1_string_utf8
+(json_stringify(_datos_leidos))`. **No lo hagas.** El motivo está en §8 de este mismo
+documento: *"el orden de las variables del struct no está garantizado"*. Si escribiste el
+checksum sobre `json_stringify(_datos)` la primera vez y luego lo comparas contra
+`json_stringify(json_parse(json_stringify(_datos)))`, nada garantiza que las claves salgan en
+el mismo orden las dos veces — y un simple cambio de orden cambia el hash de un guardado
+perfectamente válido. **Un checksum sobre un array no tiene este problema** (los arrays sí
+mantienen orden), pero la mayoría de guardados son structs.
+
+**La solución que usa `scr_save_load.gml`**: el checksum se calcula sobre el **texto JSON
+exacto** que se va a escribir, y ese mismo texto —no el struct que representa— se guarda tal
+cual, como un string anidado dentro del sobre. Al leer, se compara el hash contra ese texto
+**antes** de parsearlo. Como un string sobrevive el parseo byte a byte (a diferencia de un
+struct, cuyas claves sí pueden reordenarse), la comparación nunca da un falso rechazo:
+
+```gml
+// ═══ Al guardar (extracto real de save_game() en scr_save_load.gml) ═══
+var _datos_json = json_stringify(_datos);        // el texto se hashea UNA vez
+var _sobre = {
+    version  : SAVE_VERSION,
+    fecha    : date_datetime_string(date_current_datetime()),
+    checksum : sha1_string_utf8(_datos_json),     // hash del TEXTO, no del struct
+    datos    : _datos_json                        // se guarda el TEXTO, no el struct
+};
+// _sobre se escribe entero con json_stringify(_sobre) — datos queda como
+// un string JSON anidado dentro del JSON exterior.
+```
+
+```gml
+// ═══ Al cargar (extracto real de __save_load_envelope() en scr_save_load.gml) ═══
+// _sobre.datos sigue siendo el MISMO texto que se hasheó al escribir: comparar
+// no depende de que json_stringify reproduzca el mismo orden de claves.
+if (sha1_string_utf8(_sobre.datos) != _sobre.checksum) {
+    return undefined;   // corrupto o manipulado: SE RECHAZA, no se intenta usar a medias
+}
+_sobre.datos = json_parse(_sobre.datos);   // ahora sí, a struct/array usable
+```
+
+La implementación completa —con compatibilidad hacia guardados de antes de que existiera el
+checksum, y conectada con las copias de seguridad de más abajo— está en
+[`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml): `save_game()`,
+`__save_envelope_checksum_ok()` y `__save_load_envelope()`. No la repitas: enlázala.
+
+> 💡 **`md5_string_utf8` en vez de `sha1_string_utf8`** funciona igual de bien para esto — es
+> un poco más rápido y un poco más corto — si no te hace falta la resistencia extra a
+> colisiones de SHA-1. Para detectar corrupción accidental (no un atacante decidido a
+> falsificar el hash también), cualquiera de los dos vale; `scr_save_load.gml` usa
+> `sha1_string_utf8` porque es la misma función que ya usa el replay firmado de 13 · 10 §14.3,
+> y usar la misma en todo el proyecto evita tener dos convenciones de hash a la vez.
+
+## 12 ter. Copia de seguridad rotativa y qué pasa si se apaga a mitad
+
+El checksum **rechaza** un guardado roto; por sí solo no da ningún sitio al que volver. Para
+eso hace falta una **copia de seguridad rotativa**: antes de sobrescribir el save de un slot,
+el save anterior pasa a ser una copia (`bak1`), la copia que había pasa a ser la siguiente
+(`bak2`), y así hasta el límite que decidas conservar.
+
+```gml
+// ═══ save_backup(_slot, _n) — de scr_save_load.gml, llamada sola en cada save_game() ═══
+function save_backup(_slot, _n) {
+    if (_n <= 0) { return true; }              // 0 = backups desactivados
+
+    var _i = _n;
+    repeat (_n - 1) {                          // de la más vieja a la más nueva
+        var _origen  = save_backup_path(_slot, _i - 1);
+        var _destino = save_backup_path(_slot, _i);
+        if (file_exists(_origen)) {
+            if (file_exists(_destino)) { file_delete(_destino); }
+            file_rename(_origen, _destino);
+        }
+        _i--;
+    }
+
+    var _actual = save_get_path(_slot);
+    if (file_exists(_actual)) {
+        var _bak1 = save_backup_path(_slot, 1);
+        if (file_exists(_bak1)) { file_delete(_bak1); }
+        file_rename(_actual, _bak1);           // el save actual pasa a ser bak1
+    }
+    return true;
+}
+```
+
+**Qué pasa si el juego (o la consola, o el sistema operativo) se apaga a mitad de un
+guardado**, paso por paso, con la escritura atómica de §9 y la copia de seguridad juntas:
+
+| Momento exacto del corte | Qué queda en disco | Qué recupera el jugador |
+|---|---|---|
+| Durante el paso 1 (escribiendo el `.tmp`) | Un `.tmp` a medio escribir; el save bueno intacto | El save de siempre. `save_game()` nunca llegó a tocarlo |
+| Entre el paso 1 y el 2 (`.tmp` completo, sin validar) | `.tmp` completo pero aún no verificado; el save bueno intacto | El save de siempre. La próxima llamada a `save_game()` sobrescribe el `.tmp` sin problema |
+| Durante la rotación de backups (§ arriba) | El save "principal" puede haber desaparecido un instante (ya renombrado a `bak1`), pero el `.tmp` validado está listo al lado | `load_game()` normal fallaría un instante; `load_game_recover()` encuentra los datos en `bak1` igualmente |
+| Justo antes del `file_rename` final | `.tmp` validado y `bak1` con el save anterior, ninguno todavía es el save "oficial" | Igual que arriba: `load_game_recover()` no pierde nada, solo tiene que mirar en `bak1` |
+| Después del `file_rename` final | Save nuevo en su sitio, `.tmp` ya no existe | El save nuevo, como si nada hubiera pasado |
+
+**En ningún punto de esa secuencia un guardado a medio escribir sustituye a uno bueno.** Es la
+misma garantía que ya daba la escritura atómica de §9, extendida para cubrir también el
+instante de la rotación de backups.
+
+**Recuperar cuando el save principal falla la validación** (corrupto, checksum que no
+coincide, o simplemente no existe) usa la misma cadena de copias:
+
+```gml
+// load_game_recover() prueba el save principal y, si falla, bak1, bak2… en orden
+var _datos = load_game_recover("slot1");
+if (is_undefined(_datos)) {
+    mostrar_aviso("No se pudo recuperar ninguna copia de esta partida.");
+}
+```
+
+> ⚠️ `load_game_recover()` **no** restaura automáticamente la copia como save principal: solo
+> te devuelve los datos utilizables. Si el jugador sigue jugando desde ahí, el siguiente
+> `save_game()` normal ya deja las cosas donde deben estar.
+>
+> 💡 `SAVE_BACKUP_COUNT` (por defecto 3) se cambia con un `#macro` al principio de
+> `scr_save_load.gml`. Cada copia adicional es un fichero más en disco del mismo tamaño que el
+> save: para partidas grandes, sopesa cuántas merece la pena conservar.
+
+---
+
 ## 13. GameMaker Test Framework (tests automáticos)
 
 Además de guardar datos, GameMaker tiene un **framework de tests oficial**:
@@ -678,6 +814,8 @@ El guardado es **el subsistema más fácil de romper sin darte cuenta**: cambias
 [ ] ¿Sé dónde está el save area en mi plataforma objetivo?
 [ ] ¿He probado a guardar y cargar en TODAS las plataformas objetivo?
 [ ] ¿Tengo un test que verifica ida y vuelta (guardar → cargar → comparar)?
+[ ] ¿El checksum se COMPARA al cargar, no solo se calcula al guardar? (§12 bis)
+[ ] ¿Tengo copias de seguridad rotativas y una función de recuperación si el save principal falla? (§12 ter)
 ```
 
 ---
@@ -694,3 +832,6 @@ El guardado es **el subsistema más fácil de romper sin darte cuenta**: cambias
 8. **Versiona y valida** siempre tu formato de guardado.
 9. Los **buffers** requieren que leas en el mismo orden en que escribiste, o corrompes los datos.
 10. Usa el **GameMaker Test Framework** para verificar ida y vuelta en tu sistema de guardado.
+11. ⚠️ **Un checksum que se calcula pero no se compara no protege nada.** Calcula → guarda aparte → recalcula al leer → compara → rechaza si no coincide (§12 bis).
+12. **Hashea el TEXTO JSON, nunca un struct reserializado**: el orden de sus claves no está garantizado, y reserializar puede dar un falso rechazo.
+13. **Las copias de seguridad rotativas son la única forma real de recuperar un save roto**: la escritura atómica evita la corrupción a mitad, pero no protege de un bug que sobrescribe una partida buena con datos malos (§12 ter).
