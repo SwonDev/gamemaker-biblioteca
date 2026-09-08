@@ -246,6 +246,15 @@ Step**, antes de calcular nada más.
 
 ### 4.9 Cámara con deadzone
 
+> 🔺 **Antes de escribir el primer `window_set_size()`, decide la escala.** Quien monta una
+> cámara está a un paso de fijar la resolución, y hacerlo a ojo da una escala **no entera** —con
+> lo que unos píxeles del arte miden dos y otros tres, y el movimiento «hierve». La receta, con
+> `escala_entera_maxima()` y `aplicar_resolucion()` ya escritas, está en
+> [`13 · 03 §1.6`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/03%20-%20Pixel%20art%20y%20resolución.md#16-lo-mínimo-que-necesitas-para-que-la-escala-sea-entera).
+> Este enlace existe porque un agente montó la resolución a ojo (480×270 en una ventana de
+> 1280×720: escala 2,67×) y no llegó a ese documento hasta el final, pensando que «pixel art»
+> era cosa de artistas.
+
 Perseguir al jugador con `lerp` directo es cómodo pero produce dos problemas:
 la cámara se mueve con cada micro-movimiento (mareo) y siempre va por detrás.
 La solución de los juegos profesionales tiene tres piezas:

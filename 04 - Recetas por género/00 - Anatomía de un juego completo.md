@@ -289,7 +289,16 @@ ella, «terminado» tiende a significar «el bucle de juego funciona», y un jue
 más que su bucle. Hay otras tres listas en esta biblioteca con más detalle sobre una pieza
 concreta — **no las repiten, las tienen por debajo**:
 
-| Si necesitas el detalle de… | Ábrela | Puntos |
+> 🔴 **Las tres listas de abajo NO son opcionales, y esta línea existe porque alguien las trató
+> como si lo fueran.** Un agente que construyó un juego entero con esta biblioteca marcó la
+> casilla «menú de pausa que congela el mundo» sin abrir `04 · 41 §4`, porque el «(detalle: …)»
+> se lee como una nota al pie. Fallaba **tres** de los seis puntos de esa lista, y uno era un
+> fallo real: durante el fundido de salida, el menú de pausa seguía aceptando entrada y abría
+> una pantalla cuyos métodos morían con la instancia del nivel
+> ([`r12-prueba-plataformas.md` §1.12](../_indice/auditorias/r12-prueba-plataformas.md)).
+> **Marcar una casilla que remite a otra lista sin abrir esa lista no cuenta como marcarla.**
+
+| Lista enlazada (obligatoria, no «por si acaso») | Ábrela | Puntos |
 |---|---|---|
 | Transiciones, pantalla de carga y pausa | [04 · 41 §4](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md#4--checklist) | 15 |
 | UI antes de publicar (legibilidad, mando+teclado, feedback, accesibilidad) | [13 · 05 §4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#4--checklist-de-ui-antes-de-publicar) | 26 |
@@ -327,7 +336,12 @@ silencio. Es el mismo criterio que ya usa `13 · 14 §1.5` para las secciones va
       (marca «no aplica» si es lineal o un mundo interconectado, no lo omitas)
 - [ ] Pantalla de opciones: volumen por bus, vídeo, controles, idioma, accesibilidad
 - [ ] Intro/prólogo saltable (texto, cinemática o vídeo)
-- [ ] Menú de pausa que congela el mundo de verdad, no solo el dibujo (detalle: `04 · 41 §4`)
+- [ ] Menú de pausa que congela el mundo de verdad, no solo el dibujo — **y los otros cinco
+      puntos de [`04 · 41 §4`](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md#4--checklist)**,
+      en particular: **dónde NO se puede pausar** (durante una transición en curso), que **la
+      transición congele el mundo mientras dura** (o el jugador sigue cayendo y muriendo con la
+      pantalla ya en negro), y que la pausa **cubra el audio** — atenuar la música no es lo
+      mismo que `audio_pause_all()`, que además dejaría mudo el propio menú de pausa
 - [ ] Toda acción destructiva confirma con «No» por defecto —
       [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml), no un
       diálogo distinto cada vez

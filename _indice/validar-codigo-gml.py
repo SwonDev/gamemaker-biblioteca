@@ -73,6 +73,42 @@ def limpiar(codigo):
     return codigo
 
 
+def comillas_descuadradas(codigo):
+    """¿Hay algún literal de cadena sin cerrar en este archivo?
+
+    Nace de un caso real (`_indice/auditorias/r12-prueba-plataformas.md` §1.1): un
+    generador escribió un `"` SIN escapar dentro de un literal de GML. El literal
+    quedaba cerrado antes de tiempo, y a partir de ahí `limpiar()` interpretaba como
+    cadena lo que era código y al revés — perdiendo dos definiciones de función reales.
+    El agente que lo sufrió lo diagnosticó como un bug de `limpiar()`; no lo era, y por
+    eso la comprobación va aquí y no en el regex: **el código de entrada estaba roto**,
+    y lo que faltaba era decirlo en vez de dar una lista de nombres desconcertante.
+
+    El daño de aquello no fue el falso positivo: fue que la salida mezclaba dos nombres
+    falsos con UNO real, y eso enseña a desconfiar de la lista entera justo donde estaba
+    el único fallo que iba a reventar el juego.
+
+    Se cuenta por línea, tras quitar comentarios, y se ignoran las cadenas verbatim
+    (`@"…"`, `@'…'`), que sí pueden abarcar varias líneas de forma legítima.
+    """
+    sin_com = COMENTARIO.sub(" ", codigo)
+    # Las cadenas verbatim (@"…", @'…') SÍ pueden abarcar varias líneas de forma
+    # legítima y no admiten escapes: se retiran enteras antes de contar, conservando
+    # los saltos de línea para que los números que se devuelvan sigan siendo los del
+    # archivo original.
+    def _hueco(m):
+        return "\n" * m.group(0).count("\n")
+    sin_verbatim = re.sub(r'@"[^"]*"|@\'[^\']*\'', _hueco, sin_com, flags=re.S)
+
+    rotas = []
+    for i, linea in enumerate(sin_verbatim.split("\n"), 1):
+        # Se quitan primero las secuencias escapadas (\\ y \") para no contarlas.
+        limpia = re.sub(r'\\.', "", linea)
+        if limpia.count('"') % 2:
+            rotas.append(i)
+    return rotas
+
+
 def cargar_simbolos():
     ruta = os.path.join(IND, "simbolos.json")
     if not os.path.exists(ruta):
