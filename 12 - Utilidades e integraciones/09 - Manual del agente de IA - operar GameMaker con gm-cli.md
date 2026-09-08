@@ -936,6 +936,241 @@ reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 
 ---
 
+## 9 · El orden de las salas por CLI: no existe comando — la alternativa real
+
+**Pregunta que responde esta sección**: creaste tus salas con `resourcetool` — ¿cómo le dices a
+GameMaker cuál arranca primero (splash, no una sala cualquiera)? Verificado en vivo el **8 de
+septiembre de 2026**, `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`, en un proyecto de prueba bajo
+`~` (creado con `gm-cli init -t "Blank Pixel Game"`, borrado al terminar).
+
+### 9.1 No hay comando — comprobado exhaustivamente, no por suposición
+
+Se leyó el `HELP` completo de `resourcetool` (los 22 grupos de comandos: `RESOURCE`, `PROJECT`,
+`OBJECT`, `ROOM`, `GML`, `SPRITE`, `SOUND`, `TILESET`, `CONFIG`, `AUDIOGROUP`, `TEXTUREGROUP`,
+`PREFAB`, `SHADER`, `NOTE`, `PATH`, `FONT`, `FOLDER`, `OPTIONS`…) buscando la palabra «order» o
+cualquier verbo de reordenar. **Ninguno la tiene.** En concreto:
+
+- `PROJECT` solo admite `CREATE` y `RENAME` — nada de salas.
+- `ROOM` cubre instancias, *assets*, capas y *tiles* dentro de una sala (`ROOM INSTANCE`, `ROOM
+  ASSET`, `ROOM ITEM`, `ROOM LAYER`, `ROOM LAYER TILES`) y `ROOM LIST` — pero nada que toque el
+  **orden entre salas**.
+- `gm-cli` (fuera de `resourcetool`) tampoco tiene un comando `project` o `room`: `gm-cli project
+  --help` responde `No command registered for 'project'`.
+
+Y lo que sí guarda el orden — `RoomOrderNodes`, un array en la raíz del `.yyp` — **no es una raíz
+de expresión válida** para `RESOURCE INFO`/`RESOURCE SET` (que solo aceptan como raíz un
+**recurso con nombre**: una sala, un objeto, un sprite…):
+
+```bash
+$ gm-cli resourcetool eval "resource info expr=RoomOrderNodes"
+'RoomOrderNodes' not found at root
+ResourceTool Failed
+```
+
+**Conclusión verificada, no una suposición**: hoy no existe ningún comando de `resourcetool` ni
+de `gm-cli` que lea o escriba el orden de las salas. Ni `07 · 13` ni este documento lo
+documentaban porque no hay nada que documentar del lado del CLI — es un hueco real de la
+herramienta, no un comando mal buscado.
+
+### 9.2 Lo que sí controla el CLI: las salas se añaden en el orden en que las creas
+
+`RESOURCE CREATE TYPE=room` **añade la sala nueva al final de `RoomOrderNodes`**, verificado
+creando tres salas seguidas y leyendo el `.yyp`:
+
+```
+"RoomOrderNodes":[
+    {"roomId":{"name":"Room1", …}},        ← la de la plantilla, ya estaba primera
+    {"roomId":{"name":"rm_splash", …}},    ← 1ª creada por resourcetool → 2ª posición
+    {"roomId":{"name":"rm_menu", …}},      ← 2ª creada → 3ª posición
+    {"roomId":{"name":"rm_juego", …}},     ← 3ª creada → 4ª posición
+  ],
+```
+
+Y borrar la sala de la plantilla (que la mayoría de plantillas dejan primera, con el nombre
+`Room1` o similar) **promueve automáticamente a primera la siguiente en el array**, sin ningún
+comando de orden — es exactamente lo que hizo `r5-revalidacion.md` con criterio propio y aquí
+queda verificado como la vía correcta:
+
+```bash
+gm-cli resourcetool eval "resource delete name=Room1 type=room"
+# RoomOrderNodes queda: rm_splash (ahora primera), rm_menu, rm_juego
+```
+
+**La receta CLI-only para fijar qué sala arranca el juego**, sin tocar el `.yyp`:
+
+1. Crea las salas **en el orden final que quieres**, empezando por la que debe arrancar primero
+   (`rm_splash`, luego `rm_menu`, luego `rm_juego`…). No hace falta ningún argumento de orden:
+   el orden de creación **es** el orden final.
+2. Si la plantilla trae una sala propia (`Room1`, `Room_Main`…) que no vas a usar, bórrala — la
+   siguiente en el array pasa a ser la primera automáticamente.
+3. Si sí vas a usar la sala de la plantilla, créala tú aparte y ordena las demás alrededor, o
+   simplemente ten en cuenta que esa sala de plantilla seguirá siendo la primera salvo que la
+   borres.
+
+Esto resuelve el caso real («que el juego arranque por el splash») sin editar nada a mano, y es
+lo único que hace falta en la mayoría de proyectos si decides el orden **antes** de construir el
+contenido de cada sala.
+
+### 9.3 Lo que el CLI NO resuelve bien: reordenar salas que ya tienen contenido
+
+Si necesitas mover una sala que **ya tiene** instancias, capas o *tiles* a otra posición del
+orden, la única forma de hacerlo solo con `resourcetool` es borrarla y volver a crearla (que la
+manda al final) — y **eso es destructivo**, verificado en esta sesión: se colocó una instancia
+en una sala (`ROOM INSTANCE CREATE`), se borró la sala y se volvió a crear con el mismo nombre, y
+la instancia **desapareció** — `RESOURCE DELETE` de una sala se lleva todo su contenido, y
+`RESOURCE CREATE` de una sala con el mismo nombre no lo recupera, la crea vacía.
+
+Reordenar así una sala con contenido exige reconstruir a mano cada capa (`ROOM LAYER CREATE`),
+cada instancia (`ROOM INSTANCE CREATE`) y cada *tile* (`ROOM LAYER TILES SET`) que tenía — viable
+solo si guardaste antes su inventario completo (`ROOM ITEM LIST`, `ROOM LAYER TILES GET`), y aun
+así pierdes cualquier ajuste de la sala que `resourcetool` no exponga (tamaño de vista, ajustes
+de físicas concretos…). **No es una vía práctica para reordenar salas ya construidas** — solo
+para fijar el orden antes de rellenarlas (§9.2).
+
+### 9.4 Las dos alternativas reales cuando hace falta reordenar salas ya construidas
+
+| Alternativa | Cómo | Riesgo |
+|---|---|---|
+| **El IDE** (recomendada) | GameMaker tiene un panel «Room Order» con arrastrar-y-soltar — es la vía prevista por YoYo para esto, sin coste de reconstruir nada | Ninguno: es la operación para la que se diseñó |
+| **Editar `RoomOrderNodes` a mano en el `.yyp`** — último recurso | Ver §9.5 | Alto — contradice `AGENTS.md` §4 («no edites `.yy`/`.yyp` a mano»); solo se documenta aquí porque, para *reordenar* salas ya construidas sin el IDE, es la única vía que existe |
+
+Si un agente no tiene el IDE a mano (trabaja solo por terminal) y necesita reordenar salas que
+ya tienen contenido, **dilo explícitamente al usuario** en vez de fingir que hay una vía CLI
+limpia — no la hay, y la sección 9.3 explica por qué el rodeo por `resourcetool` no sirve aquí.
+
+### 9.5 Si de verdad hace falta editar el `.yyp` a mano: cómo hacerlo con el menor riesgo posible
+
+**Esto contradice `AGENTS.md` §4 y solo debe usarse cuando el IDE no está disponible y reordenar
+salas ya construidas es imprescindible.** Verificado en esta sesión que la técnica funciona, con
+el riesgo documentado explícitamente:
+
+1. **El `.yyp` no es JSON estricto** — es el dialecto de GameMaker con comas finales (`trailing
+   commas`) en arrays y objetos: `"RoomOrderNodes":[{"roomId":{…},},{"roomId":{…},},],`. Un
+   `json.load()` normal de Python **falla** contra este formato (`Expecting property name
+   enclosed in double quotes`, verificado). No lo reformatees con un parser JSON estricto: edita
+   el bloque `RoomOrderNodes` con una sustitución de texto quirúrgica que preserve exactamente
+   las comas finales y las comillas tal cual están.
+2. Reordena únicamente las entradas `{"roomId":{"name":"...","path":"rooms/.../....yy",},}`
+   dentro del array — no toques nada más del archivo.
+3. **Verifica inmediatamente** con el comando de `resourcetool` pensado para esto — que además
+   **no aparece documentado en `07 · 13`** y vale la pena conocerlo:
+
+   ```bash
+   gm-cli resourcetool eval "check projectpath=$(pwd)/mi-juego.yyp"
+   ```
+
+   `CHECK` carga el proyecto entero sin modificarlo y confirma que el `.yyp` sigue siendo válido
+   — es la comprobación correcta antes de dejar que cualquier otro comando (`resourcetool` o
+   `compile`) vuelva a tocar el archivo.
+4. Verificado en esta sesión: tras reordenar `RoomOrderNodes` a mano, (a) `CHECK` cargó el
+   proyecto sin error, (b) una llamada normal de `resourcetool` que reguarda el proyecto
+   **conservó el orden manual** (no lo resetea ni lo reordena por su cuenta), y (c) `gm-cli
+   compile --errors-only` dio `exit 0`.
+
+> 🔴 **El riesgo real, ya documentado por la Trampa 5 de este mismo documento (§0)**: un `.yy`/
+> `.yyp` mal formado tras una edición a mano no falla limpio — puede tirar `resourcetool` y
+> `gm-cli compile` con un `System.AccessViolationException` nativo, dejando ambas herramientas
+> inutilizables sobre ese proyecto hasta reparar el JSON a mano. Una coma final que falte o que
+> sobre en `RoomOrderNodes` es exactamente el tipo de error que lo provoca. Por eso el paso 3
+> (`CHECK`) no es opcional: es la única forma de confirmar que la edición no rompió el archivo
+> antes de arriesgar una sesión de `compile` o `run` sobre un `.yyp` corrupto.
+
+**Resumen de la sección**: para fijar **qué sala arranca primero**, no hace falta el `.yyp` — la
+receta de §9.2 (crear en orden, borrar la sala de plantilla que sobra) es CLI-only y no
+destructiva. Solo para **reordenar salas que ya tienen contenido construido** hace falta el IDE
+o, si no está disponible, la edición manual de §9.5 con el riesgo que conlleva.
+
+---
+
+## 10 · El modo por lotes (`resourcetool script`): mucho más rápido que encadenar `eval`
+
+**No estaba documentado ni en `SKILL.md` ni en la tabla de comandos de `07 · 13`** — lo señaló
+`r5-revalidacion.md` como un hallazgo propio del agente, descubierto leyendo `resourcetool
+--help`. Verificado en esta sesión, con tiempos reales, el **8 de septiembre de 2026**.
+
+### 10.1 Qué es
+
+`gm-cli resourcetool script <archivo> [proyecto.yyp]` ejecuta una **lista de comandos**, uno por
+línea, en un único proceso — la misma sintaxis que usarías dentro de `resourcetool eval "<…>"`,
+sin las comillas exteriores:
+
+```bash
+$ gm-cli resourcetool script --help
+USAGE
+  gm-cli resourcetool script <file>
+  gm-cli resourcetool script --help
+
+ARGUMENTS
+   file      Path to the script file
+  [project]  Path to the project .yyp file
+```
+
+Ejemplo real, un archivo de texto con seis comandos:
+
+```
+RESOURCE CREATE TYPE=object NAME=obj_lote_1
+RESOURCE CREATE TYPE=object NAME=obj_lote_2
+RESOURCE CREATE TYPE=object NAME=obj_lote_3
+OBJECT EVENT FINDORCREATE NAME=obj_lote_1 TYPE=create
+OBJECT EVENT FINDORCREATE NAME=obj_lote_1 TYPE=step SUBTYPE=step_normal
+OBJECT EVENT FINDORCREATE NAME=obj_lote_1 TYPE=draw SUBTYPE=draw_normal
+```
+
+```bash
+gm-cli resourcetool script lote.txt mi-juego.yyp
+```
+
+La salida repite cada línea (`$> RESOURCE CREATE …`) seguida de su resultado — se lee igual que
+una sesión de `repl`, pero sin interacción.
+
+### 10.2 Cuánto compensa — medido en esta sesión, no una estimación
+
+Los mismos seis comandos de arriba, por las dos vías, sobre el mismo proyecto de prueba:
+
+| Vía | Comando | Tiempo real |
+|---|---|---|
+| 6 llamadas `eval` separadas (una por proceso) | `gm-cli resourcetool eval "…"` × 6, encadenadas con `&&` | **8,8 s** |
+| 1 llamada `script` (un solo proceso) | `gm-cli resourcetool script lote.txt mi-juego.yyp` | **1,4 s** |
+
+**≈6× más rápido** con solo seis comandos. La causa es la misma que documenta la Trampa 2 (§0):
+cada invocación de `resourcetool` paga el coste de arranque de `npx` (verificación de versión
+contra el registro) una vez; `script` paga ese coste **una sola vez** para todo el lote, en vez
+de una vez por comando. Con los 23 recursos + 39 eventos que construyó `r5-revalidacion.md` para
+un juego real, la diferencia se cuenta en decenas de segundos ahorrados, no en menos de uno.
+
+### 10.3 Qué pasa si un comando del lote falla — se para, no sigue
+
+Verificado a propósito con un lote de tres líneas donde la segunda pide un tipo de recurso que no
+existe:
+
+```
+RESOURCE CREATE TYPE=object NAME=obj_lote_error_a
+RESOURCE CREATE TYPE=tipo_que_no_existe NAME=x
+RESOURCE CREATE TYPE=object NAME=obj_lote_error_b
+```
+
+Resultado: `obj_lote_error_a` se creó, la segunda línea falló (`Unknown resource type
+'tipo_que_no_existe'`) y **la tercera línea nunca se ejecutó** — el proceso completo salió con
+`exit 1`. `script` no es transaccional (lo ya ejecutado antes del fallo se queda hecho) ni
+tolerante a fallos (no sigue con las líneas siguientes): es secuencial y se detiene en el primer
+error real, igual que el ciclo de `gm-cli compile` de §1.
+
+### 10.4 Cuándo usar `script` en vez de `eval`
+
+| Situación | Usa |
+|---|---|
+| Crear un lote de recursos/eventos que ya sabes de antemano (varios objetos, sus eventos, varias salas en el orden que quieres — §9.2) | `script` — más rápido, y el archivo del lote queda como documentación de lo que se creó |
+| Necesitas leer el resultado de un comando (`RESOURCE INFO`, `ROOM ITEM LIST`…) para decidir el siguiente | `eval`, uno a uno — `script` no te deja inspeccionar la salida de una línea antes de que corra la siguiente |
+| Vas a verificar cada evento con `object event list` según se crea (§2.5, para evitar las Trampas 3/4 de numeración) | `eval` intercalado con la verificación, o `script` para el lote y **una sola** verificación con `object event list` al final sobre todos los objetos |
+| Trabajas por MCP (`gamemaker-resource-tool`) en una sesión interactiva | El MCP ya es rápido por llamada tipada — `script` es una ventaja de la vía `eval`/CLI, no del MCP |
+
+**Regla práctica**: si vas a lanzar más de dos o tres comandos de `resourcetool` seguidos que no
+dependen del resultado de los anteriores, escribe un archivo de lote y usa `script` — el ahorro
+de tiempo (~6× en esta medición) se nota en cualquier proyecto real, donde crear el andamiaje
+inicial de objetos y eventos son fácilmente decenas de comandos.
+
+---
+
 ## Ver también
 
 - [`07 · 13 — GM CLI, la línea de comandos`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md) — referencia completa del CLI, inventario de comandos de `resourcetool eval`.
@@ -949,6 +1184,7 @@ reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 - [`AGENTS.md`](../AGENTS.md) — la regla que lo gobierna todo y el flujo recomendado de la biblioteca.
 - [`_indice/auditorias/r4-agente-ia-gamemaker.md`](../_indice/auditorias/r4-agente-ia-gamemaker.md) — la auditoría completa de la que sale este documento, con más temas y más detalle de investigación.
 - [`_indice/auditorias/r5-prueba-e2e.md`](../_indice/auditorias/r5-prueba-e2e.md) — la prueba end-to-end (juego completo desde cero) que descubrió las Trampas 5 y 6 de este documento.
+- [`_indice/auditorias/r5-revalidacion.md`](../_indice/auditorias/r5-revalidacion.md) — la revalidación que señaló los tres huecos de §9 y §10 (orden de salas, el aviso de `instance_deactivate_all` que solo vivía en `04/41`, y el modo por lotes de `resourcetool`).
 - [`06 - Assets y Scripts/scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) — `save_ensure_dir()` trae ya el parche de la Trampa 6, con el porqué documentado en el propio script.
 
 ## Fuentes
@@ -974,3 +1210,17 @@ reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 - [`_indice/auditorias/r5-prueba-e2e.md`](../_indice/auditorias/r5-prueba-e2e.md) (8 de
   septiembre de 2026) — construcción en vivo de un juego completo (`~/gm_prueba_e2e/salto_nova`)
   con esta biblioteca como única fuente; origen de las Trampas 5 y 6 y de §7.6.
+- [`_indice/auditorias/r5-revalidacion.md`](../_indice/auditorias/r5-revalidacion.md) (8 de
+  septiembre de 2026) — señaló los tres huecos que cierran §9 y §10 de este documento.
+- Ejecución en vivo en un segundo proyecto de prueba bajo `~` (`~/gm_investigacion_r6`, creado
+  con `gm-cli init -t "Blank Pixel Game"` y borrado al terminar), `gm-cli` 2.3.0 /
+  `ResourceTool@2026.0.17` — 8 de septiembre de 2026. Fuente directa de §9 (lectura completa del
+  `HELP` de `resourcetool` buscando un comando de orden de salas; `RESOURCE INFO
+  expr=RoomOrderNodes` → `'RoomOrderNodes' not found at root`; creación de tres salas y borrado
+  de la sala de plantilla para confirmar que `RoomOrderNodes` crece por orden de creación;
+  `ROOM INSTANCE CREATE` + borrar y recrear una sala para confirmar que se pierde su contenido;
+  edición manual de `RoomOrderNodes` seguida de `CHECK` y `gm-cli compile --errors-only` para
+  confirmar que el orden manual sobrevive y el proyecto sigue siendo válido) y de §10 (`gm-cli
+  resourcetool script --help`; comparación cronometrada de 6 comandos por `eval` encadenado
+  frente a los mismos 6 en un archivo de `script`; lote de 3 líneas con un tipo de recurso
+  inválido en medio para confirmar que `script` se detiene en el primer error).
