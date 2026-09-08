@@ -299,9 +299,11 @@ por fuera. Claves aceptadas, sacadas del propio esquema (verificado el 08-09-202
 | `windows.visualStudioSdk` | ruta a `VsDevCmd.bat` | YYC en Windows |
 | `operagx.emscriptenSdk` | ruta | YYC en Opera GX |
 | `gmrt.buildGraph.{mac,windows,linux}` | ruta `.xml` | Grafo de build de GMRT |
-| `gmrt.jobRun` · `jobCompile` · `jobPackage` | string | Sustituir un *job* de GMRT por un comando propio |
+| `gmrt.jobRun` · `jobCompile` · `jobPackage` | string, por `<plataforma>.<vm\|native>` | Sustituir un *job* de GMRT por un comando propio |
+| `gmrt.scriptBuildType` | `Release` · `Debug` | Tipo de build del GML compilado en GMRT |
 
-Un valor fuera de la lista da un error claro
+Las 46 claves salen de leer el propio `.gmcache/schemas/gm-options-schema-2.json` del proyecto,
+y las cuatro respuestas del comando están comprobadas en vivo (09-09-2026). Un valor fuera de la lista da un error claro
 (`mac.packageType: Invalid option: expected one of "zip"|"dmg"`), y un JSON mal formado también
 (`--toolchain-options is not valid JSON`). Es de los pocos sitios del CLI donde los mensajes
 ayudan.
