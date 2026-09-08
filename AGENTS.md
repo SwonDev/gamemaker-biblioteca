@@ -209,7 +209,7 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
    ⚠️ Las plantillas con *prefabs* fallan en `gm-cli` 2.3.0 en macOS: de las 18 plantillas de
    juego, **9 fallan y 9 funcionan** (no solo *Platformer*). Usa *Space Rocks* o
    *Blank Pixel Game* — ambas funcionan —, o crea el proyecto desde el IDE. Tabla completa de
-   las 18, verificada una a una, y las otras ocho trampas que hacen fracasar a un agente hoy
+   las 18, verificada una a una, y las otras once trampas que hacen fracasar a un agente hoy
    (`resourcetool`/`compile` colgados bajo sandbox, el evento equivocado sin avisar, funciones
    inventadas que el compilador no detecta, fuentes que compilan y no dibujan texto, guardado
    que falla en silencio bajo `gm-cli run`, dar un comando por imposible sin haber probado la
@@ -217,7 +217,7 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
    compilado sin que `--errors-only` lo delate, y una *whitelist* cerrada de un subcomando
    (`OBJECT EVENT FINDORCREATE`) que no significa que la propiedad cruda del recurso sea
    inalcanzable por `RESOURCE SET`) en
-   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-diez-trampas-que-hacen-fracasar-a-un-agente-hoy)
+   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)
    — léelo entero si vas a operar este repo por terminal, es la guía específica para agentes.
 4. **Escribe GML** verificando cada símbolo con `buscar.py` antes de usarlo. Al terminar,
    `python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>` lista cualquier función

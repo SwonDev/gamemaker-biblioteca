@@ -5,7 +5,7 @@
 > IDE. No repite lo que ya explican [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)
 > (referencia completa del CLI) y [`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)
 > (qué es el andamiaje `--ai` y cómo se prepara un proyecto para un agente): este documento
-> añade **lo que ninguno de los dos cubre** — los diez sitios donde un agente se atasca hoy,
+> añade **lo que ninguno de los dos cubre** — los once sitios donde un agente se atasca hoy,
 > el nombre exacto de archivo que le toca a cada evento, el inventario real de las 80
 > herramientas del MCP, la frontera entre lo que un agente puede comprobar solo y lo que debe
 > pedir al humano, los errores que un LLM comete por reflejo al tratar GML como si fuera C#
@@ -54,10 +54,37 @@
 > escribibles por plataforma (de ~30), y esta vez no hay campo crudo que la esquive porque las
 > opciones de plataforma no cuelgan del árbol de `RESOURCE`/`project`. Detalle completo, con
 > comandos y salidas reales, en la nueva Trampa 10 de §0 y en §9 quater.
+>
+> **Quinta corrección del 8 de septiembre de 2026**: una prueba de regresión — construir un juego
+> completo (*Empuja y Gana*, sokoban de tres niveles) volviendo a pisar cada arreglo de las
+> correcciones anteriores — confirmó que los cinco aguantan el uso real sin excepción, pero dejó
+> **cinco hallazgos nuevos**, documentados en
+> [`_indice/auditorias/r6-regresion.md`](../_indice/auditorias/r6-regresion.md): (1) la receta de
+> horneado de fuentes de la Trampa 5 necesitaba fijar también `%Name` y `parent: null`, no solo
+> copiar el `.yy` de referencia — sin eso falla de tres formas distintas, ahora documentadas todas
+> en la propia Trampa 5; (2) `resourcetool script` (el modo por lotes de §10) reporta éxito en
+> cada línea pero **no persiste** un `RESOURCE SET` sobre `project.RoomOrderNodes` — reordenar
+> salas exige `eval`, uno por índice, nunca lotes; nueva nota en §9.3 y excepción explícita en
+> §10.4; (3) la auditoría observó una vez que `RESOURCE DELETE` de una sala **reinicia TODO**
+> `project.RoomOrderNodes` al orden de creación — esta sesión intentó reproducirlo 6 veces más
+> (permutación completa, borrando tanto `Room1` como salas propias, en distintas posiciones) y
+> **no volvió a pasar ninguna vez**: parece intermitente, probablemente ligada a la misma
+> condición de carrera del hallazgo (4), no un comportamiento garantizado — la regla práctica se
+> mantiene igual de todos modos: reordena siempre después de borrar, nunca antes, y verifica el
+> `.yyp` tras cualquier borrado — detalle y las dos tandas de evidencia en §9.3 bis; (4)
+> `ResourceTool@2026.0.17` tiene un `AccessViolationException` nativo
+> **no determinista**, incluso sobre un proyecto sano (2 de 5 llamadas idénticas fallaron) —
+> promovido a la nueva **Trampa 11** de §0, con la mitigación (reintentar) también en el checklist
+> de §8; (5) una
+> instancia **sin `sprite_index` asignado no tiene máscara de colisión**, así que
+> `instance_position()`/`place_meeting()` nunca la encuentran — no es un fallo de esta biblioteca
+> sino de GML, documentado con detalle en
+> [`01 · 08` §9](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md#9-errores-típicos),
+> con una nota de aviso cruzada en el §5.2 de este documento.
 
 ---
 
-## 0 · Las diez trampas que hacen fracasar a un agente hoy
+## 0 · Las once trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -264,6 +291,45 @@ la solución real es una de estas dos:
 > de por qué la regla «nunca edites un `.yy` a mano» (`AGENTS.md` §4) también protege un `.yy`
 > que generas tú por script: valida el JSON (`python3 -m json.tool archivo.yy > /dev/null`)
 > **antes** de dejar que `resourcetool` o `compile` lo toquen.
+
+> ⚠️ **Ampliación del 8 de septiembre de 2026, verificada en
+> [`_indice/auditorias/r6-regresion.md` §5.2](../_indice/auditorias/r6-regresion.md#52-el-horneado-con-pillow--la-receta-necesita-dos-campos-que-hoy-no-documenta):
+> partir de un `.yy` de referencia (remedio 2 de arriba) no basta con copiar la estructura y
+> sobreescribir `name`.** Faltan dos campos más, y si no se corrigen, el fallo **no es limpio —
+> tiene tres caras distintas**, observadas en la misma sesión con el mismo `.yy` de fondo, según
+> qué parte toca primero el parser concurrente de `ResourceTool`:
+>
+> - **`%Name`** (con el símbolo de porcentaje — la clave que GameMaker usa de verdad como
+>   identidad del recurso, distinta de `name`) se queda con el valor de la plantilla de origen si
+>   no se sobreescribe también ella. El recurso queda desincronizado de su propia carpeta/archivo.
+> - **`"parent"`** del `.yy` de referencia suele apuntar a una carpeta del Asset Browser (por
+>   ejemplo `{"name":"Fonts","path":"folders/Fonts.yy"}`) que existe en el proyecto de origen pero
+>   no en el tuyo. Debe quedar en `"parent": null`.
+>
+> **Los tres síntomas de la misma causa, para reconocerla la próxima vez** — no asumas cuál te va
+> a tocar:
+>
+> 1. **`resourcetool` «repara» mal el recurso** en vez de fallar — a veces reconcilia `%Name` con
+>    el de la plantilla original, dejando un recurso con un nombre que no es el tuyo, sin ningún
+>    aviso.
+> 2. **Crash nativo** — el mismo `System.AccessViolationException` del recuadro de arriba
+>    (`GMWindowsOptions.set_option_windows_display_name(String)` en la traza), aunque el JSON sea
+>    perfectamente válido y `json.load()` de Python lo acepte sin rechistar. El problema no es la
+>    sintaxis JSON, es la identidad del recurso.
+> 3. **Error de *linking* legible** — `Cannot find folder path 'folders/Fonts.yy'` o `Field
+>    "includeTTF": expected`, según qué campo falte al cargar el proyecto.
+>
+> **La corrección**: al hornear un `.yy` de fuente a partir de una plantilla real, sobreescribe
+> SIEMPRE `%Name` (no solo `name`) y pon `"parent": null` en vez de copiar el de la plantilla —
+> el resto de la estructura sí es seguro copiarlo tal cual.
+
+> ⚠️ **Aviso, no confundir con lo de arriba**: `ResourceTool@2026.0.17` tiene, además, un
+> `AccessViolationException` **no determinista** que puede saltar incluso sobre un proyecto sano,
+> sin relación con las fuentes ni con ningún JSON mal formado — es un problema aparte, de la
+> herramienta en general, no de este remedio en particular. Documentado con la mitigación
+> (reintentar) en la nueva
+> [Trampa 11](#trampa-11--resourcetool2026017-puede-fallar-con-accessviolationexception-de-forma-no-determinista-incluso-sobre-un-proyecto-sano)
+> de este mismo §0.
 
 **Severidad**: la más alta de las seis — un agente que no capture y mire una pantalla de verdad
 entrega un juego enteramente mudo, sin ningún mensaje de error que lo delate. Detalle completo,
@@ -675,6 +741,43 @@ viven bajo el árbol de `RESOURCE`/`project`. Antes de aplicarlo a ciegas, compr
 lo está (como las opciones de plataforma), no hay campo crudo que parchear: la limitación es
 real y hay que decírselo al humano con esa certeza, no con la esperanza de que exista un rodeo.
 
+### Trampa 11 · `ResourceTool@2026.0.17` puede fallar con `AccessViolationException` de forma no determinista, incluso sobre un proyecto sano
+
+**El síntoma**: la misma llamada de `resourcetool`, sobre el mismo proyecto sin ningún archivo mal
+formado, responde bien unas veces y revienta otras con un `System.AccessViolationException`
+nativo — el mismo tipo de excepción que la Trampa 5 documenta para un `.yy` corrupto, pero aquí
+**sin ninguna causa en los datos**: nada cambia en el proyecto ni en el comando entre un intento y
+el siguiente. No lo confundas con el `.yy` mal formado de la Trampa 5 ni con el `%Name`/`parent`
+mal fijado al hornear una fuente (ambos también terminan en `AccessViolationException`, pero ahí
+sí hay una causa real que corregir en los datos): esta trampa es del propio `ResourceTool`, no de
+lo que le pases.
+
+**Verificado en vivo el 8 de septiembre de 2026**
+([`_indice/auditorias/r6-regresion.md` §5.4](../_indice/auditorias/r6-regresion.md#54-hallazgo-nuevo-separado--resourcetool2026017-tiene-un-accessviolationexception-no-determinista-incluso-sano)):
+cinco llamadas idénticas y seguidas (`resourcetool status`) sobre el mismo proyecto de prueba, de
+solo 3 recursos, ya sano:
+
+```
+intento 1: Core Resources : Info - +++ GMSC serialisation: SUCCESSFUL LOAD AND LINK TIME: 92.305ms
+intento 2: Fatal error. System.AccessViolationException...
+intento 3: Fatal error. System.AccessViolationException...
+intento 4: Core Resources : Info - +++ GMSC serialisation: SUCCESSFUL LOAD AND LINK TIME: 95.799ms
+intento 5: Core Resources : Info - +++ GMSC serialisation: SUCCESSFUL LOAD AND LINK TIME: 94.876ms
+```
+
+2 de 5 fallaron con exactamente el mismo crash nativo, 3 no. La traza apunta a
+`ConcurrentFileSetLoader`: parece una condición de carrera real dentro del propio cargador
+concurrente de `ResourceTool`, no un síntoma de contenido corrupto — no está ligado a ningún
+comando concreto ni al tamaño del proyecto (apareció con solo 3 recursos en el `.yyp`).
+
+**La mitigación, verificada de punta a punta**: reintenta la misma llamada de `resourcetool`
+(hasta 10-12 veces si hace falta) antes de asumir que el proyecto está corrupto — en la sesión que
+lo descubrió, reintentar siempre terminó por pasar. **No hay forma de predecir cuándo hace falta
+reintentar**, así que trátalo como un hábito, no como un diagnóstico previo: si una llamada de
+`resourcetool` revienta con `AccessViolationException` sobre un proyecto que ya sabes sano, el
+primer paso es repetir la misma llamada, no investigar qué se rompió. Añadido al checklist de
+[§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -704,7 +807,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-diez-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -971,6 +1074,18 @@ personaje ni un enemigo**, seguir dibujando con `draw_rectangle`/`draw_circle` d
 el evento Draw sigue siendo válido y es el patrón habitual de varias recetas de `13/02`: cero
 archivos, cero sprite. En cuanto el objeto tiene identidad visual propia (jugador, enemigo,
 objeto, proyectil), pasa al peldaño 1.
+
+> ⚠️ **Si el objeto va a usar colisión estándar (`place_meeting()`, `instance_place()`,
+> `instance_position()`…), no se queda en el peldaño 0** — verificado en
+> [`_indice/auditorias/r6-regresion.md` §7](../_indice/auditorias/r6-regresion.md#7--hallazgo-nuevo-propio-no-de-la-biblioteca-pero-instructivo--colisión-sin-sprite):
+> una instancia sin `sprite_index` asignado no tiene máscara de colisión, así que esas funciones
+> **nunca la encuentran**, aunque esté dibujando algo y esté exactamente donde se la busca. Es un
+> comportamiento de GML, no de esta biblioteca — detalle completo, verificado contra el manual
+> oficial, en
+> [`01 · 08` §9](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md#9-errores-típicos).
+> El peldaño 1 de abajo sí genera un sprite real (`sprite_create_from_surface()`), así que no
+> tiene este problema — la trampa solo alcanza a quien se queda dibujando a mano en el peldaño 0
+> y luego reutiliza colisión estándar sobre ese objeto.
 
 #### Peldaño 1 — Dibujo por código con criterio
 
@@ -1388,7 +1503,7 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-diez-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -1399,6 +1514,15 @@ después de cada `compile`, no solo el `exit 0`.
       ningún proceso de *runner* huérfano (§4.3).
 - [ ] Si algo depende de vista, oído, hardware real o certificación de plataforma, lo dijiste
       explícitamente en vez de darlo por bueno (§4.2).
+- [ ] Si reordenaste `project.RoomOrderNodes`, lo hiciste con `resourcetool eval`, una llamada
+      por índice — **nunca** con `resourcetool script` (el modo por lotes reporta éxito en cada
+      línea pero no persiste el cambio, §9.3 y §10.4) — y, si borraste alguna sala de por medio,
+      reordenaste **después** del borrado, nunca antes, y lo confirmaste leyendo el `.yyp` (§9.3
+      bis: `RESOURCE DELETE` puede reiniciar el array entero, de forma intermitente).
+- [ ] Si una llamada de `resourcetool` falló con `System.AccessViolationException` sobre un
+      proyecto que ya sabes sano, la reintentaste antes de asumir que el proyecto está corrupto —
+      el propio `ResourceTool@2026.0.17` puede fallar así de forma no determinista
+      (Trampa 11 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 
 ---
 
@@ -1480,6 +1604,14 @@ nuevo en esta sesión: se colocó una instancia (`ROOM INSTANCE CREATE`), se bor
 volvió a crear con el mismo nombre, y la instancia **desapareció**. No la uses para reordenar una
 sala que ya tiene contenido — para eso está §9.3.
 
+⚠️ **`RESOURCE DELETE` de una sala puede reiniciar el orden entero, no solo el hueco que borra**
+— se ha observado que, tras reordenar `RoomOrderNodes` con la receta de §9.3, borrar cualquier
+sala (aunque esté vacía y en la última posición) hace que el reordenamiento se pierda por
+completo, no solo la posición de la sala borrada. Parece intermitente, no garantizado — detalle
+completo, con la doble tanda de evidencia (a favor y en contra) y la regla práctica que se deriva
+de esto, en
+[§9.3 bis](#93-bis--dos-matices-nuevos-encontrados-construyendo-un-juego-real-de-punta-a-punta).
+
 ### 9.3 Reordenar salas que ya tienen contenido — sin borrar nada
 
 **Esto es lo que corrige la sección**: como `RoomOrderNodes[i].roomId` se puede **reasignar
@@ -1519,10 +1651,64 @@ válido. **No se tocó ninguna sala** — solo el array de orden.
    `expr=project.RoomOrderNodes[i].roomId`, si necesitas ver qué sala hay en cada posición).
 2. Reasigna cada posición que quieras cambiar con `resource set
    expr=project.RoomOrderNodes[i].roomId value=<nombre_de_sala>` — cualquier sala que ya exista
-   en el proyecto, tenga o no contenido.
+   en el proyecto, tenga o no contenido. **Hazlo con `resourcetool eval`, una llamada por
+   índice — nunca con `resourcetool script`** (ver §9.3 bis, más abajo: el modo por lotes no
+   persiste esta operación aunque reporte éxito).
 3. No hace falta tocar el tamaño del array: siempre tiene tantos elementos como salas existan en
    el proyecto, y `resource set` sobre un índice solo cambia **qué sala apunta ahí**, nunca
    cuántas posiciones hay.
+
+### 9.3 bis · Dos matices nuevos, encontrados construyendo un juego real de punta a punta
+
+> Verificados el 8 de septiembre de 2026 en
+> [`_indice/auditorias/r6-regresion.md` §3](../_indice/auditorias/r6-regresion.md#3--el-orden-de-las-salas--funcionó-projectroomordernodes-tal-como-documenta-1209),
+> reordenando 7 salas reales de un sokoban de tres niveles, y reverificados de nuevo en un
+> proyecto de prueba independiente al escribir esta sección — con un resultado distinto para el
+> punto 2, detallado ahí mismo. §9.1-§9.3 arriba se verificaron de nuevo tal cual y siguen siendo
+> correctos — estos dos matices se suman, no los sustituyen.
+
+**1 · El modo por lotes (§10) reporta éxito pero NO persiste un `RESOURCE SET` sobre
+`RoomOrderNodes`.** Un archivo de lote con las 7 líneas de `resource set
+expr=project.RoomOrderNodes[i].roomId value=…`, ejecutado con `gm-cli resourcetool script
+lote.txt proyecto.yyp`, respondió `Saved successfully` en cada línea y `ResourceTool Successful`
+al final — pero el `.yyp` en disco, leído justo después, **seguía con el orden de creación
+original**, como si el lote nunca se hubiera ejecutado. Las mismas 7 operaciones, repetidas una
+por una con `resourcetool eval` sin cambiar ni una letra del comando, sí persistieron — confirmado
+leyendo el archivo. No se investigó la causa interna (podría ser el `ProjectFileWatcher` que se ve
+parar y reanudar en cada guardado, compitiendo con el guardado incremental del lote); el hecho
+reproducible es que **el modo por lotes no escribe este cambio a disco**, aunque diga que sí.
+
+⚠️ Esto **matiza la recomendación de §10.4** («varias salas en el orden que quieres — §9.2»): esa
+fila sigue siendo cierta para crear salas en el orden de **creación** (§9.2), pero **no** se
+extiende a *reordenar* salas que ya existen (§9.3) — para `RESOURCE SET` sobre
+`project.RoomOrderNodes`, usa siempre `eval`, nunca `script`, por rápido que parezca el lote. Nota
+gemela en [§10.4](#104-cuándo-usar-script-en-vez-de-eval).
+
+**2 · `RESOURCE DELETE` de una sala puede reiniciar TODO `RoomOrderNodes` — observado una vez,
+NO reproducido en 6 intentos posteriores; trátalo como riesgo intermitente, no como ley fija.**
+Tras confirmar un reordenamiento correcto con la receta de arriba, `r6-regresion.md` borró una
+sala completamente distinta — `Room1`, la sala vacía de la plantilla, que ya estaba en la última
+posición del array — con `resource delete name=Room1 type=room`, y el `.yyp` resultante
+**volvió al orden de creación original de las demás salas**, perdiendo el reordenamiento explícito
+ya aplicado. `Room1` sí desapareció correctamente; lo que se perdió fue el orden de las otras seis.
+
+⚠️ **Verificación de esta corrección, 8 de septiembre de 2026**: se repitió el experimento 6 veces
+más, en un proyecto de prueba distinto bajo `~` — permutación completa de `RoomOrderNodes` por
+`eval`, seguida de un `RESOURCE DELETE` sobre la sala que quedó en la última posición (incluida
+`Room1` en un intento, salas creadas por el propio agente en los otros cinco) — y **ninguna de las
+6 veces se reinició el array**: en todas, `RESOURCE DELETE` se limitó a quitar el hueco de la sala
+borrada, conservando intacto el resto de la permutación. No es que la observación original fuera
+falsa — ocurrió, con evidencia real, en una sesión que ya documentó por separado una condición de
+carrera genuina de `ResourceTool` (el hallazgo 4 de esta misma Trampa). Lo más probable es que sea
+la **misma familia de fallo no determinista**, no un comportamiento garantizado de `RESOURCE
+DELETE` — pero con una sola observación a favor y seis en contra, no hay base para escribirlo como
+ley fija, así que queda documentado como riesgo posible, no como certeza.
+
+**La regla práctica se mantiene igual pase lo que pase con el determinismo del bug: reordena
+SIEMPRE después de borrar cualquier sala, nunca antes, y confírmalo leyendo el `.yyp` (o con
+`resource info expr=project.RoomOrderNodes LIST`) en vez de fiarte del mensaje de éxito.** Cuesta
+lo mismo hacerlo así siempre que investigar, cada vez, si esta ejecución en concreto fue de las
+que reinician o no.
 
 ### 9.4 El IDE sigue siendo una alternativa válida — ya no la única
 
@@ -2070,11 +2256,25 @@ error real, igual que el ciclo de `gm-cli compile` de §1.
 | Necesitas leer el resultado de un comando (`RESOURCE INFO`, `ROOM ITEM LIST`…) para decidir el siguiente | `eval`, uno a uno — `script` no te deja inspeccionar la salida de una línea antes de que corra la siguiente |
 | Vas a verificar cada evento con `object event list` según se crea (§2.5, para evitar las Trampas 3/4 de numeración) | `eval` intercalado con la verificación, o `script` para el lote y **una sola** verificación con `object event list` al final sobre todos los objetos |
 | Trabajas por MCP (`gamemaker-resource-tool`) en una sesión interactiva | El MCP ya es rápido por llamada tipada — `script` es una ventaja de la vía `eval`/CLI, no del MCP |
+| **Reordenar `project.RoomOrderNodes`** (`RESOURCE SET` sobre salas que ya existen — §9.3) | **`eval`, siempre — nunca `script`.** Ver el aviso justo debajo: es la única excepción confirmada a la regla práctica de esta sección. |
+
+⚠️ **Excepción verificada el 8 de septiembre de 2026**
+([`_indice/auditorias/r6-regresion.md` §3.2](../_indice/auditorias/r6-regresion.md#32-hallazgo-nuevo--resourcetool-script-no-persiste-resource-set-sobre-roomordernodes)):
+un lote de `resourcetool script` con siete líneas de `RESOURCE SET
+expr=project.RoomOrderNodes[i].roomId` respondió `Saved successfully` en cada línea y
+`ResourceTool Successful` al final — pero el `.yyp` en disco, leído justo después, conservaba el
+orden anterior al lote **por completo**, como si nunca se hubiera ejecutado. Las mismas siete
+operaciones, una a una con `eval`, sí persistieron. La regla práctica de abajo («más de dos o tres
+comandos seguidos → usa `script`») **no vale para esta operación concreta**: reordenar salas
+siempre por `eval`, aunque sean muchas llamadas y el ahorro de tiempo del lote sea tentador.
+Detalle completo, con la regla de «reordena después de borrar, nunca antes», en
+[§9.3 bis](#93-bis--dos-matices-nuevos-encontrados-construyendo-un-juego-real-de-punta-a-punta).
 
 **Regla práctica**: si vas a lanzar más de dos o tres comandos de `resourcetool` seguidos que no
 dependen del resultado de los anteriores, escribe un archivo de lote y usa `script` — el ahorro
 de tiempo (~6× en esta medición) se nota en cualquier proyecto real, donde crear el andamiaje
-inicial de objetos y eventos son fácilmente decenas de comandos.
+inicial de objetos y eventos son fácilmente decenas de comandos. La única excepción confirmada
+hasta hoy es reordenar `project.RoomOrderNodes` (recuadro de arriba).
 
 ---
 
