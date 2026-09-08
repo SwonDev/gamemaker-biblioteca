@@ -508,13 +508,12 @@ Formato: `nombreConfig:NOMBRE_MACRO valor`, **sin espacios** alrededor de los do
 
 ### Funciones de comprobación
 
-```gml
-is_string()   is_real()    is_numeric()  is_bool()
-is_array()    is_struct()  is_method()   is_callable()
-is_ptr()      is_int32()   is_int64()
-is_undefined()  is_nan()   is_infinity()
-is_handle()
-```
+Todas toman **un único argumento** (el valor a comprobar) y devuelven un booleano — no son
+llamadas de cero argumentos pese a como se suelen citar por su nombre:
+
+`is_string(v)` · `is_real(v)` · `is_numeric(v)` · `is_bool(v)` · `is_array(v)` · `is_struct(v)` ·
+`is_method(v)` · `is_callable(v)` · `is_ptr(v)` · `is_int32(v)` · `is_int64(v)` ·
+`is_undefined(v)` · `is_nan(v)` · `is_infinity(v)` · `is_handle(v)`
 
 ```gml
 // Ejemplo: validar la entrada de un archivo de guardado

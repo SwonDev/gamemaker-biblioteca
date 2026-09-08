@@ -5,7 +5,7 @@
 > IDE. No repite lo que ya explican [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)
 > (referencia completa del CLI) y [`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)
 > (qué es el andamiaje `--ai` y cómo se prepara un proyecto para un agente): este documento
-> añade **lo que ninguno de los dos cubre** — los ocho sitios donde un agente se atasca hoy,
+> añade **lo que ninguno de los dos cubre** — los nueve sitios donde un agente se atasca hoy,
 > el nombre exacto de archivo que le toca a cada evento, el inventario real de las 80
 > herramientas del MCP, la frontera entre lo que un agente puede comprobar solo y lo que debe
 > pedir al humano, los errores que un LLM comete por reflejo al tratar GML como si fuera C#
@@ -29,10 +29,19 @@
 > flag esconde por completo un fallo real — un *included file* creado por `resourcetool` cuyo
 > archivo nunca llega al paquete compilado, y por separado, un *crash* del `AssetCompiler` que
 > impide escribir el paquete. Nueva Trampa 8 en §0, nota en §1, §7.7 y checklist ampliado en §8.
+>
+> **Tercera corrección del 8 de septiembre de 2026**: una auditoría anti-alucinación encontró
+> que este documento afirmaba, en tres sitios distintos, que crear un GUI Begin/End real, un
+> evento Async (HTTP, Save/Load, Steam, Cloud, redes…) o `user1`-`user15` **no era posible por
+> CLI ni MCP**. Era falso: `OBJECT EVENT FINDORCREATE` tiene la whitelist cerrada, pero el
+> `eventNum` crudo del evento ya creado se puede forzar con `RESOURCE SET` — la misma raíz de
+> expresión genérica que destapó la corrección de §9. Nueva Trampa 9 en §0, receta completa en
+> §9 ter. La única afirmación de imposibilidad que se reverificó y se confirmó cierta fue la del
+> asset **Extensión**, que sigue sin poder crearse por CLI/MCP.
 
 ---
 
-## 0 · Las ocho trampas que hacen fracasar a un agente hoy
+## 0 · Las nueve trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -487,6 +496,84 @@ corrección. Detalle completo, con la construcción en vivo de un juego narrativ
 descubrió de forma independiente, en
 [`_indice/auditorias/r6-prueba-narrativa.md` §6.1](../_indice/auditorias/r6-prueba-narrativa.md#61--el-fallo-real-resource-create-typeincludedfile-no-deja-el-archivo-donde-la-skill-dice-que-vive).
 
+### Trampa 9 · Un `subtype`/argumento rechazado por un subcomando no significa que la propiedad cruda sea inalcanzable
+
+**El síntoma**: `OBJECT EVENT FINDORCREATE` tiene una whitelist cerrada de nombres para `draw` y
+`other` (§2.3-§2.4). Pedir `gui_begin` crea de verdad `draw_begin` (Trampa 3), y forzar el
+número real como `subtype` falla: `type=draw subtype=74` → `Invalid subtype '74' for event type
+'draw'`. De ahí, varias versiones de este documento (y la auditoría `r4-agente-ia-gamemaker.md`
+que lo originó) saltaron a «por CLI/MCP no hay manera de crear un GUI Begin/End real» y «los
+eventos Async no se pueden crear por CLI ni MCP» — **la misma clase de error que corrigió la
+Trampa 7**: confundir «este comando concreto lo rechaza» con «esta biblioteca entera no puede
+hacerlo».
+
+**La causa raíz**: `OBJECT EVENT FINDORCREATE` valida el `subtype` contra su propia whitelist de
+nombres — eso es negocio de ese comando, no una limitación del formato del recurso. El evento ya
+creado expone su número real como un campo crudo (`eventNum`) alcanzable con la raíz de
+expresión genérica de `RESOURCE SET`/`RESOURCE INFO` (la misma familia que la Trampa 7 destapó
+para `project`), y **ese campo no pasa por la whitelist de `FINDORCREATE`**.
+
+**Verificado en vivo el 8 de septiembre de 2026**, en un proyecto de prueba bajo `~`
+(`~/verif_audit_tmp`, `gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli` 2.3.0 /
+`ResourceTool@2026.0.17`:
+
+```bash
+# 1. Crea el evento con CUALQUIER nombre de la whitelist de la misma familia (draw u other)
+$ gm-cli resourcetool eval "object event findorcreate name=obj_x type=draw subtype=gui_begin"
+New GML file: .../obj_x/Draw_72.gml          # el bug de la Trampa 3: crea draw_begin, no gui_begin
+
+# 2. Localiza el índice del evento en la lista cruda
+$ gm-cli resourcetool eval "resource info expr=obj_x.eventList[0]"
+eventNum: 72   eventType: 8   ← el 8 es ev_draw; el número es lo que hay que corregir
+
+# 3. Fuerza el número real — esto NO pasa por la whitelist de FINDORCREATE
+$ gm-cli resourcetool eval "resource set expr=obj_x.eventList[0].eventNum value=74"
+obj_x.eventList[0].eventNum: 74
+Saved successfully
+
+# 4. resourcetool ya lo reconoce como el evento real
+$ gm-cli resourcetool eval "object event list name=obj_x"
+draw │ Event_Draw_DrawGUIBegin        ← antes decía Event_Draw_DrawBegin
+
+# 5. Renombra/escribe el .gml con el nombre que corresponde al número real
+#    (FINDORCREATE dejó Draw_72.gml; el evento real necesita Draw_74.gml)
+$ mv obj_x/Draw_72.gml obj_x/Draw_74.gml
+
+# 6. Compila
+$ gm-cli compile
+◆  Compilation finished
+```
+
+Reproducido igual con un evento **Async - HTTP** real (`type=other`, se crea con cualquier
+nombre whitelisted como `outside`, se parchea `eventNum` a `62`, se renombra a `Other_62.gml`) —
+`resourcetool` lo lista después como `Event_Async_HTTP` y compila sin error. Y con **`user1`**
+(se crea `user0`, `eventNum` 10 → 11) — se lista como `Event_Other_UserN` detalle `1`. Los tres,
+con `gm-cli compile` terminando en `Compilation finished`.
+
+**El paso que de verdad importa y que un agente puede saltarse**: `FINDORCREATE` deja el `.gml`
+con el nombre del número **equivocado** (el de la Trampa 3). Parchear solo `eventNum` sin
+renombrar el archivo **no da ningún error al compilar** — compila igual de "limpio" que el caso
+de la Trampa 8 — pero el código real vive en el archivo con el nombre correcto, no en el que
+dejó `FINDORCREATE`. Verifica siempre con `object event list` (§2.5) y, si vas a escribir código
+de verdad en el evento, asegúrate de que el `.gml` que editas tiene el nombre `<Prefijo>_<número
+real>.gml`.
+
+**Qué eventos concretos desbloquea esto**: cualquier evento cuyo *nombre* esté en la whitelist de
+`FINDORCREATE` pero apunte al número equivocado (`gui_begin`/`gui_end`, `room_end` — Trampa 3), y
+cualquier evento cuyo número real **no tenga nombre en la whitelist en absoluto**: todos los
+`ev_async_*` (HTTP, Save/Load, Steam, Cloud, Networking, System, Social, Push, Audio
+Recording/Playback/Playback Ended, Dialog, Web Image Load, Web IAP) y `user1`-`user15`. Sigue sin
+haber forma de crear el asset **Extensión** por CLI/MCP (`resource create type=extension` →
+`Resource type 'extension' is not creatable` — verificado de nuevo el 8 de septiembre de 2026,
+esa sí es una limitación real: el tipo de recurso mismo no admite creación, no hay un `eventNum`
+equivalente que parchear).
+
+**La regla que deja esta trampa, además de la que ya dejó la Trampa 7**: cuando un *subcomando*
+específico (`OBJECT EVENT FINDORCREATE`, o cualquier otro con una lista cerrada de valores
+válidos) rechace algo, prueba si la propiedad cruda es alcanzable por la vía genérica
+(`RESOURCE INFO`/`RESOURCE SET` sobre el recurso ya creado) antes de escribir «no se puede por
+CLI/MCP». La whitelist es del comando, no siempre del formato del recurso.
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -516,7 +603,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-ocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-nueve-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -566,17 +653,28 @@ leyendo `object event findorcreate` para cada uno. Contrastado además con el `.
 | `draw_pre` | `Draw_76.gml` | 76 | ✅ |
 | `draw_post` | `Draw_77.gml` | 77 | ✅ |
 
-> No existe forma de forzar el número real (74, 75) por `resourcetool`: la whitelist de
-> subtipos de `draw` es cerrada y `gui_begin`/`gui_end` son los únicos nombres que apuntan a
-> esos eventos, así que hoy **no hay manera de crear un GUI Begin/End real por CLI o MCP**. Si
-> tu juego necesita distinguir de verdad `draw_begin` de `gui_begin`, créalos desde el IDE.
+> ❌ **Afirmación anterior, falsa — corregida el 8 de septiembre de 2026 (Trampa 9):** esta
+> misma sección decía que «no existe forma de forzar el número real (74, 75) por `resourcetool`»
+> y que «hoy no hay manera de crear un GUI Begin/End real por CLI o MCP». La whitelist de
+> `subtype=` en `OBJECT EVENT FINDORCREATE` es cerrada, en efecto — pero **no es la única vía**.
+> El campo crudo `eventNum` del evento ya creado **sí se puede escribir** con `RESOURCE SET`
+> (la misma raíz de expresión genérica de la Trampa 7, aplicada a un evento en vez de a
+> `project`). Receta verificada de punta a punta (creación, parcheo y `gm-cli compile` con
+> salida `Compilation finished`) en [§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada).
 
 ### 2.4 Other: tabla completa, con los dos bugs marcados
 
 Verificado igual que Draw, con los 14 subtipos que acepta la whitelist de `resourcetool` (los
-eventos Async — HTTP, Save/Load, Steam, Cloud, redes — **no están en esta lista y no se pueden
-crear por CLI ni MCP**, ni por nombre ni forzando el número real como `subtype`: `type=other
+eventos Async — HTTP, Save/Load, Steam, Cloud, redes — no están en esta lista, y ni por nombre
+ni forzando el número real como `subtype` los acepta `OBJECT EVENT FINDORCREATE`: `type=other
 subtype=62` da `Invalid subtype`).
+
+> ❌ **Esto NO significa que los eventos Async no se puedan crear por CLI ni MCP** — una
+> afirmación repetida en varias versiones de este documento y **falsa**, corregida el 8 de
+> septiembre de 2026: `FINDORCREATE` tiene la whitelist cerrada, pero el `eventNum` crudo del
+> evento sí se puede forzar con `RESOURCE SET` una vez creado. Ver [§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada)
+> para la receta completa — incluye un evento **Async - HTTP** (62) real, reconocido después
+> como `Event_Async_HTTP` por el propio `resourcetool`, y compilado sin error.
 
 | Pides (`subtype=`) | Archivo real | Número real | ¿Coincide? |
 |---|---|---|---|
@@ -595,9 +693,12 @@ subtype=62` da `Invalid subtype`).
 | `animation_update` | `Other_58.gml` | 58 | ✅ |
 | `animation_event` | `Other_59.gml` | 59 | ✅ |
 
-> `user1` a `user15` **existen en GameMaker real** pero `resourcetool` los rechaza: la
-> whitelist de `other` se cierra en `user0`. Para usar `user1`-`user15` necesitas crearlos desde
-> el IDE, o reutilizar un `Other_11.gml`…`Other_25.gml` que ya venga en una plantilla.
+> `user1` a `user15` **existen en GameMaker real** y `OBJECT EVENT FINDORCREATE` los rechaza: la
+> whitelist de `other` se cierra en `user0`. ❌ **Una versión anterior de esta nota decía que por
+> eso «necesitas crearlos desde el IDE» — falso, corregido el 8 de septiembre de 2026.** Crea
+> `user0` (`eventNum=10`) por CLI/MCP como siempre y fuerza `eventNum=11` (`user1`), `12`
+> (`user2`)… con `RESOURCE SET` — verificado con `user1`: `resourcetool` vuelve a listarlo como
+> `Event_Other_UserN` (detalle `1`). Receta en [§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada).
 
 ### 2.5 La regla de oro para no caer en las dos trampas anteriores
 
@@ -608,8 +709,11 @@ gm-cli resourcetool eval "object event list name=<objeto>"
 ```
 
 Si el resultado no muestra el subtipo exacto que pediste (por ejemplo, pediste `gui_begin` y la
-tabla solo lista `Event_Draw_DrawBegin`), el evento se coló en el archivo equivocado — bórralo y
-edita el `.gml` que corresponde de verdad, o edítalo desde el IDE si necesitas el evento real.
+tabla solo lista `Event_Draw_DrawBegin`), el evento se coló en el archivo equivocado. Dos
+salidas, no una sola: bórralo y edítalo desde el IDE si te vale con eso, **o fuerza el número
+real con `RESOURCE SET` sobre `eventNum`** ([§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada))
+si necesitas el evento real sin salir del CLI/MCP — no des el segundo camino por cerrado sin
+haberlo probado (Trampa 9).
 
 ---
 
@@ -701,7 +805,12 @@ cambia el transporte.
 | **Rendimiento en el dispositivo real** (móvil, consola) | El *runner* de escritorio no reproduce la CPU/GPU del objetivo | Ejecute un *profiling* en el hardware real |
 | **Certificación de plataforma** (Steam, consolas, tiendas) | Requiere procesos y revisiones fuera de GameMaker | Gestione el envío y la revisión |
 | **Sensación / *game feel* subjetiva** | Es una valoración humana, no un dato del log | Juegue y dé su impresión |
-| Un evento **Async** (HTTP, Save/Load, Steam, redes) que no se puede crear por CLI/MCP | Whitelist cerrada de `resourcetool` (§2.4) | Cree el evento desde el IDE, o reutilice uno ya presente en una plantilla |
+
+> ❌ **Esta tabla tenía una fila más** («Un evento Async que no se puede crear por CLI/MCP,
+> pídeselo al humano») **quitada el 8 de septiembre de 2026: era falsa** y además no encajaba
+> aquí — crear un evento no depende de un sentido humano, y sí se puede hacer sin salir del
+> CLI/MCP. Ver [§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada)
+> (Trampa 9).
 
 **Regla práctica**: si la comprobación depende de un sentido humano (vista, oído) o de hardware
 que el `runner` de escritorio no reproduce, no está a tu alcance como agente — dilo con
@@ -1178,7 +1287,7 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-ocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-nueve-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -1519,6 +1628,80 @@ gm-cli resourcetool eval "resource info expr=project.name" "$(pwd)/NombreFinal.y
 
 ---
 
+## 9 ter · Forzar un `eventNum` real cuando la whitelist de `subtype` es cerrada
+
+Receta completa de la Trampa 9. Sirve para cualquier evento cuyo número real no tenga nombre
+aceptado por `OBJECT EVENT FINDORCREATE` — todos los `ev_async_*` (HTTP, Save/Load, Steam,
+Cloud, Networking, System, Social, Push, Audio Recording/Playback/Playback Ended, Dialog, Web
+Image Load, Web IAP), `user1`-`user15`, y el GUI Begin/End real (que la whitelist mapea al
+número equivocado, Trampa 3). Verificado de punta a punta el 8 de septiembre de 2026 en
+`~/verif_audit_tmp` (`gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli` 2.3.0 /
+`ResourceTool@2026.0.17`.
+
+### Paso a paso
+
+1. **Crea el objeto** (si no existe) y **un evento de la misma familia** (`draw` o `other`) con
+   cualquier nombre que la whitelist acepte — el nombre exacto no importa, solo la familia:
+   ```bash
+   gm-cli resourcetool eval "resource create type=object name=obj_x"
+   gm-cli resourcetool eval "object event findorcreate name=obj_x type=other subtype=outside"
+   ```
+2. **Localiza el índice** del evento recién creado en la lista cruda:
+   ```bash
+   gm-cli resourcetool eval "resource info expr=obj_x.eventList list"
+   ```
+   (el orden es el de creación; si es el único evento `other`, es el último índice de la lista).
+3. **Confirma el número que trae y fuerza el real** — este paso no pasa por la whitelist de
+   `FINDORCREATE`:
+   ```bash
+   gm-cli resourcetool eval "resource info expr=obj_x.eventList[N]"
+   gm-cli resourcetool eval "resource set expr=obj_x.eventList[N].eventNum value=<número real>"
+   ```
+4. **Verifica con `object event list`** que `resourcetool` ya reconoce el evento real:
+   ```bash
+   gm-cli resourcetool eval "object event list name=obj_x"
+   ```
+5. **Renombra (o crea) el `.gml`** con el nombre que corresponde al número real —
+   `Draw_<N>.gml` u `Other_<N>.gml` (tabla completa en [§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo)).
+   El archivo que dejó `FINDORCREATE` lleva el nombre del número **equivocado** (Trampa 3); si no
+   lo renombras, `gm-cli compile` **no avisa**, pero el código no vive donde el evento real lo
+   busca:
+   ```bash
+   mv objects/obj_x/Other_0.gml objects/obj_x/Other_62.gml   # ejemplo: Async - HTTP
+   ```
+6. **Escribe el código real en el archivo renombrado** y compila:
+   ```bash
+   gm-cli compile
+   ```
+
+### Números reales verificados en esta sesión
+
+| Evento | `eventType` | `eventNum` real | Nombre en `object event list` tras el parche |
+|---|---|---|---|
+| GUI Begin | 8 (`ev_draw`) | 74 | `Event_Draw_DrawGUIBegin` |
+| GUI End | 8 (`ev_draw`) | 75 | (no verificado directamente esta sesión; simétrico a GUI Begin — verifícalo con `object event list` antes de confiar en él a ciegas) |
+| Async - HTTP | 7 (`ev_other`) | 62 | `Event_Async_HTTP` |
+| Async - Dialog | 7 (`ev_other`) | 63 | `Event_Async_Dialog` |
+| User Event 1 | 7 (`ev_other`) | 11 | `Event_Other_UserN` (detalle `1`) |
+
+Para el resto de `ev_async_*` (Save/Load, Steam, Cloud, Networking, System, Social, Push, Audio
+Recording/Playback/Playback Ended, Web Image Load, Web IAP) y `user2`-`user15`, la técnica es la
+misma pero el número exacto no se verificó uno a uno en esta sesión — confírmalo con
+`object event list` después del parche, igual que aquí, antes de dar el número por bueno; los
+números de los `ev_async_*` están en el manual oficial
+(`The_Asset_Editors/Object_Properties/Async_Events/`) y en
+[`08 · 21` §10](../08%20-%20Referencia%20GML%20completa/21%20-%20Constantes%20que%20el%20manual%20abrevia.md#10--las-173-constantes-de-evento-ev_-para-event_perform).
+
+### Qué sigue sin tener solución por esta vía
+
+El asset **Extensión** no se puede crear por CLI/MCP de ninguna forma — a diferencia de un
+evento, no hay un recurso ya creado cuyo campo crudo parchear: `resource create type=extension`
+falla antes de llegar a existir (`Resource type 'extension' is not creatable`, verificado de
+nuevo el 8 de septiembre de 2026). Sigue siendo cierto que hace falta el IDE para ese asset
+concreto — ver [`07 · 22`](../07%20-%20Ecosistema/22%20-%20Crear%20una%20extensión%20nativa%20%28guía%20en%20español%29.md).
+
+---
+
 ## 10 · El modo por lotes (`resourcetool script`): mucho más rápido que encadenar `eval`
 
 **No estaba documentado ni en `SKILL.md` ni en la tabla de comandos de `07 · 13`** — lo señaló
@@ -1676,11 +1859,28 @@ inicial de objetos y eventos son fácilmente decenas de comandos.
   `audiogroup`, un `texturegroup`, una `folder` anidada, un `config` hijo y un `includedfile`,
   confirmados después en `project.*`; reproducción de que `resource set expr=project.name` deja
   un `.yyp` huérfano mientras que `PROJECT RENAME` no; y reverificación en vivo, con los números
-  reales del manual (`Async_Events.md`), de que los eventos Async siguen sin poder crearse por
-  `resourcetool` (subtipos 62, 68 y 72 probados, todos rechazados) y de que el asset Extensión
-  sigue sin poder crearse (`resource create type=extension` → `Resource type 'extension' is not
-  creatable`) — ambas afirmaciones previas de la biblioteca se confirmaron ciertas, no se
-  corrigieron.
+  reales del manual (`Async_Events.md`), de que `OBJECT EVENT FINDORCREATE` sigue rechazando un
+  `subtype` numérico (62, 68 y 72 probados, todos rechazados con `Invalid subtype`) y de que el
+  asset Extensión sigue sin poder crearse (`resource create type=extension` → `Resource type
+  'extension' is not creatable`) — la de la Extensión se confirmó cierta, no se corrigió.
+- ❌ **Corrección del 8 de septiembre de 2026 (Trampa 9) — la entrada anterior sobre eventos
+  Async estaba incompleta y llevó a una conclusión falsa.** Esa reverificación probó un único
+  camino (`FINDORCREATE` con `subtype` numérico) y, al ver que lo rechazaba, dio por buena la
+  afirmación previa de que «los eventos Async siguen sin poder crearse por `resourcetool`» — el
+  mismo patrón que la propia Trampa 7 advierte: un comando cerrado no prueba que la propiedad
+  cruda sea inalcanzable. Reproducido en un tercer proyecto de prueba bajo `~`
+  (`~/verif_audit_tmp`, `gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli`
+  2.3.0 / `ResourceTool@2026.0.17` — 8 de septiembre de 2026: `OBJECT EVENT FINDORCREATE` con un
+  nombre de la whitelist (`gui_begin`, o `outside`/`user0` para Other) crea el evento con el
+  número **equivocado** (bug ya documentado en la Trampa 3), pero `RESOURCE SET
+  expr=<objeto>.eventList[i].eventNum value=<número real>` **sí lo corrige** — el evento pasa a
+  listarse como `Event_Draw_DrawGUIBegin`, `Event_Async_HTTP` (62) o `Event_Other_UserN` detalle
+  `1` (`user1`, `eventNum=11`) según el caso, y `gm-cli compile` termina con `Compilation
+  finished` en los tres. Requiere además renombrar/escribir el `.gml` con el nombre de archivo
+  que corresponde al número real (`Draw_74.gml`, `Other_62.gml`…): el archivo que dejó
+  `FINDORCREATE` sigue llevando el nombre del número equivocado, y aunque `gm-cli compile` no
+  avisa si no se renombra, el código real solo se ejecuta desde el archivo correcto. Receta
+  completa en [§9 ter](#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada).
 - [`_indice/auditorias/r6-prueba-narrativa.md`](../_indice/auditorias/r6-prueba-narrativa.md) (8
   de septiembre de 2026) — construcción en vivo de un juego narrativo completo (`~/gm_prueba_narrativa`)
   que descubrió la Trampa 8; su §6.1 trae la primera reproducción del bug de `filePath`.

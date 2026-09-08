@@ -18,10 +18,12 @@ llamada `nombre(`:
   · extensión      → la declara una extensión del propio proyecto (su .yy) (correcto)
   · obsoleta       → existe pero está marcada como obsoleta en el runtime (aviso)
   · INVENTADA      → lleva prefijo de familia del runtime y no existe (ERROR)
+  · ARIDAD         → existe, pero se llama con un número de argumentos que su firma no
+                     admite (ERROR) — el fallo de «existe, pero los argumentos están mal»
   · desconocida    → no lleva prefijo de familia; suele ser un nombre propio que falta
                      por definir o un método; se lista solo con --todo
 
-Sale con 0 si no hay inventadas; con 1 si hay alguna.
+Sale con 0 si no hay inventadas ni problemas de aridad; con 1 si hay alguna.
 """
 import os, re, sys, json, difflib, importlib.util
 
@@ -139,7 +141,12 @@ def main():
             for m in pat.finditer(cod):
                 definidas.add(m.group(1))
 
-    inventadas, obsoletas, desconocidas = {}, {}, {}
+    # {nombre: (mínimo, máximo|None, variádica)} de cada función con firma conocida —
+    # existir no basta: el número de argumentos con el que se llama tiene que caber
+    # en su firma. Es el mismo control que aplica validar-codigo-gml.py a la biblioteca.
+    aridad = vcg.aridades_funciones(simb)
+
+    inventadas, obsoletas, desconocidas, problemas_aridad = {}, {}, {}, {}
     total = 0
     for fp, cod in codigos:
         rel = os.path.relpath(fp, proyecto)
@@ -152,6 +159,17 @@ def main():
             if nom in simb:
                 if simb[nom].get("obsoleta"):
                     obsoletas.setdefault(nom, set()).add(rel)
+                if nom in aridad:
+                    minimo, maximo, variadica = aridad[nom]
+                    n_args = vcg.contar_argumentos(cod, m.end())
+                    if n_args is not None:
+                        if n_args < minimo:
+                            rango = f"mínimo {minimo}" if variadica else f"entre {minimo} y {maximo}"
+                            problemas_aridad.setdefault(nom, []).append(
+                                (rel, f"{n_args} argumento(s) — la firma exige {rango}"))
+                        elif maximo is not None and n_args > maximo:
+                            problemas_aridad.setdefault(nom, []).append(
+                                (rel, f"{n_args} argumento(s) — la firma admite entre {minimo} y {maximo}"))
                 continue
             if nom in externas:
                 continue
@@ -174,9 +192,11 @@ def main():
             "proyecto": proyecto, "archivos_gml": len(archivos), "llamadas": total,
             "inventadas": {n: {"en": sorted(a), "parecidas": parecidos(n)} for n, a in inventadas.items()},
             "obsoletas": {n: sorted(a) for n, a in obsoletas.items()},
+            "aridad_incorrecta": {n: [{"en": d, "problema": msg} for d, msg in casos]
+                                   for n, casos in problemas_aridad.items()},
             "desconocidas": {n: sorted(a) for n, a in desconocidas.items()},
         }, ensure_ascii=False, indent=1))
-        return 1 if inventadas else 0
+        return 1 if (inventadas or problemas_aridad) else 0
 
     print(f"{len(archivos)} archivos .gml · {total} llamadas analizadas · runtime del índice "
           f"{meta.get('runtime')}")
@@ -198,6 +218,17 @@ def main():
             print(f"  {nom}()  →  python3 \"_indice/buscar.py\" {nom}   (te dice la alternativa)")
             for d in sorted(donde)[:3]:
                 print(f"      en {d}")
+    if problemas_aridad:
+        n_llamadas = sum(len(v) for v in problemas_aridad.values())
+        print(f"\n\033[1m✗ {n_llamadas} llamada(s) a {len(problemas_aridad)} función(es) con un número "
+              f"de argumentos que no cuadra con su firma:\033[0m")
+        print("  (existir no basta: la firma completa es la que manda — ver `buscar.py <función>`)")
+        for nom, casos in sorted(problemas_aridad.items()):
+            for d, msg in casos:
+                print(f"  {nom}()  ·  {msg}  ·  en {d}")
+    else:
+        print("\n✓ Ninguna llamada a una función del runtime con un número de argumentos "
+              "que no cuadre con su firma.")
     if desconocidas and todo:
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
               f"(métodos de struct, funciones que faltan o extensiones sin instalar):")
@@ -206,7 +237,7 @@ def main():
     elif desconocidas:
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
               f"(--todo para verlos): métodos de struct, funciones que faltan o extensiones sin instalar.")
-    return 1 if inventadas else 0
+    return 1 if (inventadas or problemas_aridad) else 0
 
 
 if __name__ == "__main__":

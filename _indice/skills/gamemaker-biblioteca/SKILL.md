@@ -21,14 +21,18 @@ Si `$BIB` sale vacío, la biblioteca no está instalada en esta máquina: dilo, 
 
 ## La regla que gobierna todo
 
-**Cada símbolo de GML se verifica antes de escribirlo.**
+**Cada símbolo de GML se verifica antes de escribirlo — la firma ENTERA, no solo que exista**:
+confirmar el nombre y adivinar los argumentos «porque suenan razonables» es el fallo que cuela
+código roto (caso real en `_indice/auditorias/r5-revalidacion.md`).
 
 ```sh
 python3 "$BIB/_indice/buscar.py" nombre_de_la_funcion
 ```
 
-- Aparece → tienes la firma exacta, si está obsoleta, la página del manual (es/en) y dónde se
-  usa en código real. Escríbela tal cual.
+- Aparece → cuenta los argumentos de la línea `firma:` — cada `[nombre]` entre corchetes es
+  opcional, el resto obligatorio, siempre en ese orden (p. ej. `audio_play_sound(index, priority,
+  loop, [gain], [offset], [pitch], [listener_mask])` exige 3 como mínimo y admite hasta 7) — más si
+  está obsoleta, la página del manual (es/en) y dónde se usa en código real. Escríbela tal cual.
 - No aparece → **no existe en este runtime**. No la escribas. El buscador sugiere parecidas.
 - `⚠ ÍNDICE CADUCADO` → el runtime instalado cambió: `python3 "$BIB/_indice/actualizar.py"`
   antes de fiarte de ninguna ficha.
@@ -51,7 +55,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las ocho trampas que hacen fracasar a un agente
+## Las nueve trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -92,6 +96,12 @@ el primer comando; el detalle y las tablas completas están en
    `resource set expr=project.IncludedFiles[N].filePath value=datafiles` — no por el nombre del
    recurso si lleva un punto (`datos.json.filePath` falla: el punto se lee como acceso a
    miembro). Detalle completo en `12/09` §0 Trampa 8.
+9. **`OBJECT EVENT FINDORCREATE` no acepta todos los eventos, pero eso no significa que no se
+   puedan crear.** Su lista de subtipos deja fuera GUI Begin/End, los Async y los User Events; la
+   vía real es crear un evento cualquiera y parchear su número con
+   `resource set expr=obj_x.eventList[N].eventNum value=<num>`. **Y renombra después el `.gml` al
+   número real** (`Draw_74.gml`, `Other_62.gml`): si no, compila limpio y el código queda donde
+   el evento no lo busca. Números y receta en `12/09 §9 ter`.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
