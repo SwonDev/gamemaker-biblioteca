@@ -239,6 +239,18 @@ function reanudar() {
 > que el propio gestor de pausa siga corriendo y pueda reanudar. Sin él, congelas también al
 > que tiene que descongelar.
 
+> 🔴 **Este patrón mínimo deja la pantalla en negro detrás del menú de pausa — no es un bug, es
+> lo que pediste.** Una instancia desactivada, según el propio manual, «deja de ser procesada de
+> cualquier manera»: no corre Step, no corre Alarm y **tampoco se dibuja**. Si tu menú de pausa
+> se dibuja sobre un fondo sólido en vez de sobre el mundo congelado de verdad, este código de
+> arriba ya te vale tal cual. Si quieres que se vea el mundo congelado detrás del menú (lo
+> habitual), necesitas capturar el último frame en una superficie **antes** de llamar a
+> `instance_deactivate_all` y dibujar esa superficie mientras dura la pausa — el patrón completo,
+> con la función `pausar_de_verdad()`/`reanudar_de_verdad()` ya resuelta, está en
+> [`04 · 41` §3.1.1 y §3.1.8](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md#311-instancias-lo-que-ya-resuelve-instance_deactivate_all).
+> Ese mismo documento cubre además lo que `instance_deactivate_all` **no** toca (Time Sources,
+> partículas, Sequences, física de Box2D — §3.1.2-3.1.4) si tu juego usa alguno de esos sistemas.
+
 ---
 
 ## 6 · Muerte, Game Over y endgame
