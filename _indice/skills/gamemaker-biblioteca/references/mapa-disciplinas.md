@@ -1,6 +1,6 @@
 # Mapa por disciplina — qué leer, en qué orden
 
-Rutas relativas a la raíz de la biblioteca (`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`).
+Rutas relativas a la raíz de la biblioteca, la que resuelve `$BIB` (ver la cabecera de la skill).
 Cada bloque va del **principio** (por qué) al **código** (cómo en GameMaker). Lee lo primero
 antes de escribir nada; lo demás, cuando la tarea lo pida. `_indice/sincronizar-skill.py`
 comprueba que todas estas rutas existen: si una falla, el documento se renombró y hay que

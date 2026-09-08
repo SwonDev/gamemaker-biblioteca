@@ -5,17 +5,22 @@
 
 Versión de referencia: LTS 2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23) · Beta 2026.100.0 (IDE 1139 / runtime 1090) · GMRT 0.21.
 
-Todas las rutas son relativas a la raíz de la biblioteca (`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`).
+Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve `$BIB` (ver la cabecera de la skill).
 
 
 ## Puntos de entrada
 
-- `RUTA.md` — {'titulo': '🎓 Ruta completa: de cero a experto', 'proposito': 'Itinerario maestro en 6 niveles (0 Cero → 5 Profesional) con competencias observables, material exacto por nivel y una prueba de nivel.', 'usar_cuando': ['el usuario está aprendiendo y hay que situarlo', 'qué estudio ahora / por dónde sigo', 'cuánto me falta para X', 'no sé si estoy listo para hacer un juego comercial'], 'nota_para_agentes': 'Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente.'}
-- `README.md` — {'titulo': 'Biblioteca GameMaker · para que tu agente de IA no invente funciones'}
-- `AGENTS.md` — {'titulo': 'AGENTS.md — cómo usar esta biblioteca si eres un agente de IA'}
-- `_indice/COMO-BUSCAR.md` — {'titulo': 'Árbol de decisión para encontrar cualquier cosa'}
-- `CLAUDE.md` — {'titulo': 'CLAUDE.md', 'proposito': 'Arranque mínimo: las 5 reglas irrenunciables y el desvío a AGENTS.md (instrucciones completas) y a _indice/COMO-BUSCAR.md (cómo buscar). Deliberadamente corto: se carga en cada sesión.', 'usar_cuando': ['empiezas una sesión en este repositorio', 'quieres las reglas antes de tocar nada'], 'no_usar_para': ['entender la estructura completa (usa AGENTS.md o este MAPA.json)', 'buscar una función (usa _indice/buscar.py)']}
-- `PUBLICAR.md` — {'titulo': 'Publicar esta biblioteca', 'proposito': '', 'usar_cuando': [], 'no_usar_para': []}
+- `RUTA.md` — **🎓 Ruta completa: de cero a experto**
+  Itinerario maestro en 6 niveles (0 Cero → 5 Profesional) con competencias observables, material exacto por nivel y una prueba de nivel.
+  *Úsalo cuando:* el usuario está aprendiendo y hay que situarlo; qué estudio ahora / por dónde sigo; cuánto me falta para X; no sé si estoy listo para hacer un juego comercial.
+  *Para el agente:* Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente.
+- `README.md` — **Biblioteca GameMaker · para que tu agente de IA no invente funciones**
+- `AGENTS.md` — **AGENTS.md — cómo usar esta biblioteca si eres un agente de IA**
+- `_indice/COMO-BUSCAR.md` — **Árbol de decisión para encontrar cualquier cosa**
+- `CLAUDE.md` — **CLAUDE.md**
+  Arranque mínimo: las 5 reglas irrenunciables y el desvío a AGENTS.md (instrucciones completas) y a _indice/COMO-BUSCAR.md (cómo buscar). Deliberadamente corto: se carga en cada sesión.
+  *Úsalo cuando:* empiezas una sesión en este repositorio; quieres las reglas antes de tocar nada.
+- `PUBLICAR.md` — **Publicar esta biblioteca**
 
 
 ## `01 - Fundamentos` — Fundamentos de GML

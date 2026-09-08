@@ -162,15 +162,15 @@ Pixel Game*. El manual `monthly` está discontinuado; la rama vigente es **LTS 2
 ## Qué leer según la tarea
 
 El detalle por disciplina, en orden de lectura, está en
-[`references/mapa-disciplinas.md`](references/mapa-disciplinas.md). El índice completo de
-documentos, generado del disco, en [`references/indice-documentos.md`](references/indice-documentos.md).
+`$BIB/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md`. El índice completo de
+documentos, generado del disco, en `$BIB/_indice/skills/gamemaker-biblioteca/references/indice-documentos.md`. Las rutas abreviadas de este documento (`13/28`, `04/00`, `12/09`…) siguen el mismo patrón: `$BIB/NN - <carpeta>/MM - <archivo>.md` — primero la carpeta por su número, luego el archivo dentro de ella por el suyo.
 
 | Te piden… | Empieza por |
 |---|---|
 | Escribir GML que haga X | `buscar.py` por cada símbolo → `11 - Código descargado/_CATALOGO.md` (¿ya hay librería?) → `05 - Referencia/04 - Convenciones y estilo GML.md` |
 | Un juego completo, de principio a fin | `04 - Recetas por género/00 - Anatomía de un juego completo.md` y después la receta del género |
 | Un juego de género X | `04 - Recetas por género/` — 46 recetas: los 15 géneros clásicos más combate (cuerpo a cuerpo, a distancia, por turnos), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, bullet heaven/autobattler/deckbuilder, y sigilo/horror/granja/idle |
-| Diseñar: mecánicas, niveles, arte, UI, sonido, historia | `13 - Diseño y producción de videojuegos/` (mapa en `references/mapa-disciplinas.md`) |
+| Diseñar: mecánicas, niveles, arte, UI, sonido, historia | `13 - Diseño y producción de videojuegos/` (mapa en `$BIB/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md`) |
 | Estructurar el proyecto para que crezca | `13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md` |
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
 | «No compila» o «se comporta raro» con código antiguo | `01 - Fundamentos/03 - Handles - el cambio clave de 2026.md` → `02 - Novedades 2026/02 - Cambios en GML 2026.md` → `buscar.py` (¿obsoleta?) → github.com/YoYoGames/GameMaker-Bugs |
@@ -218,6 +218,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   comprobaciones que sí los cazan).
 - No declares un juego «terminado» sin compararlo punto por punto con el checklist maestro de
   `04/00`. Si algo falta o no aplica, dilo; el silencio no vale.
+- **Un rectángulo de color no es un sprite.** Ni un cuadrado, ni un círculo liso, ni un SVG
+  improvisado: si entregas eso como personaje, enemigo u objeto, el juego parece un prototipo por
+  mucho que el código sea bueno. La escalera de `12/09 §5.2` da la salida digna —silueta por
+  código con paleta coherente, assets libres, o generación por IA— y para el sonido está
+  `13/09 §8 bis`. **Baja un peldaño antes de rendirte, nunca entregues el rectángulo.**
 
 ## Flujo para un desarrollo real
 

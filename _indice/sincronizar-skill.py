@@ -56,12 +56,28 @@ def generar_indice():
                "> se reescribe en cada `python3 _indice/actualizar.py`.\n")
     out.append(f"Versión de referencia: LTS {v.get('lts', '?')} · Beta {v.get('beta', '?')} · "
                f"GMRT {v.get('gmrt', '?')}.\n")
-    out.append("Todas las rutas son relativas a la raíz de la biblioteca "
-               "(`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`).\n")
+    # La raíz NO se escribe a fuego: este archivo viaja a otros CLI y a quien clone el
+    # repositorio, donde esa ruta no existe. Se usa la misma convención que la skill.
+    out.append("Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve "
+               "`$BIB` (ver la cabecera de la skill).\n")
     if m.get("puntos_de_entrada"):
         out.append("\n## Puntos de entrada\n")
         for k, val in m["puntos_de_entrada"].items():
-            out.append(f"- `{k}` — {val}")
+            # `val` es un dict con titulo/proposito/usar_cuando/nota_para_agentes. Sin
+            # formatearlo salía el repr() de Python —legible a duras penas y feo— en un
+            # archivo pensado para que lo lea un agente. Se compone como prosa.
+            if isinstance(val, dict):
+                linea = f"- `{k}` — **{val.get('titulo', '')}**"
+                if val.get("proposito"):
+                    linea += f"\n  {val['proposito']}"
+                if val.get("usar_cuando"):
+                    casos = "; ".join(val["usar_cuando"])
+                    linea += f"\n  *Úsalo cuando:* {casos}."
+                if val.get("nota_para_agentes"):
+                    linea += f"\n  *Para el agente:* {val['nota_para_agentes']}"
+                out.append(linea)
+            else:
+                out.append(f"- `{k}` — {val}")
         out.append("")
     for c in m.get("carpetas", []):
         out.append(f"\n## `{c.get('ruta')}` — {c.get('titulo', '')}\n")
@@ -83,13 +99,60 @@ def generar_indice():
     return sum(len(c.get("documentos", [])) for c in m.get("carpetas", []))
 
 
+def _anclar_enlaces_relativos(cuerpo):
+    """Corrige, SOLO en la copia que recibe AGENTS.md, las rutas que se rompen al viajar solas.
+
+    La cabecera de AGENTS.md invita a copiarlo o enlazarlo **suelto** como `AGENTS.md` en la
+    raíz de cualquier proyecto de GameMaker — sin la carpeta `references/` al lado. Pero el
+    cuerpo de SKILL.md cita `references/mapa-disciplinas.md` y `references/indice-
+    documentos.md` con rutas relativas a la propia carpeta de la skill (como enlace Markdown
+    `[...](...)` dos veces, y suelta entre comillas simples una tercera, en la tabla «Qué leer
+    según la tarea»): correctas ahí (siempre viajan junto a `references/`), rotas en cuanto
+    AGENTS.md se copia solo. Se ancla aquí a `$BIB` — la misma variable que ya resuelve el
+    resto del documento —, con una única pasada por regex que coge las tres formas (y
+    cualquier otra que se añada más adelante) para no depender de una lista cerrada de
+    nombres. Se añade además una frase que explica el patrón `NN/MM` que el resto del texto
+    usa en forma abreviada (`13/28`, `04/00`, `12/09`…), para que un agente que solo tenga
+    este archivo delante sepa completar esas rutas él mismo.
+    """
+    ruta_skill_desde_raiz = os.path.relpath(SKILL, RAIZ).replace(os.sep, "/")
+    base = f"$BIB/{ruta_skill_desde_raiz}/references"
+
+    # 1) Enlace Markdown: [`references/x.md`](references/x.md) → `$BIB/.../references/x.md`
+    cuerpo, n_enlaces = re.subn(
+        r"\[`references/([\w.-]+\.md)`\]\(references/\1\)",
+        lambda m: f"`{base}/{m.group(1)}`",
+        cuerpo,
+    )
+    # 2) Mención suelta entre comillas simples: `references/x.md` → `$BIB/.../references/x.md`
+    #    (se aplica DESPUÉS del paso 1: si fuera antes, rompería el enlace Markdown a medias,
+    #    porque `references/x.md` es también una subcadena literal de ese enlace).
+    cuerpo, n_sueltas = re.subn(
+        r"`references/([\w.-]+\.md)`",
+        lambda m: f"`{base}/{m.group(1)}`",
+        cuerpo,
+    )
+    if n_enlaces == 0 and n_sueltas == 0:
+        print("  ⚠ generar_agents_md: no encuentro ninguna cita a references/*.md en SKILL.md "
+              "(¿cambió el texto?); AGENTS.md se genera sin corregir rutas.")
+
+    nota_anclada = f"`{base}/indice-documentos.md`."
+    if nota_anclada in cuerpo:
+        nota = (" Las rutas abreviadas de este documento (`13/28`, `04/00`, `12/09`…) siguen "
+                "el mismo patrón: `$BIB/NN - <carpeta>/MM - <archivo>.md` — primero la carpeta "
+                "por su número, luego el archivo dentro de ella por el suyo.")
+        cuerpo = cuerpo.replace(nota_anclada, nota_anclada + nota, 1)
+    return cuerpo
+
+
 def generar_agents_md():
     """Deriva AGENTS.md del cuerpo real de SKILL.md — nunca se escribe a mano.
 
     Existe para los CLI de IA que solo entienden AGENTS.md en la raíz de un proyecto y no
     tienen un directorio de skills en formato SKILL.md (ver la investigación citada en
     `instalar.sh`). El contenido es el mismo: se copia el cuerpo tal cual, sin reescribirlo,
-    para que no pueda desincronizarse de lo que ya dice la skill.
+    con UNA excepción deliberada — ver `_anclar_enlaces_relativos()` — para que no pueda
+    desincronizarse de lo que ya dice la skill.
     """
     ruta_skill = os.path.join(SKILL, "SKILL.md")
     txt = open(ruta_skill, encoding="utf-8").read()
@@ -99,6 +162,7 @@ def generar_agents_md():
     if len(partes) < 3:
         return None  # SKILL.md sin frontmatter: no debería pasar, no se genera nada falso
     frontmatter, cuerpo = partes[1], partes[2]
+    cuerpo = _anclar_enlaces_relativos(cuerpo)
 
     # El frontmatter tiene que ser YAML VÁLIDO SEGÚN LA ESPECIFICACIÓN, no solo «válido para
     # Claude Code». Kimi Code usa un parser estricto y rechazaba la skill entera —sin cargarla—

@@ -211,6 +211,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   comprobaciones que sí los cazan).
 - No declares un juego «terminado» sin compararlo punto por punto con el checklist maestro de
   `04/00`. Si algo falta o no aplica, dilo; el silencio no vale.
+- **Un rectángulo de color no es un sprite.** Ni un cuadrado, ni un círculo liso, ni un SVG
+  improvisado: si entregas eso como personaje, enemigo u objeto, el juego parece un prototipo por
+  mucho que el código sea bueno. La escalera de `12/09 §5.2` da la salida digna —silueta por
+  código con paleta coherente, assets libres, o generación por IA— y para el sonido está
+  `13/09 §8 bis`. **Baja un peldaño antes de rendirte, nunca entregues el rectángulo.**
 
 ## Flujo para un desarrollo real
 

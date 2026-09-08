@@ -8,7 +8,11 @@
 """
 import os, re, sys, json
 
-P = "/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje/09 - Manual oficial"
+# La raíz se deriva de la ubicación de este archivo, no se escribe a fuego: el script
+# viaja en el repositorio y una ruta absoluta solo vale en la máquina del autor.
+import os as _os
+_RAIZ = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+P = _os.path.join(_RAIZ, "09 - Manual oficial")
 ES = os.path.join(P, "manual-lts-2026-es")
 EN = os.path.join(P, "manual-lts-2026-en")
 SC = os.path.dirname(os.path.abspath(__file__))
