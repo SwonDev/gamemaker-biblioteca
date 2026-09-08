@@ -13,6 +13,14 @@ mismo documento reciben el sufijo `-1`, `-2`... en el orden en que aparecen, igu
 Algoritmo calibrado contra enlaces reales que ya funcionan en la biblioteca (no es una
 suposición): ver `_indice/auditorias/` para el detalle de la calibración.
 
+«09 - Manual oficial» y «11 - Código descargado» son opcionales por diseño (se reconstruyen
+con `./reconstruir.sh`): un enlace hacia una de las dos que no resuelve porque la carpeta
+no está instalada NO cuenta como roto, solo se avisa. Si la carpeta SÍ está instalada y el
+destino concreto no existe dentro, eso sigue contando como enlace roto de verdad.
+
+`_indice/simbolos.json` y `_indice/documentos.json` tampoco cuentan como rotos si aún no
+existen: los genera `construir-indices.py` (paso 2 de `actualizar.py`), no se publican.
+
 Uso:  python3 "_indice/verificar-enlaces.py" [carpeta]
 """
 import os, re, sys, urllib.parse
@@ -30,6 +38,52 @@ PAT_COD = re.compile(r"`(11 - Código descargado/[^`]+)`")
 PAT_FENCE = re.compile(r"^(`{3,}|~{3,})")
 PAT_HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
 PAT_MD_LINK_EN_TEXTO = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+
+# Estas dos carpetas son opcionales por diseño (ver .gitignore y PUBLICAR.md): un clon
+# recién hecho no las trae, y eso es su estado normal, no un enlace roto. Se reconstruyen
+# con ./reconstruir.sh. Un enlace hacia ellas solo cuenta como "roto" de verdad cuando la
+# carpeta SÍ tiene contenido real y el destino concreto, aun así, no existe dentro.
+CARPETAS_OPCIONALES = ("09 - Manual oficial", "11 - Código descargado")
+
+
+def carpeta_opcional_de(ruta_abs):
+    """Si `ruta_abs` cae dentro de una de las carpetas opcionales, devuelve su nombre."""
+    rel = os.path.relpath(ruta_abs, RAIZ)
+    for c in CARPETAS_OPCIONALES:
+        if rel == c or rel.startswith(c + os.sep):
+            return c
+    return None
+
+
+CACHE_INSTALADA = {}
+
+
+def carpeta_instalada(nombre):
+    """¿Hay contenido real en esta carpeta opcional, o solo está vacía / con el catálogo?
+
+    «11 - Código descargado» siempre trae `_RUTAS.json` y `_CATALOGO.md` publicados (son
+    solo metadatos, no código de nadie): su sola presencia no cuenta como "instalada", hace
+    falta el contenido de verdad (los repos clonados). «09 - Manual oficial» directamente no
+    existe en un clon limpio, así que con comprobar que el directorio existe basta.
+    """
+    if nombre in CACHE_INSTALADA:
+        return CACHE_INSTALADA[nombre]
+    ruta = os.path.join(RAIZ, nombre)
+    if not os.path.isdir(ruta):
+        CACHE_INSTALADA[nombre] = False
+        return False
+    contenido = [e for e in os.listdir(ruta) if e not in ("_RUTAS.json", "_CATALOGO.md")]
+    CACHE_INSTALADA[nombre] = bool(contenido)
+    return CACHE_INSTALADA[nombre]
+
+
+# _indice/simbolos.json y _indice/documentos.json también están en .gitignore, pero por un
+# motivo distinto al de las dos carpetas de arriba: no son opcionales, son GENERADOS. Los
+# crea `construir-indices.py` (paso 2 de actualizar.py) a partir del disco y del runtime. En
+# un clon recién hecho, antes de la primera ejecución, todavía no existen — un enlace hacia
+# ellos no es un enlace roto, es orden de ejecución: se resuelve solo en cuanto se corre
+# `python3 _indice/actualizar.py` una vez.
+FICHEROS_GENERADOS = ("_indice/simbolos.json", "_indice/documentos.json")
 
 
 def slugificar(texto):
@@ -100,6 +154,8 @@ def encabezados_de(ruta_md):
 
 rotos, ok = [], 0
 anclas_rotas, anclas_ok = [], 0
+pendientes_opcionales = {}  # {carpeta: [(doc, destino), ...]} — no instalada, no es un error
+pendientes_generados = {}   # {fichero: [(doc, destino), ...]} — aún no generado, no es un error
 
 for raiz, dirs, files in os.walk(DEST):
     # Lumbre (juego personal) y GameMaker_Fuentes (repos crudos) no son documentación.
@@ -144,8 +200,20 @@ for raiz, dirs, files in os.walk(DEST):
             ruta = os.path.normpath(os.path.join(base, d))
             if os.path.exists(ruta) or os.path.exists(ruta.rstrip("/")):
                 ok += 1
-            else:
-                rotos.append((os.path.relpath(fp, RAIZ), d))
+                continue
+            carpeta = carpeta_opcional_de(ruta)
+            if carpeta and not carpeta_instalada(carpeta):
+                # La carpeta entera no está instalada en este clon: pendiente esperado.
+                pendientes_opcionales.setdefault(carpeta, []).append(
+                    (os.path.relpath(fp, RAIZ), d))
+                continue
+            rel_ruta = os.path.relpath(ruta, RAIZ)
+            if rel_ruta in FICHEROS_GENERADOS:
+                # Aún no se ha ejecutado construir-indices.py en este clon: pendiente esperado.
+                pendientes_generados.setdefault(rel_ruta, []).append(
+                    (os.path.relpath(fp, RAIZ), d))
+                continue
+            rotos.append((os.path.relpath(fp, RAIZ), d))
 
         # Anclas: por cada enlace con fragmento, resolvemos el documento de destino
         # (el propio documento si la ruta viene vacía, es decir «#seccion») y comprobamos
@@ -175,7 +243,23 @@ print(f"{ok} rutas correctas · {len(rotos)} rotas")
 for doc, d in rotos:
     print(f"  ✗ {doc}\n      → {d}")
 
-print(f"{anclas_ok} anclas correctas · {len(anclas_rotas)} rotas")
+if pendientes_opcionales:
+    total_pend = sum(len(v) for v in pendientes_opcionales.values())
+    print(f"\n⚠ {total_pend} enlaces sin comprobar: apuntan a carpetas opcionales que no "
+          "están instaladas en este clon (es su estado normal, no un error):")
+    for c in CARPETAS_OPCIONALES:
+        if c in pendientes_opcionales:
+            print(f"    · {len(pendientes_opcionales[c])} enlaces hacia «{c}/»")
+    print("  Instálalas con ./reconstruir.sh (manual | codigo) si las necesitas.")
+
+if pendientes_generados:
+    total_gen = sum(len(v) for v in pendientes_generados.values())
+    ficheros = ", ".join(pendientes_generados)
+    print(f"\n⚠ {total_gen} enlaces sin comprobar: apuntan a ficheros que este clon todavía "
+          f"no ha generado ({ficheros}). No es un error: se crean solos al ejecutar "
+          "`python3 _indice/actualizar.py` (paso 2).")
+
+print(f"\n{anclas_ok} anclas correctas · {len(anclas_rotas)} rotas")
 for doc, destino, frag in anclas_rotas:
     print(f"  ✗ {doc}\n      → {destino}#{frag}")
 

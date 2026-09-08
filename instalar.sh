@@ -111,6 +111,20 @@ done
 
 [ "$instalados" -gt 0 ] || echo "⚠ No se detectó ningún CLI compatible con skills en formato SKILL.md."
 
+# --- Aviso específico de Qwen Code ------------------------------------------
+# Qwen declara sus carpetas de skills en settings.json. Si solo tiene ~/.claude/skills,
+# la skill le llega de rebote: funciona hoy, pero dejaría de funcionar si se desinstala
+# Claude Code. No tocamos la configuración del usuario; le damos el comando.
+if command -v qwen >/dev/null 2>&1 && [ -f "$HOME/.qwen/settings.json" ]; then
+  if ! grep -q '"~/.qwen/skills"' "$HOME/.qwen/settings.json" 2>/dev/null; then
+    echo
+    echo "⚠ Qwen Code no declara ~/.qwen/skills en su settings.json."
+    echo "  La skill le funciona solo porque también lee ~/.claude/skills."
+    echo "  Para que sea independiente, añade \"~/.qwen/skills\" a la lista \"skills\" de:"
+    echo "  $HOME/.qwen/settings.json"
+  fi
+fi
+
 if [ "${#saltados[@]}" -gt 0 ]; then
   echo
   echo "CLI no detectados en esta máquina (se han saltado, sin tocar nada suyo):"

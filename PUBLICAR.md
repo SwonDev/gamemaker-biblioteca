@@ -19,9 +19,19 @@ todo en el `.gitignore` (con la excepción de esos dos, sacados a propósito con
 
 ## Lo que le pasa a quien clone el repositorio
 
-Al ejecutar `./instalar.sh`, `actualizar.py` deriva `simbolos.json` del `GmlSpec.xml` **del
-runtime que esa persona tenga instalado**. Eso no es un apaño: es lo que garantiza que la
-biblioteca no le mienta sobre una versión que no es la suya.
+Al ejecutar `./instalar.sh`, `actualizar.py` deriva `simbolos.json` (y `documentos.json`) del
+`GmlSpec.xml` **del runtime que esa persona tenga instalado** — `construir-indices.py` los
+CREA desde cero la primera vez, no solo los actualiza. Eso no es un apaño: es lo que garantiza
+que la biblioteca no le mienta sobre una versión que no es la suya. Si esa persona no tiene
+GameMaker instalado, `construir-indices.py` falla con un mensaje explicando qué instalar (no
+hay ninguna lista de símbolos escrita a mano de la que tirar en su lugar).
+
+Un clon recién hecho tampoco trae `09 - Manual oficial/` ni `11 - Código descargado/` (ver
+tabla de arriba): `verificar-enlaces.py` — el primer paso de `actualizar.py` — lo detecta y no
+cuenta como rotos los enlaces que apuntan ahí, así que `./instalar.sh` no se detiene por esto.
+(Auditado de verdad con un clon real en `_indice/auditorias/r9-clon-limpio.md`: antes de este
+arreglo, `actualizar.py` abortaba en el primer paso y `simbolos.json` nunca llegaba a generarse
+— `buscar.py draw_sprite_ext` terminaba en un `Traceback` de Python, no en una ficha.)
 
 `./instalar.sh` también detecta e instala la skill en cada CLI de IA que la persona tenga: Claude
 Code, Codex, opencode, Qwen Code, Kimi Code CLI, `~/.agents/skills` (estándar abierto que además
