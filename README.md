@@ -31,6 +31,17 @@ python3 _indice/buscar.py --todo "coyote time" # símbolos + documentación + ma
 python3 _indice/validar-proyecto.py ~/MiJuego  # ¿hay funciones inventadas en mi proyecto?
 ```
 
+**Compatibilidad.** Desarrollado y probado a diario en macOS. Los scripts de `_indice/` son
+Python puro y detectan la ruta de caché de `gm-cli` según el sistema operativo (macOS, Windows,
+Linux) igual que hace la propia herramienta — pero **no verificado fuera de macOS**: si algo
+falla en Windows o Linux, es un bug real, repórtalo. `instalar.sh` y `reconstruir.sh` son bash:
+en Windows hace falta Git Bash o WSL (`cmd.exe`/PowerShell no valen); el resto de comandos
+(`python3 _indice/buscar.py …`) funcionan igual en cualquier terminal. Herramientas externas que
+se asumen en el PATH: `python3` (o `python`, si el sistema no registra el primero — común en
+Windows), `git` (para `./reconstruir.sh codigo`), y `grep`/`curl` (de serie en macOS/Linux; en
+Windows 10 1803+ `curl` viene incluido, `grep` no — instala Git for Windows o usa WSL). Sin
+alguno de ellos, cada script lo dice explícitamente en vez de fallar con un traceback.
+
 ## Qué hay dentro
 
 **251 documentos en español**, del `if` a cómo se firma una build para Steam. No solo el motor:

@@ -46,6 +46,19 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BASE_URL = "https://manual.gamemaker.io"
 RAMA = "lts"  # la que corresponde a GameMaker LTS 2026.0 (ver CLAUDE.md)
@@ -69,6 +82,26 @@ def _pedir(url, intento=1):
             time.sleep(espera)
             return _pedir(url, intento + 1)
         raise
+
+
+def hay_red():
+    """Comprobación barata contra el propio manual.gamemaker.io, ANTES de lanzar el
+    sitemap completo. Sin esto, sin conexión (o con el servidor caído), el primer
+    `sitemap()` revienta con una excepción cruda a mitad de "descargando el mapa del
+    sitio…" — el mismo fallo, con la misma causa de fondo, que motivó reescribir
+    `validar-enlaces-externos.py` (ver su cabecera): no distinguir "no hay red" de
+    "está roto" y dejarlo pasar como si fuera un resultado real.
+
+    Un HTTPError (4xx/5xx) SÍ cuenta como "hay red": el servidor respondió, así que
+    la conexión funciona — es una respuesta real, no un fallo de red."""
+    req = urllib.request.Request(BASE_URL, headers={"User-Agent": AGENTE})
+    try:
+        with urllib.request.urlopen(req, timeout=10):
+            return True
+    except urllib.error.HTTPError:
+        return True
+    except Exception:
+        return False
 
 
 def sitemap(idioma):
@@ -560,6 +593,13 @@ def main():
         if i not in CARPETA_POR_IDIOMA:
             print(f"✗ Idioma desconocido: {i!r} (válidos: {', '.join(CARPETA_POR_IDIOMA)})")
             return 2
+
+    print(f"comprobando conectividad con {BASE_URL}…")
+    if not hay_red():
+        print(f"✗ No se pudo conectar con {BASE_URL}.")
+        print("  Puede ser que no haya red disponible ahora mismo, o que el servidor esté")
+        print("  caído. No se ha escrito ni borrado nada: reinténtalo cuando tengas conexión.")
+        return 2
 
     total_ok = total_saltadas = 0
     todos_los_errores = []

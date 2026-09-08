@@ -13,13 +13,64 @@ Uso:
 Todo funciona sin conexión. Es la forma recomendada de comprobar si una función existe
 antes de escribir código: si no aparece aquí, no está en este runtime.
 """
-import os, re, sys, json, subprocess
+import os, re, sys, json, shutil, platform, subprocess
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IDX = os.path.join(RAIZ, "_indice")
 
 
-RUNTIMES = os.path.expanduser("~/Library/Caches/GameMakerCLI/runtimes-gms2")
+def _ruta_cache_gamemakercli():
+    """Dónde guarda gm-cli sus runtimes descargados, replicando su propia lógica
+    (dist/chunk-GBMHU7PM.js de @gamemaker/gm-cli 2.3.0 — sin dependencias tipo
+    `env-paths`, la calcula a mano): macOS usa ~/Library/Caches, Windows
+    %LOCALAPPDATA%\\GameMakerCLI\\cache, y el resto (Linux/BSD/…) el estándar
+    XDG_CACHE_HOME. No verificado fuera de macOS: si una versión futura de gm-cli
+    cambia esta lógica, hay que releerla del bundle instalado."""
+    home = os.path.expanduser("~")
+    sistema = platform.system()
+    if sistema == "Darwin":
+        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
+    if sistema == "Windows":
+        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
+        return os.path.join(base, "GameMakerCLI", "cache")
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
+    return os.path.join(base, "GameMakerCLI")
+
+
+RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
+
+_AVISO_GREP_DADO = False
+
+
+def _grep_disponible():
+    """`grep` viene de serie en macOS y Linux, pero no en Windows fuera de Git
+    Bash/WSL. Sin él, la ficha de un símbolo conocido (buscar.py <nombre>) sigue
+    funcionando entera: solo se pierden --texto/--manual/--codigo/--todo y el
+    "¿es un prefijo del lenguaje?" de un símbolo no encontrado. Avisa una sola
+    vez por ejecución en vez de fingir "sin resultados"."""
+    global _AVISO_GREP_DADO
+    if shutil.which("grep"):
+        return True
+    if not _AVISO_GREP_DADO:
+        print("⚠ No encuentro el comando «grep» en el PATH: viene de serie en macOS y "
+              "Linux; en Windows instala Git for Windows (trae grep) o usa WSL. Sin él, "
+              "las búsquedas de texto (--texto/--manual/--codigo/--todo) no funcionan; "
+              "la ficha de un símbolo conocido sí sigue funcionando.", file=sys.stderr)
+        _AVISO_GREP_DADO = True
+    return False
 
 
 def runtime_instalado():
@@ -76,6 +127,8 @@ def _mencionado_en(nombre, limite=6):
     if len(args) == rutas_previas:
         # Ninguna de las carpetas existe: un grep sin rutas recorrería el
         # directorio de trabajo entero en vez de devolver "sin resultados".
+        return []
+    if not _grep_disponible():
         return []
     try:
         r = subprocess.run(args, capture_output=True, text=True, check=False)
@@ -189,11 +242,17 @@ def grep(subdirs, patron, exts, limite=40):
         elif any(d.startswith("11 - Código descargado") for d in subdirs):
             print("  Instálalo con ./reconstruir.sh codigo.")
         return 0
+    if not _grep_disponible():
+        return 1
     args = ["grep", "-rniI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
     args += ["-e", patron] + existentes
-    r = subprocess.run(args, capture_output=True, text=True)
+    try:
+        r = subprocess.run(args, capture_output=True, text=True)
+    except OSError as e:
+        print(f"✗ No se pudo ejecutar «grep»: {e}")
+        return 1
     lineas = r.stdout.splitlines()
     # Las coincidencias de PALABRA COMPLETA van primero. Sin esto, buscar «respec»
     # devuelve cincuenta «respecto» y entierra el documento que de verdad habla de
@@ -221,6 +280,8 @@ def _buscar_en(subdirs, patron, exts, muestra=4):
         # Sin rutas reales, un `grep -r` recorrería el directorio de trabajo
         # entero en vez de devolver "nada" — ver el mismo guardado en grep().
         return 0, []
+    if not _grep_disponible():
+        return 0, []
     args = ["grep", "-rilI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
@@ -238,6 +299,8 @@ def _buscar_en3(subdirs, patron, exts, muestra=4):
     existentes = [os.path.join(_RAIZ, d) for d in subdirs
                   if os.path.exists(os.path.join(_RAIZ, d))]
     if not existentes:
+        return 0, [], []
+    if not _grep_disponible():
         return 0, [], []
     args = ["grep", "-rilI", "--include=*" + exts[0]]
     for e in exts[1:]:

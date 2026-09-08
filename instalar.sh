@@ -50,6 +50,24 @@
 #     referencie a mano (ver el paso 4 más abajo).
 set -euo pipefail
 
+# El instalador oficial de python.org para Windows registra `python.exe`, NO
+# `python3.exe` (ese alias es convención de macOS/Linux; solo la app de Microsoft
+# Store trae ambos). Se resuelve una vez el intérprete real, comprobando además que
+# sea Python 3 — por si `python` sigue apuntando a un Python 2 residual.
+elegir_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo python3
+    return 0
+  fi
+  if command -v python >/dev/null 2>&1 \
+      && python -c 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)' 2>/dev/null; then
+    echo python
+    return 0
+  fi
+  return 1
+}
+PY="$(elegir_python || true)"
+
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORIGEN="$RAIZ/_indice/skills/gamemaker-biblioteca"
 AGENTS_GENERADO="$ORIGEN/AGENTS.md"
@@ -66,8 +84,8 @@ echo "✓ Ruta registrada: $RAIZ"
 # Si alguien tocó SKILL.md y no corrió `actualizar.py`, la copia de abajo debe llevar el
 # AGENTS.md al día — no el de la última vez que se generó. sincronizar-skill.py es rápido
 # (no toca GmlSpec.xml ni el runtime): no hace falta esperar al paso 5 para esto.
-if command -v python3 >/dev/null 2>&1; then
-  python3 "$RAIZ/_indice/sincronizar-skill.py" >/dev/null || true
+if [ -n "$PY" ]; then
+  "$PY" "$RAIZ/_indice/sincronizar-skill.py" >/dev/null || true
 fi
 
 # --- 3. Instalar la skill (formato SKILL.md) en cada CLI que la soporte -------
@@ -153,20 +171,23 @@ echo "Cópialo o enlázalo como AGENTS.md en la raíz de tu proyecto de GameMake
 # --- 5. Derivar los símbolos del runtime instalado ----------------------------
 # El índice de símbolos sale del GmlSpec.xml del GameMaker de ESTA máquina, así que
 # se regenera aquí: es lo que hace que la skill no invente funciones.
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   echo
   echo "→ Regenerando los índices contra el runtime instalado…"
-  python3 "$RAIZ/_indice/actualizar.py" || echo "⚠ Revisa la salida de actualizar.py"
+  "$PY" "$RAIZ/_indice/actualizar.py" || echo "⚠ Revisa la salida de actualizar.py"
 else
-  echo "⚠ Sin python3: no puedo regenerar los índices. Instálalo y ejecuta:"
+  echo "⚠ No encuentro python3 ni un «python» que sea Python 3: no puedo regenerar los"
+  echo "  índices. Instálalo (en Windows, el instalador de python.org o la app de"
+  echo "  Microsoft Store) y ejecuta:"
   echo "  python3 \"$RAIZ/_indice/actualizar.py\""
 fi
 
+PY_EJEMPLO="${PY:-python3}"
 cat <<FIN
 
 Listo. Comprueba que responde:
 
-  python3 "$RAIZ/_indice/buscar.py" draw_sprite_ext
+  $PY_EJEMPLO "$RAIZ/_indice/buscar.py" draw_sprite_ext
 
 Cada CLI decide solo cuándo usar la skill al hablar de GameMaker, GML o .yyp — no hace
 falta invocarla a mano.

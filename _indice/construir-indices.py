@@ -22,7 +22,20 @@ No toca MAPA.json: ese lleva descripciones escritas a mano ("usar_cuando",
 "no_usar_para") que no se pueden deducir del disco. Al añadir una carpeta nueva,
 edítalo a mano.
 """
-import glob, json, os, re, sys
+import glob, json, os, platform, re, sys
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IND = os.path.join(RAIZ, "_indice")
@@ -104,7 +117,25 @@ def contar_gml():
 
 
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-RUNTIMES = os.path.expanduser("~/Library/Caches/GameMakerCLI/runtimes-gms2")
+
+
+def _ruta_cache_gamemakercli():
+    """Réplica de la lógica de gm-cli (ver buscar.py, misma función, para el porqué
+    exacto): macOS → ~/Library/Caches, Windows → %LOCALAPPDATA%\\GameMakerCLI\\cache,
+    resto → XDG_CACHE_HOME. No verificado fuera de macOS. Se repite aquí porque
+    buscar.py no se importa: cada script deriva su propia RUNTIMES."""
+    home = os.path.expanduser("~")
+    sistema = platform.system()
+    if sistema == "Darwin":
+        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
+    if sistema == "Windows":
+        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
+        return os.path.join(base, "GameMakerCLI", "cache")
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
+    return os.path.join(base, "GameMakerCLI")
+
+
+RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
 
 
 def fusionar_fnames(simb):

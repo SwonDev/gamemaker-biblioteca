@@ -14,6 +14,14 @@
 # destino: crea en el directorio de trabajo actual) y se borra siempre al terminar,
 # incluso si el script falla a medias.
 set -u
+
+if ! command -v gm-cli >/dev/null 2>&1; then
+  echo "✗ No encuentro el comando «gm-cli» en el PATH."
+  echo "  Este script compila de verdad contra GameMaker: instala gm-cli"
+  echo "  (npm i -g @gamemaker/gm-cli, o el instalador oficial) y vuelve a intentarlo."
+  exit 2
+fi
+
 BIB="$(cd "$(dirname "$0")/.." && pwd)/06 - Assets y Scripts"
 PROY="$HOME/gm_prueba_scripts"
 YYP="$PROY/gm_prueba_scripts.yyp"
