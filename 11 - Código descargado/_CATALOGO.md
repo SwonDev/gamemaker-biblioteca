@@ -155,7 +155,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | `ganary` [↗](https://github.com/bscotch/ganary) | Pruebas de **regresión** montadas sobre Olympus. | 10 | sin licencia | 2026-08-31 | 126 |
 | `meta` [↗](https://github.com/nommiin/meta) | **Inspector de assets en tiempo de ejecución**. | 8 | MIT | 2020-08-15 | 1 |
 | `gm-verrific` [↗](https://github.com/Alphish/gm-verrific) | Framework de **pruebas automatizadas**, el más ambicioso de la comunidad. | 5 | MIT | 2025-10-12 | 41 |
-| `GoboCat` [↗](https://github.com/EttyKitty/Gobo) | Fork de Gobo **determinista y más configurable**, con más opciones. | 0 | MIT | 2026-07-22 | 0 |
+| `GoboCat` [↗](https://github.com/EttyKitty/GoboCat) | Fork de Gobo **determinista y más configurable**, con más opciones. | 0 | MIT | 2026-07-22 | 0 |
 | `GM-EzConsole` [↗](https://github.com/DAndrewBox/GM-EzConsole) | **Consola de depuración** en pantalla para escribir comandos mientras el juego corre. 🆕 | 11 | MIT | 2025-09-01 | 21 |
 
 <a id="dialogos-y-narrativa"></a>

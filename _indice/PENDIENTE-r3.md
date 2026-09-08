@@ -47,14 +47,52 @@ Valen más que cualquier documento, porque no están en el manual:
 - `skeleton_animation_get_position` devuelve 0-1 normalizado, no segundos.
 - `keyboard_unset_map()` no acepta argumentos.
 
-## Lo que queda vivo
+## Lo que quedaba vivo — cerrado el 08-09-2026
 
-Nada bloquea el uso de la biblioteca ni su publicación. Para una ronda futura:
+Los seis puntos que dejó abiertos esta ronda están resueltos. Ninguno se cerró escribiendo lo
+que parecía razonable: los cuatro primeros son código nuevo que compila contra el runtime real,
+y los dos últimos son verificaciones en vivo que **contradicen** lo que anunciaban los README.
 
-1. Los temas 🟠 y 🟡 de los informes `r3-*.md` que no llegaron a esta tanda: ríos en la generación
-   procedural, *backtracking* recursivo de laberintos, roles de sala, CI con `duck` o Gobo (que
-   resultó inestable según su propio README), y la propiedad `Version` vía `resourcetool`.
-2. La verificación de que el transpilador de TypeScript a GML funciona con LTS 2026.0.0.23:
-   su documentación solo declara ≥2024.14.4.
-3. Vigilar lo que caduca: versiones de librerías de terceros, políticas de tienda y el estado
-   legal del arte generado por IA. Todo lleva su fecha de consulta en el texto.
+1. **Ríos** → `13/07 §2 bis`. El método completo, con el paso que casi todo el mundo se salta:
+   rellenar depresiones (*priority-flood*, Barnes 2014) antes de trazar nada. Sin él, «ir cuesta
+   abajo» se atasca a la tercera celda sobre cualquier mapa de Perlin. De regalo salen los
+   lagos, que ya están calculados en ese mismo paso.
+2. **Laberintos por backtracker recursivo** → `13/07 §3 quinquies`, con pila explícita (la
+   recursión de verdad llega a `ancho × alto` de profundidad), trenzado para quitar callejones y
+   la tabla de sesgos: por qué el árbol binario deja siempre un pasillo recto que arruina el
+   laberinto.
+3. **Roles de sala** → `13/07 §7.4`. Distancia **de grafo**, no de pantalla — el error clásico
+   coloca al jefe a dos pasillos de la entrada en un nivel en herradura. Con las tres trampas:
+   la llave nunca detrás de su puerta, `-1` no es una distancia grande sino una sala
+   inalcanzable, y el jefe más lejano puede ser una sala de 5×5.
+4. **La propiedad `Version` por `resourcetool`** → ya estaba resuelta en la Trampa 10 de
+   `12/09`, y se ha vuelto a comprobar de forma independiente: se **lee** (`options get`), no se
+   **escribe** (*«cannot be set… because it is read-only»*), y no hay ninguna raíz de expresión
+   que la alcance porque las opciones no están entre los 17 tipos de `RESOURCE TYPES`.
+5. **Puerta de CI por estilo** → `07/13 §11 bis` y `12/01 §2`. El resultado útil es negativo y
+   por eso importa: de las cuatro herramientas del ecosistema, **solo GoboCat devuelve un código
+   de salida distinto de 0**. `--check` de Gobo original y `lint` de `@turlututu-games/gml-linter`
+   terminan siempre en éxito —verificado en el código fuente de sus *releases*, no deducido—, así
+   que un job construido sobre ellas pasa siempre en verde con la lista de errores impresa
+   encima. Y `cargo install duck` **instala un crate de otro autor**: el nombre está ocupado en
+   crates.io desde 2017.
+6. **Transpilador TypeScript → GML con LTS 2026** → `12/08`. Sigue sin verificar contra
+   `2026.0.0.23` y ahora se sabe por qué no lo va a estar pronto: `0.0.11` de abril de 2026, sin
+   un solo *commit* desde entonces. Y un hallazgo nuevo: `pre_project_step.sh` es **idéntico byte
+   a byte** al `.bat`, sin *shebang* — la compilación automática está rota en macOS y Linux, falla
+   en silencio y la PR que lo diagnostica se cerró sin fusionar.
+
+Además, la auditoría de integración bajó de 4 duplicaciones medias a 3: `logro_desbloquear`
+estaba declarada con la misma aridad en `04/20` (envoltorio de Steam) y en `04/54` (sistema
+interno del juego), sin que ningún texto avisara del choque de nombre. Se ha renombrado la de
+plataforma a `plataforma_logro_desbloquear` y documentado la relación en los dos sentidos. Las
+tres que quedan son deliberadas y su propio texto lo dice («reemplaza a la versión de §2»).
+
+Informe de la verificación de herramientas: [`auditorias/r11-linters-ci.md`](./auditorias/r11-linters-ci.md).
+
+## Lo que sigue vivo
+
+**Vigilar lo que caduca**: versiones de librerías de terceros, políticas de tienda y el estado
+legal del arte generado por IA. Todo lleva su fecha de consulta en el texto. GoboCat en concreto
+avisa de que cambia *«weekly»*, así que la versión fijada en el job de CI (`v0.7.1`) hay que
+revisarla de vez en cuando.

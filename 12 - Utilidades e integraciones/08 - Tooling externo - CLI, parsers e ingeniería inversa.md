@@ -120,20 +120,35 @@ class Player extends GMObject {
 }
 ```
 
-Uso real, según el README:
+Uso real (el README escribe `npm`; el equivalente con `pnpm` hace lo mismo):
 
 ```sh
-npm install -g @odemian/gamemaker-typescript
+pnpm add -g @odemian/gamemaker-typescript
 gmts setup      # crea tsconfig.json, copia los tipos, configura la compilación
 gmts compile    # compila los .ts a .gml manualmente
 ```
 
-⚠️ **La compilación automática (sin `gmts compile` manual) exige GameMaker `2024.14.4` (abril de
-2026) o superior**, versión en la que YoYo Games añadió el *hook* de extensión
-`pre_project_step` que este transpilador usa para compilar antes de que el proyecto recoja los
-assets. **No está verificado contra LTS 2026.0.0.23** de esta biblioteca —el README no menciona
-esa versión ni el runtime `2026.0.0.23` en concreto—: pruébalo en un proyecto de prueba antes de
-adoptarlo.
+⚠️ **La compilación automática (sin `gmts compile` manual) exige GameMaker `2024.14.4` o
+superior**, versión en la que YoYo Games añadió el *hook* de extensión `pre_project_step` que
+este transpilador usa para compilar antes de que el proyecto recoja los assets.
+
+🛑 **`gmts setup` está roto en macOS y en Linux, y sigue roto.** Verificado el 08-09-2026
+descargando el paquete publicado y comparando los dos archivos que instala: `pre_project_step.sh`
+y `pre_project_step.bat` son **idénticos byte a byte**. Es decir, el supuesto *script* de shell
+es literalmente el `.bat` de Windows con otra extensión: sin *shebang*, con sintaxis de CMD. En
+un Mac o en Linux el *hook* no se ejecuta, y como los *hooks* de extensión fallan en silencio, el
+síntoma no es un error sino que **tu TypeScript nunca se transpila** y compilas el `.gml` viejo
+sin enterarte. Hay una *pull request* que lo diagnostica correctamente — la **#5** — y está
+**cerrada sin fusionar**.
+
+En macOS y Linux, por tanto, usa `gmts compile` a mano (o engánchalo tú a tu propio flujo) y
+**no confíes en la compilación automática**.
+
+⚠️ **Sin verificar contra LTS 2026.0.0.23.** El README no menciona esa versión en ningún punto, y
+el paquete está parado: `0.0.11` publicada el **17-04-2026**, sin un solo *commit* desde entonces
+(comprobado en la API de GitHub el 08-09-2026, casi cinco meses). No significa que no funcione
+—es un transpilador de texto, no depende del runtime—, significa que **nadie lo ha probado ahí y
+tú serás el primero**. Pruébalo en un proyecto desechable antes de meterlo en uno real.
 
 **Limitaciones, literales del propio README**: en fase de *Proof of Concept*; tipos incompletos
 y no todos los tipos de objeto soportados; los **enums no están soportados**; las **funciones
@@ -161,6 +176,16 @@ la raíz del proyecto, validado contra un esquema generado con `typescript-json-
 `.tgz` real descargado del registro de npm, no de un README extenso. Trátalo como una herramienta
 de nicho, activa a juzgar por la fecha de publicación, pero sin la superficie de verificación
 (issues, estrellas, licencia visible) que sí tienen Gobo o duck.
+
+🛑 **No sirve como puerta de CI ni de pre-commit: nunca falla.** Verificado el 08-09-2026
+descomprimiendo el `.tgz` real y leyendo el JS compilado (`dist/cli.js`): en todo el paquete hay
+exactamente **dos** `process.exit(1)`, y los dos saltan cuando **no hay reglas configuradas** —
+ninguno cuando encuentra violaciones. El comando `lint` imprime cuanto encuentre y termina con
+código 0. Un job de CI que lo use pasa siempre en verde, y con la lista de errores impresa
+arriba, que es la peor combinación posible: parece que está vigilando y no vigila nada. Úsalo
+como informe que lee una persona, o envuélvelo tú en un script que cuente las líneas de salida y
+falle. Para una puerta automática de verdad, GoboCat —
+[`12 · 01 §2`](./01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md#2-formatear-y-analizar-el-c%C3%B3digo).
 
 > ⚠️ **Distingue el `gm-cli` OFICIAL** (`@gamemaker/gm-cli`, de YoYo Games, el que usa este
 > equipo) de los homónimos no oficiales (`@ovipakla/gm-cli`). El oficial es el de la regla del

@@ -221,9 +221,13 @@ function logros_cargar(_slot)
 > 💡 **Cuando publiques en una tienda con logros propios, este sistema no desaparece.** Sigue
 > siendo tu fuente de verdad interna — funciona sin conexión, sin cuenta y en cualquier
 > plataforma — y en el mismo punto donde llamas a `logro_desbloquear()` añades una línea más que
-> espeja hacia la plataforma real: `steam_set_achievement()` de `04 · 20` §1 (mapeando tu
-> `id_logro` interno al *API name* de Steam) o el bloque de logros de Xbox de `04 · 20` §6.3. Ese
-> código de plataforma no se repite aquí: está en `04 · 20`.
+> espeja hacia la plataforma real: `plataforma_logro_desbloquear()` de `04 · 20` §1 (mapeando
+> tu `id_logro` interno al *API name* de Steam) o el bloque de logros de Xbox de `04 · 20`
+> §6.3. Ese código de plataforma no se repite aquí: está en `04 · 20`.
+>
+> Aquel nombre lleva el prefijo `plataforma_` **a propósito**: sin él se llamaría
+> `logro_desbloquear` igual que este, y una de las dos ganaría en silencio al copiar ambos
+> documentos al mismo proyecto. El de aquí es la fuente de verdad; el de allí, el espejo.
 
 ---
 

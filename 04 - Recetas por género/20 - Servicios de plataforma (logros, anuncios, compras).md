@@ -52,7 +52,7 @@ if (steam_initialised()) {
 
 ```gml
 /// desbloquear un logro cuando pasa algo
-function logro_desbloquear(_api_name) {
+function plataforma_logro_desbloquear(_api_name) {
     if (!global.steam) return;
     // no re-enviar si ya está: ahorra tráfico y evita parpadeos del overlay
     if (!steam_get_achievement(_api_name)) {
@@ -61,13 +61,34 @@ function logro_desbloquear(_api_name) {
 }
 
 /// una estadística acumulativa (enemigos derrotados, distancia…)
-function stat_sumar(_api_name, _cantidad) {
+function plataforma_stat_sumar(_api_name, _cantidad) {
     if (!global.steam) return;
     var _actual = steam_get_stat_int(_api_name);
     steam_set_stat_int(_api_name, _actual + _cantidad);
     // Steam agrupa el envío; no hace falta llamar a store en cada cambio
 }
 ```
+
+> ⚠️ **El prefijo `plataforma_` no es decoración: evita una colisión real.**
+> [`04 · 54` §2.3](./54%20-%20Metajuego%20transversal%20-%20logros,%20galer%C3%ADa,%20speedrun%20y%20espectador.md#23--desbloquear-y-sumar-progreso)
+> define un `logro_desbloquear(_id_logro)` que es **el sistema interno del juego**: catálogo,
+> progreso incremental, notificación en pantalla y persistencia en el save. Las dos funciones
+> tienen un argumento cada una y son intercambiables a ojos del compilador, así que si copias
+> los dos documentos al mismo proyecto con el mismo nombre, GameMaker se queda con una y la
+> otra desaparece **sin un solo error** — con el sabor concreto de que los logros dejan de
+> guardarse, o de que nunca llegan a Steam, según cuál gane.
+>
+> Son **dos capas, no dos versiones**: la de arriba habla con la tienda; la de `04 · 54` es la
+> fuente de verdad del juego y funciona sin conexión y sin cuenta. El orden correcto es que el
+> juego llame siempre a la suya, y que esta se invoque **desde dentro** de aquella:
+>
+> ```gml
+> // Dentro del logro_desbloquear() interno de 04 · 54, junto a logro_notificar():
+> plataforma_logro_desbloquear(logro_definicion_obtener(_id_logro).api_name);
+> ```
+>
+> Así el *API name* de Steam vive en el catálogo, en un solo sitio, y el juego sigue
+> funcionando entero si `global.steam` es `false`.
 
 > ⚠️ **Los nombres son los "API Name" del panel de Steamworks, no el título visible.** Si el
 > logro se llama «Primera victoria» en la tienda, su API name puede ser `ACH_FIRST_WIN`. Usa

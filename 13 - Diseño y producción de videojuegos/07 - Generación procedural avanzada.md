@@ -1,8 +1,9 @@
 # 07 · Generación procedural avanzada
 
 > Este documento es la **caja de herramientas de PCG que no cabe en un roguelike**: ruido,
-> autómatas celulares, Poisson-disc, Wave Function Collapse, gramáticas, ensamblaje por
-> piezas y niveles de plataformas por ritmo. Todo con GML verificado contra el runtime
+> autómatas celulares, ríos sobre el mapa de alturas, laberintos, Poisson-disc, Wave
+> Function Collapse, gramáticas, ensamblaje por piezas con reparto de roles y niveles
+> de plataformas por ritmo. Todo con GML verificado contra el runtime
 > 2026.0.0.23.
 >
 > **Lo que NO cubre porque ya está resuelto:** RNG con semilla, BSP, random walk, validación
@@ -666,6 +667,351 @@ grande, **genera por trozos** — el patrón de *chunks* con `diff` ya está res
 
 ---
 
+## 2 bis · Ríos: del mapa de alturas al cauce
+
+Un río dibujado a mano sobre un mapa generado **siempre se nota**. Cruza una montaña, nace en
+mitad de una llanura o desemboca hacia arriba. La razón es que un río no es una forma: es la
+**consecuencia** de un mapa de alturas. Si el terreno lo genera el ruido de §2, el cauce tiene
+que salir del mismo terreno o el jugador percibe la costura aunque no sepa nombrarla.
+
+El método completo son tres pasos, y **el primero es el que casi todo el mundo se salta**.
+
+### 2 bis .1 Por qué «ir cuesta abajo» no funciona
+
+El impulso natural es: pon un manantial en un pico, mira los ocho vecinos, muévete al más bajo,
+repite. Sobre ruido fBm eso **se atasca en la tercera o cuarta celda**. Un mapa de Perlin está
+lleno de mínimos locales: hoyos de una sola celda rodeados de celdas más altas. El río llega
+ahí y no tiene a dónde ir.
+
+Los parches habituales empeoran el resultado:
+
+| Parche | Qué produce |
+|---|---|
+| Si te atascas, salta a un vecino al azar | El río sube cuestas. Se ve inmediatamente |
+| Si te atascas, para | Ríos de seis celdas que no llegan al mar |
+| Suavizar mucho el terreno antes | Un mundo sin relieve, y los hoyos siguen ahí |
+| Bajar el mínimo local a la fuerza | Zanjas de una celda en mitad de la nada |
+
+La solución de verdad viene de la hidrología, no del *gamedev*: **rellenar las depresiones
+antes de trazar nada**. Sobre una superficie sin depresiones, «ir cuesta abajo» no puede
+atascarse — por construcción, toda celda tiene un camino no ascendente hasta el borde del mapa.
+
+### 2 bis .2 Paso 1 — Rellenar depresiones (*priority-flood*)
+
+El algoritmo es de Barnes, Lehman y Mulla (2014) y es sorprendentemente corto: mete todo el
+borde del mapa en una cola de prioridad ordenada por altura, y ve sacando siempre la celda más
+baja. Cada vecino que salga se queda con **la mayor de dos alturas**: la suya y la de la celda
+por la que se ha llegado. Un hoyo se llena hasta el nivel de su punto de escape, exactamente
+como se llenaría de agua.
+
+```gml
+/// @func rellenar_depresiones(_alt, _ancho, _alto)
+/// @desc Devuelve una copia de _alt sin mínimos locales (Priority-Flood, Barnes 2014).
+///       Toda celda del resultado tiene un camino NO ascendente hasta el borde.
+/// @param {Array<Real>} _alt   Mapa de alturas original (no se modifica)
+/// @param {Real} _ancho
+/// @param {Real} _alto
+/// @return {Array<Real>} Superficie rellenada
+function rellenar_depresiones(_alt, _ancho, _alto)
+{
+    var _n       = _ancho * _alto;
+    var _relleno = array_create(_n, 0);
+    var _visto   = array_create(_n, false);
+    var _cola    = ds_priority_create();
+
+    // El borde entero es la condición de contorno: desde ahí el agua ya escapa.
+    for (var _y = 0; _y < _alto; _y++)
+    {
+        for (var _x = 0; _x < _ancho; _x++)
+        {
+            if (_x > 0 && _x < _ancho - 1 && _y > 0 && _y < _alto - 1) continue;
+
+            var _i = _y * _ancho + _x;
+            _relleno[_i] = _alt[_i];
+            _visto[_i]   = true;
+            ds_priority_add(_cola, _i, _alt[_i]);
+        }
+    }
+
+    var _dx = [ 1, 1, 0, -1, -1, -1,  0,  1];
+    var _dy = [ 0, 1, 1,  1,  0, -1, -1, -1];
+
+    while (ds_priority_size(_cola) > 0)
+    {
+        var _c  = ds_priority_delete_min(_cola);
+        var _cx = _c mod _ancho;
+        var _cy = _c div _ancho;
+
+        for (var _k = 0; _k < 8; _k++)
+        {
+            var _nx = _cx + _dx[_k];
+            var _ny = _cy + _dy[_k];
+            if (_nx < 0 || _ny < 0 || _nx >= _ancho || _ny >= _alto) continue;
+
+            var _ni = _ny * _ancho + _nx;
+            if (_visto[_ni]) continue;
+
+            // Aquí está todo el algoritmo: nunca por debajo de la celda de llegada.
+            _relleno[_ni] = max(_alt[_ni], _relleno[_c]);
+            _visto[_ni]   = true;
+            ds_priority_add(_cola, _ni, _relleno[_ni]);
+        }
+    }
+
+    ds_priority_destroy(_cola);
+    return _relleno;
+}
+```
+
+> ⚠️ **`ds_priority_delete_min` devuelve el valor, no la prioridad.** Es el error de uso más
+> común de esta estructura: quien espera la altura recibe el índice de celda y el algoritmo
+> produce basura sin fallar. Si necesitas también la prioridad, guárdala tú en `_relleno`
+> como hace el código de arriba.
+
+**Las mesetas.** Rellenar deja zonas perfectamente planas — el interior de cada hoyo relleno.
+Sobre una meseta exacta, «el vecino más bajo» es un empate y el trazado se queda dando vueltas.
+La corrección estándar es inclinar la meseta un épsilon en el sentido en que se rellenó:
+
+```gml
+// Tras rellenar: si la celda no cambió de altura, no estaba en un hoyo.
+// Si cambió, súbela un pelo más que su vecina de llegada para romper el empate.
+#macro RIO_EPSILON 0.000001
+```
+
+Ese épsilon es **invisible en el terreno** (una millonésima de la escala de altura) y suficiente
+para que la comparación de reales dé un ganador. No uses un valor mucho menor: los reales de GML
+son *double* y a partir de cierto punto el épsilon se pierde al sumarse a una altura cercana a 1.
+
+### 2 bis .3 Paso 2 — Dirección y acumulación de flujo (D8)
+
+Con la superficie rellenada, cada celda tiene un destino único: su vecino más bajo. Es el modelo
+**D8** — ocho direcciones, una sola salida por celda. Y una vez sabes a dónde va cada celda,
+sabes **cuánta agua pasa por cada una**: la suya más la de todas las que desembocan en ella.
+
+Eso es lo que decide qué es un río y qué es un arroyo. No hace falta elegir manantiales: los
+manantiales salen solos, allí donde la acumulación cruza un umbral.
+
+```gml
+/// @func calcular_flujo(_relleno, _ancho, _alto)
+/// @desc D8: a dónde va cada celda y cuánta agua acumula.
+/// @return {Struct} { destino, acumulacion }  — ambos arrays de _ancho * _alto.
+///                  destino[i] == -1 significa que el agua sale del mapa por ahí.
+function calcular_flujo(_relleno, _ancho, _alto)
+{
+    var _n       = _ancho * _alto;
+    var _destino = array_create(_n, -1);
+    var _acum    = array_create(_n, 1);   // cada celda aporta su propia lluvia
+
+    var _dx = [ 1, 1, 0, -1, -1, -1,  0,  1];
+    var _dy = [ 0, 1, 1,  1,  0, -1, -1, -1];
+    // La diagonal recorre más terreno: se compara pendiente, no desnivel bruto.
+    var _dist = [1, 1.4142135623730951, 1, 1.4142135623730951,
+                 1, 1.4142135623730951, 1, 1.4142135623730951];
+
+    for (var _y = 0; _y < _alto; _y++)
+    {
+        for (var _x = 0; _x < _ancho; _x++)
+        {
+            var _i = _y * _ancho + _x;
+
+            // El borde es sumidero: el agua abandona el mapa.
+            if (_x == 0 || _y == 0 || _x == _ancho - 1 || _y == _alto - 1) continue;
+
+            var _mejor      = -1;
+            var _mejor_pend = 0;
+
+            for (var _k = 0; _k < 8; _k++)
+            {
+                var _ni = (_y + _dy[_k]) * _ancho + (_x + _dx[_k]);
+                var _p  = (_relleno[_i] - _relleno[_ni]) / _dist[_k];
+                if (_p > _mejor_pend)
+                {
+                    _mejor_pend = _p;
+                    _mejor      = _ni;
+                }
+            }
+
+            _destino[_i] = _mejor;
+        }
+    }
+
+    // Acumular de arriba abajo: si procesas las celdas de mayor a menor altura,
+    // cuando llegas a una ya has sumado todo lo que le llega desde arriba.
+    var _orden = array_create(_n, 0);
+    for (var _i = 0; _i < _n; _i++) _orden[_i] = _i;
+
+    array_sort(_orden, function(_a, _b)
+    {
+        // Descendente por altura. El array de alturas viaja por `global` porque
+        // el comparador de array_sort no admite argumentos extra.
+        var _h = global.__rio_relleno;
+        if (_h[_a] < _h[_b]) return  1;
+        if (_h[_a] > _h[_b]) return -1;
+        return 0;
+    });
+
+    for (var _j = 0; _j < _n; _j++)
+    {
+        var _i = _orden[_j];
+        var _d = _destino[_i];
+        if (_d >= 0) _acum[_d] += _acum[_i];
+    }
+
+    return { destino: _destino, acumulacion: _acum };
+}
+```
+
+> ⚠️ **El comparador de `array_sort` recibe exactamente dos argumentos.** No hay forma de
+> pasarle el mapa de alturas como parámetro, y una función anónima declarada dentro de otra
+> **no captura** las variables locales de la que la contiene: `_relleno` no existe dentro del
+> comparador. Por eso el código lo publica en `global.__rio_relleno` justo antes de ordenar.
+> Es feo y es deliberado; la alternativa (ordenar a mano con un `ds_priority`) cuesta el doble
+> de líneas para el mismo resultado. Asigna la global **antes** de la llamada:
+>
+> ```gml
+> global.__rio_relleno = _relleno;
+> var _flujo = calcular_flujo(_relleno, _ancho, _alto);
+> ```
+
+**Qué umbral.** La acumulación de una celda es «cuántas celdas drenan por aquí». En un mapa de
+192×128 (24 576 celdas), un umbral de 60-120 da una red de ríos con dos o tres cauces
+principales; 500 deja un único río; 20 llena el mapa de regatos. Escálalo con el mapa: lo que
+importa es la fracción, no el número.
+
+**El ancho no es lineal.** Un río con el cuádruple de cuenca no es cuatro veces más ancho. La
+relación empírica en hidrología es aproximadamente la raíz cuadrada del caudal, y visualmente
+funciona muy bien:
+
+```gml
+/// @func ancho_de_rio(_acumulacion, _umbral, _ancho_max)
+/// @desc Ancho en celdas, creciendo como la raíz de la cuenca drenada.
+function ancho_de_rio(_acumulacion, _umbral, _ancho_max)
+{
+    if (_acumulacion < _umbral) return 0;
+    return min(_ancho_max, sqrt(_acumulacion / _umbral));
+}
+```
+
+### 2 bis .4 Paso 3 — Excavar el cauce
+
+Marcar celdas como «agua» en el tilemap da un río plano pegado encima del terreno. Un río de
+verdad **ha excavado un valle**: hunde el cauce en el mapa de alturas *original* (no en el
+rellenado) y deja que el degradado alcance a las celdas vecinas.
+
+```gml
+/// @func excavar_cauces(_alt, _flujo, _ancho, _alto, _umbral, _profundidad)
+/// @desc Hunde el terreno donde pasa el río, con caída suave hacia las orillas.
+///       Modifica _alt IN PLACE y devuelve el array de anchos por celda.
+function excavar_cauces(_alt, _flujo, _ancho, _alto, _umbral, _profundidad)
+{
+    var _acum   = _flujo.acumulacion;
+    var _anchos = array_create(_ancho * _alto, 0);
+
+    for (var _y = 1; _y < _alto - 1; _y++)
+    {
+        for (var _x = 1; _x < _ancho - 1; _x++)
+        {
+            var _i = _y * _ancho + _x;
+            var _w = ancho_de_rio(_acum[_i], _umbral, 4);
+            if (_w <= 0) continue;
+
+            _anchos[_i] = _w;
+
+            var _radio = ceil(_w);
+            for (var _oy = -_radio; _oy <= _radio; _oy++)
+            {
+                for (var _ox = -_radio; _ox <= _radio; _ox++)
+                {
+                    var _vx = _x + _ox;
+                    var _vy = _y + _oy;
+                    if (_vx < 0 || _vy < 0 || _vx >= _ancho || _vy >= _alto) continue;
+
+                    var _d = point_distance(0, 0, _ox, _oy);
+                    if (_d > _radio) continue;
+
+                    // 1 en el eje del cauce, 0 en la orilla.
+                    var _caida = 1 - (_d / (_radio + 1));
+                    var _vi    = _vy * _ancho + _vx;
+                    _alt[_vi] -= _profundidad * _caida * _caida;
+                }
+            }
+        }
+    }
+
+    return _anchos;
+}
+```
+
+Con `_profundidad` entre 0,02 y 0,06 sobre alturas normalizadas a 0-1, el valle se lee sin que
+el mapa parezca acuchillado. Por encima de 0,1 se convierte en un cañón — que puede ser
+justo lo que quieres para un bioma concreto, pero decídelo, no lo heredes.
+
+### 2 bis .5 El montaje completo
+
+```gml
+/// @func generar_mundo_con_rios(_ancho, _alto, _semilla)
+/// @desc Ruido → depresiones rellenas → flujo → cauces excavados.
+/// @return {Struct} { alturas, anchos_rio, acumulacion }
+function generar_mundo_con_rios(_ancho, _alto, _semilla)
+{
+    // 1. Terreno base con el Perlin de §2.3 y el fBm de §2.5.
+    var _alt   = array_create(_ancho * _alto, 0);
+    var _ruido = new RuidoPerlin(_semilla);
+
+    for (var _y = 0; _y < _alto; _y++)
+        for (var _x = 0; _x < _ancho; _x++)
+            _alt[_y * _ancho + _x] =
+                clamp(ruido_fbm(_ruido, _x * 0.02, _y * 0.02, 5, 2, 0.5)
+                      / (2 * RUIDO_INV_RAIZ2) + 0.5, 0, 1);
+
+    // 2. Superficie hidrológica: sin ella el paso 3 se atasca.
+    var _relleno = rellenar_depresiones(_alt, _ancho, _alto);
+
+    // 3. Flujo. La global es requisito del comparador, ver §2 bis .3.
+    global.__rio_relleno = _relleno;
+    var _flujo = calcular_flujo(_relleno, _ancho, _alto);
+
+    // 4. Excavar sobre el terreno ORIGINAL, no sobre el rellenado:
+    //    los hoyos rellenos son lagos, y un lago no se excava.
+    var _umbral = (_ancho * _alto) * 0.004;
+    var _anchos = excavar_cauces(_alt, _flujo, _ancho, _alto, _umbral, 0.04);
+
+    return { alturas: _alt, anchos_rio: _anchos, acumulacion: _flujo.acumulacion };
+}
+```
+
+**Los lagos salen gratis.** Una celda cuyo relleno quedó por encima de su altura original estaba
+en un hoyo: `_relleno[i] > _alt[i] + RIO_EPSILON` es exactamente la definición de «bajo el agua
+de un lago», y la diferencia entre ambos valores es la profundidad. No hace falta un algoritmo
+aparte para lagos; ya lo has calculado en el paso 1.
+
+```gml
+/// @func es_lago(_alt, _relleno, _i)
+function es_lago(_alt, _relleno, _i)
+{
+    return (_relleno[_i] - _alt[_i]) > RIO_EPSILON;
+}
+```
+
+### 2 bis .6 Coste y cuándo no hacerlo
+
+En un mapa de 192×128 sobre el runtime 2026.0.0.23, el reparto es aproximadamente: el ruido fBm
+domina, el *priority-flood* añade un `ds_priority` de 24 576 entradas, y la ordenación para la
+acumulación es el otro término. **Todo esto se hace una vez por mundo**, en el Create o —mejor—
+troceado con el patrón retomable de §14. Nada de esto va en un evento Step.
+
+Tres casos en los que **no** merece la pena:
+
+- **Mapa por trozos infinito.** El *priority-flood* necesita el mapa entero para saber dónde
+  escapa el agua; no se puede calcular por *chunks* sin costuras. Para mundos infinitos, los
+  ríos se trazan como curvas autoritarias (L-system de §6.1) y el terreno se adapta a ellas,
+  no al revés.
+- **Vista lateral.** Un río en un plataformas es una decoración con colisión, no una red de
+  drenaje.
+- **Mapas menores de ~64×64.** La red no tiene espacio para ramificarse y sale un único
+  chorretón. Dibuja el río a mano y ahórrate las tres pasadas.
+
+---
 ## 3 · Autómatas celulares: cuevas
 
 El método canónico de RogueBasin: **rellenas el mapa de ruido binario y dejas que una regla
@@ -1409,6 +1755,247 @@ conservar_region_mayor(_cueva);   // §3.1: aquí SÍ hace falta, a diferencia d
 
 ---
 
+## 3 quinquies · Laberintos perfectos: el backtracker recursivo
+
+Un autómata celular da cuevas; un laberinto es lo contrario. Un **laberinto perfecto** es una
+rejilla en la que existe **exactamente un camino** entre cualquier par de celdas: sin bucles y
+sin zonas aisladas. En términos de grafos es un **árbol de expansión** sobre la rejilla, y esa
+definición es la que conviene tener en la cabeza, porque explica de un golpe todas sus
+propiedades: `celdas - 1` pasillos, ningún ciclo, siempre conexo, y la solución es única.
+
+Sirve para mazmorras clásicas, para el interior de un edificio, para catacumbas y —sobre todo—
+como **esqueleto** al que luego se le abren salas, se le añaden bucles y se le pega decoración.
+Un laberinto crudo es aburrido; un laberinto crudo bien generado es un excelente punto de
+partida.
+
+### 3 quinquies .1 Representar el laberinto por paredes, no por baldosas
+
+La tentación es trabajar directamente sobre una rejilla de baldosas donde una celda es «pared»
+o «suelo». Funciona, pero complica todo: hay que razonar con celdas de índice par e impar y
+cualquier despiste produce paredes de grosor inconsistente.
+
+Es mucho más limpio guardar, **por celda, qué paredes siguen en pie** como una máscara de bits:
+
+```gml
+#macro LAB_NORTE 1
+#macro LAB_ESTE  2
+#macro LAB_SUR   4
+#macro LAB_OESTE 8
+```
+
+Una celda arranca con `15` (las cuatro paredes) y abrir un pasillo es quitar un bit **a las dos
+celdas implicadas**. La conversión a baldosas se hace al final, una sola vez, y ahí sí se usa el
+truco clásico: un laberinto de `A × B` celdas se dibuja en una rejilla de `(2A+1) × (2B+1)`
+baldosas, donde las celdas caen en las posiciones impares y las paredes en las pares.
+
+### 3 quinquies .2 El algoritmo, con pila explícita
+
+El *recursive backtracker* es una búsqueda en profundidad que va abriendo pasillos hacia celdas
+no visitadas y retrocede cuando se queda sin salida. Se llama «recursivo» por cómo se explica,
+no por cómo debe escribirse:
+
+> ⚠️ **No lo escribas con recursión de verdad.** La profundidad de la pila llega a ser del orden
+> de `ancho × alto` — miles de llamadas anidadas en un laberinto mediano. GameMaker no documenta
+> un límite de recursión, y cuando se rebasa el runner se cierra sin un mensaje que sirva de
+> nada. La versión iterativa es **el mismo algoritmo**, ocupa las mismas líneas y no plantea la
+> pregunta. Es un array usado como pila, nada más.
+
+```gml
+/// @func generar_laberinto(_ancho, _alto, _semilla)
+/// @desc Laberinto perfecto por backtracker recursivo (versión iterativa).
+///       Todas las celdas quedan conectadas y no hay ningún bucle.
+/// @param {Real} _ancho   Celdas de ancho (no baldosas)
+/// @param {Real} _alto    Celdas de alto
+/// @param {Real} _semilla
+/// @return {Struct} { ancho, alto, paredes }  paredes[i] = máscara LAB_*
+function generar_laberinto(_ancho, _alto, _semilla)
+{
+    var _rng     = new RNG(_semilla);
+    var _n       = _ancho * _alto;
+    var _paredes = array_create(_n, LAB_NORTE | LAB_ESTE | LAB_SUR | LAB_OESTE);
+    var _visto   = array_create(_n, false);
+
+    // Índice de dirección: 0 norte, 1 este, 2 sur, 3 oeste.
+    var _dx  = [ 0,  1,  0, -1];
+    var _dy  = [-1,  0,  1,  0];
+    var _bit = [LAB_NORTE, LAB_ESTE, LAB_SUR, LAB_OESTE];
+    // La pared que se quita en la celda vecina es siempre la opuesta.
+    var _opu = [LAB_SUR, LAB_OESTE, LAB_NORTE, LAB_ESTE];
+
+    var _inicio = _rng.int(_n - 1);
+    _visto[_inicio] = true;
+
+    var _pila = [_inicio];
+
+    while (array_length(_pila) > 0)
+    {
+        var _c  = _pila[array_length(_pila) - 1];
+        var _cx = _c mod _ancho;
+        var _cy = _c div _ancho;
+
+        // Vecinos sin visitar, en orden aleatorio.
+        var _libres = [];
+        for (var _d = 0; _d < 4; _d++)
+        {
+            var _nx = _cx + _dx[_d];
+            var _ny = _cy + _dy[_d];
+            if (_nx < 0 || _ny < 0 || _nx >= _ancho || _ny >= _alto) continue;
+            if (_visto[_ny * _ancho + _nx]) continue;
+            array_push(_libres, _d);
+        }
+
+        if (array_length(_libres) == 0)
+        {
+            // Callejón: retrocede. Esto es el «backtrack» del nombre.
+            array_delete(_pila, array_length(_pila) - 1, 1);
+            continue;
+        }
+
+        var _d  = _rng.pick(_libres);
+        var _ni = (_cy + _dy[_d]) * _ancho + (_cx + _dx[_d]);
+
+        // Abrir el pasillo: hay que quitar el bit EN LAS DOS celdas.
+        _paredes[_c]  = _paredes[_c]  & ~_bit[_d];
+        _paredes[_ni] = _paredes[_ni] & ~_opu[_d];
+
+        _visto[_ni] = true;
+        array_push(_pila, _ni);
+    }
+
+    return { ancho: _ancho, alto: _alto, paredes: _paredes };
+}
+```
+
+> ⚠️ **Quitar la pared en una sola de las dos celdas** es el fallo clásico de esta receta. El
+> laberinto se recorre perfectamente si tu jugador consulta la celda de origen, y se convierte
+> en un muro invisible si consulta la de destino. Es un bug que no rompe la generación, solo el
+> movimiento — y por eso cuesta tanto encontrarlo. `_bit[_d]` y `_opu[_d]`, siempre los dos.
+
+### 3 quinquies .3 Pasar de máscaras a baldosas
+
+```gml
+/// @func laberinto_a_rejilla(_lab)
+/// @desc Expande el laberinto a una rejilla de (2A+1) x (2B+1):
+///       1 = pared, 0 = suelo. Es la forma en que se pinta al tilemap (§2.8).
+/// @return {Struct} { ancho, alto, celdas }
+function laberinto_a_rejilla(_lab)
+{
+    var _rw = _lab.ancho * 2 + 1;
+    var _rh = _lab.alto  * 2 + 1;
+    var _r  = array_create(_rw * _rh, 1);
+
+    for (var _cy = 0; _cy < _lab.alto; _cy++)
+    {
+        for (var _cx = 0; _cx < _lab.ancho; _cx++)
+        {
+            var _m  = _lab.paredes[_cy * _lab.ancho + _cx];
+            var _rx = _cx * 2 + 1;
+            var _ry = _cy * 2 + 1;
+
+            _r[_ry * _rw + _rx] = 0;                                  // la celda
+            if ((_m & LAB_NORTE) == 0) _r[(_ry - 1) * _rw + _rx] = 0; // pasillos
+            if ((_m & LAB_ESTE)  == 0) _r[_ry * _rw + (_rx + 1)] = 0;
+            if ((_m & LAB_SUR)   == 0) _r[(_ry + 1) * _rw + _rx] = 0;
+            if ((_m & LAB_OESTE) == 0) _r[_ry * _rw + (_rx - 1)] = 0;
+        }
+    }
+
+    return { ancho: _rw, alto: _rh, celdas: _r };
+}
+```
+
+### 3 quinquies .4 Trenzado: quitarle los callejones
+
+Un laberinto perfecto es, para jugar, **agotador**: cada callejón obliga a desandar el camino
+entero. El remedio es el **trenzado** (*braiding*): abrir una pared más en cada callejón sin
+salida, lo que introduce bucles y deja de ser perfecto — que es exactamente lo que quieres.
+
+```gml
+/// @func trenzar_laberinto(_lab, _semilla, _proporcion)
+/// @desc Elimina callejones abriendo una pared extra. _proporcion 0 = ninguno,
+///       1 = todos. Con 1 el laberinto deja de tener callejones por completo.
+function trenzar_laberinto(_lab, _semilla, _proporcion)
+{
+    var _rng = new RNG(_semilla + 7919);
+    var _dx  = [ 0,  1,  0, -1];
+    var _dy  = [-1,  0,  1,  0];
+    var _bit = [LAB_NORTE, LAB_ESTE, LAB_SUR, LAB_OESTE];
+    var _opu = [LAB_SUR, LAB_OESTE, LAB_NORTE, LAB_ESTE];
+
+    for (var _cy = 0; _cy < _lab.alto; _cy++)
+    {
+        for (var _cx = 0; _cx < _lab.ancho; _cx++)
+        {
+            var _i = _cy * _lab.ancho + _cx;
+
+            // Un callejón tiene tres paredes en pie: exactamente un bit a 0.
+            var _abiertas = 0;
+            for (var _d = 0; _d < 4; _d++)
+                if ((_lab.paredes[_i] & _bit[_d]) == 0) _abiertas++;
+
+            if (_abiertas != 1) continue;
+            if (!_rng.chance(_proporcion)) continue;
+
+            // Candidatas: paredes en pie que dan a una celda dentro del mapa.
+            var _cand = [];
+            for (var _d = 0; _d < 4; _d++)
+            {
+                if ((_lab.paredes[_i] & _bit[_d]) == 0) continue;
+                var _nx = _cx + _dx[_d];
+                var _ny = _cy + _dy[_d];
+                if (_nx < 0 || _ny < 0 || _nx >= _lab.ancho || _ny >= _lab.alto) continue;
+                array_push(_cand, _d);
+            }
+            if (array_length(_cand) == 0) continue;
+
+            var _d  = _rng.pick(_cand);
+            var _ni = (_cy + _dy[_d]) * _lab.ancho + (_cx + _dx[_d]);
+            _lab.paredes[_i]  = _lab.paredes[_i]  & ~_bit[_d];
+            _lab.paredes[_ni] = _lab.paredes[_ni] & ~_opu[_d];
+        }
+    }
+
+    return _lab;
+}
+```
+
+Con `_proporcion` a 0,5 el laberinto conserva la sensación de laberinto y pierde la mitad de la
+frustración. A 1 se convierte en una red de pasillos con bucles, muy adecuada para una mazmorra
+de acción donde el jugador huye de enemigos.
+
+> La **poda** de [§3 bis](#3-bis--poda-de-callejones-sin-salida) es la operación inversa y
+> resuelve otro problema: allí se **rellenan** los callejones de una cueva porque sobran; aquí
+> se **conectan** los de un laberinto porque estorban. No las confundas: podar un laberinto
+> perfecto lo deja casi vacío, porque casi todo él es callejón.
+
+### 3 quinquies .5 Qué algoritmo elegir, y por qué el sesgo importa
+
+Todos estos algoritmos producen laberintos perfectos válidos. La diferencia es la **textura**:
+qué se siente al recorrerlos. La terminología («*river*», el grado de serpenteo) es de Jamis
+Buck, que sigue siendo la mejor referencia divulgativa sobre el tema.
+
+| Algoritmo | Textura | Memoria | Cuándo |
+|---|---|---|---|
+| **Backtracker recursivo** | Pasillos largos y serpenteantes, pocos callejones pero muy profundos | Pila O(celdas) | Por defecto. Da sensación de estar perdido |
+| **Prim aleatorio** | Muy ramificado, callejones cortos por todas partes | Frontera O(celdas) | Cuando quieres que se vea todo el mapa pronto |
+| **Kruskal aleatorio** | Uniforme, sin sesgo perceptible | Conjuntos disjuntos | Cuando el laberinto debe parecer «neutro» |
+| **Árbol binario** | Sesgo diagonal evidente: dos bordes son un pasillo recto | O(1) | Casi nunca. Sirve para explicar el sesgo |
+| **Eller** | Como Kruskal, generado por filas | O(ancho) | Laberintos infinitos o gigantes por trozos |
+
+**El sesgo no es un detalle académico.** El árbol binario deja siempre un pasillo recto completo
+en dos de los cuatro bordes: un jugador que lo descubra una vez lo usará siempre y tu laberinto
+deja de existir. El backtracker recursivo tiene su propio sesgo —recorridos largos, pocas
+bifurcaciones cerca del inicio— pero es un sesgo que **juega a favor**: se siente como una
+cueva explorada, no como una rejilla.
+
+Si vas a insertar salas rectangulares dentro del laberinto, hazlo **antes** de generarlo:
+marca esas celdas como ya visitadas y con sus paredes internas quitadas, y arranca el
+backtracker desde el borde de una de ellas. El algoritmo tejerá los pasillos alrededor sin
+tocar las salas, y todas quedarán conectadas por construcción — es la misma idea que el
+ensamblaje por piezas de [§7](#7--ensamblaje-por-piezas), pero con el laberinto haciendo de
+argamasa.
+
+---
 ## 4 · Poisson-disc: distribuir cosas sin que se amontonen
 
 Colocar 200 árboles con `irandom` produce grumos y calvas: el azar uniforme **no** parece
@@ -2699,6 +3286,219 @@ function anotar_puertas(_frontera, _pieza, _px, _py)
 > los datos, pero son la forma correcta de distribuir el **contenido** de las piezas entre
 > proyectos. Detalle en
 > [`02 · 08 — Package Manager y Prefabs`](../02%20-%20Novedades%202026/08%20-%20Package%20Manager%20y%20Prefabs.md).
+
+---
+
+### 7.4 Roles de sala: quién es el jefe y dónde va el tesoro
+
+Ensamblar el nivel deja un montón de salas iguales. Lo que convierte ese montón en una mazmorra
+es **repartir papeles**: entrada, jefe, tesoro, tienda, atajo. Y ese reparto tiene una única
+regla que hay que respetar por encima de todo:
+
+> ⚠️ **La distancia que importa es la del grafo, no la de la pantalla.** Elegir «la sala más
+> lejana» midiendo píxeles entre centros es el error clásico: en un nivel con forma de herradura,
+> la sala del jefe acaba a dos pasillos de la entrada aunque en el mapa esté en la otra punta. La
+> distancia buena es **cuántas salas hay que atravesar**, y eso se calcula con un recorrido en
+> anchura sobre las celdas transitables.
+
+### 7.4.1 Etiquetar cada celda con su sala
+
+`ensamblar_nivel` (§7.3) devuelve `colocadas`, la lista de piezas con su posición. Lo primero es
+poder preguntar, dada una celda, a qué sala pertenece:
+
+```gml
+/// @func mapa_de_salas(_mapa)
+/// @desc Estampa el índice de sala sobre cada celda de su huella.
+///       -1 en las celdas que no pertenecen a ninguna pieza.
+/// @return {Array<Real>} idsala[i]
+function mapa_de_salas(_mapa)
+{
+    var _id = array_create(_mapa.ancho * _mapa.alto, -1);
+
+    for (var _s = 0; _s < array_length(_mapa.colocadas); _s++)
+    {
+        var _c = _mapa.colocadas[_s];
+        for (var _fy = 0; _fy < _c.pieza.alto; _fy++)
+        {
+            for (var _fx = 0; _fx < _c.pieza.ancho; _fx++)
+            {
+                var _x = _c.px + _fx;
+                var _y = _c.py + _fy;
+                if (_x < 0 || _y < 0 || _x >= _mapa.ancho || _y >= _mapa.alto) continue;
+                _id[_y * _mapa.ancho + _x] = _s;
+            }
+        }
+    }
+
+    return _id;
+}
+```
+
+### 7.4.2 Distancia real desde la entrada
+
+```gml
+/// @func distancias_desde(_mapa, _ix, _iy)
+/// @desc Recorrido en anchura sobre celdas transitables (celdas == 0).
+///       Devuelve la distancia en celdas; -1 en lo inalcanzable.
+/// @return {Array<Real>}
+function distancias_desde(_mapa, _ix, _iy)
+{
+    var _n    = _mapa.ancho * _mapa.alto;
+    var _dist = array_create(_n, -1);
+    var _cola = ds_queue_create();
+
+    var _ini = _iy * _mapa.ancho + _ix;
+    _dist[_ini] = 0;
+    ds_queue_enqueue(_cola, _ini);
+
+    var _dx = [1, 0, -1, 0];
+    var _dy = [0, 1, 0, -1];
+
+    while (!ds_queue_empty(_cola))
+    {
+        var _c  = ds_queue_dequeue(_cola);
+        var _cx = _c mod _mapa.ancho;
+        var _cy = _c div _mapa.ancho;
+
+        for (var _k = 0; _k < 4; _k++)
+        {
+            var _nx = _cx + _dx[_k];
+            var _ny = _cy + _dy[_k];
+            if (_nx < 0 || _ny < 0 || _nx >= _mapa.ancho || _ny >= _mapa.alto) continue;
+
+            var _ni = _ny * _mapa.ancho + _nx;
+            if (_dist[_ni] != -1) continue;          // ya visitada
+            if (_mapa.celdas[_ni] != 0) continue;    // pared
+
+            _dist[_ni] = _dist[_c] + 1;
+            ds_queue_enqueue(_cola, _ni);
+        }
+    }
+
+    ds_queue_destroy(_cola);
+    return _dist;
+}
+```
+
+> ⚠️ **La cola en anchura da la distancia mínima solo si marcas al encolar, no al desencolar.**
+> Si compruebas `_dist[_ni] != -1` en el momento de sacar de la cola, la misma celda entra varias
+> veces y el recorrido degenera. El `_dist[_ni] = ...` de arriba está **antes** del
+> `ds_queue_enqueue` a propósito.
+
+### 7.4.3 El reparto
+
+```gml
+/// @func asignar_roles(_mapa, _ix, _iy)
+/// @desc Reparte papeles usando distancia de grafo y grado de conexión.
+/// @return {Struct} { entrada, jefe, tienda, tesoros, distancias_sala }
+function asignar_roles(_mapa, _ix, _iy)
+{
+    var _idsala = mapa_de_salas(_mapa);
+    var _dist   = distancias_desde(_mapa, _ix, _iy);
+    var _nsalas = array_length(_mapa.colocadas);
+
+    // Distancia de cada sala = la de su celda más cercana a la entrada.
+    var _dsala  = array_create(_nsalas, -1);
+    // Grado = a cuántas salas distintas toca. Una hoja tiene grado 1.
+    var _vecinas = array_create(_nsalas, undefined);
+    for (var _s = 0; _s < _nsalas; _s++) _vecinas[_s] = {};
+
+    var _dx = [1, 0, -1, 0];
+    var _dy = [0, 1, 0, -1];
+
+    for (var _y = 0; _y < _mapa.alto; _y++)
+    {
+        for (var _x = 0; _x < _mapa.ancho; _x++)
+        {
+            var _i = _y * _mapa.ancho + _x;
+            var _s = _idsala[_i];
+            if (_s < 0 || _dist[_i] < 0) continue;
+
+            if (_dsala[_s] < 0 || _dist[_i] < _dsala[_s]) _dsala[_s] = _dist[_i];
+
+            for (var _k = 0; _k < 4; _k++)
+            {
+                var _nx = _x + _dx[_k];
+                var _ny = _y + _dy[_k];
+                if (_nx < 0 || _ny < 0 || _nx >= _mapa.ancho || _ny >= _mapa.alto) continue;
+
+                var _o = _idsala[_ny * _mapa.ancho + _nx];
+                if (_o >= 0 && _o != _s) variable_struct_set(_vecinas[_s], string(_o), true);
+            }
+        }
+    }
+
+    // Entrada: la sala que contiene el punto de partida.
+    var _entrada = _idsala[_iy * _mapa.ancho + _ix];
+
+    // Jefe: la sala alcanzable más lejana EN EL GRAFO.
+    var _jefe = _entrada;
+    for (var _s = 0; _s < _nsalas; _s++)
+        if (_dsala[_s] > _dsala[_jefe]) _jefe = _s;
+
+    // Tesoros: hojas (grado 1) que no son ni la entrada ni el jefe.
+    // Una hoja es un desvío: el jugador que la encuentra ha elegido explorar.
+    var _tesoros = [];
+    for (var _s = 0; _s < _nsalas; _s++)
+    {
+        if (_s == _entrada || _s == _jefe) continue;
+        if (array_length(variable_struct_get_names(_vecinas[_s])) == 1)
+            array_push(_tesoros, _s);
+    }
+
+    // Tienda: en el camino principal, a un 60 % del recorrido. Ni al empezar
+    // (no hay dinero) ni pegada al jefe (no da tiempo a usar lo comprado).
+    var _objetivo = _dsala[_jefe] * 0.6;
+    var _tienda   = -1;
+    var _mejor    = infinity;
+    for (var _s = 0; _s < _nsalas; _s++)
+    {
+        if (_s == _entrada || _s == _jefe) continue;
+        if (array_length(variable_struct_get_names(_vecinas[_s])) < 2) continue;  // no hoja
+        var _e = abs(_dsala[_s] - _objetivo);
+        if (_e < _mejor) { _mejor = _e; _tienda = _s; }
+    }
+
+    return {
+        entrada: _entrada,
+        jefe: _jefe,
+        tienda: _tienda,
+        tesoros: _tesoros,
+        distancias_sala: _dsala
+    };
+}
+```
+
+### 7.4.4 Las tres trampas del reparto
+
+**Una llave nunca detrás de su propia puerta.** En cuanto cierras una sala con una llave, todo el
+reparto se vuelve un problema de orden. La regla mínima: la llave se coloca en una sala cuya
+distancia sea **estrictamente menor** que la de la puerta que abre, midiendo sobre el grafo *con
+la puerta cerrada*. Si generas varias llaves, calcula las distancias de nuevo tras colocar cada
+puerta; reutilizar el `_dist` inicial es exactamente cómo se producen las mazmorras imposibles.
+
+**Un `-1` no es una distancia grande, es una sala inalcanzable.** El código de arriba las excluye
+porque compara con `_dsala[_jefe]` partiendo de la entrada, pero si ordenas salas por distancia
+en otro sitio, un `-1` se cuela como la más cercana. Una sala inalcanzable es siempre un bug del
+ensamblaje: detéctalo y **rechaza el nivel** (§1.2), no lo parchees repartiendo papeles en una
+zona a la que nadie puede llegar.
+
+**El jefe más lejano puede ser una sala minúscula.** El algoritmo elige por distancia, no por
+tamaño, y una arena de jefe de 5×5 celdas no funciona. Filtra: entre las salas del último cuartil
+de distancia, quédate con la más grande. Es una línea más y evita el clásico jefe encajonado:
+
+```gml
+// Jefe: la sala más GRANDE dentro del cuartil más lejano.
+var _corte = _dsala[_jefe] * 0.75;
+var _mejor_area = -1;
+for (var _s = 0; _s < _nsalas; _s++)
+{
+    if (_dsala[_s] < _corte) continue;
+    var _p = _mapa.colocadas[_s].pieza;
+    var _area = _p.ancho * _p.alto;
+    if (_area > _mejor_area) { _mejor_area = _area; _jefe = _s; }
+}
+```
 
 ---
 

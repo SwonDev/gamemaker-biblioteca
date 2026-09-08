@@ -44,40 +44,92 @@ Resaltado de sintaxis de GML para Vim y Neovim.
 
 ## 2. Formatear y analizar el código
 
+> **El resumen, antes del detalle.** De las cuatro herramientas de estilo que circulan por el
+> ecosistema, **solo una sirve hoy como puerta automática** —es decir, solo una devuelve un
+> código de salida distinto de 0 cuando encuentra problemas, que es lo único que hace fallar un
+> job de CI o abortar un *commit*. Verificado en vivo el 08-09-2026, leyendo el código fuente
+> publicado de cada una, no sus README:
+>
+> | Herramienta | Estado | ¿Falla con exit ≠ 0? | Veredicto |
+> |---|---|---|---|
+> | **GoboCat** | v0.7.1 · 28-06-2026 | ✅ sí | **La única usable como puerta** |
+> | Gobo | v0.4.0 · 14-10-2024 | ❌ `--check` siempre devuelve 0 | Formatear a mano, no automatizar |
+> | duck | sin *release*, sin *push* desde 06-2025 | ✅ en el código… | …pero no hay binario que instalar |
+> | `@turlututu-games/gml-linter` | v0.0.6 · 25-06-2026 | ❌ siempre 0 | Informativo, nunca como puerta |
+>
+> El job de CI y el *hook* de pre-commit ya escritos con esto están en
+> [`07 · 13 §11`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#11-los-workflows-de-github-actions-que-genera-init).
+
+### GoboCat ★0 · MIT · 2026-07-22 · [repo](https://github.com/EttyKitty/GoboCat)
+
+**Es el que hay que usar.** *Fork* de Gobo (confirmado por el campo `parent` de la API de
+GitHub), más configurable y **mucho más vivo que el original**: última *release* `v0.7.1` del
+28-06-2026, con binarios para `linux-x64`, `macos-arm64`, `macos-x64` y `windows-x64` — el
+original ni siquiera distingue la arquitectura del Mac.
+
+Lo que lo hace utilizable de verdad es que **su `--check` propaga el fallo**. El README lo
+promete y el código lo cumple: `Gobo.Cli/Program.cs` termina con
+`return (isCheckMode && failureCount > 0) ? 1 : 0;`, idéntico en `main` y en la etiqueta
+`v0.7.1` (comprobado en ambas).
+
+```bash
+gobo --check ./scripts     # exit 1 si algo está sin formatear; no toca los archivos
+gobo ./scripts             # formatea in situ
+```
+
+Configuración en **`.goborc.json`**, que busca hacia arriba desde el archivo tratado. 12 claves
+documentadas: `useTabs`, `tabWidth`, `flatExpressions`, `multilineStructs`, `multilineArrays`,
+`multilineTernary`, `multilineArguments`, `multilineConstructors`, `multilineChainedMethods`,
+`blankLineAfterBlocks`, `explicitUndefined`. Ignora por su cuenta `node_modules`, `extensions`,
+`.git`, `.svn`, `prefabs`, `bin` y `obj` (comprobado en `Program.cs`, no solo en el README).
+
+📁 `11 - Código descargado/librerias/depuracion/GoboCat/`
+
+> ⚠️ **Fija la versión.** Su propio README avisa: *«GoboCat is in active development. Options
+> and behaviors change weekly. For stability, use older versions or the original Gobo»*. En CI,
+> descarga un *tag* concreto (`v0.7.1`), nunca `latest`: un formateador que cambia de opinión
+> entre dos *commits* convierte tu puerta de estilo en ruido.
+
 ### Gobo ★33 · MIT · 2025-11-21 · [repo](https://github.com/Pizzaandy/Gobo)
 
-**Formateador de GML con opinión propia**, al estilo de Prettier. Le pasas el archivo y te lo
-devuelve con un estilo consistente. Se acabó discutir dónde va la llave.
+El original: **formateador de GML con opinión propia**, al estilo de Prettier. Sigue siendo una
+buena herramienta para pasar a mano sobre un proyecto y dejar el estilo consistente, y su
+[formateador web](https://pizzaandy.github.io/Gobo/) permite probarlo sin instalar nada.
 
 📁 `11 - Código descargado/librerias/depuracion/Gobo/`
 
-**Fork con más opciones:** [GoboCat](https://github.com/EttyKitty/GoboCat) (MIT, 2026-07-22) —
-menos dogmático, más configurable.
-📁 `11 - Código descargado/librerias/depuracion/GoboCat/`
+> ⚠️ **No sirve como puerta de CI: su `--check` devuelve 0 pase lo que pase.** Verificado en el
+> código fuente de la *release* real, no deducido: la ruta de `--check` imprime los archivos mal
+> formateados y termina igualmente con éxito. Un job que lo use pasará siempre en verde aunque
+> el repositorio entero esté sin formatear — que es peor que no tener puerta, porque da una
+> falsa sensación de cobertura. Su última *release* es la `v0.4.0` de octubre de 2024 y el
+> README no documenta la CLI. Para automatizar, GoboCat.
 
 ### duck ★14 · Apache-2.0 · 2025-06-05 · [repo](https://github.com/imlazyeye/duck)
 
 **Analizador estático de GML**: aplica reglas de estilo y detecta errores antes de compilar.
-Complementa a Feather, no lo sustituye.
+Complementa a Feather, no lo sustituye. La idea es buena y el código está bien hecho — su
+`cli/main.rs` sí devuelve `1` ante *warnings*, *denials* o errores, así que como puerta
+funcionaría.
+
 📁 `11 - Código descargado/librerias/depuracion/duck/`
 
-> ⚠️ **Su propio README lo marca como inestable y sin publicar**: *«duck is not yet released
-> and is unstable! An announcement will be made when 0.1.0 is released»*, y el badge de versión
-> de GameMaker que declara compatible es **`2022.3.0.497`** — muy anterior a LTS 2026.0.0.23.
-> Sin *push* desde 2025-06-05 (más de un año a fecha de esta verificación, 07-09-2026): no está
-> archivado, pero tampoco hay señal de que el 0.1.0 prometido haya llegado. Sirve para explorar
-> `duck run` / `duck help` en un proyecto de prueba, no para depender de él como puerta de CI
-> sin volver a comprobar su estado primero.
+> ⚠️ **No se puede instalar.** El README lo marca como inestable y sin publicar (*«duck is not
+> yet released and is unstable! An announcement will be made when 0.1.0 is released»*), y la
+> API de GitHub confirma que **no tiene ni una sola *release* ni una sola etiqueta**. Sin
+> *push* desde el 05-06-2025 — quince meses a fecha de esta verificación (08-09-2026). El
+> badge de compatibilidad que declara es `2022.3.0.497`, cuatro años anterior a LTS 2026.
 >
-> **Gobo**, en cambio, no documenta su CLI en el README (solo enlaza un
-> [formateador web](https://pizzaandy.github.io/Gobo/) para probar) — se distribuye como
-> binario autocontenido compilado con Native AOT/.NET 8, así que la sintaxis exacta de línea de
-> comandos hay que sacarla de `gobo --help` tras descargar el binario de
-> [Releases](https://github.com/Pizzaandy/Gobo/releases), no de este catálogo.
+> 🛑 **`cargo install duck` NO instala esta herramienta.** El nombre `duck` en crates.io está
+> ocupado desde 2017 por un paquete de otro autor, sin relación alguna con esto. Ejecutar ese
+> comando te deja un binario ajeno en el PATH con el nombre que esperabas — la clase de error
+> que luego se diagnostica fatal. La única vía real es clonar el repositorio y compilarlo con
+> `cargo build --release`, asumiendo que compilas código sin *release* de hace más de un año.
 
-> 💡 **Antes de instalar ninguno de los dos**, activa **Feather** (viene activado por defecto
+> 💡 **Antes de instalar ninguna de ellas**, activa **Feather** (viene activado por defecto
 > en LTS 2026) y configura sus *reglas de nomenclatura* en Preferencias. Cubre buena parte de
-> lo que hacen estas herramientas, sin dependencias.
+> lo que hacen estas herramientas, sin dependencias — y es lo único de esta lista que YoYo
+> mantiene.
 
 ---
 
