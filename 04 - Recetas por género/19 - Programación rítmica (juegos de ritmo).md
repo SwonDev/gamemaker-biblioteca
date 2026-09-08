@@ -5,6 +5,19 @@
 >
 > **Hueco detectado** al cruzar el [catálogo de tutoriales del foro](../07%20-%20Ecosistema/16%20-%20Cat%C3%A1logo%20de%20la%20secci%C3%B3n%20Tutorials%20del%20foro.md)
 > con esta biblioteca. Mecanismo verificado contra el manual LTS 2026.
+>
+> **Corrección del 8 de septiembre de 2026**: las funciones del conductor
+> (`conductor_arrancar`, `conductor_error`, `conductor_juzgar`) vivían declaradas dentro del
+> `Create` de `obj_conductor`. Eso compilaba limpio y reventaba en tiempo de ejecución en cuanto
+> **otro** objeto las llamaba — mismo mensaje que la Trampa 4 de
+> [`12 · 09`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-4--el-compilador-no-detecta-una-función-inventada-ni-una-variable-sin-declarar)
+> (`Variable X.Y(...) not set before reading it`), pero por una causa distinta: la función sí
+> existe, solo que no donde el compilador la busca. Movidas a un script (`scr_conductor.gml`);
+> el porqué está en §1. Encontrado y verificado en vivo — compilar, ejecutar y volver a
+> compilar tras el arreglo — en
+> [`_indice/auditorias/r8-prueba-ritmo.md` §5.1](../_indice/auditorias/r8-prueba-ritmo.md#51--hallazgo-nuevo-el-central-de-esta-auditoría-las-funciones-del-conductor-no-son-globales).
+> La misma sesión midió también la deriva real de `audio_sound_get_track_position()` en pausa y
+> reproducción activa: números corregidos en la tabla de trampas, al final de este documento.
 
 ---
 
@@ -40,7 +53,7 @@ var _beats = _seg * (bpm / 60);
 Un solo objeto persistente lleva el tiempo. Todo lo demás le pregunta a él.
 
 ```gml
-/// obj_conductor · Create
+/// obj_conductor · Create — solo variables, ninguna función (ver el aviso de abajo)
 bpm          = 128;
 seg_por_beat = 60 / bpm;
 offset       = 0;      // desfase del primer beat dentro del archivo (segundos)
@@ -48,20 +61,65 @@ offset       = 0;      // desfase del primer beat dentro del archivo (segundos)
 musica       = -1;
 beat_actual  = -1;     // último beat entero que ya se ha anunciado
 posicion     = 0;      // en beats, con decimales
+pausado      = false;  // ver conductor_pausar()/conductor_reanudar(), más abajo
+```
 
+> ⚠️ **Las funciones del conductor van en un script, no en este `Create`.** Un
+> `function nombre() {...}` declarado dentro de un evento no registra un identificador global:
+> queda ligado a `self` como una **variable más de esa instancia** (el mismo mecanismo que hace
+> que [`method()`](../08%20-%20Referencia%20GML%20completa/15%20-%20Structs%20-%20funciones.md)
+> diga «crea una función ligada a un ámbito concreto, de modo que dentro de ella `self` apunta a
+> ese ámbito»). Por eso `obj_conductor` puede llamarse a sí mismo sin problema —`self` ya es
+> él—, pero **cualquier otro objeto** que la llame sin cualificar revienta en tiempo de
+> ejecución con `Variable obj_x.conductor_arrancar(...) not set before reading it`: compila
+> limpio (la Trampa 4 de `12 · 09` no distingue «no existe» de «no es tuya»), y solo se ve
+> jugando. Declarar una función dentro de un evento **es legítimo** cuando solo la va a usar esa
+> misma instancia — el patrón *controller singleton* de uso interno—; en cuanto otro objeto
+> necesite llamarla, como es el caso aquí («todo lo demás le pregunta a él»), tiene que vivir en
+> un script, donde sí queda registrada como global desde el primer fotograma.
+
+```gml
+/// scr_conductor.gml — llamables desde cualquier objeto del juego
 function conductor_arrancar(_sonido, _bpm, _offset = 0) {
-    bpm          = _bpm;
-    seg_por_beat = 60 / _bpm;
-    offset       = _offset;
-    beat_actual  = -1;
-    musica       = audio_play_sound(_sonido, 10, false);
-    return musica;
+    with (obj_conductor) {
+        bpm          = _bpm;
+        seg_por_beat = 60 / _bpm;
+        offset       = _offset;
+        beat_actual  = -1;
+        pausado      = false;
+        musica       = audio_play_sound(_sonido, 10, false);
+        return musica;
+    }
+}
+
+function conductor_pausar() {
+    with (obj_conductor) {
+        if (musica != -1) {
+            audio_pause_sound(musica);
+            pausado = true;
+        }
+    }
+}
+
+function conductor_reanudar() {
+    with (obj_conductor) {
+        if (musica != -1) {
+            audio_resume_sound(musica);
+            pausado = false;
+        }
+    }
 }
 ```
 
+> 💡 **El `with (obj_conductor)` no es opcional dentro de un script.** Al mover el cuerpo de un
+> evento a un script, `self` dentro de la función pasa a ser quien la llame, no ya
+> `obj_conductor` — sin el `with`, `conductor_arrancar()` llamada desde `obj_juego` escribiría
+> `bpm`, `musica`… en `obj_juego`, no en el conductor. Es el mismo patrón que ya usan
+> `conductor_error()`/`conductor_juzgar()` en el §2 de abajo, aplicado también aquí.
+
 ```gml
 /// obj_conductor · Step
-if (musica == -1 || !audio_is_playing(musica)) exit;
+if (musica == -1 || !audio_is_playing(musica) || pausado) exit;
 
 var _seg  = audio_sound_get_track_position(musica) - offset;
 posicion  = _seg / seg_por_beat;              // 3.25 = un cuarto después del beat 3
@@ -91,8 +149,12 @@ if (_entero > beat_actual) {
 El jugador nunca acierta exactamente. Lo que mides es **cuánto se ha desviado**, y decides con
 qué tolerancia lo perdonas.
 
+**Estas dos funciones también van en `scr_conductor.gml`** (continuación del script de §1), no
+en ningún evento — por la misma razón: las va a llamar `obj_nota`, la UI de puntuación, quien
+sea, nunca solo `obj_conductor`.
+
 ```gml
-/// devuelve el error respecto al beat más cercano, en beats
+/// scr_conductor.gml (continuación) — devuelve el error respecto al beat más cercano, en beats
 /// 0 = clavado · -0.1 = un pelín pronto · +0.1 = un pelín tarde
 function conductor_error() {
     with (obj_conductor) {
@@ -150,9 +212,10 @@ if (tecla_pulsada) {
 ```
 
 Y a partir de ahí, todo juicio la descuenta — **este bloque REEMPLAZA al `conductor_error()` de
-§2**, mismo nombre, no lo declares dos veces:
+§2 dentro de `scr_conductor.gml`**, mismo nombre, no lo declares dos veces en el mismo script:
 
 ```gml
+/// scr_conductor.gml — sustituye a la versión de §2
 function conductor_error() {
     with (obj_conductor) {
         var _p = posicion - (global.latencia / seg_por_beat);
@@ -243,7 +306,25 @@ x = x_meta + _restan * (ancho_pantalla / BEATS_DE_VIAJE);
 | Acumular `x -= vel` en las notas | Cada fotograma perdido desincroniza permanentemente |
 | No tener calibración de latencia | Roto para todo el que juegue con Bluetooth |
 | Olvidar el `offset` del archivo | Casi ningún MP3 empieza en el beat 0 |
-| `audio_pause_sound` sin recalcular | Al reanudar, el reloj vuelve pero el juego no |
+| `function` del conductor declarada en un evento, llamada desde otro objeto | Compila limpio; revienta en `gm-cli run` (`Variable X.Y(...) not set before reading it`) — muévela a `scr_conductor.gml`, ver §1 |
+| Pausar sin guardar el estado `pausado` | Ver el matiz medido justo debajo — no es tan grave como suena, pero hay que escribir el guardia |
+
+> 📏 **`audio_pause_sound` sin recalcular, medido, no solo advertido**: `audio_is_playing()`
+> sigue devolviendo `true` con el sonido en pausa —lo dice el propio manual—, así que sin el
+> flag `pausado` de §1 el conductor seguiría intentando actualizar `posicion` cada fotograma.
+> Con el guardia puesto (`if (... || pausado) exit;`), medido en tres ejecuciones automáticas
+> reales ([`_indice/auditorias/r8-prueba-ritmo.md` §5.3](../_indice/auditorias/r8-prueba-ritmo.md#53--trampa-propia-del-audio-sincronizado-verificada-midiendo-pausar-y-reanudar)
+> y [§8](../_indice/auditorias/r8-prueba-ritmo.md#8--mis-mediciones-de-sincronía--datos-reales-no-descripciones)):
+> la pausa congela `posicion` **exacta**, sin ni un milisegundo de deriva durante los 2 s que
+> duró la pausa, y al reanudar **no hay salto** — la próxima lectura continúa justo donde se
+> quedó. Sobre reproducción activa (sin pausar), la deriva acumulada de
+> `audio_sound_get_track_position()` frente al cálculo teórico fue de **7-12 ms en 7 s** de
+> canción (≈0,1 %), y la resolución observada fue de un fotograma (~16-17 ms a 60 fps) — ambas
+> muy por debajo de la ventana «perfecto» (±37 ms a 128 BPM). **El aviso original de esta tabla
+> era más alarmista que la realidad**: el reloj no se desincroniza al pausar; lo que hace falta,
+> y que este documento no escribía en código hasta esta corrección, es guardar el estado
+> `pausado` (§1) y comprobarlo antes de tocar `posicion` — sin ese guardia explícito, nada
+> garantiza que una futura versión del runtime siga sin recalcular nada durante la pausa.
 
 ---
 

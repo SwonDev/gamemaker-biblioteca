@@ -1057,7 +1057,6 @@ for (var _i = array_length(retratos) - 1; _i >= 0; _i--)
     var _r = retratos[_i];
 
     _r.alpha_actual = lerp(_r.alpha_actual, _r.alpha_objetivo, 0.15);
-    // GML no tiene operador "??": inicializa el campo al crear el struct.
     _r.escala       = lerp(_r.escala, _r.escala_objetivo, 0.15);
 
     // Eliminar los que ya son invisibles del todo

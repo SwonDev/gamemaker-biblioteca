@@ -83,6 +83,43 @@ Este script tiene TRES capas, de más barata a más cara:
      No corre en cada `actualizar.py`: tarda minutos, no segundos, y necesita el
      instalador de GameMaker. Es un paso manual, documentado aquí y en `AGENTS.md`.
 
+  4. FUNCIÓN DECLARADA EN EL EVENTO DE UN OBJETO, LLAMADA DESDE OTRO OBJETO (estática,
+     unos segundos, AVISO no bloqueante). `04 · 19` definía `conductor_arrancar()`,
+     `conductor_error()` y `conductor_juzgar()` dentro del `Create` de `obj_conductor`:
+     compilaba limpio y reventaba en tiempo de ejecución («Variable X.Y(...) not set
+     before reading it») en cuanto CUALQUIER otro objeto los llamaba sin cualificar — un
+     `function nombre() {...}` declarado dentro de un evento queda ligado a `self` como
+     una variable más de esa instancia, nunca como identificador global (eso solo pasa si
+     vive en un script). Encontrado por `_indice/auditorias/r8-prueba-ritmo.md`, y al
+     buscarlo a mano por el resto de la biblioteca aparecieron 7 recetas más con el mismo
+     patrón (ver esa auditoría y el historial de `git log` de este fichero para el
+     recuento completo). Esta capa reutiliza el mismo rastreo de ámbito de la capa 1
+     (`indice_de_ambitos`/`ambito_en`) para saber, de cada `function` declarada con un
+     objeto concreto en su cabecera, DÓNDE se llama después dentro del MISMO documento —
+     nunca entre documentos distintos: son recetas independientes, y cruzarlas explotaría
+     en falsos positivos por nombres genéricos reutilizados a propósito (`ejecutar`,
+     `item`…), el mismo problema que ya evita `DIRS_INCLUIDAS` en la capa 1.
+     Una llamada NO se avisa si:
+       - ocurre dentro del MISMO ámbito donde se declaró (uso interno legítimo, el
+         patrón *controller singleton*: `conductor_error()` llamada desde otro evento del
+         propio `obj_conductor`);
+       - está cualificada con punto (`obj_camera.set_target(...)`): quien escribe el
+         código ya decidió explícitamente a qué instancia llama, no hay ambigüedad que
+         `self` pueda resolver mal;
+       - ocurre dentro de un `with (obj_x) { ... }` cuyo objetivo es el mismo objeto
+         donde se declaró la función (`with (obj_transicion) { ir_a(rm_nivel_2); }`,
+         `01 · 10` §9): dentro del bloque, `self` YA es esa instancia, así que la llamada
+         sin cualificar es exactamente tan segura como si viviera en un script.
+     Lo que esta capa NO puede verificar solo con texto, y por eso es AVISO y no bloqueo:
+     la herencia con `event_inherited()` (el patrón *Subclass Sandbox* de `13 · 23`, o
+     `obj_enemigo`/`obj_jugador` heredando de `obj_entidad` en `01 · 09`) hace que una
+     función declarada en el padre SÍ sea alcanzable sin cualificar desde el hijo — pero
+     detectarlo con fiabilidad exigiría entender la jerarquía real de objetos del
+     proyecto, no solo grep sobre texto. Los casos ya verificados a mano quedan en
+     `EXCEPCIONES_LLAMADAS_EXTERNAS`, con la misma disciplina que las otras dos listas de
+     excepciones de este fichero: si aparece un caso NUEVO no listado, revísalo a mano
+     antes de silenciarlo — la regla dura de siempre es que, ante la duda, es bug.
+
 FRONTERA: LO QUE ESTE SCRIPT NO PUEDE VER, CON EJEMPLOS REALES
     Las tres capas de arriba comparan NOMBRES y SINTAXIS: mismo identificador, misma
     aridad, misma global sin escribir, mismo proyecto que no compila. Ninguna de las tres
@@ -178,13 +215,14 @@ FRONTERA: LO QUE ESTE SCRIPT NO PUEDE VER, CON EJEMPLOS REALES
     nombres por similitud textual.
 
 USO
-    python3 _indice/validar-integracion.py              # capas 1 y 2 (unos segundos)
+    python3 _indice/validar-integracion.py              # capas 1, 2 y 4 (unos segundos)
     python3 _indice/validar-integracion.py --compilar    # + capa 3, TODOS los grupos
     python3 _indice/validar-integracion.py --compilar --grupo guardado
     python3 _indice/validar-integracion.py --compilar --keep   # no borra el proyecto temporal
 
 Sale con 0 si no hay ninguna duplicación 🔴 GRAVE (capas 1 y 2 nunca bloquean por sí
-solas más que por eso) y, con `--compilar`, si además todos los grupos compilan juntos.
+solas más que por eso; capa 4 avisa pero no bloquea, ver su docstring) y, con
+`--compilar`, si además todos los grupos compilan juntos.
 """
 import argparse
 import importlib.util
@@ -228,6 +266,20 @@ def _cargar_validar_compilacion_docs():
 # exactamente el alcance que usó la propia auditoría r5 (ver su método, paso 2).
 DIRS_INCLUIDAS = {"04 - Recetas por género", "13 - Diseño y producción de videojuegos",
                    "06 - Assets y Scripts"}
+
+# La capa 4 (función declarada en un evento, llamada desde OTRO objeto) es distinta: es
+# un análisis DENTRO de cada documento, nunca entre documentos — así que el problema de
+# "nombres de ejemplo repetidos a propósito" de arriba no se aplica (`item` en el
+# documento A nunca se compara contra `item` en el documento B). Puede permitirse un
+# alcance mucho más amplio sin ruido extra: toda la biblioteca de contenido propio,
+# excepto el espejo del manual oficial (`09`, no es código nuestro), el código
+# descargado de terceros (`11`, no son recetas de esta biblioteca) y los índices.
+DIRS_INCLUIDAS_LLAMADAS = {
+    "01 - Fundamentos", "02 - Novedades 2026", "03 - Cursos (YouTube)",
+    "04 - Recetas por género", "05 - Referencia", "06 - Assets y Scripts",
+    "07 - Ecosistema", "08 - Referencia GML completa", "10 - Cursos en español",
+    "12 - Utilidades e integraciones", "13 - Diseño y producción de videojuegos",
+}
 
 FENCE = re.compile(r"```gml\n(.*?)```", re.S)
 
@@ -437,6 +489,42 @@ EXCEPCIONES_GLOBALS_LECTOR = {
 
 
 # ---------------------------------------------------------------------------
+# Capa 4 — función declarada en el evento de un objeto, llamada desde OTRO objeto sin
+# `with()` ni cualificación de punto. Verificados a mano, uno por uno, los únicos casos
+# de la biblioteca donde eso pasa y NO es un bug: herencia real con `event_inherited()`.
+# Misma disciplina que las dos listas de arriba: si aparece un nombre nuevo aquí sin que
+# puedas justificar por qué la instancia SIEMPRE tiene la función (jerarquía de objetos
+# verificada, no una suposición), es casi seguro que es un bug real — arréglalo en el
+# documento, no lo silencies aquí.
+# ---------------------------------------------------------------------------
+EXCEPCIONES_LLAMADAS_EXTERNAS = {
+    # Subclass Sandbox (13 · 23 §3.3): obj_habilidad_dash/obj_habilidad_gancho llaman a
+    # empujar()/invocar_particulas()/reproducir_sonido()/ejecutar() declaradas en el
+    # Create de obj_habilidad_base — y cada hija llama a `event_inherited();` en su
+    # propio Create, así que las cuatro SÍ son variables de instancia de la hija también,
+    # no solo del padre. Verificado leyendo las tres declaraciones de objeto del
+    # documento: las tres llaman a event_inherited().
+    "empujar": {"13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md"},
+    "invocar_particulas": {"13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md"},
+    "reproducir_sonido": {"13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md"},
+    "ejecutar": {"13 - Diseño y producción de videojuegos/23 - Catálogo de patrones en GML.md"},
+    # 01 · 09 §13: obj_enemigo (y sus hijos obj_slime/obj_murcielago/obj_jefe) y
+    # obj_jugador heredan recibir_danio()/al_morir() de obj_entidad por la misma vía:
+    # cada uno llama a event_inherited() en su propio Create. obj_jugador se corrigió
+    # el 2026-09-08 para dejarlo explícito en el árbol de herencia del documento — antes
+    # de esa corrección, la instancia sí revenía (mismo bug, verificado leyendo el texto
+    # anterior a la corrección; no era una excepción legítima hasta que se arregló).
+    "recibir_danio": {"01 - Fundamentos/09 - Instancias, objetos y herencia.md"},
+    "al_morir": {"01 - Fundamentos/09 - Instancias, objetos y herencia.md"},
+    # 04 · 12 §2: objPlayerCar/objAICar son hijos de objVehicle (jerarquía en §2) y
+    # objAICar llama a event_inherited() en su Create — leer_terreno() (declarada en el
+    # Create de objVehicle, corregido el 2026-09-08 para decir explícitamente
+    # "Create (añadir)" y evitar que se confunda con el Step) queda heredada.
+    "leer_terreno": {"04 - Recetas por género/12 - Carreras y vehículos.md"},
+}
+
+
+# ---------------------------------------------------------------------------
 # Capa 1 y 2 — extracción estática
 # ---------------------------------------------------------------------------
 
@@ -522,7 +610,34 @@ def normalizar_cuerpo(texto):
 # más cercano nombrado en un comentario de cabecera («// objX — Evento», «/// obj_x
 # · Create»…) ANTES de la declaración, y solo compara aridad/cuerpo entre
 # ocurrencias que comparten ámbito (el mismo objeto, o ninguno — scripts sueltos).
-OBJETO_EN_CABECERA = re.compile(r"\bobj(?:_\w+|[A-Z]\w*)\b")
+# ANCLADO al principio de la línea (tras el marcador `//`/`///` y adornos típicos de
+# separador: espacios, guiones, `═`/`─` de caja, flechas, viñetas, `=`) — a propósito,
+# NO en cualquier parte de la línea. Encontrado en vivo el 2026-09-08 preparando la
+# capa 4 (ver más abajo): con `\b...\b` sin anclar, un comentario de una sola línea que
+# solo MENCIONA un objeto de pasada — `// El retorno a 1.0 es automático por el lerp de
+# objTime` (04 · 15), en mitad del cuerpo de `time_slow()` — se leía como si abriera el
+# ámbito «objTime», y la declaración de `time_delta()` que venía después, en la MISMA
+# `scr_time`, heredaba ese ámbito falso en vez de quedarse en `None` (script). Anclarlo
+# exige que el nombre del objeto sea la PRIMERA palabra de la cabecera, que es como se
+# escriben las cabeceras reales en toda la biblioteca (`/// obj_conductor · Create`,
+# `// objCamera — Create`, `// ═══════════ obj_entidad (Create) — PADRE BASE ═══════`),
+# y ya no se confunde con una mención al pasar en mitad de una frase.
+#
+# SEGUNDO refinamiento, mismo día: anclar al principio de línea no basta cuando el
+# nombre del objeto cae al principio de una línea de CONTINUACIÓN de un `@desc` largo
+# partido en varias líneas `///` — cada una empieza igual de "al principio de línea"
+# que una cabecera real. Caso real: `estructura_derrumbar()` (04 · 51) tiene
+# `/// @desc Destruye y suelta... — mismo patrón de\n///       objItemDrop que 04 · 09
+# §5.2 romper()...`: la SEGUNDA línea, sangrada, empieza con `objItemDrop` tras solo
+# espacios — pasaba el ancla de arriba igual que una cabecera real. La señal que sí
+# distingue una cabecera real de una mención cualquiera (anclada o no): en TODA cabecera
+# real de esta biblioteca, el nombre del objeto va seguido de inmediato — con, como
+# mucho, un espacio de por medio — de un separador de etiqueta (`·`, `—`, `-`, `(`, `:`);
+# una mención dentro de una frase sigue con una palabra normal («que», «no», «es»…) o
+# con el fin de línea. Por eso exige ese separador nada más terminar el nombre.
+OBJETO_EN_CABECERA = re.compile(
+    r"^[ \t]*/{2,3}[ \t\-─═►▶·•=_]*(obj(?:_\w+|[A-Z]\w*))(?=[ \t]*[·—:(-])"
+)
 SCRIPT_EN_CABECERA = re.compile(r"\bscr_\w+\b")
 LINEA_COMENTARIO = re.compile(r"^[ \t]*//[^\n]*$", re.M)
 
@@ -530,13 +645,23 @@ LINEA_COMENTARIO = re.compile(r"^[ \t]*//[^\n]*$", re.M)
 def indice_de_ambitos(original):
     """Lista ordenada de (posición, objeto_o_None) — cada comentario de cabecera
     que nombra un obj_X/objX abre ese ámbito; uno que nombra un scr_X (o cualquier
-    otro comentario sin objeto) lo cierra de vuelta a "sin ámbito" (script/global)."""
-    eventos = []
+    otro comentario sin objeto) lo cierra de vuelta a "sin ámbito" (script/global).
+
+    Cada bloque ```gml NUEVO empieza sin heredar el ámbito del bloque anterior: si no
+    repite su propia cabecera `obj_x`, no hay ninguna razón para asumir que sigue
+    perteneciendo al mismo objeto que el bloque previo — es exactamente el caso de un
+    `/// @func nombre(...)` de propósito general que aparece justo después del ejemplo
+    de un objeto (p.ej. `girar_hacia()` en `13 · 13` §3.2, declarada sin cabecera de
+    objeto justo tras el bloque de `obj_bala` de §2.4: sin este reinicio, capa 4 la
+    creía "de obj_bala" y avisaba de un falso cruce con `obj_torreta`, que sí la llama —
+    correctamente, porque es una función de ángulos de propósito general). Esto no
+    afecta a un `.gml` suelto (sin fences): ahí no hay bloques que reiniciar."""
+    eventos = [(m.start(1), None) for m in FENCE.finditer(original)]
     for m in LINEA_COMENTARIO.finditer(original):
         linea = m.group(0)
-        om = OBJETO_EN_CABECERA.search(linea)
+        om = OBJETO_EN_CABECERA.match(linea)
         if om:
-            eventos.append((m.start(), om.group(0)))
+            eventos.append((m.start(), om.group(1)))
         elif SCRIPT_EN_CABECERA.search(linea):
             eventos.append((m.start(), None))
     eventos.sort(key=lambda e: e[0])
@@ -678,6 +803,71 @@ def extraer_declaraciones(doc_rel, original, es_gml_suelto):
     return funciones, macros, enums, visible, limpio
 
 
+# ---------------------------------------------------------------------------
+# Capa 4 — llamadas: dónde se INVOCA cada función, no dónde se declara.
+# ---------------------------------------------------------------------------
+
+# Palabras reservadas de GML que aparecen como `palabra (` y no son una llamada a una
+# función con ese nombre (control de flujo, declaraciones). `with` se procesa aparte
+# (ver WITH_RE) porque sí nos interesa su argumento, solo que no como "llamada".
+PALABRAS_CLAVE_GML = {
+    "if", "else", "while", "for", "switch", "case", "catch", "repeat", "do",
+    "return", "function", "with", "new", "throw", "try", "finally", "break",
+    "continue", "exit", "static", "var", "enum", "constructor",
+}
+
+# `nombre(` que NO esté precedido de un punto (`obj_x.nombre(` ya es una llamada
+# explícita a esa instancia: nunca ambigua, capa 4 no la toca) ni de otro carácter de
+# identificador (evita capturar solo el sufijo de un nombre más largo).
+LLAMADA_RE = re.compile(r"(?<![.\w])([A-Za-z_]\w*)\s*\(")
+# `with (obj_x) { ... }` — dentro de las llaves, `self` YA es esa instancia: una función
+# declarada en el Create de obj_x es alcanzable sin cualificar ahí dentro, tan segura
+# como si viviera en un script. Exige la llave de apertura en la misma expresión (con,
+# como mucho, un salto de línea entremedias) — es el estilo que usa toda la biblioteca.
+WITH_RE = re.compile(r"\bwith\s*\(\s*([A-Za-z_]\w*)\s*\)\s*\n?\s*\{")
+
+
+def extraer_llamadas(limpio, ambitos):
+    """Recorre `limpio` (comentarios/cadenas ya en blanco, MISMA longitud que el
+    original — así que sus posiciones sirven directamente para `ambito_en`) en una sola
+    pasada y devuelve una lista de dicts `{nombre, pos, linea, ambito, with_activos}`
+    para cada llamada `nombre(...)` real: `ambito` es el objeto (o None) bajo cuya
+    cabecera ocurre la llamada; `with_activos` es el conjunto de objetos de todos los
+    `with (obj_x) { ... }` que envuelven esa posición en ese momento del recorrido."""
+    with_por_llave = {m.end() - 1: m.group(1) for m in WITH_RE.finditer(limpio)}
+
+    llamadas = []
+    with_stack = []       # (profundidad_en_la_que_se_abrió, nombre_objeto)
+    profundidad = 0
+    patron = re.compile(r"[{}]|(?<![.\w])([A-Za-z_]\w*)\s*\(")
+    for m in patron.finditer(limpio):
+        pos = m.start()
+        primero = limpio[pos]
+        if primero == "{":
+            if pos in with_por_llave:
+                with_stack.append((profundidad, with_por_llave[pos]))
+            profundidad += 1
+        elif primero == "}":
+            profundidad -= 1
+            while with_stack and with_stack[-1][0] >= profundidad:
+                with_stack.pop()
+        else:
+            nombre = m.group(1)
+            if nombre in PALABRAS_CLAVE_GML:
+                continue
+            # excluir declaraciones (`function nombre(`): no son una llamada
+            previo = limpio[max(0, pos - 24):pos]
+            if re.search(r"\bfunction\s*$", previo):
+                continue
+            llamadas.append(dict(
+                nombre=nombre, pos=pos,
+                linea=limpio.count("\n", 0, pos) + 1,
+                ambito=ambito_en(pos, ambitos),
+                with_activos={w[1] for w in with_stack},
+            ))
+    return llamadas
+
+
 GLOBAL_REF = re.compile(r"\bglobal\.([A-Za-z_]\w*)")
 GLOBAL_ESCRITURA = re.compile(r"\s*(\+\+|--|\?\?=|[+\-*/]?=(?!=))")
 
@@ -728,6 +918,66 @@ def documentos():
                 rel = os.path.relpath(fp, RAIZ)
                 docs.append((rel, txt, f.endswith(".gml")))
     return docs
+
+
+def documentos_llamadas():
+    """Como `documentos()`, pero con el alcance más amplio de `DIRS_INCLUIDAS_LLAMADAS`
+    (ver su comentario): la capa 4 no sufre el problema de nombres de ejemplo repetidos
+    entre documentos porque nunca compara dos documentos entre sí."""
+    docs = []
+    for base in sorted(DIRS_INCLUIDAS_LLAMADAS):
+        for raiz, dirs, files in os.walk(os.path.join(RAIZ, base)):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            for f in files:
+                if not f.endswith((".md", ".gml")):
+                    continue
+                fp = os.path.join(raiz, f)
+                try:
+                    txt = open(fp, encoding="utf-8", errors="replace").read()
+                except OSError:
+                    continue
+                rel = os.path.relpath(fp, RAIZ)
+                docs.append((rel, txt, f.endswith(".gml")))
+    return docs
+
+
+def capa_4():
+    """Para cada documento, por separado: ¿alguna `function` declarada con un objeto
+    concreto en su cabecera se llama después, sin cualificar y sin un `with()` que la
+    cubra, desde el ámbito de un objeto DISTINTO? Devuelve una lista de avisos
+    `(doc, nombre, decl, llamada)` — ver el docstring de este módulo, sección 4, para
+    qué cuenta como seguro y qué no."""
+    avisos = []
+    for rel, txt, es_gml in documentos_llamadas():
+        funcs, _, _, _, limpio = extraer_declaraciones(rel, txt, es_gml)
+        # Solo nos interesan las declaradas dentro de un objeto concreto: las de
+        # ámbito None ya son scripts (o el propio .gml suelto), llamables desde
+        # cualquier sitio por diseño — no hay nada que avisar ahí.
+        por_nombre = {}
+        for f in funcs:
+            if f["ambito"] is not None:
+                por_nombre.setdefault(f["nombre"], []).append(f)
+        if not por_nombre:
+            continue
+
+        ambitos = indice_de_ambitos(txt)
+        llamadas = extraer_llamadas(limpio, ambitos)
+        llamadas_por_nombre = {}
+        for l in llamadas:
+            llamadas_por_nombre.setdefault(l["nombre"], []).append(l)
+
+        for nombre, decls in por_nombre.items():
+            ambitos_declarados = {d["ambito"] for d in decls}
+            excepcion = EXCEPCIONES_LLAMADAS_EXTERNAS.get(nombre)
+            if excepcion and rel in excepcion:
+                continue
+            for l in llamadas_por_nombre.get(nombre, []):
+                if l["ambito"] in ambitos_declarados:
+                    continue                                   # mismo objeto: uso interno
+                if l["with_activos"] & ambitos_declarados:
+                    continue                                   # with(obj_x) { ... }: self ya es obj_x
+                avisos.append((rel, nombre, decls, l))
+    return avisos
 
 
 def capa_1_y_2():
@@ -850,6 +1100,28 @@ def reportar_capas_1_2():
             print(f"  · {tipo} `{nombre}` — {docs_}")
             print("    → si es intencionado, añade el nombre a EXCEPCIONES_DUPLICADOS en la "
                   "cabecera de este script; si no, enlaza en vez de repetir.")
+
+
+def reportar_capa_4():
+    avisos = capa_4()
+    if not avisos:
+        print("\n✓ Ninguna función declarada en el evento de un objeto parece llamarse "
+              "desde otro objeto sin with()/cualificar (capa 4 — ver docstring §4).")
+        return avisos
+
+    print(f"\n🟣 {len(avisos)} llamada(s) a una función declarada en el evento de OTRO "
+          f"objeto — probable «Variable X.Y(...) not set before reading it» en tiempo de "
+          f"ejecución (revisa a mano; no bloquea el exit code):")
+    for rel, nombre, decls, l in sorted(avisos, key=lambda a: (a[0], a[3]["linea"])):
+        declarada_en = ", ".join(sorted({d["ambito"] for d in decls}))
+        print(f"  ⚠ `{nombre}()` declarada en {declarada_en} ({rel}:{decls[0]['linea']}) "
+              f"— llamada desde {l['ambito'] or 'un script/ámbito sin objeto'} "
+              f"en {rel}:{l['linea']}")
+    print("    → si la instancia que llama SIEMPRE hereda la función con event_inherited() "
+          "(verificado, no supuesto), añade el nombre a EXCEPCIONES_LLAMADAS_EXTERNAS en la "
+          "cabecera de este script; si no, mueve la función a un script (04 · 19 §1 es el "
+          "ejemplo de referencia).")
+    return avisos
 
     if avisos_globals:
         print(f"\n🟠 {len(avisos_globals)} `global.X` leído(s) sin que NINGÚN documento lo escriba:")
@@ -1021,6 +1293,10 @@ def main():
 
     print("\033[1mvalidar-integracion.py\033[0m — capas 1 y 2 (nombres duplicados · global.X sin escribir)")
     graves = reportar_capas_1_2()
+
+    print("\n\033[1mCapa 4\033[0m — función declarada en el evento de un objeto, llamada "
+          "desde otro objeto")
+    reportar_capa_4()   # siempre AVISO: no suma a codigo_salida, ver docstring §4
 
     codigo_salida = 1 if graves else 0
 

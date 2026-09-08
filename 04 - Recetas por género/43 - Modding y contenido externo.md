@@ -634,6 +634,22 @@ descarga_id_actual = -1;
 descarga_mod_id_actual = -1;
 descarga_hash_esperado = "";
 descarga_zip_local = "";
+```
+
+> ⚠️ **`mod_modio_descargar()` va en un script, no en este `Create`.** Es «el flujo del jugador
+> que se suscribe» — lo dispara previsiblemente un botón de una lista de mods, un objeto
+> distinto de `obj_modio_descargas` — y su firma ni siquiera espera un `self` concreto: solo
+> recibe `_mod_id` y qualifica cada acceso como `obj_modio_descargas.campo`, nunca como variable
+> desnuda. Eso demuestra que no necesita depender de dónde se declaró; dejarla en el `Create`
+> solo consigue que cualquier otro objeto que la llame sin cualificar reviente con
+> `Variable X.mod_modio_descargar(...) not set before reading it` — mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+> Los dos callbacks de abajo (`mod_modio_descarga_iniciar`/`_fallo`) sí pueden quedarse aquí: se
+> pasan por **valor** a `modio_mods_get()` (sin paréntesis), así que el motor conserva su `self`
+> original venga de donde venga la llamada — no dependen de cómo se resuelva el identificador.
+
+```gml
+/// scr_modio_descargas.gml
 
 /// @desc Pide la info de un mod y arranca la descarga de su fichero activo.
 ///       Descarga un mod a la vez: para varias descargas en paralelo, encola

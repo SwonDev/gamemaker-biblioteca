@@ -343,11 +343,36 @@ shake_ox = 0;
 shake_oy = 0;
 shake_rot = 0;
 
+// --- Punch direccional ---
+punch_dir  = 0;
+punch_mag  = 0;
+punch_time = 0;
+```
+
+> ⚠️ **`camera_add_trauma()`, `camera_shake()` y `camera_punch()` van en un script, no en
+> este `Create`.** El propio comentario de `camera_shake()` ya dice que es la firma
+> **canónica** de toda la biblioteca — `04 · 01` y `04 · 02` remiten aquí en vez de
+> definir la suya — y este mismo documento la llama después desde `scr_hit_complete`
+> (§5.7), un script, no `objCamera`. Las tres tocan variables de instancia de la cámara
+> (`trauma`, `punch_dir`/`punch_mag`/`punch_time`) sin cualificar, así que necesitan
+> `with (objCamera) { ... }` para seguir funcionando igual venga de donde venga la
+> llamada — sin eso, revientan con `Variable X.camera_shake(...) not set before reading
+> it` en cuanto las llama cualquier objeto que no sea la propia cámara, el mismo
+> mecanismo de [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_camera_feel.gml
+// ---------------------------------------------------------------------------
+
 /// @func camera_add_trauma(_cantidad)
 /// @desc Añade trauma (0..1). Se acumula, con tope en 1.
 function camera_add_trauma(_cantidad)
 {
-    trauma = clamp(trauma + _cantidad, 0, 1);
+    with (objCamera)
+    {
+        trauma = clamp(trauma + _cantidad, 0, 1);
+    }
 }
 
 /// @func camera_shake(_cantidad)
@@ -371,13 +396,13 @@ function camera_shake(_cantidad)
 /// @desc Desplazamiento direccional: la cámara se va hacia el golpe y vuelve.
 function camera_punch(_direccion, _fuerza)
 {
-    punch_dir  = _direccion;
-    punch_mag  = _fuerza;
-    punch_time = 1.0;
+    with (objCamera)
+    {
+        punch_dir  = _direccion;
+        punch_mag  = _fuerza;
+        punch_time = 1.0;
+    }
 }
-punch_dir  = 0;
-punch_mag  = 0;
-punch_time = 0;
 ```
 
 ```gml
@@ -596,6 +621,21 @@ function Tween(
 // objTweenManager — Create (un solo objeto en la room)
 // ---------------------------------------------------------------------------
 tweens = [];
+```
+
+> ⚠️ **`tween_to()` y `tween_cancel_all()` van en un script, no en este `Create`.** Se
+> llaman desde fuera de `objTweenManager` en el resto del documento (§5.3 y siguientes),
+> y las dos ya son autosuficientes sin `self`: `tween_to()` escribe en
+> `objTweenManager.tweens` cualificado con punto, y `tween_cancel_all()` ya usa
+> `with (objTweenManager) {...}` por dentro. No hay ninguna razón para dejarlas ligadas
+> al evento — y si se quedan aquí, cualquier otro objeto que las llame sin cualificar
+> revienta con `Variable X.tween_to(...) not set before reading it`, el mismo mecanismo
+> de [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_tween_manager.gml
+// ---------------------------------------------------------------------------
 
 /// @func tween_to(_target, _prop, _hasta, _duracion, _ease, _on_end)
 /// @desc Crea un tween desde el valor ACTUAL de la propiedad hasta _hasta.
@@ -1490,6 +1530,16 @@ debe temblar Y acercar a la vez, no dos sistemas desincronizados con su propia n
 // ---------------------------------------------------------------------------
 zoom_base       = 1.0;    // el zoom "de reposo" al que siempre vuelve
 zoom_punch_t    = 0;      // 0 = en reposo, 1 = justo en el pico del punch
+```
+
+> ⚠️ **`zoom_punch()` va en `scr_camera_feel.gml` (junto a `camera_shake()`, §5.1), no en
+> este `Create`.** Se llama después desde `scr_hit_complete` (§5.7), un script — la misma
+> razón por la que `camera_shake()`/`camera_add_trauma()`/`camera_punch()` se movieron
+> ahí. Toca `zoom_punch_t`, variable de instancia de la cámara, así que también necesita
+> `with (objCamera) { ... }` para funcionar venga de donde venga la llamada.
+
+```gml
+// scr_camera_feel.gml (continuación)
 
 /// @func zoom_punch(_fuerza)
 /// @desc Acerca la cámara de golpe y la deja volver sola. _fuerza es la MISMA magnitud
@@ -1497,7 +1547,10 @@ zoom_punch_t    = 0;      // 0 = en reposo, 1 = justo en el pico del punch
 ///       dos sistemas a la vez, sin tener que ajustar dos números por separado.
 function zoom_punch(_fuerza)
 {
-    zoom_punch_t = max(zoom_punch_t, clamp(_fuerza, 0, 1));
+    with (objCamera)
+    {
+        zoom_punch_t = max(zoom_punch_t, clamp(_fuerza, 0, 1));
+    }
 }
 ```
 

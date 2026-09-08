@@ -1859,26 +1859,46 @@ rectangulares/circulares miden mal quién está al lado de quién. La solución 
 /// obj_control · Create
 grid_ocupacion = ds_grid_create(ancho_mapa, alto_mapa);
 ds_grid_clear(grid_ocupacion, ISO_SIN_OCUPAR);
+```
+
+> ⚠️ **`iso_celda_ocupada()` va en un script, no en el `Create` de `obj_control`.** La
+> llama `obj_unidad` (justo debajo) — un objeto distinto — y por dentro lee
+> `grid_ocupacion`, variable de instancia de `obj_control`: sin un `with (obj_control)`
+> alrededor, ni siquiera cualificar la llamada bastaría. El bloque de `obj_unidad` de
+> abajo tenía el mismo problema por partida doble: también accedía a `grid_ocupacion` a
+> pelo, como si `self` fuera `obj_control` estando en un evento de `obj_unidad` — ya
+> corregido cualificándolo con `obj_control.grid_ocupacion`. Sin ninguna de las dos
+> correcciones, esto revienta con `Variable obj_unidad.iso_celda_ocupada(...) not set
+> before reading it` en cuanto se mueve la primera unidad — el mismo mecanismo de
+> [`04 · 19` §1](../04%20-%20Recetas%20por%20g%C3%A9nero/19%20-%20Programaci%C3%B3n%20r%C3%ADtmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// scr_iso_ocupacion.gml
 
 /// @func iso_celda_ocupada(_col, _fila)
 /// @desc Consulta la rejilla lógica, no la pantalla: es lo que hay que
 ///       llamar en vez de place_meeting/instance_position en isométrico.
 function iso_celda_ocupada(_col, _fila)
 {
-    if (_col < 0 || _fila < 0 || _col >= ds_grid_width(grid_ocupacion)
-        || _fila >= ds_grid_height(grid_ocupacion)) return true; // fuera de mapa, "ocupado"
-    return ds_grid_get(grid_ocupacion, _col, _fila) != ISO_SIN_OCUPAR;
+    with (obj_control)
+    {
+        if (_col < 0 || _fila < 0 || _col >= ds_grid_width(grid_ocupacion)
+            || _fila >= ds_grid_height(grid_ocupacion)) return true; // fuera de mapa, "ocupado"
+        return ds_grid_get(grid_ocupacion, _col, _fila) != ISO_SIN_OCUPAR;
+    }
 }
+```
 
+```gml
 /// obj_unidad · intentar mover a una celda vecina
 var _col_destino  = mi_col + _dcol;
 var _fila_destino = mi_fila + _dfila;
 if (!iso_celda_ocupada(_col_destino, _fila_destino))
 {
-    ds_grid_set(grid_ocupacion, mi_col, mi_fila, ISO_SIN_OCUPAR);
+    ds_grid_set(obj_control.grid_ocupacion, mi_col, mi_fila, ISO_SIN_OCUPAR);
     mi_col  = _col_destino;
     mi_fila = _fila_destino;
-    ds_grid_set(grid_ocupacion, mi_col, mi_fila, id);
+    ds_grid_set(obj_control.grid_ocupacion, mi_col, mi_fila, id);
 
     var _p = iso_desde_celda(mi_col, mi_fila);
     x = _p.x;

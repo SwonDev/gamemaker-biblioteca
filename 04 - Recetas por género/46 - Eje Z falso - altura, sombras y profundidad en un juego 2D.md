@@ -172,8 +172,19 @@ vayan por el suelo, a menos que tú decidas explícitamente que sí (ver §3.9).
 
 ### 3.5 · La sombra: encoge y se aclara con la altura
 
+> ⚠️ **Esta función va en un script, no en el `Draw` de `obj_entidad_saltable`.** Este mismo
+> documento la reutiliza desde `obj_jugador_top_down` (§3.7), `obj_proyectil_arco` (§3.9) y
+> `obj_entidad_iso` (§4) — objetos distintos, sin relación de herencia entre ellos. Un
+> `function nombre() {...}` declarado dentro de un evento queda ligado a esa instancia como una
+> variable más de `self`, no como un identificador global: solo lo llamaría sin reventar el
+> propio `obj_entidad_saltable`. Como aquí la va a llamar cualquiera, vive en un script
+> (`scr_eje_z_falso.gml`) desde el principio — el mismo razonamiento que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+> No necesita ningún `with`: no lee ni escribe variables de instancia, solo los parámetros que
+> recibe.
+
 ```gml
-/// obj_entidad_saltable — Draw (antes de dibujar el sprite, para que quede debajo)
+/// scr_eje_z_falso.gml
 
 /// @func sombra_dibujar(_x, _y, _z, _radio_base, _z_max_visible)
 /// @desc Sombra elíptica en el suelo. Encoge y se aclara cuanto más alto está
@@ -319,6 +330,16 @@ aplicado a la altura del suelo en vez de al encuadre de cámara:
 /// obj_zona_altura — Create
 altura_suelo = 0;
 solido_desde = 8;
+```
+
+> ⚠️ **`suelo_altura_en()` va en `scr_eje_z_falso.gml` (§3.5), no en este `Create`.** La llama
+> `obj_jugador_top_down` (abajo) — un objeto distinto de `obj_zona_altura` — y por dentro ya usa
+> `with (obj_zona_altura) {...}`, así que no depende en absoluto de quién la invoque. El único
+> motivo para que reviente es dejarla ligada al evento equivocado: mismo mecanismo que el resto
+> de este documento y de [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+/// scr_eje_z_falso.gml (continuación de §3.5)
 
 /// @func suelo_altura_en(_x, _y)
 /// @desc Altura del suelo bajo un punto. 0 si no hay ninguna zona (suelo raso).

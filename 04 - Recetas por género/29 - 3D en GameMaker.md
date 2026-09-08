@@ -307,6 +307,20 @@ gpu_set_texrepeat(false);
 > Si no lo marcas, al repetir verás trozos de los sprites vecinos: es el bug del «suelo con la
 > cara de un enemigo repetida por todas partes». Y ojo: **dibujar un sprite normal resetea
 > `texrepeat` a `false`**, así que si intercalas HUD y geometría, reactívalo.
+>
+> **Por CLI/MCP no hay ninguna casilla `SeparateTexturePage` que marcar.** `resource info
+> expr=<sprite> KEYS` no lista ese campo (solo `DynamicTexturePage`, que es otra cosa —ver
+> [12 · 09](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md),
+> y `textureGroupId`): un agente que busque esa propiedad concreta no la va a encontrar. La vía
+> real, con el mismo efecto práctico, es meter el sprite en un **grupo de textura dedicado**, que
+> se empaqueta en sus propias páginas y no comparte página con nada del grupo `Default`:
+> ```bash
+> gm-cli resourcetool eval "texturegroup create name=tg_piso"
+> gm-cli resourcetool eval "texturegroup set group=tg_piso resources=spr_piso"
+> ```
+> Verificado en vivo el 8 de septiembre de 2026: `texturegroup create`/`texturegroup set` existen
+> de verdad (`resourcetool eval "help texturegroup"` los lista), compilan limpio y el sprite deja
+> de compartir página con sus vecinos.
 
 ### Filtrado y mipmaps
 
@@ -598,6 +612,21 @@ A partir de ahí, **Draw GUI** es 2D puro y sin sorpresas.
 > buffer todavía tiene la geometría del frame y algunos píxeles del HUD no pasan la prueba.
 > Apagar los cuatro interruptores al cerrar el pase 3D es lo correcto, y lo que hace el demo de
 > `DS-3DCollisions`.
+
+> 🔺 **Entre objetos DISTINTOS, quién dibuja antes dentro de `Draw End` lo decide `depth`, no el
+> orden "lógico" del código.** El bloque de arriba que cierra el pase 3D y los carteles de otros
+> objetos (§ «Carteles») compiten por el mismo evento `Draw End`, y GameMaker no los ejecuta en
+> el orden en que "deberían" ir — los ejecuta por `depth` (heredado del layer en el que se creó
+> cada instancia), de mayor a menor, exactamente igual que en 2D. Si la instancia que cierra el
+> pase 3D tiene un `depth` más alto que la de un cartel, el cierre se ejecuta **antes** que el
+> cartel: el cartel se dibuja sin z-test y sin iluminación, sin ningún error — un bug silencioso
+> de dibujado, no un *crash*. Y el `depth` que hereda cada instancia depende de en qué layer la
+> creó el editor de rooms o `ROOM INSTANCE CREATE`, un detalle fácil de dejar al azar en un
+> proyecto con varios objetos 3D. **La corrección es fijar `depth` explícitamente, no confiar en
+> el orden de creación de la sala**: pon el objeto que cierra el pase 3D (la cámara, normalmente)
+> al `depth` más bajo posible (`depth = -1000` en su `Create`, por ejemplo) para que su
+> `Draw End` sea **siempre** lo último, sea cual sea el orden en que se crearon el resto de
+> instancias.
 
 ### 2.5D: cuando el 3D es solo el escenario
 

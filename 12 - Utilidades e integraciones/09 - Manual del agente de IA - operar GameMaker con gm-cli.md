@@ -255,6 +255,29 @@ como leer una variable global no inicializada. Un agente que solo mire el `exit 
 `compile` da por bueno código que no lo está. Por eso `validar-proyecto.py` **no es opcional**:
 detalle completo, y una precisión importante sobre sus límites, en [§7](#7--interpretar-los-errores-del-compilador--lo-que-detecta-y-lo-que-no).
 
+> ⚠️ **Variante nueva, misma familia: una `global.*` propia sin inicializar en el camino de
+> ejecución de una sala concreta es invisible tanto al compilador como a `validar-proyecto.py`.**
+> Verificado el 8 de septiembre de 2026 construyendo un *bullet heaven*
+> (`_indice/auditorias/r8-prueba-masivo.md` §5.1): `validar-proyecto.py --todo` pasó limpio y aun
+> así el juego reventó en tiempo de ejecución la primera vez que se cargó una sala distinta de la
+> habitual —
+> ```
+> ERROR in action number 1
+> global variable name 'pool_proyectiles' index (100246) not set before reading it.
+> ```
+> Causa: un objeto persistente leía `global.pool_proyectiles` sin condición, correcto en la sala
+> donde otro objeto la crea, pero esa sala secundaria (un banco de pruebas propio) nunca la
+> inicializaba. **Ni el compilador ni `validar-proyecto.py` lo cazan**: para el primero,
+> `global.pool_proyectiles` es sintácticamente válido (esta misma Trampa 4); para el segundo,
+> **solo verifica que los símbolos del runtime existan** ([§7](#7--interpretar-los-errores-del-compilador--lo-que-detecta-y-lo-que-no)) —
+> nunca que una `global.*` propia esté garantizada en el camino de ejecución de cada sala, porque
+> eso no es una llamada a función, es una variable. La corrección no es un mejor `is_undefined()`
+> (evalúa el argumento antes de poder responder, y sobre una global nunca asignada también lanza
+> «not set before reading it» — ver el hallazgo gemelo de `r8-prueba-3d.md` §6): es **gatear el
+> acceso tras una condición que sí distinga la sala** (`instance_exists(obj_director_de_turno)`,
+> o inicializar la global en un objeto persistente que se cree garantizado antes que cualquier
+> otra cosa, en vez de dejarla a cargo del primer objeto que la necesite).
+
 ### Trampa 5 · Las fuentes creadas por `resourcetool` compilan limpio y no dibujan ni una letra
 
 **El síntoma**: `resource create type=font`, `font addrange name=X lower=32 upper=255`,
@@ -937,6 +960,22 @@ de fallo que las Trampas 5 y 12: la herramienta de verificación automática no 
 que muestra, y solo se ve contrastando con otra fuente. Detalle completo, con el hallazgo en
 contexto, en
 [`_indice/auditorias/r7-prueba-gestion.md` §9](../_indice/auditorias/r7-prueba-gestion.md#9--las-once-trampas--cuáles-se-usaron-de-verdad-y-una-nueva).
+
+**Discrepancia registrada el 8 de septiembre de 2026, no resuelta**: una prueba de un juego de
+ritmo (mismo `gm-cli`, mismo `--target mac`, mismo runtime `2026.0.0.23` que documenta esta
+trampa) tomó **seis capturas con `screen_save()`** en la misma sesión (menú, juego, opciones,
+pausa, victoria, créditos) y **ninguna salió invertida**: las seis se vieron en la orientación
+esperada, arriba lo de arriba. No se vuelve a reproducir la trampa a voluntad — puede depender de
+algo del contexto que ninguna de las dos sesiones aisló todavía (pantalla completa frente a
+ventana, la resolución concreta del proyecto, una diferencia fina de versión no capturada por
+`2026.0.0.23`, u otra variable no identificada). **No se retira la trampa**: se verificó en vivo
+una vez, con contraste directo contra `screencapture`, así que sigue siendo real en al menos esa
+combinación — pero tampoco es fiable darla por segura siempre. Trátala como **intermitente**: si
+tu captura de `screen_save()` se ve invertida, es esta trampa; si se ve bien, no des por hecho que
+nunca te va a pasar — sigue siendo buena práctica contrastar con `screencapture` al menos una vez
+por sesión de verificación visual, tal y como dice la mitigación de arriba, en vez de asumir
+ninguno de los dos resultados por defecto. Detalle de la sesión que no la reprodujo en
+[`_indice/auditorias/r8-prueba-ritmo.md` §6.2](../_indice/auditorias/r8-prueba-ritmo.md#62--la-trampa-13-screen_save-invertido-no-se-reprodujo--posible-desfase).
 
 ---
 
@@ -1887,6 +1926,61 @@ SIEMPRE después de borrar cualquier sala, nunca antes, y confírmalo leyendo el
 lo mismo hacerlo así siempre que investigar, cada vez, si esta ejecución en concreto fue de las
 que reinician o no.
 
+### 9.3 ter · Un `RESOURCE SET` de un solo índice, sin recolocar la sala desplazada, deja `RoomOrderNodes` duplicado y tumba el compilador entero
+
+> Verificado el 8 de septiembre de 2026, primero en
+> [`_indice/auditorias/r8-prueba-coop.md` §8.2](../_indice/auditorias/r8-prueba-coop.md), y
+> reproducido de nuevo aquí en un proyecto de prueba independiente bajo `~` para esta corrección
+> (dos salas, `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`).
+
+La receta de **§9.3** (arriba) es segura **solo si el array queda como una permutación
+completa**: cada sala del proyecto aparece exactamente una vez, en algún índice. `RESOURCE SET`
+no comprueba esa condición — deja escribir un `roomId` que ya está en otro índice sin avisar de
+nada, y el resultado es una sala duplicada (aparece en dos posiciones) y otra que desaparece del
+array por completo:
+
+```bash
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[0].roomId value=rm_dos"
+Saved successfully
+```
+
+Con dos salas (`Room1`, `rm_dos`) y `Room1` en el índice 0 antes del comando, el `.yyp` queda:
+
+```
+"RoomOrderNodes":[
+    {"roomId":{"name":"rm_dos", …}},
+    {"roomId":{"name":"rm_dos", …}},
+  ],
+```
+
+`Room1` desapareció del array (sigue existiendo como recurso, solo salió del orden) y `rm_dos`
+quedó duplicado. `resourcetool` no avisa — dice `Saved successfully` igual que con un valor
+correcto. La siguiente compilación **no da un error de GameMaker**: tumba el `AssetCompiler`
+entero con una excepción de .NET sin manejar, reproducida al carácter:
+
+```
+Unhandled exception.
+System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation.
+ ---> System.ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')
+   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at GMAssetCompiler.GMProjectSymbols.GatherResources()
+   ...
+◆  Game exited
+```
+
+**La forma correcta de la escritura**: si vas a mover una sala a un índice, tienes que mover
+también la sala que ya ocupaba ese índice a otro sitio válido, para que el array siga siendo una
+permutación sin huecos ni repetidos — exactamente la receta de §9.3 (reasignar **todos** los
+índices afectados, no solo uno) o la permutación completa de su ejemplo verificado. Confirmado
+aquí: devolver `Room1` al índice 0 (`resource set expr=project.RoomOrderNodes[0].roomId
+value=Room1`) restaura una permutación válida (`Room1` en 0, `rm_dos` en 1, sin duplicados) y el
+mismo proyecto vuelve a compilar limpio (`exit 0`, sin `WARNING`). **La regla práctica**: después
+de cualquier `RESOURCE SET` sobre `project.RoomOrderNodes`, lee el array completo
+(`resource info expr=project.RoomOrderNodes LIST`, o índice a índice) y confirma que tiene
+tantas entradas como salas y ninguna se repite, **antes** de compilar — el mensaje de éxito de
+`resourcetool` no lo garantiza, y el error que sale si te equivocas es un *stack trace* de .NET
+en bruto, no algo que oriente a un agente sobre qué se rompió.
+
 ### 9.4 El IDE sigue siendo una alternativa válida — ya no la única
 
 GameMaker tiene un panel «Room Order» con arrastrar-y-soltar en el IDE. Sigue siendo perfectamente
@@ -2146,15 +2240,31 @@ número equivocado, Trampa 3). Verificado de punta a punta el 8 de septiembre de
 | GUI End | 8 (`ev_draw`) | 75 | (no verificado directamente esta sesión; simétrico a GUI Begin — verifícalo con `object event list` antes de confiar en él a ciegas) |
 | Async - HTTP | 7 (`ev_other`) | 62 | `Event_Async_HTTP` |
 | Async - Dialog | 7 (`ev_other`) | 63 | `Event_Async_Dialog` |
+| Async - System | 7 (`ev_other`) | 75 | `Event_Async_SystemEvent` |
 | User Event 1 | 7 (`ev_other`) | 11 | `Event_Other_UserN` (detalle `1`) |
 
-Para el resto de `ev_async_*` (Save/Load, Steam, Cloud, Networking, System, Social, Push, Audio
+Para el resto de `ev_async_*` (Save/Load, Steam, Cloud, Networking, Social, Push, Audio
 Recording/Playback/Playback Ended, Web Image Load, Web IAP) y `user2`-`user15`, la técnica es la
 misma pero el número exacto no se verificó uno a uno en esta sesión — confírmalo con
 `object event list` después del parche, igual que aquí, antes de dar el número por bueno; los
 números de los `ev_async_*` están en el manual oficial
 (`The_Asset_Editors/Object_Properties/Async_Events/`) y en
 [`08 · 21` §10](../08%20-%20Referencia%20GML%20completa/21%20-%20Constantes%20que%20el%20manual%20abrevia.md#10--las-173-constantes-de-evento-ev_-para-event_perform).
+
+> ⚠️ **Un informe de prueba (`r8-prueba-coop.md` §8.1) afirmó que el evento Async - System
+> «no se puede crear por ningún nombre» y que era una excepción sin rodeo a esta misma receta —
+> verificado de nuevo el 8 de septiembre de 2026 y **no se sostiene**. `object event findorcreate
+> … subtype=async_system` sí se rechaza (reproducido igual: la whitelist de `other` no incluye
+> ningún `async_*`), pero el rodeo de esta sección **funciona igual que para HTTP/Dialog**: creado
+> con `eventNum=75` a mano, `object event list` lo reconoce como `Event_Async_SystemEvent`,
+> compila limpio, y — la comprobación que faltaba, no solo «compila» — **se disparó de verdad en
+> tiempo de ejecución**, comprobado dos veces: con `event_perform_async(ev_async_system_event,
+> ds_map_create())` simulándolo a mano, y con el disparo real que hace el propio motor al iniciar
+> el subsistema de audio (el manual del evento Sistema lo documenta: fuera de HTML5, se dispara
+> una vez al arrancar el juego). Las dos vías ejecutaron el código de `Other_75.gml`. La única
+> forma de que pareciera no funcionar es llamar a `game_end()` en el mismo paso que
+> `event_perform_async()`: el evento se encola para procesarse ese mismo cuadro, y terminar el
+> juego antes de que le toque lo corta — un error de la prueba, no de la técnica.**
 
 ### Qué sigue sin tener solución por esta vía
 
@@ -2349,6 +2459,39 @@ esta máquina concreta.
 siendo exclusivo del IDE son las *preferencias* de GMRT (rutas de herramientas de terceros,
 generador de CMake…), que un agente normal no necesita tocar salvo que el proyecto exija una
 toolchain de compilación personalizada.
+
+### 5 · «Página de Textura Separada» de un sprite — no hay campo booleano, pero un grupo de textura dedicado consigue el mismo efecto
+
+Verificado en vivo el 8 de septiembre de 2026, construyendo un juego 3D
+(`_indice/auditorias/r8-prueba-3d.md`). `04 · 29 §3` exige que un sprite que se dibuja con
+`gpu_set_texrepeat(true)` esté marcado como **Separate Texture Page** en el editor de sprites —
+si no, la repetición de UV puede pintar trozos de los sprites vecinos de la misma página. Esa
+casilla **no tiene ningún campo directo** alcanzable por `resourcetool`:
+
+```bash
+$ gm-cli resourcetool eval "resource info expr=spr_piso KEYS"
+# 33 campos listados, incluidos DynamicTexturePage y textureGroupId —
+# ningún SeparateTexturePage entre ellos
+```
+
+`DynamicTexturePage` es un concepto distinto (grupos de texturas *dinámicos*, cargados en tiempo
+de ejecución — [`Settings/Texture_Information/Dynamic_Textures.md`](../09%20-%20Manual%20oficial/manual-lts-2026-es/Settings/Texture_Information/Dynamic_Textures.md)),
+no la casilla de aislamiento de página que pide `gpu_set_texrepeat`.
+
+**El rodeo real, con el mismo efecto práctico**: crear un grupo de textura dedicado y asignarle
+el sprite. Un grupo de texturas se empaqueta en sus propias páginas, así que un sprite que vive
+solo en su grupo no comparte página con nada del grupo `Default`:
+
+```bash
+gm-cli resourcetool eval "texturegroup create name=tg_piso"
+gm-cli resourcetool eval "texturegroup set group=tg_piso resources=spr_piso"
+```
+
+Ambos subcomandos existen de verdad (`resourcetool eval "help texturegroup"` los lista, junto a
+`DELETE`/`RENAME`/`LIST`/`USAGES`) y compilan limpio. No enlazan con el campo `SeparateTexturePage`
+del `.yy` de un modo verificable desde fuera (no hay forma de leer «¿esta página es exclusiva?»
+por `resourcetool`), pero consiguen el resultado que pide `04 · 29 §3`: el sprite deja de
+compartir página con sus vecinos, que es justo lo que evita el bug de repetición.
 
 ---
 

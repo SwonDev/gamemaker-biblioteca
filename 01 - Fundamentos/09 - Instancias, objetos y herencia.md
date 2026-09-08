@@ -716,11 +716,22 @@ global.puntuacion = 0;
 
 ```
 obj_entidad          (padre base: nunca se instancia)
- └── obj_enemigo     (padre: IA común)
-      ├── obj_slime
-      ├── obj_murcielago
-      └── obj_jefe
+ ├── obj_enemigo     (padre: IA común)
+ │    ├── obj_slime
+ │    ├── obj_murcielago
+ │    └── obj_jefe
+ └── obj_jugador     (también recibe daño: mismo padre, misma función)
 ```
+
+> ⚠️ **`obj_jugador` tiene que ser hijo de `obj_entidad` EN EL EDITOR** (su `Object Properties`
+> → `Parent`), no solo «parecido» conceptualmente. `recibir_danio()` y `al_morir()` son
+> `function` declaradas dentro del `Create` de `obj_entidad`: quedan ligadas a `self` como una
+> variable más de esa instancia, no como identificadores globales. Un objeto solo las hereda
+> si (a) es hijo suyo en la jerarquía y (b) su propio `Create` llama a `event_inherited()` —
+> sin las dos cosas, `recibir_danio()` en el evento de colisión del jugador revienta con
+> `Variable obj_jugador.recibir_danio(...) not set before reading it`, el mismo síntoma que
+> tendría una función mal ubicada en un script (ver la Trampa 4 de
+> [`12 · 09`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-4--el-compilador-no-detecta-una-función-inventada-ni-una-variable-sin-declarar)).
 
 ```gml
 // ═══════════ obj_entidad (Create) — PADRE BASE ═══════════
@@ -809,6 +820,16 @@ if (objetivo != noone)
 // ═══════════ obj_jefe (al_morir sobreescrito) ═══════════
 // Necesitamos el efecto del padre Y el nuestro
 // (como es una función, no un evento, la llamamos explícitamente)
+```
+
+```gml
+// ═══════════ obj_jugador (Create) — hijo de obj_entidad, NO de obj_enemigo ═══════════
+event_inherited();              // hereda vida, recibir_danio, al_morir — sin esto, la
+                                 // colisión de abajo revienta al primer golpe
+
+vida_max      = 100;
+vida          = vida_max;
+invulnerable  = 0;
 ```
 
 ```gml
