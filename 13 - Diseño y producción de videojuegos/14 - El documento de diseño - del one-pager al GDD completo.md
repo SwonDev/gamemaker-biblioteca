@@ -475,6 +475,15 @@ Motor de físicas, formato de datos, dónde vive el estado:
 ## 14 · Anexos
 Glosario del proyecto:
 Registro de cambios de este documento:
+
+## 15 · Checklist de cierre
+(una casilla por criterio de aceptación de cada ficha de la sección 5 — copiado de su «Cómo se
+ prueba», `13 · 01 §8.2` — más las filas del envoltorio de pantallas de la sección 9 bis y, si
+ el juego va a publicarse, el checklist completo de
+ [04 · 00](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md).
+ Vacía hasta que existan sistemas fichados; se rellena a medida que la sección 5 crece, no al
+ final. La tarea no está cerrada hasta que cada casilla se cumple Y `gm-cli compile` sale limpio)
+- [ ] <sistema> — <criterio de aceptación tal cual, no una versión relajada>
 ```
 
 ---
@@ -508,6 +517,8 @@ Registro de cambios de este documento:
       entre 9 y 13, empieza en 11» es implementable; «un salto que se sienta bien» no lo es)
 - [ ] El recorte (qué NO está en el juego) está **escrito**, no asumido
 - [ ] Hay un criterio de aceptación por el que el agente sabe cuándo parar de iterar
+- [ ] La sección 15 (checklist de cierre) tiene una casilla por cada criterio de aceptación de la
+      sección 5 — el documento es autocontenido, no depende de que el agente vuelva a este §4
 
 **Para mantenerlo vivo**
 
@@ -703,6 +714,28 @@ código GML en sí — eso lo escribe el agente, verificando cada símbolo con `
 6. Si el agente detecta que una regla es ambigua o que faltan datos, **lo dice** en vez de rellenar
    el hueco con una suposición razonable — es la misma regla de no-improvisación de las
    instrucciones de sesión que gobiernan este documento.
+7. **Repórtalo al usuario** — al terminar el primer sistema jugable (no esperes a tener los tres)
+   y de nuevo al cerrar la sesión. `AGENTS.md` línea 186 ya exige reportar la salida real de
+   `gm-cli compile`; falta la mitad simétrica: reportar el alcance real frente al prometido. La
+   plantilla corta, siempre con estos cuatro bloques:
+
+   ```markdown
+   ## Reporte de sesión — <fecha>
+   **Se construyó**: <cada sección de sistema (§5 en adelante en el ejemplo de §6.3) cuyo
+     campo "estado" quedó en "implementado", uno por línea>
+   **Quedó en el recorte**: <lo de la sección 9 que no se tocó, y por qué — falta de tiempo,
+     dependía de una pregunta abierta, o se decidió que no cabía en el alcance de la sesión>
+   **Preguntas abiertas**: <si el punto 6 se disparó en algún sistema, o §1.6 en la elicitación,
+     la pregunta exacta y qué falta para cerrarla — vacío si no hubo ninguna>
+   **`gm-cli compile`**: <salida real, no un «compila bien» sin más>
+   ```
+
+   Si un criterio de aceptación de la sección 10 resulta **inalcanzable** (una plataforma sin
+   soporte, una función que `buscar.py` marca obsoleta y no tiene sustituto directo), no se
+   omite ni se relaja en silencio: se anota como pregunta abierta en el reporte con el motivo
+   verificado, igual que cualquier otra ambigüedad del punto 6 — la sección 10 se queda como
+   estaba escrita, y es el reporte el que dice que ese criterio concreto no se cumplió, no el GDD
+   el que se reescribe a la baja para que cuadre.
 
 ---
 

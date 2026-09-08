@@ -727,6 +727,18 @@ function jugador_ir_y_actuar(_instancia, _x_destino, _y_destino, _accion)
 }
 ```
 
+> 🔺 **`global.jugador` es la referencia global a ESTA instancia, no del walk-to genérico de
+> arriba.** Las cinemáticas del §3.10 (`PasoCaminar`) y el guardado del §3.9 corren fuera del
+> Step de `obj_jugador` y no tienen su `id` a mano — sin esta línea, revientan con «variable
+> global 'jugador' no definida». No la muevas al bloque de Create genérico de arriba: una
+> instancia NPC que lo reutilice para caminar por walkboxes pisaría `global.jugador`.
+
+```gml
+/// obj_jugador — Create (además del bloque genérico de arriba; solo en el objeto
+/// real del jugador, nunca en un NPC que reutilice el walk-to)
+global.jugador = id;
+```
+
 ```gml
 /// obj_jugador — Step (después de leer el input del §3.4.1)
 if (caminando)

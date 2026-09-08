@@ -1045,7 +1045,8 @@ if (tiempo >= 1)
     dia++;
 
     // Al amanecer: curar penalizaciones, registrar el día
-    global.needs.sueno = 100;
+    global.survival.needs.sueno = 100;   // Needs vive DENTRO de SurvivalState (§6) —
+                                          // no hay (ni debe haber) un global.needs suelto
     objChunkManager.registrar_nuevo_dia();
 }
 

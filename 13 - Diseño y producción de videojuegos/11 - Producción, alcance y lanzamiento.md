@@ -151,6 +151,17 @@ sale ninguna. Se frena con mecanismos, no con fuerza de voluntad:
 
 ## 2 · Fases y hitos: las puertas del proyecto
 
+> ⚠️ **Esta escalera está calibrada a un calendario humano de semanas o meses.** Si la
+> especificación salió del protocolo de elicitación de
+> [13 · 28](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md)
+> y la pregunta 2 de esa lista respondió «esta sesión» (el caso más común de un agente
+> construyendo con esta biblioteca), estas fases y sus criterios de salida **no aplican**: el
+> criterio de cierre correcto es el checklist de cierre de
+> [13 · 28 §3.1](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md#31--la-plantilla-de-especificación-mínima)
+> (o la sección 15 del GDD completo, `13 · 14 §3.4`), no «feature complete» ni un vertical slice
+> de 10-20 minutos con arte final. Sigue leyendo esta sección cuando el proyecto sí vaya a durar
+> más de una sesión: el contenido de aquí en adelante es correcto y no cambia por eso.
+
 ```
 Prototipo → Vertical slice → Alfa → Beta → Gold / Release → Post-lanzamiento
    ¿es        ¿podemos      todas    todo el   se manda        se sostiene
@@ -441,8 +452,14 @@ constante `GM_version` en tiempo de ejecución, y es también el formato que esp
 ```bash
 gm-cli resourcetool eval "options info platform=windows"   # ver las propiedades disponibles
 gm-cli resourcetool eval "options get  platform=windows"   # ver sus valores
-gm-cli resourcetool eval "options set  platform=windows property=option_windows_version value=1.0.0.42"
+gm-cli resourcetool eval "options set  platform=windows property=version value=1.0.0.42"
 ```
+
+> ⚠️ **Dos nombres para lo mismo, y no son intercambiables.** Verificado el 08-09-2026 con
+> `options info platform=windows`: el comando `resourcetool options set/get` usa los nombres
+> **cortos** — `icon`, `display_name`, `version` —, mientras que `option_windows_icon`,
+> `option_windows_display_name` y `option_windows_version` son los nombres del campo **dentro del
+> `.yy`** de opciones. Si le pasas el nombre largo al comando, no lo reconoce.
 
 > ⚠️ **El nombre de la propiedad ya está cerrado — no es `Version`.** No hay ninguna propiedad
 > llamada `Version` a secas: leyendo los ficheros de esquema del propio toolchain instalado
@@ -473,7 +490,7 @@ gm-cli resourcetool eval "options set  platform=windows property=option_windows_
 > agente es el engañoso `No licensed options`. Es el mismo problema de red que hace que
 > `resourcetool` se cuelgue, descrito en
 > [12 · 09](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md),
-> Trampa 1. Ejecuta esas llamadas **con el sandbox desactivado** y comprueba que el proyecto
+> Trampa 2. Ejecuta esas llamadas **con el sandbox desactivado** y comprueba que el proyecto
 > tiene su carpeta `options/` (varias plantillas de la Marketplace no la traen). Si aun así falla,
 > queda el IDE — *Game Options* por plataforma, o
 > *Herramientas → Project Image Generator* para el icono (`07 · 24 §2.6`) — editando los mismos
@@ -1712,6 +1729,7 @@ durante semanas, no para el primer día en que cuesta arrancar.
 
 ## Ver también
 
+- [13 · 28 — De «hazme un juego» a una especificación: el protocolo de elicitación del agente](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificaci%C3%B3n%20-%20el%20protocolo%20de%20elicitaci%C3%B3n%20del%20agente.md) — cuándo las fases de §2 no aplican (sesión de agente en vez de calendario humano), nota en la cabecera de esa sección
 - [13 · 01 — Diseño de juego: core loop, mecánicas, balance y dificultad](./01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md) — el bucle que aquí se manda construir primero, y qué medir para ajustarlo
 - [13 · 06 — Arquitectura de un proyecto GameMaker](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) — las decisiones estructurales que merecen un ADR
 - [13 · 05 — UI y UX de juego](./05%20-%20UI%20y%20UX%20de%20juego.md) — los menús, la pausa y las opciones que la alfa tiene que cerrar

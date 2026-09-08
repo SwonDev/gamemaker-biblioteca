@@ -19,19 +19,20 @@
 //   eso el sonido posicional usa un anillo de emisores reutilizables en vez
 //   de `audio_play_sound_at()`. — Manual, "Audio Effects".
 //
-// ARQUITECTURA
-//   global.audio = {
-//       bus      : { musica, sfx, ui, voz, ambiente }   structs AudioBus
-//       em       : { musica, sfx, ui, voz, ambiente }   un emisor por bus,
-//                                                        sin atenuación (no
-//                                                        son posicionales)
-//       anillo   : [ ... ]     emisores POSICIONALES, todos al bus "sfx"
-//       anillo_i : índice del próximo emisor del anillo
-//       voces    : { "nombre_del_sonido": [ids...] }    cupo por sonido
-//       apagando : [ { voz, restante } ]                fundidos en curso
-//       volumen  : { musica, sfx, ui, voz, ambiente }   sliders 0..1
-//       musica_snd, musica_voz, ambiente_snd, ambiente_voz, voz_voz, duck
-//   }
+// ARQUITECTURA (globals planos — ver nota de unificación más abajo)
+//   global.bus         = { musica, sfx, ui, voz, ambiente }   structs AudioBus
+//   global.em          = { musica, sfx, ui, voz, ambiente }   un emisor por bus,
+//                                                              sin atenuación (no
+//                                                              son posicionales)
+//   global.emisores    = [ ... ]     emisores POSICIONALES (el anillo), por
+//                                    defecto todos al bus "sfx"
+//   global.emisor_i    = índice del próximo emisor del anillo
+//   global.voces       = { "nombre_del_sonido": [ids...] }    cupo por sonido
+//   global.apagando    = [ { voz, restante } ]                fundidos en curso
+//   global.volumen_musica / _sfx / _ui / _voz / _ambiente     sliders 0..1
+//   global.musica_snd, global.musica_voz
+//   global.ambiente_snd, global.ambiente_voz
+//   global.voz_voz, global.duck
 //
 // USO RÁPIDO (todo desde un controlador persistente, p. ej. obj_audio)
 //   // Create
@@ -46,7 +47,11 @@
 //   // Desde cualquier sitio del juego:
 //   sfx(snd_disparo);                                  // efecto suelto
 //   sonar_en(snd_explosion, other.x, other.y, 0.9);     // efecto EN el mundo
-//   sonar_limitado(snd_impacto, 4, db_to_lin(-8));      // como mucho 4 a la vez
+//   sonar_limitado(snd_impacto, 4, db_to_lin(-8));      // como mucho 4 a la vez,
+//                                                        // por el bus principal
+//                                                        // (barato; ver nota bajo
+//                                                        // sonar_limitado() para
+//                                                        // el caso contrario)
 //   sfx_ui(snd_click, 1, 1);                            // sonido de interfaz
 //   musica_poner(snd_boss_theme);                       // crossfade de música
 //   ambiente_poner(snd_bosque_bed);                     // crossfade de ambiente
@@ -57,7 +62,7 @@
 //   sonar_en(banco_siguiente(banco_aves), x, y, db_to_lin(-14));
 //
 //   // El jugador mueve un slider en Opciones
-//   global.audio.volumen.musica = 0.4;
+//   global.volumen_musica = 0.4;
 //   mezcla_aplicar();
 //
 // Funciones nativas usadas (verificadas con gm-cli manual read / buscar.py):
@@ -67,10 +72,10 @@
 //   audio_is_playing, audio_system_is_available, audio_falloff_set_model,
 //   audio_falloff_inverse_distance_clamped, audio_listener_position,
 //   audio_get_name, db_to_lin, camera_get_active, camera_get_view_x/y,
-//   camera_get_view_width/height, power, irandom, random_range, lerp, clamp,
-//   struct_get, struct_set, struct_get_names, struct_exists, array_push,
-//   array_delete, array_length, is_undefined, variable_global_exists,
-//   delta_time
+//   camera_get_view_width/height, power, irandom, random_range, lerp,
+//   struct_get, struct_set, struct_get_names, struct_exists,
+//   variable_global_get, variable_global_set, variable_global_exists,
+//   array_push, array_delete, array_length, is_undefined, delta_time
 //
 // Dependencias: ninguna.
 //
@@ -78,26 +83,31 @@
 //   - Oclusión por paredes y zonas de reverberación: no forma parte del cupo
 //     mínimo reutilizable, tienen coste propio por proyecto (filtros, rayos).
 //     Ver "13 - Diseño y producción de videojuegos/09" §5.3.
+//   - Compresor-techo del bus principal, EQ para hacer sitio a la voz, y
+//     estados de mezcla completos (bajo el agua, pausa…): ver 13 · 09 §4.3.
 //   - Voz, subtítulos y localización de audio: fuera de alcance de un script
-//     genérico. Ver la misma carpeta, documento "14".
+//     genérico. Ver la misma carpeta, documento "14" y "24".
 //
-// ⚠️ CHOQUE DE NOMBRES CON "13 - Diseño y producción de videojuegos/09" (Diseño de
-//   sonido y mezcla): ese documento define, por separado, mezcla_aplicar, sonar_en,
-//   sonar_limitado, voz_decir, voces_paso, apagar_con_fundido, banco_crear,
-//   banco_siguiente, ambiente_poner, variacion_tono y variacion_ganancia — MISMOS
-//   NOMBRES, pero con global.bus.*/global.volumen_* en vez de global.audio.bus.*/
-//   global.audio.volumen.*, y otras cifras de headroom. Las recetas de género que
-//   usan audio (04 · 26, 04 · 42, 04 · 45…) citan la versión de 13 · 09, no esta. NO
-//   copies código de los dos sitios al mismo proyecto: GameMaker rechaza cualquiera
-//   de estas funciones declarada dos veces. Reconciliar ambos en un solo sistema
-//   queda pendiente; mientras tanto, elige uno de los dos por proyecto.
+// ✅ UNIFICADO con "13 - Diseño y producción de videojuegos/09" (Diseño de
+//   sonido y mezcla): hasta esta ronda existían dos sistemas de audio
+//   completos e independientes con ~10 nombres de función coincidentes pero
+//   globals distintos (`global.audio.bus.*` aquí frente a `global.bus.*` en
+//   13 · 09). Se han reconciliado en UNO: este script es ahora la única
+//   implementación real, con los nombres de global que ya usaban 13 · 09 y
+//   las recetas construidas encima de él (04 · 26, 04 · 42, 04 · 45, 13 · 10,
+//   13 · 24…). 13 · 09 explica la TEORÍA (por qué esas cifras de headroom,
+//   por qué esa curva de ducking, el mapa de bandas de EQ, LUFS…) y remite
+//   aquí para el CÓDIGO; no dupliques sus bloques de nuevo en un proyecto que
+//   ya use este script. La única diferencia de comportamiento real que
+//   sobrevivió a la unificación está documentada en `sonar_limitado()` más
+//   abajo — no es un descuido, es una decisión de coste explícita.
 // ============================================================================
 
 
 // ─────────────────────────── Configuración ──────────────────────────────
 // Headroom en dB de cada categoría: deja hueco para que el ducking y los
 // picos de SFX no saturen el bus principal. Ajusta estas cifras a tu mezcla,
-// no el código que las usa.
+// no el código que las usa. (Mismos valores que documenta 13 · 09 §4.1/§4.2.)
 #macro AUDIO_HEADROOM_MUSICA    -10
 #macro AUDIO_HEADROOM_SFX        -6
 #macro AUDIO_HEADROOM_UI         -9
@@ -120,6 +130,50 @@
 
 // ══════════════════════ Inicialización y ciclo de vida ═════════════════════
 
+/// @function voces_iniciar()
+/// @desc    Prepara SOLO el cupo de voces (`global.voces`, `global.apagando`),
+///          sin tocar buses ni emisores. `audio_init()` ya la llama; existe
+///          suelta para poder probar `sonar_limitado()`/`voces_paso()` en una
+///          prueba de integración mínima sin montar todo el sistema de audio
+///          (así lo hace la prueba de "13 · 09" §10 / "13 · 10" §2).
+function voces_iniciar()
+{
+    global.voces    = {};   // "nombre_del_sonido" -> array de ids en curso
+    global.apagando = [];   // { voz, restante } con fundido de salida activo
+}
+
+/// @function emisores_iniciar(_cantidad, _bus)
+/// @desc    Crea el anillo de emisores POSICIONALES y lo engancha a `_bus`.
+///          `audio_init()` ya la llama con el bus "sfx"; existe suelta por si
+///          necesitas un segundo anillo colgado de otro bus.
+/// @param   {Real}          _cantidad  Tamaño del anillo.
+/// @param   {Id.AudioBus}   _bus       Bus al que se engancha cada emisor.
+function emisores_iniciar(_cantidad, _bus)
+{
+    global.emisores = [];
+    global.emisor_i = 0;
+    repeat (_cantidad)
+    {
+        var _em = audio_emitter_create();
+        audio_emitter_bus(_em, _bus);
+        audio_emitter_falloff(_em, AUDIO_ANILLO_FALLOFF_REF, AUDIO_ANILLO_FALLOFF_MAX, 1);
+        array_push(global.emisores, _em);
+    }
+}
+
+/// @function emisores_liberar()
+/// @desc    Libera todos los emisores del anillo (son recursos dinámicos).
+///          `audio_destruir()` ya la llama.
+function emisores_liberar()
+{
+    if (!variable_global_exists("emisores")) { return; }
+    for (var _i = 0; _i < array_length(global.emisores); _i += 1)
+    {
+        audio_emitter_free(global.emisores[_i]);
+    }
+    global.emisores = [];
+}
+
 /// @function audio_init([_emisores_anillo])
 /// @desc    Crea los buses, los emisores de categoría y el anillo de
 ///          emisores posicionales. Llámala UNA sola vez, desde el Create de
@@ -130,26 +184,26 @@
 ///                                     juego 2D con SFX cortos).
 function audio_init(_emisores_anillo = 24)
 {
-    if (variable_global_exists("audio")) { return; }   // no reinicializar dos veces
+    if (variable_global_exists("bus")) { return; }   // no reinicializar dos veces
 
     // El modelo por defecto es "audio_falloff_none": con él la ganancia vale
     // siempre 1, aunque el emisor esté a dos pantallas. Es EL bug de audio
     // más frecuente en GameMaker. Se fija una sola vez, para todo el juego.
     audio_falloff_set_model(audio_falloff_inverse_distance_clamped);
 
-    global.audio = {
-        bus      : {},
-        em       : {},
-        anillo   : [],
-        anillo_i : 0,
-        voces    : {},      // "nombre_del_sonido" -> array de ids en curso
-        apagando : [],      // { voz, restante } con fundido de salida activo
-        volumen  : { musica: 0.7, sfx: 1.0, ui: 0.8, voz: 1.0, ambiente: 0.6 },
-        musica_snd   : undefined, musica_voz   : -1,
-        ambiente_snd : undefined, ambiente_voz : -1,
-        voz_voz  : -1,
-        duck     : 1        // 1 = sin agachar · baja hacia AUDIO_DUCK_OBJETIVO_DB al hablar
-    };
+    voces_iniciar();
+
+    global.bus = {};
+    global.em  = {};
+    global.volumen_musica   = 0.7;
+    global.volumen_sfx      = 1.0;
+    global.volumen_ui       = 0.8;
+    global.volumen_voz      = 1.0;
+    global.volumen_ambiente = 0.6;
+    global.musica_snd   = undefined; global.musica_voz   = -1;
+    global.ambiente_snd = undefined; global.ambiente_voz = -1;
+    global.voz_voz = -1;
+    global.duck    = 1;        // 1 = sin agachar · baja hacia AUDIO_DUCK_OBJETIVO_DB al hablar
 
     // Un bus y un emisor por categoría: es la ÚNICA vía de entrada al bus.
     // Con factor 0 la atenuación no existe en NINGÚN modelo (no son sonidos
@@ -162,21 +216,15 @@ function audio_init(_emisores_anillo = 24)
         var _em  = audio_emitter_create();
         audio_emitter_bus(_em, _bus);
         audio_emitter_falloff(_em, 1, 2, 0);
-        struct_set(global.audio.bus, _cat, _bus);
-        struct_set(global.audio.em,  _cat, _em);
+        struct_set(global.bus, _cat, _bus);
+        struct_set(global.em,  _cat, _em);
     }
 
     // El anillo de emisores POSICIONALES comparte el bus "sfx" con la
     // categoría de arriba: unos suenan "en el mundo" (sonar_en) y otros "en
-    // ninguna parte" (sfx, sonar_limitado), pero pasan por el mismo control
-    // de volumen y por el mismo ducking.
-    repeat (_emisores_anillo)
-    {
-        var _em_pos = audio_emitter_create();
-        audio_emitter_bus(_em_pos, global.audio.bus.sfx);
-        audio_emitter_falloff(_em_pos, AUDIO_ANILLO_FALLOFF_REF, AUDIO_ANILLO_FALLOFF_MAX, 1);
-        array_push(global.audio.anillo, _em_pos);
-    }
+    // ninguna parte" (sfx, sonar_limitado con emisor explícito), pero pasan
+    // por el mismo control de volumen y por el mismo ducking.
+    emisores_iniciar(_emisores_anillo, global.bus.sfx);
 
     mezcla_aplicar();
 }
@@ -189,23 +237,19 @@ function audio_init(_emisores_anillo = 24)
 ///          cuanto nadie los referencia.
 function audio_destruir()
 {
-    if (!variable_global_exists("audio")) { return; }
+    if (!variable_global_exists("bus")) { return; }
 
-    var _nombres = struct_get_names(global.audio.em);
+    var _nombres = struct_get_names(global.em);
     for (var _i = 0; _i < array_length(_nombres); _i += 1)
     {
-        audio_emitter_free(struct_get(global.audio.em, _nombres[_i]));
+        audio_emitter_free(struct_get(global.em, _nombres[_i]));
     }
 
-    for (var _i = 0; _i < array_length(global.audio.anillo); _i += 1)
-    {
-        audio_emitter_free(global.audio.anillo[_i]);
-    }
-    global.audio.anillo = [];
+    emisores_liberar();
 
-    if (global.audio.musica_voz != -1)   { audio_stop_sound(global.audio.musica_voz);   global.audio.musica_voz   = -1; }
-    if (global.audio.ambiente_voz != -1) { audio_stop_sound(global.audio.ambiente_voz); global.audio.ambiente_voz = -1; }
-    if (global.audio.voz_voz != -1)      { audio_stop_sound(global.audio.voz_voz);      global.audio.voz_voz      = -1; }
+    if (global.musica_voz != -1)   { audio_stop_sound(global.musica_voz);   global.musica_voz   = -1; }
+    if (global.ambiente_voz != -1) { audio_stop_sound(global.ambiente_voz); global.ambiente_voz = -1; }
+    if (global.voz_voz != -1)      { audio_stop_sound(global.voz_voz);      global.voz_voz      = -1; }
 }
 
 /// @function audio_step()
@@ -215,7 +259,7 @@ function audio_destruir()
 ///          Step) del mismo objeto que llamó a audio_init().
 function audio_step()
 {
-    if (!variable_global_exists("audio")) { return; }
+    if (!variable_global_exists("bus")) { return; }
 
     voces_paso();
 
@@ -234,13 +278,13 @@ function audio_step()
     // mezcla_aplicar() deja la ganancia "plana"; aquí se vuelve a escribir
     // cada frame multiplicada por el duck, así que no hace falta llamar a
     // mezcla_aplicar() para que el duck surta efecto.
-    var _hablando  = (global.audio.voz_voz != -1 && audio_is_playing(global.audio.voz_voz));
+    var _hablando  = (global.voz_voz != -1 && audio_is_playing(global.voz_voz));
     var _objetivo  = _hablando ? db_to_lin(AUDIO_DUCK_OBJETIVO_DB) : 1;
     var _velocidad = _hablando ? AUDIO_DUCK_VEL_BAJAR : AUDIO_DUCK_VEL_SUBIR;
-    global.audio.duck = lerp(global.audio.duck, _objetivo, _velocidad);
-    global.audio.bus.musica.gain = global.audio.volumen.musica
-                                  * db_to_lin(AUDIO_HEADROOM_MUSICA)
-                                  * global.audio.duck;
+    global.duck = lerp(global.duck, _objetivo, _velocidad);
+    global.bus.musica.gain = global.volumen_musica
+                            * db_to_lin(AUDIO_HEADROOM_MUSICA)
+                            * global.duck;
 }
 
 
@@ -252,11 +296,11 @@ function audio_step()
 ///          jugador mueva un slider en Opciones.
 function mezcla_aplicar()
 {
-    global.audio.bus.musica.gain   = global.audio.volumen.musica   * db_to_lin(AUDIO_HEADROOM_MUSICA);
-    global.audio.bus.sfx.gain      = global.audio.volumen.sfx      * db_to_lin(AUDIO_HEADROOM_SFX);
-    global.audio.bus.ui.gain       = global.audio.volumen.ui       * db_to_lin(AUDIO_HEADROOM_UI);
-    global.audio.bus.voz.gain      = global.audio.volumen.voz;                                       // referencia: 0 dB
-    global.audio.bus.ambiente.gain = global.audio.volumen.ambiente * db_to_lin(AUDIO_HEADROOM_AMBIENTE);
+    global.bus.musica.gain   = global.volumen_musica   * db_to_lin(AUDIO_HEADROOM_MUSICA);
+    global.bus.sfx.gain      = global.volumen_sfx      * db_to_lin(AUDIO_HEADROOM_SFX);
+    global.bus.ui.gain       = global.volumen_ui       * db_to_lin(AUDIO_HEADROOM_UI);
+    global.bus.voz.gain      = global.volumen_voz;                                       // referencia: 0 dB
+    global.bus.ambiente.gain = global.volumen_ambiente * db_to_lin(AUDIO_HEADROOM_AMBIENTE);
 }
 
 
@@ -326,7 +370,7 @@ function apagar_con_fundido(_voz, _ms = 40)
 {
     if (_voz == -1 || !audio_is_playing(_voz)) { return; }
     audio_sound_gain(_voz, 0, _ms);
-    array_push(global.audio.apagando, { voz: _voz, restante: _ms / 1000 });
+    array_push(global.apagando, { voz: _voz, restante: _ms / 1000 });
 }
 
 /// @function voces_paso()
@@ -336,37 +380,49 @@ function apagar_con_fundido(_voz, _ms = 40)
 function voces_paso()
 {
     var _dt = delta_time / 1000000;   // delta_time viene en MICROsegundos
-    for (var _i = array_length(global.audio.apagando) - 1; _i >= 0; _i -= 1)
+    for (var _i = array_length(global.apagando) - 1; _i >= 0; _i -= 1)
     {
-        var _e = global.audio.apagando[_i];
+        var _e = global.apagando[_i];
         _e.restante -= _dt;
         if (_e.restante <= 0)
         {
             audio_stop_sound(_e.voz);
-            array_delete(global.audio.apagando, _i, 1);
+            array_delete(global.apagando, _i, 1);
         }
     }
 }
 
-/// @function sonar_limitado(_sonido, _max_voces, [_gain], [_prioridad])
-/// @desc    Reproduce un sonido no posicional respetando un cupo MÁXIMO de
-///          voces simultáneas del MISMO sonido: al llenarse, roba la más
-///          antigua con fundido. El límite nativo (128 voces) protege el
-///          motor, no la mezcla: veinte impactos idénticos en un frame caben
-///          de sobra y suenan como un cañonazo de ruido con el volumen
-///          sumado. Un cupo de 3-5 arregla el 90 % de las mezclas sucias.
-/// @param   {Asset.GMSound} _sonido      El sonido a reproducir.
-/// @param   {Real}          _max_voces   Cuántas copias como mucho a la vez.
-/// @param   {Real}          [_gain]      Multiplicador de ganancia (1 por defecto).
-/// @param   {Real}          [_prioridad] Prioridad del canal (10 por defecto).
+/// @function sonar_limitado(_sonido, _max_voces, [_gain], [_prioridad], [_emisor])
+/// @desc    Reproduce un sonido respetando un cupo MÁXIMO de voces
+///          simultáneas del MISMO sonido: al llenarse, roba la más antigua
+///          con fundido. El límite nativo (128 voces) protege el motor, no
+///          la mezcla: veinte impactos idénticos en un frame caben de sobra y
+///          suenan como un cañonazo de ruido con el volumen sumado. Un cupo
+///          de 3-5 arregla el 90 % de las mezclas sucias.
+///
+///          ⚠️ **Por defecto NO pasa `emitter`**: el sonido va al bus
+///          principal, sin coste de cálculo de emisor y sin que le afecten
+///          el volumen de "Efectos" ni ningún efecto colgado de un bus
+///          propio (reverberación de zona, compresor…). Es la decisión
+///          correcta para un sonido que se dispara muchas veces por segundo
+///          (pasos: ver "04 · 42" §1.2/§3.1, que documenta el porqué). Si
+///          este sonido SÍ necesita pasar por un bus — normalmente
+///          `global.em.sfx`, para que el slider de Efectos y la
+///          reverberación de zona le afecten — pásalo explícitamente en
+///          `_emisor`.
+/// @param   {Asset.GMSound}    _sonido      El sonido a reproducir.
+/// @param   {Real}             _max_voces   Cuántas copias como mucho a la vez.
+/// @param   {Real}             [_gain]      Multiplicador de ganancia (1 por defecto).
+/// @param   {Real}             [_prioridad] Prioridad del canal (10 por defecto).
+/// @param   {Id.SoundEmitter}  [_emisor]    Emisor por el que enrutarlo (ninguno por defecto).
 /// @returns {Id.Sound}
-function sonar_limitado(_sonido, _max_voces, _gain = 1, _prioridad = 10)
+function sonar_limitado(_sonido, _max_voces, _gain = 1, _prioridad = 10, _emisor = -1)
 {
     if (!audio_system_is_available()) { return -1; }
 
     var _clave = audio_get_name(_sonido);
-    if (!struct_exists(global.audio.voces, _clave)) { struct_set(global.audio.voces, _clave, []); }
-    var _lista = struct_get(global.audio.voces, _clave);
+    if (!struct_exists(global.voces, _clave)) { struct_set(global.voces, _clave, []); }
+    var _lista = struct_get(global.voces, _clave);
 
     for (var _i = array_length(_lista) - 1; _i >= 0; _i -= 1)   // podar las que ya acabaron
     {
@@ -378,13 +434,15 @@ function sonar_limitado(_sonido, _max_voces, _gain = 1, _prioridad = 10)
         array_delete(_lista, 0, 1);
     }
 
-    var _voz = audio_play_sound_ext({
+    var _params = {
         sound   : _sonido,
         priority: _prioridad,
-        emitter : global.audio.em.sfx,
         gain    : _gain * variacion_ganancia(1.5),
         pitch   : variacion_tono(1.5)
-    });
+    };
+    if (_emisor != -1) { _params.emitter = _emisor; }
+
+    var _voz = audio_play_sound_ext(_params);
     if (_voz != -1) { array_push(_lista, _voz); }
     return _voz;
 }
@@ -410,11 +468,11 @@ function sonar_en(_sonido, _px, _py, _gain = 1, _prioridad = 10)
 {
     if (!audio_system_is_available()) { return -1; }
 
-    var _n = array_length(global.audio.anillo);
+    var _n = array_length(global.emisores);
     if (_n == 0) { return -1; }
 
-    var _em = global.audio.anillo[global.audio.anillo_i];
-    global.audio.anillo_i = (global.audio.anillo_i + 1) mod _n;
+    var _em = global.emisores[global.emisor_i];
+    global.emisor_i = (global.emisor_i + 1) mod _n;
     audio_emitter_position(_em, _px, _py, 0);
 
     return audio_play_sound_ext({
@@ -441,7 +499,7 @@ function sfx(_sonido, _gain = 1, _pitch = 1)
     return audio_play_sound_ext({
         sound   : _sonido,
         priority: 10,
-        emitter : global.audio.em.sfx,
+        emitter : global.em.sfx,
         gain    : _gain,
         pitch   : _pitch * variacion_tono(1.5)
     });
@@ -463,7 +521,7 @@ function sfx_ui(_sonido, _gain = 1, _pitch = 1)
     return audio_play_sound_ext({
         sound   : _sonido,
         priority: 80,
-        emitter : global.audio.em.ui,
+        emitter : global.em.ui,
         gain    : _gain,
         pitch   : _pitch
     });
@@ -482,13 +540,13 @@ function voz_decir(_sonido)
 {
     if (!audio_system_is_available()) { return -1; }
 
-    if (global.audio.voz_voz != -1) { apagar_con_fundido(global.audio.voz_voz, 60); }
-    global.audio.voz_voz = audio_play_sound_ext({
+    if (global.voz_voz != -1) { apagar_con_fundido(global.voz_voz, 60); }
+    global.voz_voz = audio_play_sound_ext({
         sound   : _sonido,
         priority: 100,
-        emitter : global.audio.em.voz
+        emitter : global.em.voz
     });
-    return global.audio.voz_voz;
+    return global.voz_voz;
 }
 
 /// @function __audio_categoria_poner(_categoria, _campo_snd, _campo_voz, _sonido, _ms)
@@ -497,26 +555,26 @@ function voz_decir(_sonido)
 ///          uno bajando y otro subiendo. Uso interno: usa `musica_poner()` o
 ///          `ambiente_poner()`, no llames a esta directamente.
 /// @param   {String} _categoria  Nombre de la categoría ("musica"/"ambiente").
-/// @param   {String} _campo_snd  Campo de `global.audio` con el sonido actual.
-/// @param   {String} _campo_voz  Campo de `global.audio` con la voz actual.
+/// @param   {String} _campo_snd  Nombre del global con el sonido actual (p. ej. "musica_snd").
+/// @param   {String} _campo_voz  Nombre del global con la voz actual (p. ej. "musica_voz").
 /// @param   {Asset.GMSound} _sonido  El nuevo bucle.
 /// @param   {Real}   _ms         Duración del cruce en milisegundos.
 function __audio_categoria_poner(_categoria, _campo_snd, _campo_voz, _sonido, _ms)
 {
-    var _actual = struct_get(global.audio, _campo_snd);
+    var _actual = variable_global_get(_campo_snd);
     if (!is_undefined(_actual) && _actual == _sonido) { return; }   // ya suena
 
-    apagar_con_fundido(struct_get(global.audio, _campo_voz), _ms);
-    struct_set(global.audio, _campo_snd, _sonido);
+    apagar_con_fundido(variable_global_get(_campo_voz), _ms);
+    variable_global_set(_campo_snd, _sonido);
 
     var _voz_nueva = audio_play_sound_ext({
         sound   : _sonido,
         loop    : true,
         gain    : 0,                                  // entra desde el silencio
         priority: 90,                                  // alta: que no lo descarte el límite de canales
-        emitter : struct_get(global.audio.em, _categoria)
+        emitter : struct_get(global.em, _categoria)
     });
-    struct_set(global.audio, _campo_voz, _voz_nueva);
+    variable_global_set(_campo_voz, _voz_nueva);
     audio_sound_gain(_voz_nueva, 1, _ms);              // el bus ya aplica el volumen de la categoría
 }
 

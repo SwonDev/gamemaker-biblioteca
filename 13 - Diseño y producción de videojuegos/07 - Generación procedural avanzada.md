@@ -21,10 +21,13 @@ Un generador procedural **no guarda mapas: guarda números**. Un save ocupa 500 
 reproduce escribiendo la semilla, y una *daily run* es idéntica para todos sin servidores.
 
 ```gml
-randomize();                    // UNA vez, al arrancar el juego
-var _semilla = random_get_seed();   // guárdala: es tu partida entera
+randomize();                        // UNA vez, al arrancar el juego (p. ej. en el Create del
+                                     // primer objeto persistente — 13 · 06 §3.2)
+global.semilla = random_get_seed(); // guárdala: es tu partida entera. Todo generador de este
+                                     // documento la lee (§2.8 en adelante) — sin ella revienta
+                                     // el primero que se ejecute.
 
-random_set_seed(_semilla, true);    // ⚠️ el segundo argumento importa (ver abajo)
+random_set_seed(global.semilla, true);   // ⚠️ el segundo argumento importa (ver abajo)
 ```
 
 **El segundo argumento de `random_set_seed` no es decorativo.** El manual LTS 2026 dice de

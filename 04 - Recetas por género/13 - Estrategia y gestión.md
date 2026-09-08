@@ -703,6 +703,45 @@ function ResourcePool() constructor
         return _p;
     };
 }
+
+/// @func UnitDef(_id, _hp, _velocidad, _dano, _coste, _coste_poblacion, _tiempo_produccion, _sprite)
+function UnitDef(_id, _hp, _velocidad, _dano, _coste, _coste_poblacion, _tiempo_produccion, _sprite) constructor
+{
+    id                 = _id;
+    hp                 = _hp;
+    velocidad          = _velocidad;
+    dano               = _dano;
+    coste              = _coste;              // struct { mineral, energia, comida }
+    coste_poblacion    = _coste_poblacion;
+    tiempo_produccion  = _tiempo_produccion;   // frames en cola (§5.3)
+    sprite             = _sprite;
+}
+
+/// @func units_init()
+/// @desc Rellena `global.unit_defs` — sin esto, `encolar()` (más abajo) lee una
+///       global que no existe y encolar la primera unidad revienta.
+function units_init()
+{
+    global.unit_defs = {};
+    global.unit_defs.worker  = new UnitDef("worker",  20, 2.4, 0, { mineral: 50 }, 1, 180, sprUnitWorker);
+    global.unit_defs.soldier = new UnitDef("soldier", 60, 2.0, 8, { mineral: 80, energia: 20 }, 1, 300, sprUnitSoldier);
+}
+```
+
+```gml
+// ---------------------------------------------------------------------------
+// objResourceManager — Create (persistente, va primero en la room — ver la
+// jerarquía de §2: "objResourceManager (almacén global de recursos)")
+// ---------------------------------------------------------------------------
+// encolar() (§5.3) lee global.recursos y global.unit_defs, objBuilding — Step
+// (§5.3) también lee global.unit_defs, y evaluar_expandir() (§5.5) lee
+// global.recursos_enemigo. Ninguna de las tres se crea sola: si este objeto no
+// va primero en la room, la primera orden de construir revienta con
+// "variable global no definida".
+global.recursos         = new ResourcePool();   // economía del jugador humano
+global.recursos_enemigo = new ResourcePool();   // economía SEPARADA de la IA (§5.5) —
+                                                 // nunca compartas el mismo ResourcePool
+units_init();                                   // rellena global.unit_defs (arriba)
 ```
 
 ```gml

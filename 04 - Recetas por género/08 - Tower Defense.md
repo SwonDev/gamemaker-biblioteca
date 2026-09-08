@@ -695,14 +695,47 @@ function impactar(_enemigo)
 }
 ```
 
+### 5.4 bis Definiciones de enemigo
+
+```gml
+// ---------------------------------------------------------------------------
+// scr_enemies
+// ---------------------------------------------------------------------------
+
+/// @func EnemyDef(_id, _hp, _velocidad, _recompensa, _sprite)
+function EnemyDef(_id, _hp, _velocidad, _recompensa, _sprite) constructor
+{
+    id         = _id;
+    hp         = _hp;
+    velocidad  = _velocidad;
+    recompensa = _recompensa;
+    sprite     = _sprite;
+}
+
+/// @func enemies_init()
+/// @desc Rellena `global.enemy_defs` — sin esto, `objEnemyBase — Create` (§5.5) lee una
+///       global que no existe y el juego revienta en el primer spawn.
+function enemies_init()
+{
+    global.enemy_defs = {};
+    global.enemy_defs.grunt = new EnemyDef("grunt", 30,  1.4, 10,  sprEnemyGrunt);
+    global.enemy_defs.fast  = new EnemyDef("fast",  18,  2.6, 8,   sprEnemyFast);
+    global.enemy_defs.tank  = new EnemyDef("tank",  140, 0.8, 25,  sprEnemyTank);
+    global.enemy_defs.boss  = new EnemyDef("boss",  900, 0.6, 150, sprEnemyBoss);
+}
+```
+
 ### 5.5 Enemigo siguiendo un path
 
 ```gml
 // ---------------------------------------------------------------------------
 // objEnemyBase — Create
 // ---------------------------------------------------------------------------
-// Variables que fija el spawner:
-def_id  = "grunt";
+// Variables que fija el spawner: spawn_enemigo() (§5.8) ya pasa def_id por el
+// var_struct de instance_create_depth, ANTES de este Create — ??= respeta ese
+// valor y solo pone "grunt" por defecto si a esta instancia nunca se le fijó
+// (p. ej. colocada a mano en el Room Editor).
+def_id ??= "grunt";
 hp      = 30;
 hp_max  = 30;
 velocidad_base = 1.4;
@@ -1081,8 +1114,10 @@ function spawn_enemigo(_def_id)
     var _px = objGrid.spawn_x * CELL + (CELL * 0.5);
     var _py = objGrid.spawn_y * CELL + (CELL * 0.5);
 
-    var _e = instance_create_depth(_px, _py, -_py, objEnemyBase);
-    _e.def_id = _def_id;
+    // def_id va en el var_struct, no asignado después: objEnemyBase — Create (§5.5)
+    // aplica la definición DURANTE su propio Create, así que fijarlo tras crear la
+    // instancia llegaría tarde y todo enemigo saldría con las stats de "grunt".
+    var _e = instance_create_depth(_px, _py, -_py, objEnemyBase, { def_id: _def_id });
 
     // Calcular su path desde el spawn
     var _path = objGrid.grid.calcular_path(
@@ -1176,6 +1211,8 @@ function TDState() constructor
 
 // --- Uso global ----------------------------------------------------------------
 // objGame — Create (persistente)
+towers_init();     // rellena global.tower_defs (§5.2) — sin esto, colocar una torre revienta
+enemies_init();    // rellena global.enemy_defs (§5.4 bis) — sin esto, el primer spawn revienta
 global.td = new TDState();
 ```
 

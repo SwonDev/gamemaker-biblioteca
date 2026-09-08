@@ -106,6 +106,35 @@ equivalente, junto a lo que ya inicializa `04 · 09`):** `global.almacen` (un `I
 cámara, para el LOD del §7.1) · `global.frame_count` (el mismo contador que ya usa `04 · 09`
 §5.4 para su chequeo «cada 30 frames», incrementado una vez por Step en `obj_game`).
 
+```gml
+/// obj_game — Create (arranque de la colonia; junto a lo que ya inicializa 04 · 09)
+/// Sin este bloque, la primera lectura de cualquiera de estos globals (el job
+/// system del §2, el almacén del §2.9, el soporte del §5.4 o el overlay de debug
+/// del §7.4) revienta con «variable global no definida» — el párrafo de arriba
+/// los da por creados aquí, pero el código nunca se había mostrado.
+global.colonia_ancho = room_width  div CELL;   // tamaño jugable en celdas
+global.colonia_alto  = room_height div CELL;
+
+global.almacen     = new Inventory(200);       // 04 · 04 §5.2 — ajusta la capacidad a tu economía
+global.almacen_pos = { celda_x: global.colonia_ancho div 2, celda_y: global.colonia_alto div 2 };
+                                                 // celda real donde coloques tu almacén: ajústala
+
+global.anclas_soporte = [];   // §5.4 — ve empujando aquí el suelo natural o tus cimientos
+                               // marcados a mano, según construyes (no de una sola vez)
+
+global.modo_debug  = false;   // pon a `true` para ver el overlay de coste del §7.4
+global.frame_count = 0;       // 04 · 09 §5.4 ya lo lee con "mod 30"; se incrementa abajo
+```
+
+```gml
+/// obj_game — Step
+global.frame_count++;
+
+// LOD de colonia (§7.1): recalculado cada frame — mismo cálculo que 04 · 09 §5.4
+global.jugador_chunk_x = objPlayer.x div CHUNK_PX;
+global.jugador_chunk_y = objPlayer.y div CHUNK_PX;
+```
+
 ---
 
 ## 2 · Job system: cola de tareas y asignación de trabajadores

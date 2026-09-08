@@ -101,8 +101,8 @@ function txt_n(_base, _n) {
 ```
 
 ```gml
-/// uso
-draw_text(x, y, txt("dialogo_bienvenida", { nombre: global.jugador, zona: "el Bosque" }));
+/// uso — "nombre" y "zona" son ejemplo: sustitúyelos por los datos reales de tu partida
+draw_text(x, y, txt("dialogo_bienvenida", { nombre: nombre_jugador, zona: "el Bosque" }));
 draw_text(x, y, txt_n("monedas", global.monedas));    // "Tienes 1 moneda" / "Tienes 5 monedas"
 ```
 

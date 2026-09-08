@@ -569,6 +569,13 @@ clientes = {};                  // socket → { id, ip, ultimo_input }
 // --- Ping --------------------------------------------------------------------------
 ping_enviado_en = 0;
 ping_ms = 0;
+
+// --- Chat (§5.9) ---------------------------------------------------------------------
+// chat_mensaje_recibido() (más abajo) hace array_push(global.chat_log, …) — si esta
+// global no existe antes del primer mensaje, revienta con "variable global no
+// definida". Se crea aquí porque objNetManager es persistente y va primero: un
+// mensaje puede llegar en cualquier momento de la partida.
+global.chat_log = [];
 ```
 
 ```gml

@@ -818,6 +818,17 @@ function brujula_direccion(_x, _y, _pois, _descubiertos)
 ```
 
 ```gml
+/// obj_hud — Create
+// Solo los POIs de camino crítico (§1.3) — ejemplo con uno, sustitúyelo por los
+// tuyos. Sin estas dos líneas, la Draw GUI de abajo y obj_mirador · Step (más
+// abajo) leen globals que nunca se crearon y revientan en el primer frame.
+global.pois = [
+    { id: "torre_este", x: 3800, y: -1200 },
+];
+global.pois_descubiertos = {};   // struct-set vacío: nada visto todavía
+```
+
+```gml
 /// obj_hud — Draw GUI (fragmento)
 // global.pois: array de { id, x, y } — normalmente sólo el/los objetivo(s) de camino crítico,
 // por la recomendación de §1.3. global.pois_descubiertos: struct-set, igual que en §3.2/§3.5.

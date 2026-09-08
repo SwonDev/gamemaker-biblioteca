@@ -251,6 +251,15 @@ function reanudar() {
   `juego_completado` para desbloquear extras o un «New Game+».
 
 ```gml
+/// obj_creditos · Create
+/// El texto vive en una global (no en una variable de instancia) porque los créditos
+/// se pueden lanzar desde más de un sitio (menú y final del juego) sin duplicar el texto.
+global.texto_creditos = "GAMEMAKER LTS 2026\n\nDiseño y programación\n<tu nombre>\n\nArte\n<tu nombre>\n\n¡Gracias por jugar!";
+desplaz = 0;
+altura_total = string_height(global.texto_creditos) + 400;   // +400 = margen para que el scroll acabe fuera de pantalla
+```
+
+```gml
 /// créditos que suben y vuelven al menú
 /// obj_creditos · Draw GUI
 desplaz -= 0.5;
