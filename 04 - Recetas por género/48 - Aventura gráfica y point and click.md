@@ -694,6 +694,21 @@ ruta_indice       = 0;
 caminando         = false;
 accion_al_llegar  = undefined;   // method(), o undefined si solo hay que caminar
 velocidad_base    = 2.2;
+```
+
+> ⚠️ **`jugador_ir_y_actuar()` va en un script, no en este `Create`.** El propio §3.10 la llama
+> desde `PasoCaminar.empezar()` — un método de un `constructor`, cuyo `self` es el struct del
+> paso, no ninguna instancia de `obj_jugador` — y una función `function nombre() {...}`
+> declarada dentro de un evento solo es identificador global si vive en un script; declarada en
+> un evento queda ligada a esa instancia como una variable más de `self`. Llamada sin cualificar
+> desde cualquier otro `self` (un NPC, un struct de cinemática…) revienta con
+> `Variable X.jugador_ir_y_actuar(...) not set before reading it` — el mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+> No necesita ningún `with`: solo toca instancias a través del parámetro `_instancia` que recibe,
+> nunca `self`.
+
+```gml
+/// scr_aventura_walkto.gml (continuación de §3.5.1-§3.5.4, mismo script)
 
 /// @func jugador_ir_y_actuar(_instancia, _x_destino, _y_destino, _accion)
 /// @desc Calcula la ruta y la deja lista para que el Step de _instancia la

@@ -601,25 +601,38 @@ mundo = generar_mapa_biomas(192, 128, global.semilla, {
 var _capa = layer_get_id("Tiles_Mundo");
 mapa_tiles = layer_tilemap_get_id(_capa);
 
-// Índice de tile dentro del tileset, uno por bioma. 0 = celda vacía.
-INDICE_POR_BIOMA = [ 1, 2, 3, 4, 5, 6 ];   // Agua, Playa, Hierba, Bosque, Roca, Nieve
-
 pintar_mundo(mundo, mapa_tiles);
+```
 
-// ---------------------------------------------------------------------------
+> ⚠️ **`pintar_mundo()` va en un script, no en este `Create` — y `INDICE_POR_BIOMA` no es
+> una variable de instancia, es una tabla constante.** El documento la llama más abajo
+> desde `objGeneradorAsincrono` y `objControladorCarga` (§2.9), ninguno de los dos
+> `objMundo`. `#macro` es la forma correcta de declarar una constante en GML —
+> `const` no existe (`AGENTS.md`) — y así `INDICE_POR_BIOMA` queda accesible desde
+> cualquier sitio sin que `pintar_mundo()` dependa de ningún `self` en absoluto. Dejar
+> `pintar_mundo()` en el `Create` revienta con `Variable X.pintar_mundo(...) not set
+> before reading it` en cuanto la llama otro objeto — el mismo mecanismo de
+> [`04 · 19` §1](../04%20-%20Recetas%20por%20g%C3%A9nero/19%20-%20Programaci%C3%B3n%20r%C3%ADtmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// scr_pintar_mundo.gml
+
+// Índice de tile dentro del tileset, uno por bioma. 0 = celda vacía.
+#macro INDICE_POR_BIOMA [ 1, 2, 3, 4, 5, 6 ]   // Agua, Playa, Hierba, Bosque, Roca, Nieve
 
 /// @func pintar_mundo(_mundo, _mapa_tiles)
 /// @desc Vuelca el array de biomas al tilemap. Se llama UNA vez por generación.
 function pintar_mundo(_mundo, _mapa_tiles)
 {
     var _t0 = get_timer();
+    var _tabla = INDICE_POR_BIOMA;
 
     for (var _fy = 0; _fy < _mundo.alto; _fy++)
     {
         for (var _fx = 0; _fx < _mundo.ancho; _fx++)
         {
             var _bioma = _mundo.biomas[_fy * _mundo.ancho + _fx];
-            tilemap_set(_mapa_tiles, INDICE_POR_BIOMA[_bioma], _fx, _fy);
+            tilemap_set(_mapa_tiles, _tabla[_bioma], _fx, _fy);
         }
     }
 

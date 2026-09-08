@@ -578,9 +578,17 @@ ping_ms = 0;
 global.chat_log = [];
 ```
 
+> ⚠️ **Estos dos helpers van en un script, no en `objNetManager`.** No tocan ninguna
+> variable de instancia — solo construyen y mandan un buffer con los parámetros que
+> reciben — y se llaman desde varios sitios que no son `objNetManager` (más abajo, en
+> distintos puntos del documento). Una `function nombre() {...}` declarada dentro de un
+> evento solo la puede llamar sin cualificar la instancia donde se declaró; dejarlos aquí
+> revienta en cuanto los llame otro objeto, el mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
 ```gml
 // ---------------------------------------------------------------------------
-// objNetManager — helpers de buffer
+// scr_net_buffer.gml
 // ---------------------------------------------------------------------------
 
 /// @func net_buffer_nuevo(_tipo_mensaje)

@@ -1121,6 +1121,19 @@ loot_tables_init();
 global.rng_nivel = new RNG(0);
 global.rng_loot  = new RNG(0);
 global.rng_combate = new RNG(0);
+```
+
+> ⚠️ **`run_nueva()`, `generar_piso()` y `poblar_piso()` van en un script, no en este
+> `Create`.** Ninguna de las tres toca una variable de instancia — solo `global.*` y
+> parámetros — así que no hay ninguna razón para que dependan de `objGame`. Y sí hay una
+> razón real para que revienten si se quedan aquí: `generar_piso()` se vuelve a llamar
+> más abajo desde `scr_save_run` (al cargar una partida guardada), un script — no
+> `objGame` — y una `function nombre() {...}` declarada dentro de un evento solo la
+> puede llamar sin cualificar la instancia donde se declaró. Mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// scr_dungeon_run.gml
 
 /// @func run_nueva(_semilla)
 function run_nueva(_semilla)

@@ -467,9 +467,20 @@ audio_stop_sound(motor.ralenti);  audio_stop_sound(motor.medio);  audio_stop_sou
 
 ### 5.2 Terreno
 
+> ⚠️ **`leer_terreno()` va DENTRO del `Create` de `objVehicle` (añádela al bloque de §2,
+> no la dejes en el `Step` ni suelta).** Lee `x`/`y` de `self`, así que no puede vivir en
+> un script sin un `with (objVehicle)` — pero SÍ puede vivir en un evento, porque
+> `objPlayerCar` y `objAICar` son hijos de `objVehicle` (§2) y su `Create` llama a
+> `event_inherited()` (ver el de `objAICar` más abajo): eso la registra como variable de
+> instancia del propio coche, no solo del padre, y ya queda disponible en TODOS sus
+> eventos posteriores — Step incluido. Si la declaras en el `Step` de `objVehicle` en vez
+> del `Create`, deja de heredarse (ningún `objAICar`/`objPlayerCar` llama a
+> `event_inherited()` en su propio `Step`) y revienta con
+> `Variable X.leer_terreno(...) not set before reading it`.
+
 ```gml
 // ---------------------------------------------------------------------------
-// objVehicle — leer_terreno()
+// objVehicle — Create (añadir) — leer_terreno()
 // ---------------------------------------------------------------------------
 function leer_terreno()
 {

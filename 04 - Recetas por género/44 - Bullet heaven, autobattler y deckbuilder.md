@@ -423,7 +423,7 @@ herramientas del género:**
 |---|---|---|
 | `Draw` de cientos de sprites con `image_alpha`/tinte distinto | Caída de FPS proporcional al número visible | Culling agresivo: no dibujar lo que está fuera del margen de cámara + margen |
 | IA de "todos persiguen al jugador" recalculando `point_direction` cada frame | Coste lineal, no cuadrático — molesta menos de lo que parece, pero suma | Tick escalonado (`04 · 31 §…`, actualizar la mitad de los enemigos en frames pares) si hace falta |
-| Cientos de recogibles de XP con imán activo | Cada uno comprueba distancia al jugador cada frame | Radio de imán como comprobación barata (`point_distance` sin raíz cuadrada: comparar cuadrados, `13 · 13 §2.1`) |
+| Cientos de recogibles de XP con imán activo | Cada uno comprueba distancia al jugador cada frame | Radio de imán como comprobación barata (`point_distance` sin raíz cuadrada: comparar cuadrados, `13 · 13 §1.3`) |
 
 #### 1.4.6 · Imán de recogida y daño de área masivo
 
@@ -476,6 +476,15 @@ la jerarquía visual: si el jugador usa un color para su barra de vida, ningún 
 él; si un enemigo de élite se marca con un color propio, ningún efecto ambiental lo repite. Con
 200 sprites en pantalla, el color deja de ser estética y pasa a ser el único canal que sigue
 funcionando cuando ya no hay tiempo de leer formas.
+
+**El límite honesto: el color no crea variedad, solo la señala.** Con una horda 100 % genérica
+—todos del mismo tipo `basico`, sin ningún enemigo de élite ni proyectil peligroso presente— no
+hay nada que el color pueda distinguir: 500 puntos idénticos convergiendo sobre el jugador siguen
+siendo 500 puntos idénticos, marcados o no en magenta. La técnica solo rinde si ya hay variedad
+de amenaza real en pantalla — que la curva de dificultad de **§1.4.2** meta algo distinto del
+fodder a partir de cierto nivel/oleada, no antes. Diseñar la técnica de color sin diseñar esa
+variedad deja la legibilidad exactamente donde estaba: es una dependencia entre dos secciones,
+no un fallo de ninguna de las dos por separado.
 
 **Atribuir el daño: `ultimo_atacante`.** El número flotante de
 [04 · 15 §5.6](<./15 - Game feel y juice.md#56-flash-de-impacto-y-texto-flotante>) dice CUÁNTO

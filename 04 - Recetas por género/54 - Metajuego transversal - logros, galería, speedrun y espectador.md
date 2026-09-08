@@ -273,6 +273,19 @@ global.galeria_catalogo = [
     galeria_entrada_definir("arte_boceto_prota",    "arte",   "Boceto: la protagonista",  spr_arte_boceto_prota_mini, spr_arte_boceto_prota),
     galeria_entrada_definir("musica_tema_principal","musica", "Tema principal",           spr_galeria_icono_musica, -1, mus_tema_principal)
 ];
+```
+
+> ⚠️ **`galeria_desbloquear()` y `galeria_esta_desbloqueada()` van en un script, no en
+> este `Create`.** Ninguna de las dos toca una variable de instancia — solo llaman a
+> `flag_poner`/`flag_leer` con los parámetros que reciben — y `galeria_esta_desbloqueada()`
+> se llama después desde `obj_galeria` (§3.2), un objeto distinto de `obj_control`.
+> Declararlas en un evento las limita a esa instancia; cualquier otro objeto que las
+> llame revienta con `Variable X.galeria_esta_desbloqueada(...) not set before reading
+> it`, el mismo mecanismo de
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+// scr_galeria.gml
 
 /// @func galeria_desbloquear(_id_entrada)
 function galeria_desbloquear(_id_entrada)

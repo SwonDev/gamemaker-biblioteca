@@ -217,7 +217,18 @@ dano_base    = 12;   // sin "ñ": los identificadores de GML son solo ASCII (§3
 velocidad    = 14;
 perforante   = false;
 instance_deactivate_object(id);   // misma idea que el pool de 06/scr_pool.gml
+```
 
+> ⚠️ **`bala_disparar()` va en un script, no en este `Create`.** No toca `self` en ningún
+> momento — solo opera sobre `_plantilla` y `_nueva`, los parámetros que recibe — así que no
+> tiene ninguna razón funcional para depender de dónde se declaró. Y sí tiene una razón real
+> para fallar si se deja aquí: quien dispara de verdad (`obj_jugador`, una torreta, un enemigo)
+> no es `obj_bala_plantilla`, y una `function nombre() {...}` dentro de un evento solo la puede
+> llamar sin cualificar la instancia donde se declaró — cualquier otro objeto que la llame
+> revienta con `Variable X.bala_disparar(...) not set before reading it`, el mismo mecanismo de
+> [`04 · 19` §1](../04%20-%20Recetas%20por%20g%C3%A9nero/19%20-%20Programaci%C3%B3n%20r%C3%ADtmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
 /// @func bala_disparar(_plantilla, _px, _py, _dir)
 /// @desc Clona una plantilla en vez de reescribir un obj_bala por variante.
 /// @param {Id.Instance} _plantilla  Una instancia de obj_bala_plantilla.
@@ -387,24 +398,41 @@ show_debug_message($"array plano:      {_t_plano / _reps} ms/pasada");
 show_debug_message($"factor: {_t_structs / _t_plano}x");
 ```
 
-**Resultado real** (dos pasadas independientes, `gm-cli run --runtime native`, GameMaker runtime
-2026.0.0.23, Apple M5 Pro / arm64 — ver «Fuentes» para la metodología):
+**Resultado real** (mismo runtime GameMaker 2026.0.0.23, mismo Apple M5 Pro / arm64, medido por
+separado en los dos runtimes de compilación que ofrece GameMaker — ver «Fuentes» para la
+metodología completa de cada tanda):
 
-| Pasada | Array de structs | Array plano | Factor |
+| Runtime | Array de structs | Array plano | Factor |
 |---|---:|---:|---:|
-| 1 | 7,58 ms/pasada | 2,79 ms/pasada | **2,72×** |
-| 2 | 7,75 ms/pasada | 2,80 ms/pasada | **2,76×** |
+| **YYC** (`gm-cli run --runtime native`) — pasada 1 | 7,58 ms/pasada | 2,79 ms/pasada | **2,72×** |
+| **YYC** (`gm-cli run --runtime native`) — pasada 2 | 7,75 ms/pasada | 2,80 ms/pasada | **2,76×** |
+| **YYC** — medición independiente posterior, mismo chip | 8,62 ms/pasada | 3,09 ms/pasada | **2,79×** |
+| **VM** (por defecto de `gm-cli run`/`compile`, sin flags) | 35,13 ms/pasada | 27,56 ms/pasada | **1,27×** |
 
-El array plano es **~2,7 veces más rápido** que el equivalente en structs, de forma consistente
-entre pasadas, para el mismo cálculo exacto. La diferencia no es el algoritmo — es idéntico en
-ambas versiones — sino, únicamente, cómo está dispuesta la memoria.
+El array plano es **~2,7-2,8 veces más rápido** que el equivalente en structs **al compilar a
+nativo (YYC)** — de forma consistente entre tres pasadas independientes, dos de ellas de esta
+sesión y una tercera, posterior, corrida de forma independiente en otra sesión sobre el mismo
+chip. Pero en la **VM** — el runtime que usan `gm-cli run` y `gm-cli compile` **por defecto**,
+salvo que se pida `--runtime native` explícitamente — el factor **se reduce a menos de la
+mitad**: **1,27×**, no 2,7×. La diferencia no es el algoritmo — es idéntico en las dos
+versiones, en los dos runtimes — sino cómo está dispuesta la memoria, y cuánto de ese efecto
+sobrevive a la capa de interpretación de cada runtime.
 
-> ⚠️ **Esto se midió compilando a nativo (YYC), no en la VM.** En esta máquina, `gm-cli run`
-> sobre el runtime de VM para macOS falló al cargar el juego (un problema del *runner* de
-> macOS, no del código): confirmado dos veces, documentado aquí en vez de callado. El **factor**
-> entre versiones debería mantenerse en la VM por venir de un efecto de hardware (caché de CPU),
-> pero el **número absoluto** de milisegundos no se ha medido ahí — no lo des por bueno sin
-> remedir si tu proyecto exporta a VM y el rendimiento es crítico.
+**Por qué el factor no se traslada de un runtime a otro.** En VM, cada acceso — tanto al struct
+como al array plano — paga un coste fijo de interpretación de bytecode que domina sobre el
+efecto de caché de CPU; ese coste es parecido para ambas versiones y **comprime** la diferencia
+relativa entre ellas (35,1 ms frente a 27,6 ms: las dos se ralentizan mucho respecto a YYC, pero
+no en la misma proporción). En YYC ese coste de interpretación desaparece y el efecto de caché
+queda desnudo, con el factor completo.
+
+> ⚠️ **La optimización rinde mucho menos en el runtime por defecto.** `gm-cli run` y
+> `gm-cli compile` usan **VM** salvo que se pida `--runtime native`, y VM es también el runtime
+> con el que se exporta y compila la inmensa mayoría de proyectos reales. Si tu proyecto va a
+> publicarse en VM, el ahorro real de este patrón es de **1,27×, no de 2,7×** — sigue mereciendo
+> la pena a partir de varios miles de elementos (ver «Cuándo NO usarlo»), pero con un margen
+> mucho más estrecho del que sugiere el número medido en YYC. **Mide siempre en el runtime en el
+> que vas a publicar** antes de decidir si el patrón compensa la pérdida de legibilidad: el
+> factor de un runtime no predice el del otro.
 
 **Cuándo NO usarlo.** Si tu bucle recorre decenas o cientos de elementos (la mayoría de
 enemigos, proyectiles, NPCs de un juego normal), la diferencia es submilisegundos: no merece la
@@ -1060,9 +1088,19 @@ Todas consultadas el **6 de septiembre de 2026**.
 **Medición propia (§3.4)** — benchmark escrito para este documento, compilado y ejecutado de
 verdad con `gm-cli run --runtime native` contra el runtime GameMaker 2026.0.0.23, en un
 MacBook Pro con Apple M5 Pro (arm64). Dos pasadas independientes; resultados en la tabla de
-§3.4. El *runner* de VM para macOS de este `gm-cli` falló al cargar el proyecto en esta máquina
-(confirmado dos veces): se documenta la limitación en vez de callarla, y el número medido se
-etiqueta explícitamente como YYC/nativo, no VM.
+§3.4. En el momento de escribir esta sección, el *runner* de VM para macOS de este `gm-cli`
+falló al cargar el proyecto en esta máquina (confirmado dos veces), así que solo se pudo medir
+YYC/nativo.
+
+**Verificación posterior en VM (auditoría R8, `_indice/auditorias/r8-prueba-masivo.md`, 8 de
+septiembre de 2026)** — mismo código de benchmark (`bench_fase_d_layout_memoria()`, mismo
+`_n = 200000`, `_reps = 50`) copiado literal y ejecutado en una sesión distinta, en el mismo
+modelo de chip (Apple M5 Pro/arm64) y el mismo runtime GameMaker 2026.0.0.23, esta vez en los
+**dos** runtimes: una pasada adicional en YYC (que confirmó el factor ya publicado, 2,79×) y,
+por primera vez, una pasada en **VM** — el runtime por defecto de `gm-cli run`/`gm-cli compile`
+sin flags, que en esta sesión sí cargó y corrió sin problema. Resultado: factor 1,27× en VM, la
+cifra que faltaba y que corrige la especulación anterior de que el factor «debería mantenerse»
+ahí. Valores en la tabla de §3.4.
 
 **Medición propia (§3.4 bis)** — mismo método y misma máquina que §3.4 (`gm-cli run --runtime
 native`, runtime 2026.0.0.23, Apple M5 Pro/arm64), **tres pasadas independientes** en vez de

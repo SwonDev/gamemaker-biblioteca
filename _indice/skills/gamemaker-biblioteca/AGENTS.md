@@ -62,7 +62,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las trece trampas que hacen fracasar a un agente
+## Las catorce trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -129,6 +129,11 @@ el primer comando; el detalle y las tablas completas están en
     ve bien; el archivo, del revés. Si verificas mirando capturas —y el guion de humo de `13/10`
     se apoya en ellas—, contrasta al menos una vez con `screencapture` del sistema antes de sacar
     conclusiones sobre dónde está cada cosa en pantalla.
+14. **Escribir un solo índice de `project.RoomOrderNodes` duplica una sala y tumba el
+    compilador.** Reasignar `[i].roomId` sin recolocar la sala que estaba ahí deja el array con
+    una repetida, y el `AssetCompiler` revienta con una excepción de .NET en bruto, sin decir la
+    causa. **Trátalo siempre como una permutación completa**: si mueves una sala, coloca también
+    la desplazada. Receta en `12/09 §9.3 ter`.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**

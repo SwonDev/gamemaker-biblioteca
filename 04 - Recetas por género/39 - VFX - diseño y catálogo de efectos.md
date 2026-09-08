@@ -736,6 +736,20 @@ global.decals  = [];          // { spr, subimg, x, y, angulo, alfa_base, vida }
 DECALS_MAXIMO  = 300;
 DECAL_VIDA     = 1800;        // 30s a 60fps antes de empezar a desvanecerse
 ultimo_segundo = current_time div 1000;
+```
+
+> ⚠️ **`decal_pintar()` va en un script, no en este `Create`.** Ya usa
+> `with (obj_gestor_decals) { ... }` por dentro — así que el CUERPO ya es seguro venga de
+> donde venga la llamada —, pero eso no basta: GameMaker tiene que encontrar primero el
+> identificador `decal_pintar` sobre el `self` de quien llama, ANTES de poder entrar en
+> ese `with`. Declarada en un evento, solo `obj_gestor_decals` la tiene como variable de
+> instancia; cualquier otro objeto que la llame (más abajo, "sangre" y "agujero de bala")
+> revienta con `Variable X.decal_pintar(...) not set before reading it` — el mismo
+> mecanismo que [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor),
+> el `with` interno no lo evita porque el fallo ocurre ANTES de llegar a él.
+
+```gml
+// scr_decals.gml
 
 /// @func decal_pintar(_spr, _subimg, _x, _y, _angulo, _alfa)
 /// @desc Pinta un decal y lo registra. Ángulo aleatorio para agujeros de bala:
@@ -759,6 +773,10 @@ function decal_pintar(_spr, _subimg, _x, _y, _angulo, _alfa)
         }
     }
 }
+```
+
+```gml
+// obj_gestor_decals — Create (continuación)
 
 /// @func decal_reconstruir()
 /// @desc Recrea la surface y repinta TODOS los decals vivos. Necesario si la

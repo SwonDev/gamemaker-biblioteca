@@ -50,8 +50,18 @@ datafiles/idiomas/
 }
 ```
 
+> ⚠️ **`idioma_cargar()` va en un script, no en el `Create` de ningún objeto.** §3 la llama de
+> nuevo desde donde arranca el juego y, por separado, desde el menú de Opciones cuando el
+> jugador cambia de idioma — objetos distintos casi con toda seguridad. No lee ni escribe
+> ninguna variable de instancia (solo `global.idioma`/`global.textos`), así que no tiene ninguna
+> razón para vivir ligada a un objeto concreto: declararla en un evento la limitaría a ese
+> objeto y reventaría con `Variable X.idioma_cargar(...) not set before reading it` en cuanto
+> otro la llamara — el mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+> Va en el mismo script que `txt()` (§2, `scr_idioma`).
+
 ```gml
-/// obj_control · Create — cargar el idioma
+/// scr_idioma — cargar el idioma (misma familia que txt(), §2)
 function idioma_cargar(_codigo) {
     var _ruta = $"idiomas/{_codigo}.json";
     if (!file_exists(_ruta)) _ruta = "idiomas/es.json";   // fallback al original

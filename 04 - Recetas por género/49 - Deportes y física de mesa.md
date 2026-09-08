@@ -1388,7 +1388,16 @@ pinball_rampa_completar(rampa_id, other);   // puntúa, activa multibolas si toc
 
 /// obj_mesa_pinball — Create
 global.rampas_completadas = array_create(NUM_RAMPAS, false);
+```
 
+> ⚠️ **`pinball_rampa_completar()` va en un script, no en este `Create`.** Se llama desde
+> `obj_sensor_rampa — Collision` (arriba), un objeto distinto de `obj_mesa_pinball` — y una
+> `function nombre() {...}` declarada dentro de un evento solo la puede llamar sin cualificar la
+> instancia donde se declaró. Aquí no hace ninguna falta que viva ligada a un objeto: no toca
+> ninguna variable de instancia, solo `global.puntuacion`/`global.rampas_completadas`. El mismo
+> mecanismo que [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
 /// @func pinball_rampa_completar(_rampa_id, _bola)
 /// @desc Puntúa el carril y comprueba si ya se completaron todos los que hacen
 ///       falta para el multibolas. `_bola` no se usa todavía aquí (queda
@@ -1665,6 +1674,17 @@ el Room Editor sobre el trozo de césped inclinado, con dos variables en vez de 
 /// Variables (una por zona, puestas en el editor):
 ///   pendiente_dir    : 0     — dirección cuesta abajo, en grados
 ///   pendiente_fuerza : 0.06  — aceleración que aplica, por paso
+```
+
+> ⚠️ **`terreno_pendiente_en()` va en un script, no en el `Create` de `obj_zona_pendiente`.**
+> La llaman `obj_bola_minigolf` (§B.3.2 y arriba) y la previsualización de trayectoria (§B.3.1)
+> — ninguna de las dos es `obj_zona_pendiente`. Por dentro ya usa `with (obj_zona_pendiente)
+> {...}`, así que no depende en absoluto de quién la invoque: el único motivo para que reviente
+> es dejarla ligada al evento equivocado, el mismo mecanismo que
+> [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
+```gml
+/// scr_minigolf_terreno.gml
 
 /// @func terreno_pendiente_en(_x, _y)
 /// @desc Suma la aceleración de TODAS las zonas de pendiente que cubren el

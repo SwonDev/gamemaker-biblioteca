@@ -209,8 +209,18 @@ caracteres CJK elegidos) llega por `keyboard_string`, igual que en móvil: *«no
 eventos regulares del teclado, sino que actualizarán la variable `keyboard_string`»* (misma
 página).
 
+> ⚠️ **Estas tres funciones van en un script, no en el evento de ningún objeto concreto.**
+> Cualquier campo de texto del juego (nombre, chat, buscador…) va a necesitarlas, no solo
+> `obj_campo_nombre` — y ninguna de las tres toca una variable de instancia: solo leen/escriben
+> `keyboard_string` y llaman a `keyboard_virtual_show`/`_hide`, que son globales del motor. Una
+> `function nombre() {...}` dentro de un evento solo la puede llamar sin cualificar la instancia
+> donde se declaró; declarada aquí, cualquier otro objeto con un campo de texto que la llame
+> revienta con `Variable X.campo_texto_ime_activar(...) not set before reading it` — el mismo
+> mecanismo que
+> [`04 · 19` §1](../04%20-%20Recetas%20por%20g%C3%A9nero/19%20-%20Programaci%C3%B3n%20r%C3%ADtmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
+
 ```gml
-// obj_campo_nombre — al entrar en un campo que puede necesitar CJK (nombre, chat)
+// scr_ime.gml — llamar al entrar en cualquier campo que pueda necesitar CJK (nombre, chat)
 // Verificado: keyboard_virtual_show, keyboard_virtual_hide, keyboard_string
 
 function campo_texto_ime_activar()

@@ -745,7 +745,7 @@ if (progreso < 1 && surface_exists(captura))
 
 ### 3.10 Cámara multijugador con zoom dinámico
 
-Split screen estático (`04 · 14` §8, `01 · 10` §7) resuelve el caso simple. Cuando los
+Split screen estático (`01 · 10` §7) resuelve el caso simple. Cuando los
 jugadores comparten **una** cámara —*Towerfall*, *Samurai Gunn*, *Super Smash Bros.*— la técnica
 de Keren es `position-averaging` (mirar al centro del grupo) combinado con `zoom-to-fit`
 dinámico (alejar la cámara cuanto haga falta para que quepan todos).
@@ -1444,7 +1444,7 @@ if (lock_activo && instance_exists(objetivo_lock))
 - [`04 · 01 — Plataformas 2D`](../04%20-%20Recetas%20por%20género/01%20-%20Plataformas%202D.md) §5 — `on_ground`, coyote time, el controlador que usa `platform-snapping`
 - [`04 · 37 — Traversal en plataformas`](../04%20-%20Recetas%20por%20género/37%20-%20Traversal%20en%20plataformas%20-%20pendientes,%20paredes,%20escaleras%20y%20bordes.md) — estados de agachado/trepar citados en `gesture-focus`
 - [`04 · 12 — Carreras y vehículos`](../04%20-%20Recetas%20por%20género/12%20-%20Carreras%20y%20vehículos.md) §5.6 · [`04 · 02 — Top-Down / Twin-Stick`](../04%20-%20Recetas%20por%20género/02%20-%20Top-Down%20_%20Twin-Stick.md) §5.7 — `projected-focus`/`target-focus` ya resueltos con código
-- [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20género/14%20-%20Multijugador.md) §8 — *split screen* como paso previo al zoom dinámico
+- [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20género/14%20-%20Multijugador.md) — el documento de género para «Multijugador local»; la cámara compartida que necesita se resuelve aquí, en §3.10 (para *split screen* estático, ver `01 · 10` §7)
 - [`04 · 00 — Anatomía de un juego completo`](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md) §4 — por qué toda cinemática scriptada debe ser saltable
 - [`13 · 04 — Animación de sprites, Sequences y Animation Curves`](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) — Sequences por código, para animar UI o sprites durante una cinemática
 - [`03 · 41-44 — PixelatedPope, Cámaras y Resolución 2026`](../03%20-%20Cursos%20%28YouTube%29/) — los cuatro capítulos completos sobre cámara, resolución y la distorsión de píxel al hacer zoom (§17 del capítulo 3)
