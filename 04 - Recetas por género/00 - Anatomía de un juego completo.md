@@ -339,8 +339,10 @@ silencio. Es el mismo criterio que ya usa `13 · 14 §1.5` para las secciones va
 - [ ] Sin `show_debug_message()` de depuración sobrante en el build final (`13 · 10 §7.2`)
 - [ ] Icono, nombre de producto y versión del ejecutable configurados — ⚠️
       [05 · 02 §4.4](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#44-checklist-previa-a-un-build-de-release):
-      el mecanismo por `gm-cli resourcetool` está limitado por licencia en algunas máquinas; la
-      vía que sí funciona hoy es el IDE, documentada ahí
+      el **icono** y el **nombre visible** sí se ponen por `gm-cli resourcetool options set`
+      (`icon`, `splash_screen`, `display_name`), pero la **versión** y el nombre de producto son
+      de solo lectura para el CLI: esos dos los cierra un humano en el IDE. No es un problema de
+      licencia — es así por diseño
 - [ ] Build probado empaquetado, no solo el Run del IDE — y si distribuyes fuera de una tienda,
       probado en una máquina que nunca tuvo GameMaker instalado
 - [ ] Firma y notarización si aplica (`05 · 05`)

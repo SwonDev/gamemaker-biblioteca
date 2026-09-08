@@ -521,8 +521,10 @@ Regla práctica: **VM durante el desarrollo**, **YYC para el build de release**.
 - [ ] **Icono** y **splash** propios por plataforma — `icon` en Windows para `resourcetool` (`option_windows_icon` dentro del `.yy`) — ruta a un
       `.ico`, tabla completa por plataforma en [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado)).
 - [ ] **Versión** en formato `X.Y.Z.B`. ⚠️ Hay DOS campos de versión distintos, no uno: `option_version`
-      (Main Options, un entero plano — no es `X.Y.Z.B`) y `version` para `resourcetool` (`option_windows_version` en el `.yy`; por plataforma, un
-      struct `{major, minor, revision, build}` — este sí lo es). Detalle y el hallazgo completo en
+      (Main Options, un entero plano — no es `X.Y.Z.B`) y `version` (`option_windows_version` en el `.yy`; por plataforma, un
+      struct `{major, minor, revision, build}` — este sí lo es). 🛑 **`resourcetool` la LEE pero no la escribe**
+      (`cannot be set… because it is read-only`, verificado con tres variantes el 08-09-2026): este punto lo
+      cierra un humano en el IDE, o no hace falta si publicas en GX.games (`gxgames upload --version`). Detalle y el hallazgo completo en
       [13 · 11 §4.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#43-numerar-las-versiones).
 - [ ] **Configuración Release** activa o pasada por `--config Release`.
 - [ ] Compilar con **`--runtime native`** (YYC).
