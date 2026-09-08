@@ -225,7 +225,7 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
    `á é í ó ú ñ ¿ ¡` y los omite en silencio** — grave para una biblioteca entera en español —,
    y `screen_save()`, que en Mac invierte la imagen verticalmente mientras la ventana real se ve
    bien) en
-   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)
+   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)
    — léelo entero si vas a operar este repo por terminal, es la guía específica para agentes.
 4. **Escribe GML** verificando cada símbolo con `buscar.py` antes de usarlo. Al terminar,
    `python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>` lista cualquier función

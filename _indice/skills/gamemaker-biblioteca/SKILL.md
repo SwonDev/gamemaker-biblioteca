@@ -55,7 +55,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las catorce trampas que hacen fracasar a un agente
+## Las dieciséis trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -66,8 +66,11 @@ el primer comando; el detalle y las tablas completas están en
    sin salida, no es que tarde: ejecútalo con el sandbox desactivado, o invoca el binario
    `ResourceTool` cacheado directamente (responde en 0,3 s).
 2. **9 de las 18 plantillas de `gm-cli init` fallan en macOS** con `PREFABS RESTORE exited with
-   code 1`, y actualizar no lo arregla. Usa una de las que funcionan —*Space Rocks*, *Blank Pixel
-   Game*, *Tower Defense*, *RPG Starter Pack*—; la tabla completa está en `12/09`.
+   code 1`. Por defecto usa una de las que funcionan —*Space Rocks*, *Blank Pixel Game*, *Tower
+   Defense*, *RPG Starter Pack*—. **Pero sí tienen arreglo**: la culpa no es de la plantilla sino
+   de un `gmpm.dll` desparejado con `PackageTool@2024.14.29`, y basta con pisarlo con el del IDE
+   sobre una `--cache-dir` propia (o arrastrar un `.gmcache/prefabs` ya resuelto, que no necesita
+   IDE y es la vía de CI). Receta y tabla completa en la Trampa 1 de `12/09`.
 3. **El ResourceTool numera mal dos eventos**: pedir «GUI Begin»/«GUI End» crea *Draw Begin*/*Draw
    End*, y pedir «Room End» crea *Game End*. Sin ningún error. Comprueba siempre el `.yy` después
    de crear un evento, o escribe el archivo con el número correcto de la tabla de `12/09`.
@@ -128,6 +131,18 @@ el primer comando; el detalle y las tablas completas están en
     causa. **Trátalo siempre como una permutación completa**: si mueves una sala, coloca también
     la desplazada. Receta en `12/09 §9.3 ter`.
 
+15. **🔴 `RESOURCE CREATE TYPE=shape` rompe el proyecto para siempre.** `shape` es uno de los 17
+    tipos que anuncia `RESOURCE TYPES`, y crearlo registra el recurso con la ruta vacía **antes**
+    de fallar: a partir de ahí no carga nada —ni `compile`— y **no hay comando que lo deshaga**.
+    Solo se repara editando el `.yyp` a mano. Que un tipo esté en la lista no significa que sea
+    creable. Y de paso: `PREFABS RESTORE exited with code 1` es un mensaje **genérico** de «no
+    pude cargar el proyecto»; el diagnóstico de verdad lo da `gm-cli compile`, con archivo, línea
+    y el enlace que no resuelve.
+16. **🔴 `cache clean --project` borra también la caché COMPARTIDA**, la de los *runtimes*, pese a
+    lo que sugiere el nombre del flag. El siguiente `compile` se descarga `runtimes-gms2` entero.
+    Si solo quieres limpiar un proyecto, `--cache-dir`. Y no lo ejecutes para «probar algo» sin
+    avisar al usuario del coste.
+
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
 (`a ? x : (b ? y : z)`) · `const` no existe (es `#macro`) · y `function Hijo() : Padre()
@@ -150,8 +165,10 @@ los errores de todo lo que venga después.
 | Crear o editar recursos (objetos, sprites, rooms, eventos) | `gm-cli resourcetool eval "<comando>"` o el MCP `gamemaker-resource-tool` del proyecto |
 | Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "Space Rocks" --ai --toolchain GMS2@2026.0.0.23` |
 
-Las plantillas con *prefabs* fallan en `gm-cli` 2.3.0 en macOS: usa *Space Rocks* o *Blank
-Pixel Game*. El manual `monthly` está discontinuado; la rama vigente es **LTS 2026.0**.
+9 de las 18 plantillas fallan al crear el proyecto (`PREFABS RESTORE exited with code 1`): por
+defecto usa *Space Rocks* o *Blank Pixel Game*. **Si necesitas una de las que fallan, sí hay
+arreglo** —la causa es un `gmpm.dll` desparejado, no la plantilla—: receta en la Trampa 1 de
+`12/09`. El manual `monthly` está discontinuado; la rama vigente es **LTS 2026.0**.
 
 ## Qué leer según la tarea
 

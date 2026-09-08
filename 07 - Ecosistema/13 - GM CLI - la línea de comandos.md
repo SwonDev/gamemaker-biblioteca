@@ -267,7 +267,53 @@ ARGUMENTS
 | `--config` | Configuración del proyecto (por defecto `Default`). |
 | `--license` | Fichero `.plist` de licencia; alternativa: variable de entorno `GAMEMAKER_CLI_LICENSE`. |
 | `--errors-only` | Silencia todo salvo errores de sintaxis GML. Ideal para iterar rápido o en CI — **no para la última compilación antes de publicar** (ver el aviso debajo). |
-| `--toolchain-options` | JSON con opciones específicas del toolchain. |
+| `--toolchain-options` | JSON con opciones específicas del toolchain. **No es JSON libre**: ver abajo. |
+
+### `--toolchain-options`: el esquema completo, y lo que desbloquea
+
+Ningún documento lo decía, pero este flag es la puerta a **DMG, instalador NSIS, AppImage, AAB y
+la firma de Android entera desde la línea de comandos**. Se valida contra
+`<proyecto>/.gmcache/schemas/gm-options-schema-2.json`, y la trampa está en el nivel: **lo que se
+pasa por la CLI es el sub-objeto del toolchain, sin la clave `gms2` por fuera.**
+
+```console
+$ gm-cli compile --toolchain-options '{"gms2":{"mac":{"packageType":"dmg"}}}'
+Invalid --toolchain-options for GMS2:  - Unrecognized key: "gms2"    ← el error típico
+
+$ gm-cli compile --toolchain-options '{"mac":{"packageType":"dmg"}}'
+        ← aceptado
+```
+
+En el `gm-options.json` que `init` deja en la raíz sí va el archivo completo, con `gms2`/`gmrt`
+por fuera. Claves aceptadas, sacadas del propio esquema (verificado el 08-09-2026):
+
+| Clave | Valores | Para qué |
+|---|---|---|
+| `windows.packageType` | `zip` · `nsis` | ZIP o **instalador NSIS** |
+| `mac.packageType` | `zip` · `dmg` | ZIP o **DMG** |
+| `linux.packageType` | `zip` · `appimage` | ZIP o **AppImage** |
+| `android.packageType` | `apk` · `aab` | APK o **Android App Bundle** (el que pide Play) |
+| `operagx.packageType` | `zip` · `wallpaper` · `gamestrip` | Formatos de GX.games |
+| `android.keystoreFile` · `keystorePassword` · `keystoreAlias` · `keystoreAliasPassword` | strings | **Firma de Android completa por CLI** |
+| `android.sdkPath` · `ndkPath` · `jdkPath` | rutas | Cadena de herramientas Android |
+| `windows.visualStudioSdk` | ruta a `VsDevCmd.bat` | YYC en Windows |
+| `operagx.emscriptenSdk` | ruta | YYC en Opera GX |
+| `gmrt.buildGraph.{mac,windows,linux}` | ruta `.xml` | Grafo de build de GMRT |
+| `gmrt.jobRun` · `jobCompile` · `jobPackage` | string | Sustituir un *job* de GMRT por un comando propio |
+
+Un valor fuera de la lista da un error claro
+(`mac.packageType: Invalid option: expected one of "zip"|"dmg"`), y un JSON mal formado también
+(`--toolchain-options is not valid JSON`). Es de los pocos sitios del CLI donde los mensajes
+ayudan.
+
+> 🔐 **Nunca metas la contraseña del keystore en un `gm-options.json` versionado.** Pásala por
+> `--toolchain-options` desde un secreto de CI. Es una clave de firma: quien la tenga puede
+> publicar actualizaciones de tu juego en Play.
+
+> ⚠️ **`--config` con un nombre que no existe no da un error limpio**: revienta con
+> `KeyNotFoundException: The given key 'NoExiste' was not present in the dictionary`. Comprueba el
+> nombre antes. Y en `resourcetool`, el flag va **antes** del comando:
+> `gm-cli resourcetool eval --config Demo "<comando>"`.
 
 ### Fijar el runtime LTS 2026
 
@@ -1191,21 +1237,73 @@ La causa es el paso `PREFABS RESTORE` de `ProjectTool`, la utilidad que GameMake
 abrir, importar y convertir proyectos. Las plantillas que incluyen **prefabs** dependen de él;
 las que no, no lo ejecutan y por eso funcionan.
 
+### La causa raíz, y por qué sí tiene arreglo
+
+> ❌ **Corrección del 08-09-2026.** Este documento decía que la única salida era el IDE. No lo es:
+> la causa está aislada y hay dos rodeos verificados de punta a punta, uno de ellos sin IDE.
+
+**No falla la plantilla: falla el resolutor de paquetes.** `gm-cli compile --verbose` enseña la
+traza real — `PackageTool@2024.14.29` revienta con `Parameter count mismatch` dentro de
+`GmpmBindings.GetAvailablePackages` antes de consultar nada. Es un desfase de firma entre
+`PackageTool` (versión 2024, la única publicada) y el `gmpm.dll` que `gm-cli` se descarga, que es
+más nuevo (79 872 bytes contra los 64 512 del IDE). Reproducido invocando el binario a pelo, fuera
+de `gm-cli`. Falla, por tanto, **todo lo que resuelva un paquete del registro**: las 9 plantillas,
+los comandos `PREFAB`, y también poner un filtro de capa (`effectType`) en una sala.
+
+> ⚠️ Y `PREFABS RESTORE exited with code 1` **es un mensaje genérico**: quiere decir «no se pudo
+> cargar el proyecto», no forzosamente que falten prefabs. No lo tomes como diagnóstico; el
+> diagnóstico está en `compile --verbose`.
+
 ### Soluciones, de mejor a peor
 
-1. **Usa una plantilla sin prefabs** y añade los prefabs después desde el IDE
-   (`Package Manager` → `Prefab Library`). Es lo que recomiendo: el proyecto se crea
-   correctamente y pierdes un minuto.
+1. **Parchea el `gmpm.dll` una sola vez** (necesita el IDE instalado) y usa la plantilla que
+   quieras. Verificado: tras esto, `gm-cli init -t "Platformer"` crea el proyecto y compila con
+   `exit 0`.
+
+   ```bash
+   CACHE=~/.gmcli-cache
+   IDEDLL="$HOME/Library/Application Support/Steam/steamapps/common/GameMaker Studio 2/GameMaker.app/Contents/MacOS/arm64/gmpm/gmpm.dll"
+
+   gm-cli init --no-interactive -n Tmp -t "Platformer" --cache-dir "$CACHE"   # falla; puebla la caché
+   cp "$IDEDLL" "$(find "$CACHE" -name gmpm.dll | head -1)"
+   gm-cli init --no-interactive -n MiJuego -t "Platformer" --cache-dir "$CACHE"
+   ```
+
+   El primer `init` **tiene** que fallar: `gm-cli` exige que el directorio destino no exista, así
+   que no hay forma de pre-sembrar el `.gmcache`; lo que sí se puede es reubicarlo con
+   `--cache-dir` y parchearlo ahí para siempre.
+
+2. **Arrastra la carpeta `.gmcache/prefabs` ya resuelta** desde un proyecto sano. **No necesita
+   IDE**, que es lo que la hace la vía buena en CI: los *workflows* que genera `init` ya cachean
+   `.gmcache` con `actions/cache@v5`, así que basta con poblarla una vez desde una máquina buena.
+
+3. **Usa una plantilla sin prefabs** y añade los prefabs después desde el IDE
+   (`Package Manager` → `Prefab Library`).
 
    ```bash
    gm-cli init --no-interactive -n MiJuego -t "Space Rocks" --ai --actions
    ```
 
-2. **Crea el proyecto desde la interfaz de GameMaker.** El IDE usa el mismo `ProjectTool`
-   pero con la versión empaquetada en su instalación, que sí resuelve los prefabs.
+4. **Crea el proyecto desde la interfaz de GameMaker**, que usa el `ProjectTool` y el `gmpm.dll`
+   de su propia instalación.
 
-3. **Actualiza `ProjectTool` por el Package Manager** del IDE si hay una versión nueva
-   disponible, y vuelve a probar por terminal.
+> 💡 **Y hay una vía que no pasa por `init`**: la API expone la URL de descarga de **las 31**
+> plantillas, y el `.yymps` es un ZIP normal con el `.yyp` dentro.
+>
+> ```bash
+> curl -s https://api.gamemaker.io/api/gamemaker/project-templates \
+>   | python3 -c "import json,sys;[print(t['attributes']['info_title'],'|',t['attributes']['gml_code_download_url']) for t in json.load(sys.stdin)['data']]"
+> curl -sL "https://api.yoyogames.com/api/2/download?package_id=com.yoyogames.windywoods&version=1.2.2" -o plataformer.yymps
+> unzip -q plataformer.yymps -d MiPlat
+> ```
+>
+> Sigue haciendo falta uno de los dos rodeos para que los prefabs se resuelvan, pero da acceso al
+> catálogo entero sin depender de `gm-cli init`.
+
+> ⚠️ **Lo que NO funciona**, probado y descartado: `prefabsfolder=` apuntando a `packages/` del
+> IDE, a `gm-ide-prefabs` o a un prefab suelto; copiar el `.yymps` a mano a `.gmcache/prefabs` o a
+> `<proyecto>/prefabs`; y `projecttool=` apuntando al `ProjectTool` del IDE, solo o combinado con
+> `prefabsfolder=`. Seis variantes, las seis con el mismo error.
 
 ### Cómo diagnosticarlo tú mismo
 
