@@ -76,6 +76,7 @@ Un tutorial de YouTube **nunca** gana a `simbolos.json`.
 | Herramientas y utilidades para integrar | `12 - Utilidades e integraciones/` |
 | Diseñar el juego, no solo programarlo: mecánicas y balance, niveles, pixel art, animación, UI/UX, arquitectura, procgen avanzada, físicas a mano y fluidos, sonido, testing, producción, narrativa, matemáticas | `13 - Diseño y producción de videojuegos/` |
 | Comprobar TODO el GML de un proyecto real antes de compilar | `python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>` |
+| Saber si lo que entregas es un juego o solo su bucle | `python3 "_indice/auditar-juego-completo.py" <ruta-del-proyecto>` |
 | Usar esta biblioteca desde OTRO proyecto (Claude Code o Codex) | la skill `gamemaker-biblioteca`, en `_indice/skills/gamemaker-biblioteca/SKILL.md` (enlazada desde `~/.claude/skills` y `~/.codex/skills`) |
 | Aprender en español, o consultar un curso sin verlo | `10 - Cursos en español/` (los documentos 06 y 07 son transcripciones completas) |
 | No sé por dónde empezar | [`_indice/COMO-BUSCAR.md`](./_indice/COMO-BUSCAR.md) |
@@ -93,6 +94,10 @@ _indice/
   documentos.json       Todos los documentos de la biblioteca con su título.
   MAPA.json             El mapa legible por máquina. Se sincroniza solo.
   validar-proyecto.py   Valida el GML de un PROYECTO real: funciones inventadas y obsoletas.
+  auditar-juego-completo.py
+                        Detecta qué piezas del envoltorio (menú, opciones, pausa, guardado,
+                        créditos, fin de partida, sonido, mando, arranque por portada) NO
+                        aparecen en un proyecto, y qué objetos sin sprite pintan rectángulos.
   skills/gamemaker-biblioteca/
                         La skill para Claude Code y Codex: cómo usar esta biblioteca
                         desde cualquier proyecto. Su índice de documentos se genera solo.

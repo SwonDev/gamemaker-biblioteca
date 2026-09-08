@@ -255,6 +255,38 @@ CASOS = [
     ("Programar sin escribir código, con bloques",
      ["--texto", "Drag and Drop"],
      ["GML Visual"]),
+
+    # ── Los tres fallos que hunden un "hazme un juego" ────────────────────────
+    # Un agente falla casi siempre por lo mismo: se lanza a programar sin
+    # especificación, entrega el bucle de juego sin envoltorio (menú, pausa,
+    # guardado, créditos), se salta la historia si la había, y pone rectángulos
+    # de colores donde debería haber sprites. Estas seis tareas comprueban que el
+    # camino a la respuesta EXISTE y es encontrable — no que el agente lo tome,
+    # pero sin ellas ni siquiera podría.
+
+    ("Me han dicho solo «hazme un juego» y no sé qué preguntar antes de empezar",
+     ["--texto", "elicitación"],
+     ["protocolo de elicitación del agente"]),
+
+    ("Tengo el bucle de juego; me falta el menú principal y el envoltorio",
+     ["--texto", "menú principal"],
+     ["Anatomía de un juego completo", "Continuar"]),
+
+    ("El juego lleva una historia: necesito diálogos con ramas y decisiones",
+     ["--texto", "diálogo ramificado"],
+     ["Diseño narrativo y diálogos", "Chatterbox"]),
+
+    ("Quiero varias partidas guardadas, con su ficha y su miniatura",
+     ["--texto", "ranura de guardado"],
+     ["scr_save_load.gml"]),
+
+    ("No tengo ni un sprite y no pienso entregar rectángulos de colores",
+     ["--texto", "escalera de prioridad"],
+     ["Manual del agente de IA", "sin el rectángulo plano"]),
+
+    ("¿Cómo sé que el juego está TERMINADO y no solo que funciona?",
+     ["--texto", "lista MAESTRA"],
+     ["Anatomía de un juego completo"]),
 ]
 
 

@@ -296,6 +296,24 @@ concreta — **no las repiten, las tienen por debajo**:
 | Si escribiste un GDD completo antes de programar, que esté terminado y sea implementable | [13 · 14 §4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md#4--checklist) | — |
 | Checklist de build de release (icono, versión, firma, tamaño) | [05 · 02 §4.4](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#44-checklist-previa-a-un-build-de-release) | — |
 
+> 🤖 **Primero pásale el detector, después lee la lista.** Comparar 25 puntos a mano es
+> justamente lo que se salta un agente con prisa, así que hay un script que hace la parte
+> mecánica sobre el proyecto real:
+>
+> ```sh
+> python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto
+> ```
+>
+> Lee el `.yyp`, los `.yy` de los objetos y todo el `.gml`, y dice qué piezas **no encuentra**
+> —menú, opciones, pausa, guardado, créditos, fin de partida, sonido, mando—, si el jugador
+> entra por una portada o cae directo en el nivel, y **qué objetos sin sprite están pintando
+> rectángulos en su evento Draw** (la firma exacta del personaje sin arte). Sale con código 1
+> mientras falte algo.
+>
+> No sustituye a esta lista: es un **detector de ausencias**, no un juez. Encuentra un menú
+> porque hay una room llamada `rm_menu`; no sabe si ese menú se entiende. Y marca como ausente
+> un menú que viva dentro de otra sala. Cada ✗ es una pregunta que tú respondes.
+
 **Si tu encargo recorta algo de esta lista a propósito, dilo explícitamente** — «no aplica:
 juego lineal de una sola sesión», «no aplica: sin niveles discretos» — nunca lo omitas en
 silencio. Es el mismo criterio que ya usa `13 · 14 §1.5` para las secciones vacías de un GDD.
