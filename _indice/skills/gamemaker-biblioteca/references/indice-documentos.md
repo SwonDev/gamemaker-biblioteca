@@ -189,6 +189,7 @@ Qué cambió en LTS 2026 y qué rompe el código antiguo. Handles, GMRT, UI Laye
 - `04 - Recetas por género/55 - Party games, minijuegos y creación casual.md` — 55 · Party games, minijuegos y creación casual
 - `04 - Recetas por género/56 - Combate no letal - pacifismo, aturdir, huir y negociar.md` — 56 · Combate no letal — pacifismo, aturdir, huir y negociar
 - `04 - Recetas por género/57 - Selección de nivel y capítulo.md` — 57 · Selección de nivel y capítulo
+- `04 - Recetas por género/58 - El nivel como mapa de texto - construir sin abrir el editor de salas.md` — 58 · El nivel como mapa de texto — construir sin abrir el editor de salas
 - `04 - Recetas por género/_INDICE-RECETAS.md` — Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)
 
 

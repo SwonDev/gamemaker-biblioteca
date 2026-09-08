@@ -733,6 +733,28 @@ corrección. Detalle completo, con la construcción en vivo de un juego narrativ
 descubrió de forma independiente, en
 [`_indice/auditorias/r6-prueba-narrativa.md` §6.1](../_indice/auditorias/r6-prueba-narrativa.md#61--el-fallo-real-resource-create-typeincludedfile-no-deja-el-archivo-donde-la-skill-dice-que-vive).
 
+
+> 🔴 **Y una vez dentro del paquete, el nombre cambia: los *included files* se escriben en
+> MINÚSCULAS.** Verificado con `unzip -l` sobre el `game.zip` de un juego real:
+>
+> ```
+>      4414  assets/licencia_fuentes.txt      ← el recurso se llamaba LICENCIA_FUENTES.txt
+> ```
+>
+> La Trampa 8 explica cómo hacer que el archivo llegue al paquete y no decía nada de esto. Si
+> nombras el recurso `Fuente_UI.ttf` y luego pides `font_add("Fuente_UI.ttf", …)`, **falla en
+> silencio**: `font_add` devuelve `-1`, el juego cae a la fuente por defecto, y esa se come las
+> tildes — la Trampa 12 entrando por la puerta de atrás, con el agravante de que el síntoma
+> aparece lejos de la causa.
+>
+> **Nombra el recurso en minúsculas y úsalo así desde GML.** Y ponle la red que sí delata el
+> fallo sin mirar la pantalla:
+>
+> ```gml
+> global.fnt_ui = font_add("fuente_ui.ttf", 16, false, false, 32, 255);
+> if (global.fnt_ui == -1) show_debug_message("FALLO: no se cargó fuente_ui.ttf del paquete");
+> ```
+
 ### Trampa 9 · Un `subtype`/argumento rechazado por un subcomando no significa que la propiedad cruda sea inalcanzable
 
 **El síntoma**: `OBJECT EVENT FINDORCREATE` tiene una whitelist cerrada de nombres para `draw` y
@@ -912,6 +934,18 @@ pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 >
 > Encontrado por un agente que construyó un juego entero usando solo esta biblioteca
 > ([`r12-prueba-plataformas.md` §1.2](../_indice/auditorias/r12-prueba-plataformas.md)).
+
+> 💡 **`options info` no cabe en la salida de un agente.** `options info platform=mac` devuelve
+> **82 KB** de tabla con bordes Unicode, que desborda la salida del Bash de Claude Code y de
+> cualquier herramienta con tope. Pide solo los nombres:
+>
+> ```bash
+> gm-cli resourcetool eval "options info platform=mac" | grep -oE "^│ [a-z_0-9]+ +│" | tr -d '│ '
+> ```
+>
+> Y `icon_png` **exige exactamente 1024×1024**: con otro tamaño responde
+> `Image … dimensions (512 x 512) do not match the expected dimensions (1024 x 1024)` y no
+> escribe nada. Genera el tamaño exacto antes (`sips -z 1024 1024 …`).
 
 > ⚠️ **Los nombres de las propiedades NO son los mismos en todas las plataformas.** La tabla de
 > arriba es la de Windows, y en Mac dos de las cinco escribibles se llaman de otra forma:
@@ -2958,6 +2992,20 @@ ARGUMENTS
    file      Path to the script file
   [project]  Path to the project .yyp file
 ```
+
+> 💡 **Los comentarios del archivo de lote empiezan por `#`, no por `//`.** No es obvio —el
+> resto de la herramienta habla en GML, donde el comentario es `//`— y un lote de cuatrocientas
+> líneas es justo donde quieres explicar qué hace cada bloque. Verificado el 08-09-2026:
+>
+> ```
+> $> # esto es un comentario
+> $> RESOURCE LIST TYPE=room        ← se ejecuta
+> $> // y esto otro
+> Unknown Command: // y esto otro
+> ResourceTool Failed
+> ```
+>
+> Las líneas en blanco sí se ignoran.
 
 Ejemplo real, un archivo de texto con seis comandos:
 

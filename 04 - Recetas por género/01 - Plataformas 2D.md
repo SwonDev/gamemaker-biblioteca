@@ -439,24 +439,22 @@ vel_y = min(vel_y + _grav, VELY_TERMINAL);
 // --- 6. Colisión y movimiento -----------------------------------------------
 was_on_ground = on_ground;
 
-var _hit = move_and_collide(vel_x, vel_y, objSolid, 4, 0, 0, MOVE_SPEED_MAX, -1);
+move_and_collide(vel_x, vel_y, objSolid, 4, 0, 0, MOVE_SPEED_MAX, -1);
 
-// move_and_collide devuelve un array [instancia_eje_x, instancia_eje_y] o undefined
-if (is_array(_hit))
+// El eje del choque se deduce DESPUÉS de mover, preguntando por el vecino.
+// Es más simple y no depende de interpretar el array de retorno — ver el aviso de abajo.
+if (vel_y > 0 && place_meeting(x, y + 1, objSolid))
 {
-    if (!is_undefined(_hit[0]) && instance_exists(_hit[0])) vel_x = 0;
-    if (!is_undefined(_hit[1]) && instance_exists(_hit[1]))
-    {
-        if (vel_y > 0 && is_undefined(_hit[1])) {}      // cayendo y nada debajo
-        if (vel_y > 0) {}                                // placeholder
-        if (_hit[1] != noone && vel_y > 0)
-        {
-            // Aterrizaje: stretch de impacto
-            if (!was_on_ground) { squash_x = 1.35; squash_y = 0.70; }
-        }
-        vel_y = 0;
-    }
+    // Aterrizaje: stretch de impacto
+    if (!was_on_ground) { squash_x = 1.35; squash_y = 0.70; }
+    vel_y = 0;
 }
+else if (vel_y < 0 && place_meeting(x, y - 1, objSolid))
+{
+    vel_y = 0;   // golpe de cabeza contra el techo
+}
+
+if (vel_x != 0 && place_meeting(x + sign(vel_x), y, objSolid)) vel_x = 0;
 
 // --- 7. Plataformas de un sentido -------------------------------------------
 resolve_one_way();
@@ -489,6 +487,28 @@ apply_state_sprite();
 squash_x = lerp(squash_x, 1, 0.20);
 squash_y = lerp(squash_y, 1, 0.20);
 ```
+
+> ❌ **Corrección del 08-09-2026 — este bloque decía algo que el manual desmiente.** La versión
+> anterior comentaba que «`move_and_collide` devuelve un array `[instancia_eje_x,
+> instancia_eje_y]`» y resolvía el aterrizaje leyendo `_hit[1]`. **No es cierto**: el manual
+> oficial dice que devuelve *«un array con los handles de las instancias y los tile maps con los
+> que ha colisionado»* — sin orden por eje, sin posiciones fijas, y sin garantía de que estén
+> todas (*«solo devuelve los que afectaron a su movimiento»*). Leer `_hit[1]` como «lo que hay
+> debajo» era una semántica inventada.
+>
+> El bloque traía además dos condicionales vacíos y un `// placeholder` dentro de la rama que
+> decide el aterrizaje. En una biblioteca cuya primera regla es «no inventes», una sección
+> titulada «código base» no puede llevar un marcador de relleno. Lo encontró un agente que
+> intentó usarlo tal cual para construir un juego real
+> ([`r12-prueba-plataformas.md` §1.6](../_indice/auditorias/r12-prueba-plataformas.md)), y la
+> solución de arriba —deducir el eje con `place_meeting()` después de mover— es la suya.
+
+> ⚠️ **Los nombres de esta receta (`objPlayer`, `objSolid`, `objPlatformMoving`) están en
+> camelCase y contradicen las convenciones de la biblioteca**, que pide `snake_case` con
+> prefijo (`obj_jugador`, `obj_solido`, `obj_plataforma_movil`). Se conservan porque son los del
+> tutorial original del que sale la receta y renombrarlos rompería los enlaces a sus fuentes,
+> pero **el código que generes va en `snake_case`**: traduce al copiar. Es una molestia real —
+> el agente de la prueba tuvo que traducir cada nombre mientras leía.
 
 ### 5.4 Plataformas one-way
 
