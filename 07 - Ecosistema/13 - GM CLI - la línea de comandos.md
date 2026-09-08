@@ -989,6 +989,137 @@ Y el paso clave:
 
 ---
 
+## 11 bis. La puerta de estilo: un job que de verdad falla
+
+Los dos *workflows* que genera `init` compilan y empaquetan. Eso rechaza el código que **no
+compila** — que es mucho, pero deja pasar cualquier cosa que compile: llaves donde a cada uno le
+apetezca, tabulaciones mezcladas con espacios, ternarios de tres pantallas. Si trabajas con
+agentes de IA eso importa el doble, porque cada agente formatea a su gusto y el `diff` acaba
+siendo ruido puro.
+
+**La pieza que falta es un *check* de formato**, y para montarlo hay que saber un dato que ningún
+README pone por delante: de las cuatro herramientas de estilo del ecosistema, **solo GoboCat
+devuelve un código de salida distinto de 0** cuando encuentra algo mal. Las otras tres imprimen
+el problema y terminan en éxito, así que un job construido sobre ellas **pasa siempre en verde**.
+El detalle de por qué, con el código fuente de cada una, está en
+[`12 · 01 §2`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md#2-formatear-y-analizar-el-c%C3%B3digo).
+
+### `estilo.yml` — formato comprobado en cada PR
+
+```yaml
+name: Estilo
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # Fija la versión. El propio README de GoboCat avisa de que las opciones y el
+  # comportamiento «change weekly»: con `latest`, un formateador que cambia de
+  # opinión rompe PRs que no han tocado nada.
+  GOBO_VERSION: v0.7.1
+
+jobs:
+  formato:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Instalar GoboCat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$GOBO_VERSION" \
+             --repo EttyKitty/GoboCat \
+             --pattern 'gobo-linux-x64.zip' \
+             --output gobo.zip
+          unzip -q gobo.zip            # el zip contiene un único binario: `gobo`
+          chmod +x gobo
+          ./gobo --version
+
+      # --check no toca los archivos y sale con 1 si alguno necesita formato.
+      - name: Comprobar formato
+        run: ./gobo --check ./scripts ./objects
+```
+
+Tres detalles que hacen que este job funcione y no es evidente que hagan falta:
+
+- **`gh` viene instalado en los *runners* de GitHub** y `GH_TOKEN: ${{ github.token }}` le basta
+  para descargar de un repositorio público. Así no hay que escribir a mano la URL del *asset*,
+  que es justo lo que se rompe cuando el proyecto renombra sus binarios.
+- **`set -euo pipefail`**: sin `-e`, un fallo en la descarga deja el paso en verde y el
+  `--check` siguiente se ejecuta sobre un binario que no existe.
+- **Apuntar a `./scripts` y `./objects`, no a `.`**. GoboCat ya ignora `node_modules`,
+  `extensions`, `.git`, `.svn`, `prefabs`, `bin` y `obj`, pero no las carpetas de un proyecto de
+  GameMaker; darle la raíz entera lo hace recorrer `datafiles` y los `.yy` sin necesidad.
+
+> ⚠️ **Un formateador no es un analizador.** Esto comprueba **forma**, no corrección: pasa
+> igual de verde con una variable sin inicializar o una función que no existe. Las tres puertas
+> se complementan y ninguna sustituye a las otras: `gm-cli compile` (¿compila?), GoboCat
+> (¿está formateado?) y Feather dentro del IDE (¿tiene sentido?). Si solo puedes tener una,
+> quédate con la primera.
+
+### El *hook* de pre-commit
+
+El mismo binario, en local, antes de que el problema llegue al repositorio. En
+`.git/hooks/pre-commit`, con permiso de ejecución (`chmod +x`):
+
+```bash
+#!/usr/bin/env bash
+# Rechaza el commit si algún .gml en el índice está sin formatear.
+set -euo pipefail
+
+# Solo los archivos GML que se van a commitear, no el repositorio entero:
+# un hook que tarda diez segundos se acaba desactivando.
+mapfile -t ARCHIVOS < <(git diff --cached --name-only --diff-filter=ACM -- '*.gml')
+[ ${#ARCHIVOS[@]} -eq 0 ] && exit 0
+
+if ! command -v gobo >/dev/null 2>&1; then
+    echo "⚠️  gobo no está en el PATH; me salto la comprobación de formato."
+    exit 0          # avisar, no bloquear a quien aún no lo ha instalado
+fi
+
+if ! gobo --check "${ARCHIVOS[@]}"; then
+    echo
+    echo "✗ Hay GML sin formatear. Arréglalo con:"
+    echo "    gobo ${ARCHIVOS[*]}"
+    echo "  y vuelve a añadir los archivos (git add) antes de commitear."
+    exit 1
+fi
+```
+
+> 💡 **`--diff-filter=ACM` y no el repositorio entero.** Sin ese filtro el *hook* también
+> examina archivos borrados (`gobo` falla porque no existen) y, al pasarle el proyecto completo,
+> tarda lo suficiente como para que alguien acabe usando `--no-verify` por costumbre. Un *hook*
+> que se salta la gente no es una puerta.
+>
+> ⚠️ **`.git/hooks/` no viaja en el repositorio.** Cada persona —y cada agente que clone— tiene
+> que instalarlo. O bien lo guardas versionado en `.githooks/` y lo activas con
+> `git config core.hooksPath .githooks`, que sí se puede documentar en el README y automatizar,
+> o bien asumes que el *hook* es una comodidad local y **la puerta de verdad es el job de CI**.
+> Las dos opciones son razonables; lo que no funciona es creer que tienes puerta porque un
+> archivo existe en tu `.git`.
+
+### Lo que NO se puede automatizar hoy, y por qué
+
+| Quieres | Con qué | Estado real (08-09-2026) |
+|---|---|---|
+| Rechazar lo que no compila | `gm-cli compile` | ✅ `compile.yml`, §11 |
+| Rechazar lo mal formateado | `gobo --check` (GoboCat) | ✅ arriba |
+| Rechazar por reglas de estilo/nomenclatura | duck | ❌ sin *release* instalable; ver `12 · 01 §2` |
+| Rechazar por reglas de un linter npm | `@turlututu-games/gml-linter` | ❌ termina en 0 aunque encuentre violaciones |
+| Rechazar por avisos de Feather | — | ❌ Feather solo vive dentro del IDE; no tiene CLI |
+
+**Ese último hueco es el que más duele** y conviene decirlo claro en vez de sugerir un apaño:
+Feather es el mejor analizador de GML que existe y **no se puede ejecutar desde línea de
+comandos**. No hay `gm-cli feather`, ni un modo *headless* del IDE que escupa sus avisos. Todo
+lo que un agente puede automatizar hoy en materia de calidad de GML es: que compile, que esté
+formateado, y las comprobaciones que tú mismo escribas.
+
+---
+
 ## 12. Recetas útiles
 
 ```bash
