@@ -175,27 +175,49 @@ binario directamente, fuera de `gm-cli`. Por eso falla **cualquier cosa que resu
 del registro**: las 9 plantillas, los comandos `PREFAB`, y —efecto colateral— poner un filtro de
 capa (`effectType`) en una sala.
 
-**Rodeo A — sustituir el `gmpm.dll` por el del IDE.** Se hace una vez y sirve para todos los
-proyectos:
+**Rodeo A — sustituir el `gmpm.dll` por el del IDE.** Verificado de punta a punta el
+09-09-2026, ejecutando cada paso. Son **cuatro**, y los dos últimos no estaban en la primera
+versión de esta receta: sin ellos parece que el rodeo no funciona.
 
 ```bash
 CACHE=~/.gmcli-cache
 IDEDLL="$HOME/Library/Application Support/Steam/steamapps/common/GameMaker Studio 2/GameMaker.app/Contents/MacOS/arm64/gmpm/gmpm.dll"
 
-# 1. Deja que gm-cli descargue sus herramientas a una caché tuya. Este init FALLA, y da igual:
-#    lo que interesa es que la caché quede poblada.
-gm-cli init --no-interactive -n Tmp -t "Platformer" --cache-dir "$CACHE"
+# 1. Consigue una caché de herramientas poblada. Lo más rápido es COPIARLA de cualquier
+#    proyecto que ya exista — la caché de herramientas es POR PROYECTO, vive en su .gmcache,
+#    y así te ahorras la descarga entera (~167 MB):
+cp -R <un-proyecto-cualquiera>/.gmcache "$CACHE"
+#    (si no tienes ninguno: un `gm-cli init … --cache-dir "$CACHE"` que FALLE también la puebla)
 
-# 2. Pisa el gmpm.dll roto con el del IDE instalado
+# 2. Pisa el gmpm.dll roto (79 872 bytes) con el del IDE (64 512 bytes)
 cp "$IDEDLL" "$(find "$CACHE" -name gmpm.dll | head -1)"
 
-# 3. A partir de aquí funcionan las nueve
+# 3. Crea el proyecto APUNTANDO A ESA CACHÉ
 gm-cli init --no-interactive -n MiJuego -t "Platformer" --cache-dir "$CACHE"
+
+# 4. Parchea también el .gmcache PROPIO que el proyecto acaba de crearse
+cp "$IDEDLL" "$(find MiJuego/.gmcache -name gmpm.dll | head -1)"
 ```
 
-El proyecto se crea **y compila** (`Compilation finished`, `exit 0`). El paso 1 es obligatorio
-porque `gm-cli init` exige que el directorio destino no exista, así que no se puede pre-sembrar un
-`.gmcache` local; lo que sí se puede es reubicarlo con `--cache-dir` y parchearlo allí.
+Salida real del paso 3: `Project created at …/MiJuego`, con su `.yyp`. Y el proyecto **compila**
+(`Igor complete` · `Compilation finished` · `exit 0`), con la lista real de objetos de la
+plantilla (`obj_block_brick`, `obj_bridge`…).
+
+> 🔴 **El paso 4 es el que falta en todas partes, y sin él parece que el rodeo no sirve.** El
+> proyecto recién creado se hace **su propia** `.gmcache` con el `gmpm.dll` roto, así que
+> cualquier comando posterior que no lleve `--cache-dir` vuelve a fallar:
+>
+> ```console
+> $ gm-cli resourcetool eval "resource list type=object"      # sin el flag
+> Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1
+>
+> $ gm-cli resourcetool eval --cache-dir "$CACHE" "resource list type=object"   # con él
+>  obj_block_brick …                                          # funciona
+> ```
+>
+> Tienes dos salidas: **arrastrar `--cache-dir` en todos los comandos** del proyecto, o
+> —mejor— **parchear una vez el `.gmcache` propio** (paso 4) y olvidarte del flag. Comprobado:
+> tras el paso 4, `resourcetool` sin ningún flag lista los objetos sin problema.
 
 **Rodeo B — llevarse la carpeta `.gmcache/prefabs` ya resuelta. Sin IDE, pensado para CI.** Una
 vez que un proyecto resolvió sus prefabs, copiar esa carpeta a otro clon hace que cargue aunque
@@ -1591,7 +1613,7 @@ Cada uno probado con varias variantes antes de darlo por imposible:
 
 | Lo que querrías | Estado | Rodeo |
 |---|---|---|
-| Un `=` dentro de un `value=` | 🔴 **rompe el parser** en `eval`, `script` y `repl` (9 variantes) | El código de creación de una instancia **no se escribe por CLI**. Ponlo en el evento Create del objeto |
+| Un `=` dentro de un `value=` | 🔴 **rompe el parser** en `eval`, `script` y `repl` (9 variantes). Guarda solo hasta el `=`, y el único aviso son unas líneas `Ignoring Argument:` fáciles de pasar por alto: `value=vida = 100;` deja `scriptSource = vida` | El código de creación de una instancia **no se escribe por CLI**. Ponlo en el evento Create del objeto |
 | Mover un recurso ya creado a otra carpeta | 🔴 8 variantes, ninguna | **Ninguno.** `ProjectTool IMPORT YY` tampoco: dice que sí y no registra nada ([§3 ter.1](#3-ter1--import-yy-dice-que-funciona-copia-archivos-y-no-registra-nada)). Decide la carpeta **al crear** el recurso |
 | Anidar una capa dentro de otra | 🔴 `PARENT=` responde «Saved successfully» y la deja en la raíz | — |
 | *Variable Definitions* de un objeto | 🔴 3 variantes | Declara las variables en el evento Create |
