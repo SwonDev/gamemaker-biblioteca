@@ -598,6 +598,12 @@ Los mismos pasos, repetidos con los **once** scripts juntos en un proyecto nuevo
 > exista el recurso). Es un artefacto del proyecto de prueba, no del GML: se reproduce igual en
 > un proyecto en blanco sin ningún script, y el compilador la registra y sigue —
 > `gm-cli compile` termina con código de salida 0 y sin ninguna línea que contenga "error".
+> **Actualización del 8 de septiembre de 2026, verificada aparte**: con `--errors-only` esta
+> excepción no imprime absolutamente nada (exit 0, cero líneas — indistinguible de una
+> compilación limpia), y el *crash* ocurre antes de escribir el paquete, así que `game.zip` **no
+> se regenera** — si ya había un build anterior, queda obsoleto sin ningún aviso. Detalle
+> completo en
+> [`12 · 09` §7.7](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#77-un-segundo-hallazgo-de-esta-sesión---errors-only-también-esconde-por-completo-un-nullreferenceexception-real-del-assetcompiler).
 
 **Sobre las 3 que el barrido marcó como ausentes:** no son funciones nativas, son falsos
 positivos del extractor.

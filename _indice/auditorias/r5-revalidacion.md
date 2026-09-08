@@ -290,6 +290,15 @@ lectura cuidadosa del manual oficial, porque ni `SKILL.md` ni `12/09` lo cubría
    (que quedaba primera) hacía que `rm_splash` pasara a ser la primera automáticamente. Funcionó,
    pero lo até con criterio propio, no con una instrucción de la skill.
 
+   > **Corrección del 8 de septiembre de 2026**: esta lectura del hueco era incompleta, no el
+   > hueco en sí. `RoomOrderNodes` **sí es alcanzable** por `resourcetool` — como miembro de la
+   > raíz de expresión `project` (`resource set expr=project.RoomOrderNodes[i].roomId
+   > value=<sala>`), nunca probada en esta sesión ni en las anteriores. El rodeo por el orden de
+   > creación que describe este punto sigue siendo válido para fijar el orden *antes* de
+   > construir contenido, pero ya no es la única vía, y reordenar salas que ya tienen contenido
+   > tampoco requiere el IDE. Detalle completo, con la raíz `project` entera (18 miembros), en
+   > [`12 · 09` §9 y §9 bis](../../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#9--el-orden-de-las-salas-projectroomordernodes-lo-resuelve-directamente).
+
 2. **El congelado visual de la pausa no está en `04/00` (la receta que sigue el flujo por
    defecto), solo en `04/41`.** `04/00 §5` da el patrón mínimo de pausa
    (`instance_deactivate_all`) sin avisar de que también apaga el `Draw` de todo lo desactivado —

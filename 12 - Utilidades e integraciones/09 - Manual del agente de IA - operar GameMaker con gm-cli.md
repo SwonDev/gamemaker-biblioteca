@@ -5,11 +5,13 @@
 > IDE. No repite lo que ya explican [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)
 > (referencia completa del CLI) y [`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)
 > (qué es el andamiaje `--ai` y cómo se prepara un proyecto para un agente): este documento
-> añade **lo que ninguno de los dos cubre** — los seis sitios donde un agente se atasca hoy,
+> añade **lo que ninguno de los dos cubre** — los ocho sitios donde un agente se atasca hoy,
 > el nombre exacto de archivo que le toca a cada evento, el inventario real de las 80
 > herramientas del MCP, la frontera entre lo que un agente puede comprobar solo y lo que debe
-> pedir al humano, y los errores que un LLM comete por reflejo al tratar GML como si fuera C#
-> de Unity o GDScript de Godot.
+> pedir al humano, los errores que un LLM comete por reflejo al tratar GML como si fuera C#
+> de Unity o GDScript de Godot, y la raíz de expresión `project` — 18 miembros que abren
+> configuraciones de build, grupos de audio/textura, archivos incluidos y metadatos del
+> proyecto sin tocar el IDE.
 >
 > Todo lo verificado aquí se ejecutó **en vivo el 7 de septiembre de 2026**, en un proyecto de
 > prueba bajo `~` (nunca dentro de esta biblioteca), borrado al terminar cada verificación,
@@ -17,10 +19,20 @@
 > — la misma versión que documenta el resto de la biblioteca. Reproduce la auditoría completa,
 > con más temas y más detalle de investigación, en
 > [`_indice/auditorias/r4-agente-ia-gamemaker.md`](../_indice/auditorias/r4-agente-ia-gamemaker.md).
+>
+> **Corrección del 8 de septiembre de 2026**: la sección 9 de este documento afirmaba que no
+> existe ningún comando para el orden de las salas. Era falso — la raíz de expresión `project`
+> (nunca antes documentada) lo resuelve directamente. Detalle completo en §9 y §9 bis.
+>
+> **Segunda corrección del 8 de septiembre de 2026**: este documento recomendaba
+> `gm-cli compile --errors-only` para el ciclo normal del agente sin advertir de que ese mismo
+> flag esconde por completo un fallo real — un *included file* creado por `resourcetool` cuyo
+> archivo nunca llega al paquete compilado, y por separado, un *crash* del `AssetCompiler` que
+> impide escribir el paquete. Nueva Trampa 8 en §0, nota en §1, §7.7 y checklist ampliado en §8.
 
 ---
 
-## 0 · Las seis trampas que hacen fracasar a un agente hoy
+## 0 · Las ocho trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -289,6 +301,192 @@ comprobación deliberada, «probé a guardar y no salió ningún error visible»
 un agente que no mira el log a propósito. Detalle completo en
 [`_indice/auditorias/r5-prueba-e2e.md` §2](../_indice/auditorias/r5-prueba-e2e.md#2--directory_existsdirectory_create-devuelven-false-siempre-bajo-gm-cli-run---target-mac--rompe-en-silencio-el-script-de-guardado--esencial-de-la-propia-biblioteca).
 
+### Trampa 7 · Antes de dar un comando por imposible, prueba `resource info expr=project` y `help <COMANDO>`
+
+**El síntoma**: una versión anterior de este mismo documento (§9) afirmaba, con aparente
+rigor — «se leyó el `HELP` completo... buscando la palabra "order"» —, que no existía ningún
+comando de `resourcetool`/`gm-cli` para leer o escribir el orden de las salas. **Era falso.**
+
+**La causa raíz, verificada en vivo el 8 de septiembre de 2026**: la investigación anterior
+probó `resource info expr=RoomOrderNodes` (sin prefijo), recibió `'RoomOrderNodes' not found at
+root` y concluyó que `RoomOrderNodes` «no es una raíz de expresión válida». Cierto a medias — no
+es una raíz *por sí misma*, pero es un **miembro** de una raíz que nadie había probado:
+
+```bash
+$ gm-cli resourcetool eval "resource info expr=project"
+Type: project
+project members:
+┌───────────────────────────────┬────────────────────────────────┬──────────────────────────┐
+│ Field                         │ Type                            │ Value                     │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ AudioGroups                   │ list of audiogroup             │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ configs                       │ ProjectConfig                  │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ defaultScriptType             │ eDefaultScriptType             │ GML                      │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ Folders                       │ list of folder                 │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ ForcedPrefabProjectReferences │ list of resource               │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ FullName                      │ string                         │ InvestigacionProjectRoot │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ IncludedFiles                 │ list of includedfile           │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ isDnDProject                  │ bool                           │ False                    │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ isEcma                        │ bool                           │ False                    │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ LibraryEmitters               │ list of emitter                │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ MetaData                      │ dictionary of string -> string │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ name                          │ string                         │ InvestigacionProjectRoot │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ parent                        │ resource                       │ null                     │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ resources                     │ list of resource               │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ RoomOrderNodes                │ list of RoomOrderNode          │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ tags                          │ list of string                 │ …                        │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ templateType                  │ string                         │ null                     │
+├───────────────────────────────┼────────────────────────────────┼──────────────────────────┤
+│ TextureGroups                 │ list of texturegroup           │ …                        │
+└───────────────────────────────┴────────────────────────────────┴──────────────────────────┘
+```
+
+`project` **es una raíz de expresión válida** — al mismo nivel que un nombre de recurso
+(`spr_ufo`, `obj_ship`) — con 18 miembros propios, entre ellos `RoomOrderNodes`. Salida real,
+capturada tal cual en un proyecto de prueba llamado `InvestigacionProjectRoot`. Detalle completo
+de los 18 en [§9 bis](#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno).
+
+**Por qué pasó**: el texto de ayuda de `resourcetool` (`HELP`, `HELPTABLE`) documenta
+exhaustivamente los **comandos** (`RESOURCE`, `ROOM`, `CONFIG`…) pero **nunca lista las raíces
+de expresión disponibles** para `RESOURCE INFO`/`RESOURCE SET` — ni en el texto de ayuda general
+ni en `HELP RESOURCE INFO`. Los únicos ejemplos que da son nombres de recursos (`spr_ufo`,
+`obj_ship`, `inst_1A5B7D9E`, `room_welcome`). Leer el `HELP` entero, por exhaustivo que sea, **no
+basta** cuando lo que falta no es un comando sino una raíz de expresión — y esas solo se
+descubren probándolas, no leyéndolas.
+
+**La regla que deja esta trampa**: antes de escribir en esta biblioteca (o en el código de un
+agente) «esto no se puede hacer por `resourcetool`/CLI/MCP», prueba explícitamente:
+
+1. `gm-cli resourcetool eval "resource info expr=project"` — la otra raíz de expresión, aparte
+   de los recursos con nombre, y la que más a menudo esconde lo que parece imposible
+   (configuraciones de build, grupos de audio/textura, archivos incluidos, metadatos…).
+2. `gm-cli resourcetool eval "help <COMANDO>"` sobre cada grupo de comandos que pueda rozar el
+   tema — la ayuda de subcomandos a veces expone un campo (`filePath`, `CopyToMask`…) que no
+   aparece en la tabla resumen.
+3. Si de verdad no hay ni raíz ni comando, dilo con la certeza de haber probado esto primero —
+   no de haber leído el `HELP` una vez y no haber visto la palabra que buscabas.
+
+Un agente que se cree un «no se puede» sin haber probado esto **no vuelve a intentarlo** — y ese
+es el daño real: no es el tiempo perdido en la sesión que lo escribió, es cada sesión futura que
+hereda la afirmación y ni se molesta en comprobarla.
+
+### Trampa 8 · `RESOURCE CREATE TYPE=includedfile` deja `filePath` fuera de `datafiles/`, y `--errors-only` no lo detecta
+
+**El síntoma**: `gm-cli resourcetool eval "resource create type=includedfile name=datos.json"`
+responde `Success` igual que cualquier otro recurso. `gm-cli compile --errors-only` — el comando
+que la tabla de [§1](#1--el-ciclo-completo-del-agente) recomienda para el paso «Compilar» — sale
+con `exit 0` y **ni una sola línea**. Todo parece en orden. El archivo de datos, sin embargo,
+nunca llega al juego compilado: cualquier `json_parse(file_text_read_all(...))` que dependa de
+él falla en tiempo de ejecución, o peor, si el propio código ya defiende contra
+`file_exists() == false`, no falla nada — el juego arranca «bien» y sencillamente no tiene los
+datos que se supone que debía cargar.
+
+**La causa, reproducida en esta sesión** en un proyecto de prueba bajo `~`
+(`gm-cli init -t "Blank Pixel Game"`, borrado al terminar): crear el recurso **no copia ningún
+byte** y deja `filePath` como una cadena vacía — la raíz del proyecto, no `datafiles/`, que es
+donde el motor espera encontrar el archivo físico.
+
+```bash
+$ gm-cli resourcetool eval "resource create type=includedfile name=datos.json"
+Created resource named 'datos.json' of type 'GMIncludedFile'
+Created resource 'datos.json' of type 'includedfile'
+ResourceTool Successful
+$ grep -A2 IncludedFiles gm_prueba_includedfiles.yyp
+"IncludedFiles":[
+    {"$GMIncludedFile":"","%Name":"datos.json","CopyToMask":-1,"filePath":"","name":"datos.json",
+     "resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+],
+$ ls datafiles
+ls: datafiles: No such file or directory
+```
+
+`filePath:""`, y **la carpeta `datafiles/` ni siquiera existe** — comparado con el `.yyp` de un
+proyecto real descargado con Included Files de verdad
+(`11 - Código descargado/extensiones_oficiales/GMEXT-GameCenter/source/GameCenter_gml/GameCenter.yyp`),
+que trae `"filePath":"datafiles"`. El comando registra el recurso en el proyecto, pero lo deja
+apuntando a la nada.
+
+**La reproducción completa, con las dos compilaciones — salida real, sin recortar**:
+
+```bash
+$ gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only
+$ echo $?
+0
+```
+
+Sin ninguna línea: parece una compilación limpia. Solo compilando **sin** `--errors-only`
+aparece la prueba real, con la ruta exacta que buscó y no encontró:
+
+```
+│  WARNING :: datafile /Users/…/gm_prueba_includedfiles/datos.json was NOT copied skipped - reason File does not exist
+```
+
+(nótese la ruta: la raíz del proyecto, exactamente lo que dice `filePath:""` — no
+`datafiles/datos.json`, que es donde debería buscarlo). Y abriendo el `.zip` compilado, sin
+ejecutar el juego:
+
+```bash
+$ unzip -l .gmcache/build-gms2-mac-VM/output/game.zip | grep -i json
+(sin resultado — datos.json no está en el paquete)
+```
+
+**La corrección exacta**: dos pasos, ninguno de los dos automático.
+
+1. Crea `datafiles/` a mano y coloca ahí el archivo físico, con el mismo nombre que el recurso:
+   ```bash
+   mkdir -p datafiles && cp /ruta/a/datos.json datafiles/datos.json
+   ```
+2. Fija `filePath` al valor literal `datafiles`. **No lo hagas con el nombre del recurso como
+   raíz de expresión si ese nombre lleva un punto** — `resource set expr=datos.json.filePath
+   value=datafiles` falla con `'datos' not found at root`, porque `resourcetool` lee el punto
+   como acceso a miembro, no como parte del nombre. Usa el índice dentro de
+   `project.IncludedFiles` ([§9 bis](#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno)):
+   ```bash
+   gm-cli resourcetool eval "resource set expr=project.IncludedFiles[0].filePath value=datafiles"
+   ```
+
+Recompilando después de los dos pasos, el `WARNING` desaparece y el archivo aparece en el
+paquete — verificado en la misma sesión:
+
+```bash
+$ gm-cli compile --toolchain GMS2@2026.0.0.23
+… (sin ningún WARNING) …
+◆  Compilation finished
+$ unzip -l .gmcache/build-gms2-mac-VM/output/game.zip | grep json
+       43  …   assets/datos.json
+```
+
+**Cómo detectarlo antes de que lo note un jugador**: después de crear cualquier `includedfile`
+con `resourcetool`, comprueba su `filePath` (`resource info expr=project.IncludedFiles LIST` o
+leyendo el `.yyp` directamente) y **compila al menos una vez sin `--errors-only`** antes de dar
+la tarea por terminada — es el único de los dos modos que muestra el `WARNING`. Ver también la
+corrección de la tabla de [§1](#1--el-ciclo-completo-del-agente) y el checklist de
+[§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
+
+**Severidad**: alta, y de la misma familia silenciosa que las Trampas 5 y 6 — un fallo que
+compila «limpio» según el propio criterio que esta biblioteca enseña a usar, con el agravante de
+que **ni siquiera hace falta ejecutar el juego** para detectarlo: basta con compilar sin el flag
+y leer la salida completa, algo que ningún paso de esta biblioteca pedía hacer hasta esta
+corrección. Detalle completo, con la construcción en vivo de un juego narrativo completo que lo
+descubrió de forma independiente, en
+[`_indice/auditorias/r6-prueba-narrativa.md` §6.1](../_indice/auditorias/r6-prueba-narrativa.md#61--el-fallo-real-resource-create-typeincludedfile-no-deja-el-archivo-donde-la-skill-dice-que-vive).
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -303,7 +501,7 @@ agente sin experiencia se detiene sin saber si puede seguir.
 | 2 | **Crear el proyecto** | `gm-cli init --no-interactive -n <nombre> -t "<plantilla de la tabla de la Trampa 1>" --ai --toolchain GMS2@2026.0.0.23` | Que exista `<nombre>.yyp` | `ls <nombre>/*.yyp` no está vacío |
 | 3 | **Crear recursos** | MCP `gamemaker-resource-tool` o `gm-cli resourcetool eval "<comando>"` — ver [§3](#3--el-mcp-gamemaker-resource-tool-inventario-real) | El recurso aparece en `resource list` y, si es un evento, el `.gml` en la ruta de [§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo) | `object event list name=<obj>` muestra el evento con el número que pediste (por la Trampa 3) |
 | 4 | **Escribir GML** | Editor de archivos normal sobre el `.gml` ya creado | Cada símbolo que uses existe: `python3 "_indice/buscar.py" <símbolo>` | Ningún símbolo sin verificar en el código que acabas de escribir |
-| 5 | **Compilar** | `gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only` | Sintaxis válida — **NO** que las funciones existan (Trampa 4) | `exit 0` **y** sin salida en `--errors-only` |
+| 5 | **Compilar** | `gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only` (solo para iterar rápido — ver la nota debajo de la tabla) | Sintaxis válida — **NO** que las funciones existan (Trampa 4) | `exit 0` **y** sin salida en `--errors-only` |
 | 6 | **Validar antes de confiar en el paso 5** | `python3 "_indice/validar-proyecto.py" <ruta> --todo` | Funciones inventadas (con prefijo de familia del runtime) **y** nombres desconocidos sin definir | `✓ Ninguna llamada a una función del runtime que no exista` **y** la lista de «desconocidas» revisada a mano (ver matiz en [§7](#7--interpretar-los-errores-del-compilador--lo-que-detecta-y-lo-que-no)) |
 | 7 | **Corregir** | Vuelve al paso 4 con el error exacto: `gml_Object_<obj>_<Evento>(<línea>) : <mensaje>` | — | Repite 5-6 hasta limpio |
 | 8 | **Ejecutar** | `gm-cli run --toolchain GMS2@2026.0.0.23 --target mac` (o el target de tu plataforma) | Comportamiento real — ver [§4](#4--depurar-sin-ver-la-pantalla) para qué puedes leer de la salida | El juego llega al punto que estás probando sin errores no controlados en el log |
@@ -314,6 +512,13 @@ agente sin experiencia se detiene sin saber si puede seguir.
 tres sistemas y compilar una sola vez al final: el primer error de sintaxis oculta los otros
 dos, y el mensaje `gml_Object_<obj>_<Evento>(<línea>)` solo apunta al primero que encuentra el
 compilador, no a todos los que hay.
+
+> ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
+> antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
+> fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-ocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
+> ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
 ---
 
@@ -918,6 +1123,51 @@ ruta fuera del `.yyp`. Si tienes dudas de si algo se coló, compara cuántos arc
 validador contra `find <ruta-del-proyecto> -name "*.gml" | wc -l`: una diferencia entre lo que
 reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 
+### 7.7 Un segundo hallazgo de esta sesión: `--errors-only` también esconde por completo un `NullReferenceException` real del `AssetCompiler`
+
+`06 - Assets y Scripts/README.md` ya dejaba constancia de que un `sprite` creado por
+`resourcetool` sin ninguna imagen real (un *stub* sin frames, como los que deja
+`resource create type=sprite name=X` sin un `sprite addframe` después) hace que el
+`AssetCompiler` lance una `NullReferenceException` de .NET al compilar — pero sin decir qué pasa
+con `--errors-only`, ni si el paquete llega a escribirse. Reproducido aquí, en un proyecto
+mínimo con un único `spr_vacio` sin frames y nada más:
+
+```bash
+$ gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only
+$ echo $?
+0
+```
+
+**Cero líneas, exit 0** — indistinguible de una compilación realmente limpia. Solo compilando
+**sin** el flag aparece lo que de verdad ocurrió:
+
+```
+│  Core Resources : Info - Sprite - spr_vacio - has missing layers; resetting to default Sprite.
+│  ...
+│  Unhandled exception.
+│  System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation.
+│   ---> System.NullReferenceException: Object reference not set to an instance of an object.
+│     at GMAssetCompiler.GMSprite.SetFromResource(GMAssets _assets, GMSprite _sprite)
+│     at GMAssetCompiler.GMSprite..ctor(GMAssets _assets, ResourceBase _id)
+│     ...
+◆  Compilation finished
+```
+
+`gm-cli` imprime «◆ Compilation finished» y **el proceso sale con `exit 0`** pese al *crash* — es
+un crash real del `AssetCompiler` (`System.NullReferenceException` sin capturar, con su *stack
+trace* completo de .NET), no un aviso cosmético. Y la consecuencia práctica es peor que un
+`WARNING`: el `AssetCompiler` revienta **antes** de llegar a la fase de «Saving IFF file», así
+que `game.zip` **no se reescribe en absoluto** — si ya existía un build anterior en
+`.gmcache/.../output/game.zip`, ese archivo queda ahí, intacto y desactualizado, y nada en la
+salida de `gm-cli compile` (ni siquiera sin `--errors-only`, que solo muestra la traza pero no
+dice «no se generó el paquete») lo señala como obsoleto.
+
+**La defensa** es la misma que ya da [§5.2](#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano):
+nunca dejes un `sprite` creado por `resourcetool` sin al menos un frame real antes de compilar —
+la escalera de esa sección (dibujo por código, assets libres, IA) evita este estado por completo.
+Si sospechas que un build no se actualizó, compara la fecha de `game.zip` contra la hora actual
+después de cada `compile`, no solo el `exit 0`.
+
 ---
 
 ## 8 · Checklist final antes de dar una tarea por terminada
@@ -926,6 +1176,12 @@ reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 - [ ] Cada evento que creaste con `resourcetool` se comprobó con `object event list name=<obj>`
       — no te fiaste del nombre del subtipo a ciegas (§2.5).
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
+- [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
+      buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-ocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+- [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
+      (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
+      existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
 - [ ] `validar-proyecto.py <ruta> --todo` da `✓ Ninguna función INVENTADA` **y** revisaste a mano
       la lista de `desconocida` (§7.5) — no solo miraste el exit code.
 - [ ] Si el proyecto usa `constructor` con herencia, ningún padre queda sin definir (§7.3).
@@ -936,46 +1192,54 @@ reporta uno y otro señala una carpeta suelta que el `.yyp` no referencia.
 
 ---
 
-## 9 · El orden de las salas por CLI: no existe comando — la alternativa real
+## 9 · El orden de las salas: `project.RoomOrderNodes` lo resuelve directamente
+
+> ⚠️ **Corrección del 8 de septiembre de 2026**: la versión anterior de esta sección afirmaba
+> que no existía ningún comando para el orden de las salas, y documentaba editar el `.yyp` a
+> mano como único recurso. **Era falso** — la causa exacta está en la
+> [Trampa 7 de §0](#trampa-7--antes-de-dar-un-comando-por-imposible-prueba-resource-info-exprproject-y-help-comando):
+> nadie había probado la raíz de expresión `project`, que no aparece en ningún ejemplo del
+> `HELP`. Esta sección queda reescrita con la vía real; el resto de la raíz `project` (18
+> miembros, de los que `RoomOrderNodes` es solo uno) está en
+> [§9 bis](#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno).
 
 **Pregunta que responde esta sección**: creaste tus salas con `resourcetool` — ¿cómo le dices a
-GameMaker cuál arranca primero (splash, no una sala cualquiera)? Verificado en vivo el **8 de
-septiembre de 2026**, `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`, en un proyecto de prueba bajo
-`~` (creado con `gm-cli init -t "Blank Pixel Game"`, borrado al terminar).
+GameMaker cuál arranca primero, y cómo reordenas salas que ya tienen contenido? Verificado en
+vivo el **8 de septiembre de 2026**, `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`, en un proyecto de
+prueba bajo `~` (creado con `gm-cli init -t "Blank Pixel Game"`, borrado al terminar).
 
-### 9.1 No hay comando — comprobado exhaustivamente, no por suposición
+### 9.1 El comando real
 
-Se leyó el `HELP` completo de `resourcetool` (los 22 grupos de comandos: `RESOURCE`, `PROJECT`,
-`OBJECT`, `ROOM`, `GML`, `SPRITE`, `SOUND`, `TILESET`, `CONFIG`, `AUDIOGROUP`, `TEXTUREGROUP`,
-`PREFAB`, `SHADER`, `NOTE`, `PATH`, `FONT`, `FOLDER`, `OPTIONS`…) buscando la palabra «order» o
-cualquier verbo de reordenar. **Ninguno la tiene.** En concreto:
-
-- `PROJECT` solo admite `CREATE` y `RENAME` — nada de salas.
-- `ROOM` cubre instancias, *assets*, capas y *tiles* dentro de una sala (`ROOM INSTANCE`, `ROOM
-  ASSET`, `ROOM ITEM`, `ROOM LAYER`, `ROOM LAYER TILES`) y `ROOM LIST` — pero nada que toque el
-  **orden entre salas**.
-- `gm-cli` (fuera de `resourcetool`) tampoco tiene un comando `project` o `room`: `gm-cli project
-  --help` responde `No command registered for 'project'`.
-
-Y lo que sí guarda el orden — `RoomOrderNodes`, un array en la raíz del `.yyp` — **no es una raíz
-de expresión válida** para `RESOURCE INFO`/`RESOURCE SET` (que solo aceptan como raíz un
-**recurso con nombre**: una sala, un objeto, un sprite…):
+`RoomOrderNodes` es un **miembro de la raíz `project`** (§9 bis), no una raíz en sí misma. Por
+eso `resource info expr=RoomOrderNodes` (sin el prefijo `project.`) falla con `'RoomOrderNodes'
+not found at root` — y por eso la investigación anterior concluyó, incorrectamente, que no había
+ningún mecanismo. Con el prefijo correcto, `RoomOrderNodes` se lee y se escribe igual que
+cualquier otro campo:
 
 ```bash
-$ gm-cli resourcetool eval "resource info expr=RoomOrderNodes"
-'RoomOrderNodes' not found at root
-ResourceTool Failed
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[0].roomId value=rm_juego"
+project.RoomOrderNodes[0].roomId: YoYoStudio.Resources.GMRoom
+Saved successfully
+ResourceTool Successful
 ```
 
-**Conclusión verificada, no una suposición**: hoy no existe ningún comando de `resourcetool` ni
-de `gm-cli` que lea o escriba el orden de las salas. Ni `07 · 13` ni este documento lo
-documentaban porque no hay nada que documentar del lado del CLI — es un hueco real de la
-herramienta, no un comando mal buscado.
+Y para leer el orden completo:
 
-### 9.2 Lo que sí controla el CLI: las salas se añaden en el orden en que las creas
+```bash
+$ gm-cli resourcetool eval "resource info expr=project.RoomOrderNodes LIST"
+Type: list of RoomOrderNode
+List has 4 items of type RoomOrderNode
+Index with: eg: project.RoomOrderNodes[0]
+```
 
-`RESOURCE CREATE TYPE=room` **añade la sala nueva al final de `RoomOrderNodes`**, verificado
-creando tres salas seguidas y leyendo el `.yyp`:
+Cada elemento es un `RoomOrderNode` con un único campo, `roomId` (una referencia a una sala
+completa) — `resource info expr=project.RoomOrderNodes[i].roomId` devuelve esa sala entera
+(capas, instancias, ajustes de vista…) en la posición `i`.
+
+### 9.2 Las salas se añaden en el orden en que las creas — sigue siendo cierto y sigue siendo útil
+
+`RESOURCE CREATE TYPE=room` **añade la sala nueva al final de `RoomOrderNodes`**, verificado de
+nuevo en esta sesión creando tres salas seguidas y leyendo el `.yyp`:
 
 ```
 "RoomOrderNodes":[
@@ -987,98 +1251,271 @@ creando tres salas seguidas y leyendo el `.yyp`:
 ```
 
 Y borrar la sala de la plantilla (que la mayoría de plantillas dejan primera, con el nombre
-`Room1` o similar) **promueve automáticamente a primera la siguiente en el array**, sin ningún
-comando de orden — es exactamente lo que hizo `r5-revalidacion.md` con criterio propio y aquí
-queda verificado como la vía correcta:
+`Room1` o similar) **promueve automáticamente a primera la siguiente en el array**, sin tocar
+`RoomOrderNodes` explícitamente:
 
 ```bash
 gm-cli resourcetool eval "resource delete name=Room1 type=room"
 # RoomOrderNodes queda: rm_splash (ahora primera), rm_menu, rm_juego
 ```
 
-**La receta CLI-only para fijar qué sala arranca el juego**, sin tocar el `.yyp`:
+Esto sigue siendo la vía más simple si decides el orden **antes** de construir el contenido de
+cada sala: crea las salas en el orden final que quieres y, si sobra la sala de la plantilla,
+bórrala.
 
-1. Crea las salas **en el orden final que quieres**, empezando por la que debe arrancar primero
-   (`rm_splash`, luego `rm_menu`, luego `rm_juego`…). No hace falta ningún argumento de orden:
-   el orden de creación **es** el orden final.
-2. Si la plantilla trae una sala propia (`Room1`, `Room_Main`…) que no vas a usar, bórrala — la
-   siguiente en el array pasa a ser la primera automáticamente.
-3. Si sí vas a usar la sala de la plantilla, créala tú aparte y ordena las demás alrededor, o
-   simplemente ten en cuenta que esa sala de plantilla seguirá siendo la primera salvo que la
-   borres.
+⚠️ **Esto solo es seguro para salas vacías o para la sala de plantilla que vas a descartar.**
+`RESOURCE DELETE` de una sala se lleva todo su contenido (capas, instancias, *tiles*), y
+`RESOURCE CREATE` de una sala con el mismo nombre no lo recupera, la crea vacía — verificado de
+nuevo en esta sesión: se colocó una instancia (`ROOM INSTANCE CREATE`), se borró la sala y se
+volvió a crear con el mismo nombre, y la instancia **desapareció**. No la uses para reordenar una
+sala que ya tiene contenido — para eso está §9.3.
 
-Esto resuelve el caso real («que el juego arranque por el splash») sin editar nada a mano, y es
-lo único que hace falta en la mayoría de proyectos si decides el orden **antes** de construir el
-contenido de cada sala.
+### 9.3 Reordenar salas que ya tienen contenido — sin borrar nada
 
-### 9.3 Lo que el CLI NO resuelve bien: reordenar salas que ya tienen contenido
+**Esto es lo que corrige la sección**: como `RoomOrderNodes[i].roomId` se puede **reasignar
+directamente**, reordenar no requiere borrar ni recrear ninguna sala — la operación solo cambia
+qué sala ocupa cada posición del array, sin tocar las capas, instancias ni ajustes de la sala en
+sí. Es igual de segura con salas vacías que con salas llenas de contenido.
 
-Si necesitas mover una sala que **ya tiene** instancias, capas o *tiles* a otra posición del
-orden, la única forma de hacerlo solo con `resourcetool` es borrarla y volver a crearla (que la
-manda al final) — y **eso es destructivo**, verificado en esta sesión: se colocó una instancia
-en una sala (`ROOM INSTANCE CREATE`), se borró la sala y se volvió a crear con el mismo nombre, y
-la instancia **desapareció** — `RESOURCE DELETE` de una sala se lleva todo su contenido, y
-`RESOURCE CREATE` de una sala con el mismo nombre no lo recupera, la crea vacía.
+**Verificado en vivo con una permutación completa**, en un proyecto de prueba con 4 salas
+(`Room1`, `rm_splash`, `rm_menu`, `rm_juego`, en ese orden de creación):
 
-Reordenar así una sala con contenido exige reconstruir a mano cada capa (`ROOM LAYER CREATE`),
-cada instancia (`ROOM INSTANCE CREATE`) y cada *tile* (`ROOM LAYER TILES SET`) que tenía — viable
-solo si guardaste antes su inventario completo (`ROOM ITEM LIST`, `ROOM LAYER TILES GET`), y aun
-así pierdes cualquier ajuste de la sala que `resourcetool` no exponga (tamaño de vista, ajustes
-de físicas concretos…). **No es una vía práctica para reordenar salas ya construidas** — solo
-para fijar el orden antes de rellenarlas (§9.2).
+```bash
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[0].roomId value=rm_juego"
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[1].roomId value=rm_menu"
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[2].roomId value=Room1"
+$ gm-cli resourcetool eval "resource set expr=project.RoomOrderNodes[3].roomId value=rm_splash"
+```
 
-### 9.4 Las dos alternativas reales cuando hace falta reordenar salas ya construidas
+`.yyp` resultante, leído después de las cuatro llamadas:
 
-| Alternativa | Cómo | Riesgo |
-|---|---|---|
-| **El IDE** (recomendada) | GameMaker tiene un panel «Room Order» con arrastrar-y-soltar — es la vía prevista por YoYo para esto, sin coste de reconstruir nada | Ninguno: es la operación para la que se diseñó |
-| **Editar `RoomOrderNodes` a mano en el `.yyp`** — último recurso | Ver §9.5 | Alto — contradice `AGENTS.md` §4 («no edites `.yy`/`.yyp` a mano»); solo se documenta aquí porque, para *reordenar* salas ya construidas sin el IDE, es la única vía que existe |
+```
+"RoomOrderNodes":[
+    {"roomId":{"name":"rm_juego", …}},
+    {"roomId":{"name":"rm_menu", …}},
+    {"roomId":{"name":"Room1", …}},
+    {"roomId":{"name":"rm_splash", …}},
+  ],
+```
 
-Si un agente no tiene el IDE a mano (trabaja solo por terminal) y necesita reordenar salas que
-ya tienen contenido, **dilo explícitamente al usuario** en vez de fingir que hay una vía CLI
-limpia — no la hay, y la sección 9.3 explica por qué el rodeo por `resourcetool` no sirve aquí.
+Los cuatro índices quedaron en una permutación completamente distinta de la de creación —
+ninguna sala de las cuatro conserva su posición original. `gm-cli resourcetool eval "check"` y
+`gm-cli compile --errors-only` (`exit 0`) confirmaron después que el proyecto seguía siendo
+válido. **No se tocó ninguna sala** — solo el array de orden.
 
-### 9.5 Si de verdad hace falta editar el `.yyp` a mano: cómo hacerlo con el menor riesgo posible
+**La receta general**:
 
-**Esto contradice `AGENTS.md` §4 y solo debe usarse cuando el IDE no está disponible y reordenar
-salas ya construidas es imprescindible.** Verificado en esta sesión que la técnica funciona, con
-el riesgo documentado explícitamente:
+1. Lee el orden actual con `resource info expr=project.RoomOrderNodes LIST` (o índice a índice,
+   `expr=project.RoomOrderNodes[i].roomId`, si necesitas ver qué sala hay en cada posición).
+2. Reasigna cada posición que quieras cambiar con `resource set
+   expr=project.RoomOrderNodes[i].roomId value=<nombre_de_sala>` — cualquier sala que ya exista
+   en el proyecto, tenga o no contenido.
+3. No hace falta tocar el tamaño del array: siempre tiene tantos elementos como salas existan en
+   el proyecto, y `resource set` sobre un índice solo cambia **qué sala apunta ahí**, nunca
+   cuántas posiciones hay.
 
-1. **El `.yyp` no es JSON estricto** — es el dialecto de GameMaker con comas finales (`trailing
-   commas`) en arrays y objetos: `"RoomOrderNodes":[{"roomId":{…},},{"roomId":{…},},],`. Un
-   `json.load()` normal de Python **falla** contra este formato (`Expecting property name
-   enclosed in double quotes`, verificado). No lo reformatees con un parser JSON estricto: edita
-   el bloque `RoomOrderNodes` con una sustitución de texto quirúrgica que preserve exactamente
-   las comas finales y las comillas tal cual están.
-2. Reordena únicamente las entradas `{"roomId":{"name":"...","path":"rooms/.../....yy",},}`
-   dentro del array — no toques nada más del archivo.
-3. **Verifica inmediatamente** con el comando de `resourcetool` pensado para esto — que además
-   **no aparece documentado en `07 · 13`** y vale la pena conocerlo:
+### 9.4 El IDE sigue siendo una alternativa válida — ya no la única
 
-   ```bash
-   gm-cli resourcetool eval "check projectpath=$(pwd)/mi-juego.yyp"
-   ```
+GameMaker tiene un panel «Room Order» con arrastrar-y-soltar en el IDE. Sigue siendo perfectamente
+válido si un humano está reordenando salas a mano, pero **ya no es necesario para un agente**: la
+receta de §9.3 hace exactamente lo mismo sin abrir el IDE y sin el riesgo de una edición manual
+del `.yyp`.
 
-   `CHECK` carga el proyecto entero sin modificarlo y confirma que el `.yyp` sigue siendo válido
-   — es la comprobación correcta antes de dejar que cualquier otro comando (`resourcetool` o
-   `compile`) vuelva a tocar el archivo.
-4. Verificado en esta sesión: tras reordenar `RoomOrderNodes` a mano, (a) `CHECK` cargó el
-   proyecto sin error, (b) una llamada normal de `resourcetool` que reguarda el proyecto
-   **conservó el orden manual** (no lo resetea ni lo reordena por su cuenta), y (c) `gm-cli
-   compile --errors-only` dio `exit 0`.
+**Nota histórica**: la versión anterior de esta sección documentaba, como último recurso, editar
+`RoomOrderNodes` directamente en el `.yyp` a mano — con el aviso de que el archivo usa comas
+finales (`trailing commas`, un `json.load()` estricto de Python falla contra él) y de que un JSON
+mal formado puede tirar `resourcetool`/`compile` con un `System.AccessViolationException` nativo
+(Trampa 5 de §0). Esa técnica **ya no hace falta para el orden de las salas** — §9.3 la sustituye
+por completo —, pero el aviso sobre el formato del `.yyp` y la utilidad de `CHECK` para verificar
+una edición manual siguen siendo válidos para cualquier otro campo que de verdad resulte
+inalcanzable por `resourcetool` — solo que primero comprueba la Trampa 7 de §0 antes de asumir
+que lo es.
 
-> 🔴 **El riesgo real, ya documentado por la Trampa 5 de este mismo documento (§0)**: un `.yy`/
-> `.yyp` mal formado tras una edición a mano no falla limpio — puede tirar `resourcetool` y
-> `gm-cli compile` con un `System.AccessViolationException` nativo, dejando ambas herramientas
-> inutilizables sobre ese proyecto hasta reparar el JSON a mano. Una coma final que falte o que
-> sobre en `RoomOrderNodes` es exactamente el tipo de error que lo provoca. Por eso el paso 3
-> (`CHECK`) no es opcional: es la única forma de confirmar que la edición no rompió el archivo
-> antes de arriesgar una sesión de `compile` o `run` sobre un `.yyp` corrupto.
+**Resumen de la sección**: `project.RoomOrderNodes[i].roomId` lee y escribe el orden de las
+salas directamente, con o sin contenido. §9.2 sigue siendo la vía más simple para fijar el orden
+antes de construir contenido; §9.3 es la vía para reordenar después. Ninguna de las dos necesita
+el IDE ni tocar el `.yyp` a mano.
 
-**Resumen de la sección**: para fijar **qué sala arranca primero**, no hace falta el `.yyp` — la
-receta de §9.2 (crear en orden, borrar la sala de plantilla que sobra) es CLI-only y no
-destructiva. Solo para **reordenar salas que ya tienen contenido construido** hace falta el IDE
-o, si no está disponible, la edición manual de §9.5 con el riesgo que conlleva.
+---
+
+## 9 bis · La raíz `project`: 18 miembros, probados uno a uno
+
+**El hallazgo grande de esta corrección**: `project` es una segunda raíz de expresión válida
+para `RESOURCE INFO`/`RESOURCE SET` — al mismo nivel que un nombre de recurso — que ningún
+documento de la biblioteca había probado hasta ahora. Se descubre con `gm-cli resourcetool eval
+"resource info expr=project"` (salida real completa en la [Trampa 7 de
+§0](#trampa-7--antes-de-dar-un-comando-por-imposible-prueba-resource-info-exprproject-y-help-comando)):
+18 campos — `AudioGroups`, `configs`, `defaultScriptType`, `Folders`,
+`ForcedPrefabProjectReferences`, `FullName`, `IncludedFiles`, `isDnDProject`, `isEcma`,
+`LibraryEmitters`, `MetaData`, `name`, `parent`, `resources`, `RoomOrderNodes`, `tags`,
+`templateType`, `TextureGroups`.
+
+Verificado en un proyecto de prueba bajo `~` (`gm-cli init -t "Blank Pixel Game"`, borrado al
+terminar), `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`, el 8 de septiembre de 2026. Los 18
+miembros, probados uno a uno con `resource info`/`resource set` (lectura y escritura reales, no
+inferidas):
+
+| Campo | Tipo | Lectura | Escritura | Para qué le sirve a un agente |
+|---|---|---|---|---|
+| `AudioGroups` | lista de `audiogroup` | ✅ | ✅ vía `AUDIOGROUP CREATE/DELETE/RENAME` (comando dedicado, ya en el inventario de `07 · 13`) — reflejado aquí al instante | Ver y auditar los grupos de audio del proyecto (streaming/descarga bajo demanda) sin abrir el IDE |
+| `configs` | árbol `ProjectConfig` (`name` + `children` anidados) | ✅ | ✅ vía `CONFIG CREATE/DELETE/RENAME/SETACTIVE` — reflejado aquí, anidación incluida | Configuraciones de build (dev/prod, variantes por plataforma) — leerlas o crearlas sin el IDE |
+| `defaultScriptType` | enum `None`\|`GML`\|`GMLVisual` | ✅ | ✅ **directa**: `resource set expr=project.defaultScriptType value=GML` | Fijar si los scripts nuevos del proyecto se crean en GML o en GML Visual por defecto |
+| `Folders` | lista de `folder` | ✅ | ✅ vía `FOLDER CREATE` — reflejado aquí | Carpetas del Asset Browser — organizar el árbol de recursos sin pasar `folder=` en cada `resource create` |
+| `ForcedPrefabProjectReferences` | lista de `resource` | ✅ (vacía sin Prefab Collections) | No se localizó un comando dedicado — `PREFAB ADDREFERENCE` gestiona referencias normales, no se encontró el equivalente «forzada» | Solo relevante si el proyecto depende de Prefab Collections de terceros; no verificable sin una Collection real instalada |
+| `FullName` | string | ✅ | ❌ **confirmado de solo lectura**: `'project.FullName' can be read but set access is not yet permitted for this member` | Nombre completo del proyecto (coincide con `name` en el caso normal) |
+| `IncludedFiles` | lista de `includedfile` | ✅ | ✅ para crear el recurso — `includedfile` ya está entre los 17 tipos de `resource create`, solo que nunca se había conectado con `project.IncludedFiles`; ⚠️ para el contenido real ver el aviso de abajo | Registrar archivos de datos (JSON, configuración, DLC) en el proyecto, con la salvedad de cómo se adjunta el archivo físico |
+| `isDnDProject` | bool | ✅ | ✅ (`true`/`false`; es un flag crudo — no convierte código GML real en acciones Drag & Drop) | Detectar o forzar si el proyecto se trata como 100 % Drag & Drop |
+| `isEcma` | bool | ✅ | ✅ | Flag de compatibilidad ECMAScript del proyecto |
+| `LibraryEmitters` | lista de `emitter` | ✅ (vacía en un proyecto normal) | No se localizó un comando dedicado | Ligado a proyectos tipo «Librería» que generan código hacia otros proyectos (paquetes de extensión); no es el caso normal de un juego |
+| `MetaData` | diccionario `string → string` | ✅ — `project.MetaData['Clave']` (**comillas simples**; con dobles falla: `Unrecognized syntax`) | ❌ **confirmado de solo lectura**: `cannot determine member type` | Leer `IDEVersion`, `PackageID`, `PackageName`, `PackagePublisher`, `PackageType`, `PackageVersion` — útil para que un script sepa la versión/identidad del proyecto; no editable por esta vía hoy |
+| `name` | string | ✅ | ⚠️ técnicamente sí, **pero no la uses** — ver aviso abajo | Nombre interno del proyecto |
+| `parent` | `resource`, siempre `null` en la raíz | ✅ | Rechaza cualquier valor que no sea el nombre de un recurso existente | Campo heredado de la clase base de recursos; sin uso real en la raíz del proyecto |
+| `resources` | lista de `resource` (todo el proyecto) | ✅ | ❌ **confirmado de solo lectura**: `'project.resources[0]' can be read but set access is not yet permitted for this member` | Vista plana de todos los recursos del proyecto — la gestión real sigue siendo `RESOURCE CREATE`/`RESOURCE DELETE` |
+| `RoomOrderNodes` | lista de `RoomOrderNode` | ✅ | ✅ — ver [§9](#9--el-orden-de-las-salas-projectroomordernodes-lo-resuelve-directamente) | El orden de las salas |
+| `tags` | lista de string | ✅ (vacía por defecto) | ❌ sin comando dedicado localizado: `resource set` sobre un índice de una lista vacía falla (`out of range`), y sobre la lista completa falla por tipo (`Invalid cast from String to List`) | Solo lectura práctica hoy — no se encontró forma de añadir etiquetas de proyecto por CLI |
+| `templateType` | string, `null` salvo plantillas | ✅ | ✅ acepta cualquier string, **pero no es la vía real de «guardar como plantilla»** — es un flag crudo sin la lógica de plantilla detrás | Indica si el proyecto se guardó como plantilla; tocarlo a mano no convierte el proyecto en una plantilla funcional |
+| `TextureGroups` | lista de `texturegroup` | ✅ | ✅ vía `TEXTUREGROUP CREATE/DELETE/RENAME` — reflejado aquí | Grupos de texturas (empaquetado, *streaming*) sin el IDE |
+
+### Cómo llegar hasta aquí desde el MCP, no solo desde `eval`
+
+El MCP `gamemaker-resource-tool` expone `resource_info`/`resource_set` como herramientas
+genéricas (§3) — **no hace falta caer a `resourcetool eval` para tocar `project.*`**: el mismo
+`expr=project.RoomOrderNodes[0].roomId` que funciona en `eval` funciona igual en la llamada
+tipada del MCP.
+
+### `configs`: configuraciones de build, no solo lectura
+
+```bash
+$ gm-cli resourcetool eval "config create name=Demo parent=Default"
+Config 'Demo' created successfully based on parent 'Default'.
+$ gm-cli resourcetool eval "resource info expr=project.configs.children[0]"
+project.configs.children[0] members:
+  children: list of ProjectConfig
+  name: Demo
+```
+
+El árbol anida correctamente (`children` de `children`), así que un agente puede construir
+jerarquías de configuración (`Default` → `Demo` → `Demo-Android`…) igual que en el panel de
+configuraciones del IDE, sin abrirlo.
+
+### `AudioGroups` / `TextureGroups`: ya eran gestionables, ahora también visibles desde `project`
+
+`AUDIOGROUP CREATE`/`TEXTUREGROUP CREATE` ya estaban en el inventario de comandos de `07 · 13` —
+lo que faltaba era saber que el resultado se puede **auditar de un vistazo** vía
+`project.AudioGroups`/`project.TextureGroups`, en vez de fiarte solo del mensaje de éxito del
+comando:
+
+```bash
+$ gm-cli resourcetool eval "audiogroup create name=audiogroup_musica"
+$ gm-cli resourcetool eval "texturegroup create name=texgroup_ui"
+$ gm-cli resourcetool eval "resource info expr=project.AudioGroups LIST"
+project.AudioGroups table:
+  audiogroup_default
+  audiogroup_musica
+```
+
+### `IncludedFiles`: se crea, pero adjuntar el archivo real no funciona como `SOUND SETFILE`
+
+`includedfile` ya figuraba entre los 17 tipos de `resource create` en `07 · 13` — el hueco real
+es que **no hay un comando `INCLUDEDFILE SETFILE`** equivalente a `SOUND SETFILE`/`SPRITE
+ADDFRAME` que copie el archivo dentro del proyecto. Lo único que acepta el recurso es el campo
+`filePath`, y no copia bytes — **guarda la ruta tal cual, literal**, verificado:
+
+```bash
+$ gm-cli resourcetool eval "resource create type=includedfile name=archivo_prueba"
+$ gm-cli resourcetool eval "resource set expr=archivo_prueba.filePath value=/tmp/datos_prueba.txt"
+$ grep IncludedFiles -A2 mi-juego.yyp
+"IncludedFiles":[
+    {"$GMIncludedFile":"","%Name":"archivo_prueba","CopyToMask":-1,
+     "filePath":"/tmp/datos_prueba.txt", …},
+],
+```
+
+La ruta quedó tal cual en el `.yyp`, apuntando fuera del proyecto.
+
+> ⚠️ **Actualización del 8 de septiembre de 2026 — ya no es un hallazgo parcial, es la
+> [Trampa 8 de §0](#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta),
+> confirmada con `gm-cli compile`.** Si dejas `filePath` vacío (el valor por defecto tras
+> `RESOURCE CREATE`, sin tocarlo) o apuntando fuera del proyecto como en el ejemplo de arriba,
+> **`gm-cli compile` no resuelve esa ruta**: el archivo no se copia al paquete, y el único rastro
+> es un `WARNING :: datafile ... was NOT copied` que `--errors-only` silencia por completo (exit
+> 0, sin salida). El valor correcto de `filePath` es el string literal `datafiles` — no una ruta
+> absoluta ni relativa — con el archivo físico colocado a mano en `datafiles/<nombre-del-recurso>`
+> dentro de la carpeta del proyecto; comparar contra un `.yyp` real con Included Files
+> (`filePath:"datafiles"`) lo confirma. Detalle completo, con las dos compilaciones y la
+> inspección del `.zip`, en la Trampa 8 de §0.
+
+### `MetaData`: se lee, no se escribe — y las comillas importan
+
+```bash
+$ gm-cli resourcetool eval "resource info expr=project.MetaData KEYS"
+['IDEVersion', 'PackageID', 'PackageName', 'PackagePublisher', 'PackageType', 'PackageVersion']
+$ gm-cli resourcetool eval "resource info expr=project.MetaData['PackageName']"
+project.MetaData['PackageName'] = Blank Pixel Project
+$ gm-cli resourcetool eval "resource set expr=project.MetaData['PackageName'] value=Prueba"
+project.MetaData['PackageName']: cannot determine member type
+ResourceTool Failed
+```
+
+Dos hallazgos en uno: (a) para indexar un diccionario, `resourcetool` exige **comillas simples**
+dentro de los corchetes — `project.MetaData["Clave"]` con dobles falla con `Unrecognized syntax`,
+mientras que `project.MetaData['Clave']` funciona —; y (b) **la escritura de un valor de
+diccionario está bloqueada** hoy, aunque la lectura funcione perfectamente. Si necesitas cambiar
+`PackageName`/`PackageVersion` antes de publicar al Marketplace, edítalos desde el IDE.
+
+### `Folders`: organizar el Asset Browser sin `folder=` repetido
+
+```bash
+$ gm-cli resourcetool eval "folder create folder=Enemigos/Robots"
+Created Asset Browser folder path 'Enemigos/Robots'
+$ gm-cli resourcetool eval "resource info expr=project.Folders LIST"
+List has 2 items of type folder
+```
+
+Crea la jerarquía de carpetas de una vez con `FOLDER CREATE` y luego usa `folder=` en cada
+`RESOURCE CREATE` para colocar ahí cada recurso — más ordenado que crear la carpeta de forma
+implícita la primera vez que se usa.
+
+### ⚠️ Trampa nueva: no renombres el proyecto con `resource set expr=project.name`
+
+`project.name` **sí acepta escritura** — a diferencia de `FullName`, que la rechaza. Pero
+hacerlo directamente deja el proyecto en un estado peor que `PROJECT RENAME`, verificado en vivo:
+
+```bash
+$ gm-cli resourcetool eval "resource set expr=project.name value=OtroNombre"
+project.name: OtroNombre
+Saved successfully
+$ ls *.yyp
+InvestigacionProjectRoot.yyp   OtroNombre.yyp      ← ¡las DOS quedan en disco!
+```
+
+`resource set expr=project.name` **crea un `.yyp`/`.resource_order` nuevo con el nombre nuevo,
+pero no borra ni renombra el antiguo** — quedan dos `.yyp` en la misma carpeta, y cualquier
+comando posterior que dependa de la autodetección (sin pasar la ruta explícita) puede resolver
+el proyecto equivocado o fallar de forma confusa. `PROJECT RENAME`, en cambio, renombra limpio:
+
+```bash
+$ gm-cli resourcetool eval "project rename name=NombreFinal"
+$ ls *.yyp
+NombreFinal.yyp    ← un único archivo, correctamente renombrado
+```
+
+**Usa siempre `PROJECT RENAME name=<nuevo>`** para renombrar un proyecto — nunca `resource set
+expr=project.name`. Si ya lo hiciste por la vía mala, borra a mano el `.yyp`/`.resource_order`
+viejo antes de seguir.
+
+### Nota sobre apuntar a un `.yyp` explícito
+
+`gm-cli resourcetool eval "<comando>" <ruta-al-yyp>` acepta la ruta como **segundo argumento
+posicional puro** (`gm-cli resourcetool eval --help` lo confirma: `[project] Path to the project
+.yyp file`) — **no** como `projectpath=<ruta>` pegado al final del comando entre comillas (eso
+sí funciona para el subcomando `CHECK`, que tiene su propio parámetro `PROJECTPATH=`, pero no
+para `RESOURCE INFO`/`RESOURCE SET` en general). Si hay más de un `.yyp` en la carpeta —por
+ejemplo, tras la trampa de arriba— pásalo explícito y sin prefijo:
+
+```bash
+gm-cli resourcetool eval "resource info expr=project.name" "$(pwd)/NombreFinal.yyp"
+```
 
 ---
 
@@ -1184,8 +1621,10 @@ inicial de objetos y eventos son fácilmente decenas de comandos.
 - [`AGENTS.md`](../AGENTS.md) — la regla que lo gobierna todo y el flujo recomendado de la biblioteca.
 - [`_indice/auditorias/r4-agente-ia-gamemaker.md`](../_indice/auditorias/r4-agente-ia-gamemaker.md) — la auditoría completa de la que sale este documento, con más temas y más detalle de investigación.
 - [`_indice/auditorias/r5-prueba-e2e.md`](../_indice/auditorias/r5-prueba-e2e.md) — la prueba end-to-end (juego completo desde cero) que descubrió las Trampas 5 y 6 de este documento.
-- [`_indice/auditorias/r5-revalidacion.md`](../_indice/auditorias/r5-revalidacion.md) — la revalidación que señaló los tres huecos de §9 y §10 (orden de salas, el aviso de `instance_deactivate_all` que solo vivía en `04/41`, y el modo por lotes de `resourcetool`).
+- [`_indice/auditorias/r5-revalidacion.md`](../_indice/auditorias/r5-revalidacion.md) — la revalidación que señaló los tres huecos de §9 y §10 (orden de salas, el aviso de `instance_deactivate_all` que solo vivía en `04/41`, y el modo por lotes de `resourcetool`); su §5.1 documenta el rodeo manual que la corrección del 8 de septiembre de 2026 dejó innecesario — ver la nota en ese mismo punto.
+- [`_indice/auditorias/r6-prueba-narrativa.md`](../_indice/auditorias/r6-prueba-narrativa.md) — la prueba narrativa que descubrió la Trampa 8 (`filePath` vacío en los Included Files creados por `resourcetool`) construyendo un juego con diálogos y finales ramificados de principio a fin.
 - [`06 - Assets y Scripts/scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) — `save_ensure_dir()` trae ya el parche de la Trampa 6, con el porqué documentado en el propio script.
+- [`06 - Assets y Scripts/README.md` §«Pruebas realizadas»](../06%20-%20Assets%20y%20Scripts/README.md) — primera constancia de la `NullReferenceException` de sprites vacíos que amplía [§7.7](#77-un-segundo-hallazgo-de-esta-sesión---errors-only-también-esconde-por-completo-un-nullreferenceexception-real-del-assetcompiler).
 
 ## Fuentes
 
@@ -1224,3 +1663,39 @@ inicial de objetos y eventos son fácilmente decenas de comandos.
   resourcetool script --help`; comparación cronometrada de 6 comandos por `eval` encadenado
   frente a los mismos 6 en un archivo de `script`; lote de 3 líneas con un tipo de recurso
   inválido en medio para confirmar que `script` se detiene en el primer error).
+- **Corrección del 8 de septiembre de 2026** (§0 Trampa 7, §9, §9 bis): ejecución en vivo en un
+  proyecto de prueba bajo `~` (`gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli`
+  2.3.0 / `ResourceTool@2026.0.17`. Fuente directa de: `resource info expr=project` (descubrimiento
+  de la raíz y sus 18 miembros); `resource set expr=project.RoomOrderNodes[i].roomId` reasignado
+  en las cuatro posiciones de un proyecto con 4 salas hasta lograr una permutación completa,
+  verificada leyendo el `.yyp` y confirmada con `check` + `gm-cli compile --errors-only` (`exit
+  0`); lectura y escritura probadas en los 18 miembros de `project` uno a uno (`AudioGroups`,
+  `configs`, `defaultScriptType`, `Folders`, `ForcedPrefabProjectReferences`, `FullName`,
+  `IncludedFiles`, `isDnDProject`, `isEcma`, `LibraryEmitters`, `MetaData`, `name`, `parent`,
+  `resources`, `RoomOrderNodes`, `tags`, `templateType`, `TextureGroups`); creación real de un
+  `audiogroup`, un `texturegroup`, una `folder` anidada, un `config` hijo y un `includedfile`,
+  confirmados después en `project.*`; reproducción de que `resource set expr=project.name` deja
+  un `.yyp` huérfano mientras que `PROJECT RENAME` no; y reverificación en vivo, con los números
+  reales del manual (`Async_Events.md`), de que los eventos Async siguen sin poder crearse por
+  `resourcetool` (subtipos 62, 68 y 72 probados, todos rechazados) y de que el asset Extensión
+  sigue sin poder crearse (`resource create type=extension` → `Resource type 'extension' is not
+  creatable`) — ambas afirmaciones previas de la biblioteca se confirmaron ciertas, no se
+  corrigieron.
+- [`_indice/auditorias/r6-prueba-narrativa.md`](../_indice/auditorias/r6-prueba-narrativa.md) (8
+  de septiembre de 2026) — construcción en vivo de un juego narrativo completo (`~/gm_prueba_narrativa`)
+  que descubrió la Trampa 8; su §6.1 trae la primera reproducción del bug de `filePath`.
+- **Corrección del 8 de septiembre de 2026** (§0 Trampa 8, §1, §7.7, §8): reproducción
+  independiente en dos proyectos de prueba bajo `~` (`~/gm_prueba_includedfiles` y
+  `~/gm_prueba_sprite_vacio`, ambos creados con `gm-cli init -t "Blank Pixel Game"` y borrados al
+  terminar), `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`. Fuente directa de: la confirmación de que
+  `resource create type=includedfile` deja `"filePath":""` sin crear `datafiles/` ni copiar
+  ningún byte; la comparación con el `filePath:"datafiles"` real de
+  `11 - Código descargado/extensiones_oficiales/GMEXT-GameCenter/source/GameCenter_gml/GameCenter.yyp`;
+  las dos compilaciones completas (con y sin `--errors-only`) antes y después de la corrección,
+  con el `WARNING :: datafile ... was NOT copied` real solo visible sin el flag; la apertura
+  directa de `game.zip` (`unzip -l`) confirmando la ausencia y luego la presencia del archivo; el
+  hallazgo de que `resource set expr=<nombre>.filePath` falla si el nombre del recurso lleva un
+  punto, resuelto indexando `project.IncludedFiles[N]`; y, por separado, la reproducción de que
+  un `sprite` creado por `resourcetool` sin frames hace que el `AssetCompiler` lance una
+  `NullReferenceException` no capturada que `gm-cli compile --errors-only` esconde por completo
+  (exit 0, cero líneas) y que impide escribir `game.zip` sin que ninguna salida lo señale.

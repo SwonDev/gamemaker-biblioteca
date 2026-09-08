@@ -361,7 +361,8 @@ GameMaker** (`developer.valvesoftware.com/wiki/SteamCMD`). El flujo completo, en
 `package` de GameMaker con la subida:
 
 ```bash
-# 1. GameMaker ya produjo el build de release (ver 05 · 02 §3.5)
+# 1. GameMaker ya produjo el build de release (ver 05 · 02 §3.5) — --errors-only es para iterar;
+#    antes de este paso, compílalo también SIN el flag y confirma que no hay ningún WARNING.
 gm-cli compile --target windows --runtime native --config Release --errors-only
 gm-cli package --target windows --output ./content/windows/
 
@@ -371,6 +372,13 @@ signtool sign /f "MiCertificado.pfx" /p "<TU_CONTRASEÑA>" /fd SHA256 /tr http:/
 # 3. Sube con steamcmd, apuntando al app_build.vdf de §4.3
 steamcmd +login <TU_USUARIO_DE_BUILD> +run_app_build ../scripts/app_build.vdf +quit
 ```
+
+> ⚠️ **No subas a ninguna tienda un build que solo pasó por `--errors-only`.** El flag silencia
+> los `WARNING` de compilación — incluido el de un *included file* creado por `resourcetool` que
+> no llegó al paquete (`WARNING :: datafile ... was NOT copied`, invisible con `--errors-only`,
+> `exit 0` igualmente) — así que un build «limpio» según ese criterio puede faltarle un archivo
+> de datos entero. Detalle y las dos compilaciones reales en
+> [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
 
 `steamcmd` pide la contraseña de forma interactiva la primera vez (no la pases en texto plano en
 el comando) y, si tu cuenta tiene verificación en dos pasos de Steam Guard, pedirá también el

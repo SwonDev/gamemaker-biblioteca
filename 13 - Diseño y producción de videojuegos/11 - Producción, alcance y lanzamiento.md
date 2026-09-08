@@ -573,8 +573,11 @@ el siguiente arranque —por ejemplo ofreciendo copiar el informe con `clipboard
 el jugador lo pegue en tu Discord.
 
 > Los bloques de §4.4 y §4.5 se escribieron en un proyecto real y **compilan con
-> `gm-cli compile --errors-only --toolchain GMS2@2026.0.0.23` con código de salida 0, sin errores
-> ni advertencias** (06-09-2026).
+> `gm-cli compile --errors-only --toolchain GMS2@2026.0.0.23` con código de salida 0, sin
+> errores de sintaxis** (06-09-2026). `--errors-only` no puede certificar «sin advertencias» —
+> silencia justo los `WARNING`, ver la Trampa 8 de
+> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta) —
+> así que esta verificación cubre la sintaxis de los bloques, no la ausencia de avisos.
 
 #### El manejador amable: mensaje al jugador, autoguardado de emergencia y dónde está el log
 
@@ -656,6 +659,10 @@ gm-cli package --config Release --target windows --output ./builds/v1.0.0-win.zi
   commit etiquetado: una build hecha sobre trabajo sin commitear no se puede reproducir.
 - **Se prueba esa build entera antes de subirla**, no la de VM de ayer: YYC cambia el
   comportamiento en los bordes.
+- **Repite este `compile` una vez sin `--errors-only` antes de empaquetar el release y lee la
+  salida completa.** El flag es para iterar; silencia los `WARNING` de compilación, incluido el
+  de un *included file* creado por `resourcetool` que no llegó al paquete — detalle en
+  [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
 - Automatizarlo con GitHub Actions está resuelto en
   [07 · 13 §11](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md) y
   [05 · 02 §5](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md).
@@ -1799,5 +1806,5 @@ Todas consultadas el **6 de septiembre de 2026**.
 
 **Verificado en local (06-09-2026)**
 - `gm-cli init --no-interactive -t "Space Rocks" --toolchain GMS2@2026.0.0.23`: contenido real del `.gitignore` y del `.gitattributes` generados; `.gmcache` de 131 MB **no** ignorado (`git check-ignore -v .gmcache` sin salida)
-- `gm-cli compile --errors-only --toolchain GMS2@2026.0.0.23` sobre los bloques de GML de §4.4 y §4.5: **código de salida 0, sin errores ni advertencias**
+- `gm-cli compile --errors-only --toolchain GMS2@2026.0.0.23` sobre los bloques de GML de §4.4 y §4.5: **código de salida 0, sin errores de sintaxis** (`--errors-only` no muestra `WARNING`, ver Trampa 8 de `12 · 09` §0)
 - `python3 _indice/buscar.py` para cada símbolo usado: `GM_version`, `GM_build_date`, `GM_build_type`, `GM_runtime_version`, `date_datetime_string`, `exception_unhandled_handler`, `room_get_name`, `display_get_gui_width`, `display_get_gui_height`, `draw_set_halign`, `draw_set_valign`, `draw_set_colour`, `draw_set_alpha`, `draw_text`, `show_debug_message`, `clipboard_set_text`, `file_exists`, `file_delete`, `file_text_open_write`, `file_text_write_string`, `file_text_close`, `array_length`, `fa_right`, `fa_bottom`, `fa_left`, `fa_top`, `c_white`

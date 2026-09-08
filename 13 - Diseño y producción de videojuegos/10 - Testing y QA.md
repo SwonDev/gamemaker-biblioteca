@@ -1674,9 +1674,21 @@ gm-cli compile --errors-only
 echo $?        # 0 = compila
 ```
 
-`--errors-only` silencia todo menos los errores: si imprime algo, es un problema. Es justo lo
-que quieres en un *hook* de pre-commit. En el proyecto de prueba de este documento salió con
-**código 0 y sin una línea de salida**.
+`--errors-only` silencia todo menos los **errores de sintaxis GML**: si imprime algo por esa
+vía, es un problema. Es justo lo que quieres en un *hook* de pre-commit, para iterar rápido
+mientras escribes. En el proyecto de prueba de este documento salió con **código 0 y sin una
+línea de salida**.
+
+> ⚠️ **Pero `--errors-only` no es la puerta que certifica que un juego está listo — solo que
+> compila.** Silencia también los `WARNING`, y al menos uno es un fallo real, no cosmético: un
+> *included file* creado por `resourcetool` (un `.json` de datos, por ejemplo) cuyo `filePath`
+> quedó vacío no llega al paquete compilado, y el único rastro es
+> `WARNING :: datafile ... was NOT copied` — visible **solo** compilando sin el flag,
+> reproducido con las dos compilaciones reales en
+> [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
+> **La puerta obligatoria real, antes de cerrar cualquier tarea, es compilar dos veces**: una
+> con `--errors-only` para el `exit 0` rápido, y **una sin el flag, leyendo la salida completa**
+> — es la única que muestra estos avisos.
 
 > ⚠️ Ojo con la asimetría: **`gm-cli compile` sí devuelve un código de salida útil; `gm-cli
 > run` no** (§3.4). La puerta de compilación se puede automatizar con `$?`; la de pruebas hay
@@ -2146,9 +2158,13 @@ PRUEBAS AUTOMÁTICAS
 [ ] Hay al menos una prueba de invariante ("esto no puede pasar nunca").
 
 COMPILACIÓN
-[ ] gm-cli compile --errors-only sale con 0 antes de cada commit.
+[ ] gm-cli compile --errors-only sale con 0 antes de cada commit (iterar rápido).
+[ ] Antes de dar el juego por terminado, se compiló también SIN --errors-only y se
+    leyó la salida completa buscando WARNING — el flag anterior los silencia por
+    completo, incluido el de un included file que no llegó al paquete (12/09 §0 Trampa 8).
 [ ] Se compila para todas las plataformas objetivo, no solo la tuya.
-[ ] Se ha probado el paquete (gm-cli package), no solo el Run.
+[ ] Se ha probado el paquete (gm-cli package), no solo el Run — y se ha abierto el .zip/
+    contenido del build para confirmar que los archivos de datos están dentro de verdad.
 [ ] Se ha medido en --runtime native, no en vm.
 
 DEPURACIÓN

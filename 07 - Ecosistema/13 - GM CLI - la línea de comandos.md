@@ -266,7 +266,7 @@ ARGUMENTS
 | `--runtime vm\|native` | `vm` = GMS2 VM (por defecto); `native` = YYC (compilación anticipada). |
 | `--config` | Configuración del proyecto (por defecto `Default`). |
 | `--license` | Fichero `.plist` de licencia; alternativa: variable de entorno `GAMEMAKER_CLI_LICENSE`. |
-| `--errors-only` | Silencia todo salvo errores. Ideal para CI. |
+| `--errors-only` | Silencia todo salvo errores de sintaxis GML. Ideal para iterar rápido o en CI — **no para la última compilación antes de publicar** (ver el aviso debajo). |
 | `--toolchain-options` | JSON con opciones específicas del toolchain. |
 
 ### Fijar el runtime LTS 2026
@@ -277,7 +277,7 @@ gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only
 
 Compilación verificada sobre el proyecto de prueba: **sin salida y código de salida 0**.
 
-Cuando hay un error, sí se imprime. Prueba real rompiendo a propósito
+Cuando hay un **error de sintaxis GML**, sí se imprime. Prueba real rompiendo a propósito
 `objects/obj_player/Step_0.gml` con `var _horizontal = ;`:
 
 ```
@@ -285,6 +285,15 @@ Command failed:
 gml_Object_obj_player_Step_0(0) : unexpected symbol ";" in expression
 /Users/adrianpereradelgado/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/assetcompiler/osx/arm64/GMAssetCompiler.dll exited with non-zero status (1)
 ```
+
+> ⚠️ **`--errors-only` no muestra los `WARNING` ni algunos *crashes* reales del `AssetCompiler`
+> — solo errores de sintaxis GML con código de salida distinto de 0.** Verificado en vivo: un
+> *included file* creado por `resourcetool` sin su archivo físico en `datafiles/` produce
+> `WARNING :: datafile ... was NOT copied` compilando sin el flag, y **exit 0 sin ninguna línea**
+> con `--errors-only` — indistinguible de una compilación realmente limpia. Úsalo para iterar
+> rápido; **antes de dar un juego por terminado, compila al menos una vez sin el flag** y lee la
+> salida completa. Detalle con las dos compilaciones reales en
+> [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
 
 ### Empaquetar
 
@@ -544,6 +553,23 @@ texturegroup
 tileset
 timeline
 ```
+
+### La raíz de expresión `project`: lo que `RESOURCE INFO`/`RESOURCE SET` no anuncian
+
+Los ejemplos de `HELP RESOURCE INFO`/`HELP RESOURCE SET` solo muestran nombres de recursos como
+raíz (`spr_ufo`, `obj_ship`, `room_welcome`…), pero **`project` es otra raíz de expresión
+válida**, con 18 miembros propios — configuraciones de build, grupos de audio y textura, archivos
+incluidos, metadatos del paquete, el orden de las salas y más — que el `HELP` no lista en
+ninguna parte. Se descubre con `gm-cli resourcetool eval "resource info expr=project"`: 18
+campos — `AudioGroups`, `configs`, `defaultScriptType`, `Folders`,
+`ForcedPrefabProjectReferences`, `FullName`, `IncludedFiles`, `isDnDProject`, `isEcma`,
+`LibraryEmitters`, `MetaData`, `name`, `parent`, `resources`, `RoomOrderNodes`, `tags`,
+`templateType`, `TextureGroups`.
+
+Tabla completa de los 18 (qué se lee, qué se escribe, para qué le sirve a un agente) y el orden
+de las salas — que vive aquí, en `project.RoomOrderNodes` — en
+[`12 · 09` §9 y §9 bis](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno).
+Verificado el 8 de septiembre de 2026.
 
 ### Receta completa ejecutada de verdad
 
