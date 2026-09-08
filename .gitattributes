@@ -1,0 +1,29 @@
+# Sin esto, un Windows con `core.autocrlf=true` (el valor que sugiere el propio
+# instalador de Git for Windows) convierte los saltos de línea LF de este repositorio a
+# CRLF al hacer `git clone`/`checkout`. Para los scripts .sh eso no es cosmético: bash
+# lee el CRLF como parte del shebang y falla con «bad interpreter: /bin/bash^M» o
+# «$'\r': command not found» — instalar.sh y reconstruir.sh, el primer paso del README,
+# dejarían de arrancar. `text=auto eol=lf` normaliza TODO archivo de texto a LF en el
+# propio repositorio, sea cual sea la configuración de quien lo clona; los binarios
+# (los PNG de _indice/auditorias/) los detecta solo git y no los toca — el `binary`
+# explícito de abajo es solo un cinturón y tirantes.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+*.gml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# .yy/.yyp son JSON generado y reescrito por el propio IDE de GameMaker (formato frágil,
+# ver CLAUDE.md): ninguno está versionado hoy (Lumbre/ y GameMaker_Fuentes/ están en
+# .gitignore), y si algún día se versiona uno, mejor no imponerle una normalización de
+# línea que no se ha probado contra el IDE — se deja fuera de `*.sh`/`*.py`/etc. a
+# propósito, cubierto solo por la regla general `* text=auto eol=lf` de arriba.
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary

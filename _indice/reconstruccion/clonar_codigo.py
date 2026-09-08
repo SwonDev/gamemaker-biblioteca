@@ -45,8 +45,24 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BASE_CODIGO = os.path.join(RAIZ, "11 - Código descargado")
@@ -156,6 +172,24 @@ def _dir_con_contenido(ruta):
     return os.path.isdir(ruta) and bool(os.listdir(ruta))
 
 
+def hay_red():
+    """Comprobación barata contra github.com ANTES de lanzar hasta 608 `git clone`.
+
+    Sin esto, sin conexión (o tras un cortafuegos que descarta paquetes en vez de
+    rechazarlos), cada `git clone` podría agotar su timeout de 300 s uno detrás de
+    otro — horas para avisar de algo que se sabe en segundos. Mismo criterio que
+    `validar-enlaces-externos.py` y `descargar_manual.py`: comprobar la red ANTES,
+    no descubrirlo a mitad de un barrido largo."""
+    req = urllib.request.Request("https://github.com", headers={"User-Agent": "gamemaker-biblioteca-reconstruccion/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10):
+            return True
+    except urllib.error.HTTPError:
+        return True  # el servidor respondió: hay red, aunque el código no sea 2xx
+    except Exception:
+        return False
+
+
 def clonar_uno(nombre, url, destino):
     """git clone --depth 1. Devuelve (estado, detalle)."""
     if _dir_con_contenido(destino):
@@ -190,6 +224,18 @@ def main():
     if not os.path.isfile(CATALOGO_MD):
         print(f"✗ No encuentro {CATALOGO_MD}")
         return 2
+
+    # --listar-excluidos no clona nada: no necesita git ni red, así que se salta esto.
+    if not args.listar_excluidos:
+        if not shutil.which("git"):
+            print("✗ No encuentro el comando «git» en el PATH. Instálalo y vuelve a intentarlo.")
+            return 2
+        print("comprobando conectividad con github.com…")
+        if not hay_red():
+            print("✗ No se pudo conectar con github.com.")
+            print("  Puede ser que no haya red disponible ahora mismo, o que el servidor esté")
+            print("  caído. No se ha clonado nada: reinténtalo cuando tengas conexión.")
+            return 2
 
     rutas = cargar_rutas()
     catalogo = open(CATALOGO_MD, encoding="utf-8").read()

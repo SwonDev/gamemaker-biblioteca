@@ -23,6 +23,19 @@ el AGENTS.md al día). Sale con 0 si no hay rutas rotas.
 """
 import os, re, sys, json
 
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+
 IND = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(IND)
 SKILL = os.path.join(IND, "skills", "gamemaker-biblioteca")
@@ -170,7 +183,7 @@ def generar_agents_md():
     # mapa. Claude Code y opencode lo toleran; kimi no. Como el fallo es silencioso en unos CLI
     # y fatal en otro, se comprueba aquí: es el único punto por el que pasa toda edición.
     try:
-        import yaml  # PyYAML viene con el sistema en este entorno
+        import yaml  # PyYAML es de terceros, no viene con Python: de ahí el except ImportError
         datos = yaml.safe_load(frontmatter)
         if not isinstance(datos, dict) or "description" not in datos:
             print("  ✗ El frontmatter de SKILL.md no tiene 'description'.")

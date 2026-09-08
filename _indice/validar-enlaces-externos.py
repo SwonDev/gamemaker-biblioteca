@@ -84,9 +84,23 @@ import concurrent.futures
 import os
 import random
 import re
+import shutil
 import subprocess
 import sys
 import time
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IND = os.path.join(RAIZ, "_indice")
@@ -255,6 +269,13 @@ def main():
     ap.add_argument("--sin-red-check", action="store_true",
                      help="salta la comprobación de red inicial (solo para depurar hay_red())")
     args = ap.parse_args()
+
+    if not shutil.which("curl"):
+        print("✗ No encuentro el comando «curl» en el PATH. Este validador lo necesita para")
+        print("  comprobar enlaces externos (viene de serie en macOS, Linux y Windows 10")
+        print("  1803+). Instálalo y vuelve a intentarlo. Esto NO es 'sin red': es la propia")
+        print("  herramienta la que falta.")
+        return 2
 
     print("comprobando conectividad de red…")
     if not args.sin_red_check and not hay_red():

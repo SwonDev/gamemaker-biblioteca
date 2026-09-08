@@ -25,7 +25,20 @@ llamada `nombre(`:
 
 Sale con 0 si no hay inventadas ni problemas de aridad; con 1 si hay alguna.
 """
-import os, re, sys, json, difflib, importlib.util
+import os, re, sys, json, difflib, importlib.util, platform
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 IND = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(IND)
@@ -63,7 +76,22 @@ def cargar_simbolos():
 # La misma carpeta que consultan buscar.py y construir-indices.py (gm-cli guarda ahí
 # los runtimes). buscar.py no se puede importar sin ejecutar su CLI, así que se repite
 # la constante: si cambia allí, cambia aquí.
-RUNTIMES = os.path.expanduser("~/Library/Caches/GameMakerCLI/runtimes-gms2")
+def _ruta_cache_gamemakercli():
+    """Réplica de la lógica de gm-cli (ver buscar.py, misma función, para el porqué
+    exacto): macOS → ~/Library/Caches, Windows → %LOCALAPPDATA%\\GameMakerCLI\\cache,
+    resto → XDG_CACHE_HOME. No verificado fuera de macOS."""
+    home = os.path.expanduser("~")
+    sistema = platform.system()
+    if sistema == "Darwin":
+        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
+    if sistema == "Windows":
+        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
+        return os.path.join(base, "GameMakerCLI", "cache")
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
+    return os.path.join(base, "GameMakerCLI")
+
+
+RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
 
 
 def runtime_instalado():

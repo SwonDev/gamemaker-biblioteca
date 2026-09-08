@@ -180,10 +180,24 @@ import argparse
 import bisect
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
 from collections import Counter
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
+# usa la página de códigos ANSI del sistema en vez de UTF-8 — y los símbolos ✗/⚠/→/…
+# de este código no caben ahí: UnicodeEncodeError a mitad de ejecución. No verificado
+# en Windows de verdad; aplica la solución estándar de Python 3.7+ (PEP 528 cubre la
+# consola interactiva sola, no pipes ni redirecciones).
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser("~")
@@ -669,6 +683,18 @@ def main():
                      help="no borrar ~/gm_prueba_docs al terminar")
     args = ap.parse_args()
 
+    # Este script COMPILA de verdad: necesita el binario `gm-cli` en el PATH (lo instala
+    # `npm i -g @gamemaker/gm-cli`, o el paquete equivalente). Sin él, `subprocess.run`
+    # lanzaría FileNotFoundError a mitad de un análisis de ~3700 bloques — un traceback
+    # crudo en vez de decir qué falta. Se comprueba ANTES de hacer ese trabajo.
+    if not shutil.which("gm-cli"):
+        print("✗ No encuentro el comando «gm-cli» en el PATH.")
+        print("  Este script compila de verdad los bloques ```gml con gm-cli, así que lo")
+        print("  necesita instalado: npm i -g @gamemaker/gm-cli (o el instalador oficial")
+        print("  de GameMaker). Sin él no se puede comprobar la compilación real; el resto")
+        print("  de `actualizar.py` (enlaces, índices, símbolos inventados…) no depende de esto.")
+        return 2
+
     t0 = time.time()
     print("Extrayendo bloques ```gml de los documentos…")
     bloques = extraer_bloques()
@@ -706,7 +732,6 @@ def main():
     comandos, escrituras, indice = agrupar_y_escribir(compilables, args.grupo)
     print(f"  {len(comandos)} recursos de script.")
 
-    import shutil
     shutil.rmtree(PROY, ignore_errors=True)   # por si quedó de una ejecución anterior interrumpida
 
     try:

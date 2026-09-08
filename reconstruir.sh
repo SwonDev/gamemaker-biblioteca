@@ -17,6 +17,22 @@
 # empezar porque hablan con servidores de terceros y pueden tardar bastante.
 set -euo pipefail
 
+# El instalador oficial de python.org para Windows registra `python.exe`, NO
+# `python3.exe` (ese alias es convención de macOS/Linux; solo la app de Microsoft
+# Store trae ambos) — mismo criterio que usa instalar.sh.
+elegir_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo python3
+    return 0
+  fi
+  if command -v python >/dev/null 2>&1 \
+      && python -c 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)' 2>/dev/null; then
+    echo python
+    return 0
+  fi
+  return 1
+}
+
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IND="$RAIZ/_indice/reconstruccion"
 MODO="${1:-}"
@@ -96,8 +112,11 @@ case "$MODO" in
     ayuda
     ;;
   manual | codigo)
-    if ! command -v python3 >/dev/null 2>&1; then
-      echo "✗ Hace falta python3 para reconstruir esto. Instálalo y vuelve a intentarlo."
+    PY="$(elegir_python || true)"
+    if [ -z "$PY" ]; then
+      echo "✗ Hace falta python3 para reconstruir esto (en Windows, si «python3» no se"
+      echo "  encuentra, prueba con el instalador de python.org o la app de Microsoft Store,"
+      echo "  que sí registra python3). Instálalo y vuelve a intentarlo."
       exit 1
     fi
 
@@ -106,14 +125,14 @@ case "$MODO" in
       echo "≈6 150 páginas (inglés + español) · calcula bien más de una hora la primera vez."
       echo "Reanudable: lo que ya esté descargado (aquí, o de un intento anterior) se salta."
       confirmar "¿Continuar?"
-      exec python3 "$IND/descargar_manual.py" "$@"
+      exec "$PY" "$IND/descargar_manual.py" "$@"
     else
       echo "Vas a clonar con git los repositorios de terceros catalogados en _RUTAS.json."
       echo "≈3,8 GB en disco · 608 repositorios, 13 excluidos siempre (juegos comerciales"
       echo "o sin licencia libre en la categoría «juegos y motores» — ver PUBLICAR.md)."
       echo "Reanudable: lo que ya esté clonado se salta; un fallo puntual no aborta el resto."
       confirmar "¿Continuar?"
-      exec python3 "$IND/clonar_codigo.py" "$@"
+      exec "$PY" "$IND/clonar_codigo.py" "$@"
     fi
     ;;
   *)
