@@ -273,7 +273,12 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       un fallo real y medido, no una hipótesis (`_indice/auditorias/r12-prueba-plataformas.md`
       §1.12). El script cubre lo que una máquina puede ver; el resto —si el menú se entiende, si
       la historia se sostiene— no lo cubre nadie más que tú.
-   d. **Lo que recortes, se dice**; no se omite en silencio.
+   d. **Si no puedes ejecutar el juego** (sin `run`, sin pantalla, tarea de fondo): la red que
+      queda son las **seis preguntas de `13/10 §8.7`**, que se responden leyendo y cazan la clase
+      de fallo que el compilador y `validar-proyecto.py` no ven — guardas de pausa mal colocadas,
+      ramas que olvidan un caso, métodos ligados a instancias que mueren. Y di explícitamente qué
+      quedó sin comprobar por no poder ejecutar.
+   e. **Lo que recortes, se dice**; no se omite en silencio.
 8. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
    `05/05 - Entregar el juego` (firmar y subir) → `05/06` si va a consola.
 

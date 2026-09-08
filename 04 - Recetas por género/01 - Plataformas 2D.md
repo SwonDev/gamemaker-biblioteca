@@ -246,6 +246,59 @@ Step**, antes de calcular nada más.
 
 ### 4.9 Cámara con deadzone
 
+#### Fondos con parallax: la fórmula, y por qué `draw_sprite_tiled_ext` no vale
+
+Un plataformas que «se vea bien» es medio movimiento y medio fondo, y la biblioteca tenía cámara
+y dibujo pero **ninguna receta de parallax** — ni la fórmula. Esta es.
+
+Una capa que se mueve a factor `f` respecto al mundo se dibuja, en coordenadas de sala, en:
+
+```
+x_dibujo = x_mundo + camara_x * (1 - f)
+```
+
+Con `f = 0` la capa está pegada a la cámara (cielo, que nunca se mueve); con `f = 1` va con el
+mundo (el suelo). Las capas intermedias van entre 0,15 y 0,7 — cuanto más lejos, más pequeño el
+factor.
+
+> ⚠️ **`draw_sprite_tiled_ext()` repite en LOS DOS EJES.** Es la trampa de este apartado: para
+> una banda horizontal —una franja de mar, una línea de montañas— llena la pantalla entera de
+> arriba abajo. No hay una variante «solo en x»: hay que dibujar la banda a mano.
+
+```gml
+/// @func fondo_banda(_spr, _y, _factor)
+/// @desc Dibuja un sprite repetido SOLO en horizontal, con parallax.
+///       En el evento Draw de un objeto de fondo, con profundidad alta.
+/// @param {Asset.GMSprite} _spr
+/// @param {Real} _y        Altura en coordenadas de sala
+/// @param {Real} _factor   0 = pegado a la cámara · 1 = pegado al mundo
+function fondo_banda(_spr, _y, _factor)
+{
+    var _cam = view_camera[0];
+    var _cx  = camera_get_view_x(_cam);
+    var _cw  = camera_get_view_width(_cam);
+    var _w   = sprite_get_width(_spr);
+
+    // Desplazamiento de parallax, envuelto al ancho del sprite para no
+    // dibujar miles de copias cuando la camara se aleja del origen.
+    // El doble `mod` deja el resultado en [0, _w) sea cual sea el signo que
+    // devuelva `mod` para un operando negativo: asi el bucle empieza siempre
+    // una copia a la izquierda del borde y no queda hueco al desplazarse.
+    var _off = (((_cx * (1 - _factor)) mod _w) + _w) mod _w;
+
+    for (var _x = _cx - _off; _x < _cx + _cw + _w; _x += _w)
+        draw_sprite(_spr, 0, _x, _y);
+}
+```
+
+> 💡 **El doble `mod` no es adorno.** Sin envolver el desplazamiento, la primera copia se dibuja
+> cada vez más lejos del origen y el bucle recorre toda esa distancia: en una sala larga, miles
+> de iteraciones por frame. Y se escribe `((a mod w) + w) mod w` en vez de `a mod w` **a
+> propósito**: el manual de LTS 2026 documenta `mod` como «el resto de una división» y **no dice
+> qué signo devuelve con un operando negativo**, que es exactamente el caso cuando la cámara está
+> a la izquierda del origen. Esta forma da un valor en `[0, w)` sea cual sea el convenio, así que
+> no hace falta saberlo — y no se afirma aquí lo que no está verificado.
+
 > 🔺 **Antes de escribir el primer `window_set_size()`, decide la escala.** Quien monta una
 > cámara está a un paso de fijar la resolución, y hacerlo a ojo da una escala **no entera** —con
 > lo que unos píxeles del arte miden dos y otros tres, y el movimiento «hierve». La receta, con
