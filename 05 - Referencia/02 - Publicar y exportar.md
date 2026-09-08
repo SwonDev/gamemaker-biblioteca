@@ -318,12 +318,21 @@ logros, estadísticas, cifrado de Steam, talleres, etc. Novedades anunciadas par
 # 1. Build de release de Windows (usa YYC / native para rendimiento)
 gm-cli compile --target windows --runtime native --config Release --errors-only
 
+# 1 bis. Antes de subir a Steam, repite el build SIN --errors-only y lee los WARNING —
+#        el flag anterior silencia avisos reales (p. ej. un included file que no se copió).
+gm-cli compile --target windows --runtime native --config Release
+
 # 2. Empaquetar
 gm-cli package --target windows --output ./steam-windows.zip
 
 # 3. Subir con las herramientas de Steamworks (SteamPipe / steamcmd), fuera de GameMaker
 ```
 
+> ⚠️ `--errors-only` sirve para iterar, no para el build final: silencia los `WARNING` de
+> compilación, incluido el de un *included file* creado por `resourcetool` que no llegó al
+> paquete. Antes de subir un build a cualquier tienda, compílalo también sin ese flag — detalle
+> en [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
+>
 > El alta de la app en Steamworks (Steam Direct, ~100 USD), el `app_build.vdf`/`depot_build.vdf`
 > reales, el comando exacto de `steamcmd` y las ramas beta están desarrollados con detalle en
 > [05 · 05 §4](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md#4--steam-alta-de-la-aplicación-depósitos-y-subida).

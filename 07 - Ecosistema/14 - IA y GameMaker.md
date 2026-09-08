@@ -242,6 +242,13 @@ To help users debug and play games you can make use of:
     npx @gamemaker/gm-cli run --errors-only
 ```
 
+> ⚠️ Esto es lo que genera GameMaker por sí solo — no lo que recomienda esta biblioteca sin
+> matices. `--errors-only` sirve para iterar, pero silencia los `WARNING` de compilación
+> (incluido el de un *included file* que `resourcetool` no llegó a copiar al paquete) y algún
+> *crash* real del `AssetCompiler`. Antes de dar un juego por terminado, compila al menos una
+> vez sin ese flag — detalle en
+> [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
+
 ### 3.3 `.claude/settings.local.json` — la barrera de seguridad
 
 ```json
@@ -402,6 +409,11 @@ Contenido del `.mcp.json` (idéntico al que genera `init`):
 4. Verifica compilando — nunca des por buena una respuesta sin compilar
    gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only
 ```
+
+> ⚠️ `--errors-only` vale para este bucle de iteración rápida, pero no para la última
+> verificación de una tarea: silencia los `WARNING` (por ejemplo, un *included file* que no
+> llegó al paquete compilado). Antes de cerrar la tarea, compila una vez sin el flag — ver
+> [`12 · 09` §0 Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta).
 
 ### 5.4 Reglas que debes imponer al agente
 

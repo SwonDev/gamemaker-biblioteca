@@ -51,7 +51,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las seis trampas que hacen fracasar a un agente
+## Las ocho trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -79,6 +79,19 @@ el primer comando; el detalle y las tablas completas están en
    --target mac`, incluso sobre la carpeta de guardado que ya existe, y rompen en silencio el
    *gate* de `save_ensure_dir()`. No te fíes de esas dos funciones: intenta escribir de verdad y
    deja que la escritura decida — ya parcheado en `06 - Assets y Scripts/scr_save_load.gml`.
+7. **El `HELP` de `resourcetool` nunca lista las raíces de expresión disponibles** — solo
+   documenta comandos. Antes de dar «esto no se puede por `resourcetool`» por bueno, prueba
+   `resource info expr=project`: es una segunda raíz válida con 18 miembros (configuraciones de
+   build, grupos de audio/textura, archivos incluidos, metadatos, el orden de las salas…) que
+   ningún ejemplo del `HELP` menciona. Tabla completa de los 18 en `12/09` §9 bis.
+8. **`RESOURCE CREATE TYPE=includedfile` deja `filePath` vacío** — la raíz del proyecto, no
+   `datafiles/` — sin copiar el archivo físico a ningún sitio. `gm-cli compile --errors-only`,
+   el flag que esta misma tabla recomienda, sale con `exit 0` y ni una línea; solo compilando
+   **sin** el flag aparece `WARNING :: datafile ... was NOT copied skipped - reason File does
+   not exist`. Crea `datafiles/` a mano, copia el archivo dentro, y fija `filePath` con
+   `resource set expr=project.IncludedFiles[N].filePath value=datafiles` — no por el nombre del
+   recurso si lleva un punto (`datos.json.filePath` falla: el punto se lee como acceso a
+   miembro). Detalle completo en `12/09` §0 Trampa 8.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
@@ -155,9 +168,12 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   Nombra en español sin tildes ni eñes; `validar-codigo-gml.py` lo detecta.
 - El asset **Extensión** es la única excepción a lo anterior: `resourcetool` no puede crearlo
   (`Resource type 'extension' is not creatable`), solo el IDE. Ver `07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md`.
-- Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. Y **compilar limpio
-  no es funcionar**: la fuente muda y el guardado roto de las trampas 5 y 6 compilan sin una queja
-  (`13/10 §8.6` da las dos comprobaciones que sí los cazan).
+- Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. `--errors-only`
+  sirve para iterar rápido, pero **antes de dar un juego por terminado, compílalo al menos una
+  vez sin ese flag y lee los avisos**: es el único modo que muestra el `WARNING` de un
+  *included file* sin copiar (trampa 8). Y **compilar limpio no es funcionar**: la fuente muda y
+  el guardado roto de las trampas 5 y 6 compilan sin una queja (`13/10 §8.6` da las dos
+  comprobaciones que sí los cazan).
 - No declares un juego «terminado» sin compararlo punto por punto con el checklist maestro de
   `04/00`. Si algo falta o no aplica, dilo; el silencio no vale.
 
