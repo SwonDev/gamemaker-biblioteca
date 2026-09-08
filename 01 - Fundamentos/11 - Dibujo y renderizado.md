@@ -158,13 +158,13 @@ draw_sprite(spr_icono, 0, 32, 32);
 ```gml
 draw_sprite_ext(sprite, subimg, x, y, xscale, yscale, rot, color, alpha);
 draw_sprite_part(sprite, subimg, left, top, width, height, x, y);
-draw_sprite_part_ext(...);
+draw_sprite_part_ext(sprite, subimg, left, top, width, height, x, y, xscale, yscale, colour, alpha);
 draw_sprite_stretched(sprite, subimg, x, y, w, h);
-draw_sprite_stretched_ext(...);
+draw_sprite_stretched_ext(sprite, subimg, x, y, w, h, colour, alpha);
 draw_sprite_pos(sprite, subimg, x1,y1, x2,y2, x3,y3, x4,y4, alpha);
 draw_sprite_tiled(sprite, subimg, x, y);
-draw_sprite_tiled_ext(...);
-draw_sprite_general(...);
+draw_sprite_tiled_ext(sprite, subimg, x, y, xscale, yscale, colour, alpha);
+draw_sprite_general(sprite, subimg, left, top, width, height, x, y, xscale, yscale, rot, c1, c2, c3, c4, alpha);
 ```
 
 ```gml

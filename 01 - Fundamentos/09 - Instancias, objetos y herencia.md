@@ -28,8 +28,8 @@
 > ⚠️ **«Objetos e instancias no son lo mismo y cada uno tiene su propio conjunto de funciones.»**
 
 ```gml
-obj_enemigo               // el OBJETO (asset) — un handle
-instance_create_layer(...) // devuelve la INSTANCIA — otro handle
+obj_enemigo                                    // el OBJETO (asset) — un handle
+instance_create_layer(x, y, layer_id, obj_enemigo) // devuelve la INSTANCIA — otro handle
 ```
 
 ### Las Object Variables NO son variables del objeto

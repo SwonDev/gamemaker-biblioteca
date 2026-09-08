@@ -228,9 +228,9 @@ Definen desde dónde se escucha. Normalmente, la cámara o el jugador.
 
 ```gml
 audio_listener_position(x, y, 0);
-audio_listener_orientation(...);
-audio_listener_set_position(...);
-audio_listener_set_orientation(...);
+audio_listener_orientation(lookat_x, lookat_y, lookat_z, up_x, up_y, up_z);
+audio_listener_set_position(0, x, y, 0);
+audio_listener_set_orientation(0, lookat_x, lookat_y, lookat_z, up_x, up_y, up_z);
 ```
 
 > 📖 **Con una cámara 3D de verdad** (no solo `z = 0`), `audio_listener_orientation()` se alimenta

@@ -113,8 +113,10 @@ los **time sources**, que son más flexibles y no ocupan un evento por temporiza
 // ❌ Legacy: alarmas (una por evento, número limitado)
 alarm[0] = room_speed * 3;
 
-// ✅ Moderno: time sources
-var _ts = time_source_create(time_source_game, 3, time_source_units_seconds);
+// ✅ Moderno: time sources — el callback es OBLIGATORIO (4º argumento, sin valor por
+// defecto): es lo que antes iba dentro del evento Alarm 0.
+var _ts = time_source_create(time_source_game, 3, time_source_units_seconds,
+    function() { show_debug_message("¡Alarma cumplida!"); });
 time_source_start(_ts);
 ```
 

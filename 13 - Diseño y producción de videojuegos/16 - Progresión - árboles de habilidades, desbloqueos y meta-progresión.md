@@ -681,7 +681,7 @@ function EstadoArbol(_puntos_iniciales = 0) constructor
         struct_remove(comprados, _id);
         puntos_disponibles += _nodo.coste;
 
-        var _pos = array_find_index(orden_compra, function(_v, _i, _id_buscado) { return _v == _id_buscado; }, 0, array_length(orden_compra), _id);
+        var _pos = array_find_index(orden_compra, function(_v, _i) { return _v == _id; }, 0, array_length(orden_compra));
         if (_pos != -1) array_delete(orden_compra, _pos, 1);
         return true;
     };
@@ -714,9 +714,12 @@ function EstadoArbol(_puntos_iniciales = 0) constructor
 }
 ```
 
-`array_find_index` recibe una función y un valor extra por argumento posicional final
-(`array_find_index(array, function, [offset], [length])`, verificado con `buscar.py`); aquí se usa
-para localizar la posición de `_id` dentro de `orden_compra` sin escribir un bucle manual.
+`array_find_index(array, function, [offset], [length])` (verificado con `buscar.py`) NO acepta
+un valor extra para el predicado: éste recibe siempre `(elemento, índice)`, nada más — pasarle un
+tercer argumento en la llamada revienta con «wrong number of arguments». El predicado captura `_id`
+por **closure** directamente del ámbito de `revertir` (ver §7 de `01/07`), sin necesidad de
+colártelo como argumento; así se usa aquí para localizar la posición de `_id` dentro de
+`orden_compra` sin escribir un bucle manual.
 `struct_remove(struct, name)` (verificado con `buscar.py`, devuelve `Undefined`) quita un campo de
 un struct por nombre: es la función que borra un id de `comprados` al revertir un nodo.
 

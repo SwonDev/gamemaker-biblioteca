@@ -47,15 +47,125 @@ EXCL = {"_indice", "09 - Manual oficial", "11 - Código descargado",
 
 
 def limpiar(codigo):
-    """Quita comentarios y literales de cadena: ahí «palabra(» no es una llamada."""
-    codigo = COMENTARIO.sub(" ", codigo)
+    """Quita literales de cadena y comentarios: ahí «palabra(» no es una llamada.
+
+    Las cadenas se neutralizan PRIMERO. Un string en base64 o una URL puede
+    contener `//` (p. ej. `"Ud93/wghI//D2cr/"` o `"https://..."`) — si el
+    comentario se quitara antes, ese `//` interno se leería como el inicio de
+    un comentario de línea y se comería el resto de la cadena (y su comilla de
+    cierre), descuadrando las comillas de todo lo que viene después.
+    """
     codigo = CADENA.sub('""', codigo)
+    codigo = COMENTARIO.sub(" ", codigo)
     return codigo
 
 
-def simbolos_runtime():
+def cargar_simbolos():
     d = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))
-    return set(d["simbolos"])
+    return d["simbolos"]
+
+
+def simbolos_runtime():
+    return set(cargar_simbolos())
+
+
+def parsear_firma(firma):
+    """(mínimo, máximo, variádica) de argumentos a partir de «nombre(a, [b], ...)».
+
+    construir-indices.py envuelve cada parámetro opcional entre corchetes según el
+    atributo `Optional` de GmlSpec.xml — el propio parámetro variádico `...`
+    incluido: sin corchetes (`ds_list_add(id, ...)`) exige al menos un argumento
+    más; entre corchetes (`show_debug_message(string_or_format, [...])`) deja la
+    cola en cero o más. No hay parámetros anidados dentro de una firma (verificado
+    contra las 2359 firmas del runtime 2026.0.0.23): separar por comas de nivel
+    superior basta. `máximo` es `None` cuando la función es variádica (sin tope).
+    """
+    ini = firma.find("(")
+    if ini == -1:
+        return 0, 0, False
+    profundidad = 0
+    fin = None
+    for i in range(ini, len(firma)):
+        if firma[i] == "(":
+            profundidad += 1
+        elif firma[i] == ")":
+            profundidad -= 1
+            if profundidad == 0:
+                fin = i
+                break
+    contenido = firma[ini + 1:fin] if fin is not None else ""
+    tokens, actual, d = [], "", 0
+    for ch in contenido:
+        if ch in "([":
+            d += 1
+        elif ch in ")]":
+            d -= 1
+        if ch == "," and d == 0:
+            tokens.append(actual.strip())
+            actual = ""
+        else:
+            actual += ch
+    if actual.strip():
+        tokens.append(actual.strip())
+
+    requeridos, opcionales, variadica = 0, 0, False
+    for t in tokens:
+        if not t:
+            continue
+        es_opcional = t.startswith("[") and t.endswith("]")
+        interior = t[1:-1].strip() if es_opcional else t
+        if interior == "...":
+            variadica = True
+        if es_opcional:
+            opcionales += 1
+        else:
+            requeridos += 1
+    maximo = None if variadica else requeridos + opcionales
+    return requeridos, maximo, variadica
+
+
+def aridades_funciones(simbolos):
+    """{nombre: (mínimo, máximo|None, variádica)} de cada función con firma conocida."""
+    out = {}
+    for nom, s in simbolos.items():
+        if s.get("tipo") == "función" and s.get("firma"):
+            out[nom] = parsear_firma(s["firma"])
+    return out
+
+
+def contar_argumentos(codigo, pos_apertura):
+    """Cuenta los argumentos de nivel superior de una llamada.
+
+    `pos_apertura` es la posición justo DESPUÉS del '(' de apertura (donde ya
+    empieza el primer argumento). Respeta paréntesis, corchetes y llaves
+    anidados para no partir por una coma que está dentro de una sub-llamada,
+    un array o un struct literal. Si el paréntesis nunca cierra dentro del
+    bloque —un snippet ilustrativo incompleto, habitual en la documentación—
+    devuelve `None`: mejor no evaluar que arriesgar un falso positivo.
+    """
+    profundidad = 1
+    i = pos_apertura
+    n = len(codigo)
+    inicio = pos_apertura
+    args = []
+    while i < n:
+        c = codigo[i]
+        if c in "([{":
+            profundidad += 1
+        elif c in ")]}":
+            profundidad -= 1
+            if profundidad < 0:
+                return None
+            if profundidad == 0:
+                trozo = codigo[inicio:i]
+                if trozo.strip():
+                    args.append(trozo)
+                return len(args)
+        elif c == "," and profundidad == 1:
+            args.append(codigo[inicio:i])
+            inicio = i + 1
+        i += 1
+    return None
 
 
 def funciones_externas():
@@ -149,7 +259,9 @@ def escrituras_en_working_directory(docs):
 
 
 def main():
-    runtime = simbolos_runtime()
+    simbolos = cargar_simbolos()
+    runtime = set(simbolos)
+    aridad = aridades_funciones(simbolos)
     externas = funciones_externas()
 
     # 1 · recolectar TODAS las funciones y métodos que la biblioteca define (son legítimas)
@@ -173,12 +285,28 @@ def main():
             for m in METODO_STRUCT.finditer(codigo): definidas.add(m.group(1))
 
     # 2 · buscar llamadas cuyo nombre no sea runtime, ni definido, ni palabra clave
+    #     (y, de paso, la aridad de las que SÍ son del runtime: existir no basta,
+    #     la firma completa dice cuántos argumentos hacen falta y cuántos caben)
     sospechosas = {}
+    problemas_aridad = {}
     for fp, txt in docs:
         f = os.path.basename(fp)
         codigo = limpiar(txt if f.endswith(".gml") else "\n".join(BLOQUE.findall(txt)))
         for m in LLAMADA.finditer(codigo):
             nom = m.group(1)
+            if nom in runtime and nom not in definidas and nom in aridad:
+                minimo, maximo, variadica = aridad[nom]
+                n_args = contar_argumentos(codigo, m.end())
+                if n_args is not None:
+                    if n_args < minimo:
+                        rango = f"mínimo {minimo}" if variadica else f"entre {minimo} y {maximo}"
+                        problemas_aridad.setdefault(nom, []).append(
+                            (os.path.relpath(fp, RAIZ),
+                             f"{n_args} argumento(s) — la firma exige {rango}"))
+                    elif maximo is not None and n_args > maximo:
+                        problemas_aridad.setdefault(nom, []).append(
+                            (os.path.relpath(fp, RAIZ),
+                             f"{n_args} argumento(s) — la firma admite entre {minimo} y {maximo}"))
             if nom in runtime or nom in definidas or nom in externas or nom in PALABRAS:
                 continue
             if nom.startswith(PREF_ASSET):     # referencia a un recurso, no una función
@@ -231,7 +359,19 @@ def main():
                 print(f"  ✗ {nom}()  ·  {d}")
     else:
         print("\nNingún nombre con prefijo del runtime sin resolver: el código no inventa funciones.")
-    return 1 if (graves or no_ascii or escrituras_wd) else 0
+
+    if problemas_aridad:
+        n_llamadas = sum(len(v) for v in problemas_aridad.values())
+        print(f"\n\033[1m✗ {n_llamadas} llamada(s) a {len(problemas_aridad)} función(es) del runtime "
+              f"con un número de argumentos que no cuadra con su firma:\033[0m")
+        print("  (existir no basta: la firma completa es la que manda — ver `buscar.py <función>`)")
+        for nom, casos in sorted(problemas_aridad.items()):
+            for fp, msg in casos:
+                print(f"  ✗ {nom}()  ·  {msg}  ·  {fp}")
+    else:
+        print("\nNinguna llamada al runtime con un número de argumentos que no cuadre con su firma.")
+
+    return 1 if (graves or no_ascii or escrituras_wd or problemas_aridad) else 0
 
 
 if __name__ == "__main__":
