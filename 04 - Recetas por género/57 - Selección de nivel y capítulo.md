@@ -94,6 +94,15 @@ niveles = [
     { id: "nivel_03", nombre: txt("nivel_03_nombre"), room_destino: rm_zona3,
       miniatura: spr_niv03_mini, requiere: ["nivel_02"] },
 ];
+
+// Carga el progreso desde la misma ranura que usa menu_continuar() (§3.5) — sin esto,
+// la Draw GUI de §3.4 lee global.progreso_niveles antes de que exista y revienta en
+// el primer frame. Sin partida guardada (primera vez que se juega), un struct vacío
+// deja todos los niveles sin requisitos desbloqueados (nivel_desbloqueado(), §3.3).
+var _datos_partida = load_game("slot1");
+global.progreso_niveles = (is_struct(_datos_partida) && struct_exists(_datos_partida, "progreso_niveles"))
+    ? _datos_partida.progreso_niveles
+    : {};
 ```
 
 > 💡 **`miniatura` es un sprite propio del nivel, no una captura dinámica.** A diferencia de la

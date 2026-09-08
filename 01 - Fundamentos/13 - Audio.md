@@ -463,8 +463,16 @@ Columnas: `source`, `buffer`, `syncSource`, `numQueued`, `gain` (como valor de 1
 
 ## 14. Ejemplo completo: gestor de audio
 
+> 💡 Esto es un ejemplo **mínimo e ilustrativo** de los conceptos de arriba (buses, emitters,
+> fundido cruzado), no el script reutilizable de la biblioteca — sus nombres (`sfx`,
+> `musica_poner`…) coinciden a propósito con los de
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>), pero las
+> firmas y el cuerpo son más simples y **NO son intercambiables**: no declares los dos en el mismo
+> proyecto. Para un proyecto real, usa `scr_audio.gml` (más completo: cupo de voces, banco de
+> tomas, sonido posicional, ducking) y trata este bloque solo como explicación paso a paso.
+
 ```gml
-// ═══════════ Script: scr_audio (scope global) ═══════════
+// ═══════════ Ejemplo ilustrativo (ver aviso arriba — no es scr_audio.gml) ═══════════
 
 /// @description Inicializa el sistema de audio del juego.
 ///              Llamar una sola vez al arrancar.

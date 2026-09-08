@@ -506,13 +506,13 @@ Regla práctica: **VM durante el desarrollo**, **YYC para el build de release**.
 ### 4.4 Checklist previa a un build de release
 
 - [ ] **Nombre de producto/display** correcto en Game Options (ya no vale «Created in GameMaker»)
-      — la propiedad real es `option_windows_display_name` en Windows, `option_windows_product_info`
+      — la propiedad de `resourcetool` es `display_name` (en el `.yy` se llama `option_windows_display_name`), `option_windows_product_info`
       para el nombre de producto; nombres equivalentes por plataforma en
       [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado).
-- [ ] **Icono** y **splash** propios por plataforma — `option_windows_icon` en Windows (ruta a un
+- [ ] **Icono** y **splash** propios por plataforma — `icon` en Windows para `resourcetool` (`option_windows_icon` dentro del `.yy`) — ruta a un
       `.ico`, tabla completa por plataforma en [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado)).
 - [ ] **Versión** en formato `X.Y.Z.B`. ⚠️ Hay DOS campos de versión distintos, no uno: `option_version`
-      (Main Options, un entero plano — no es `X.Y.Z.B`) y `option_windows_version` (por plataforma, un
+      (Main Options, un entero plano — no es `X.Y.Z.B`) y `version` para `resourcetool` (`option_windows_version` en el `.yy`; por plataforma, un
       struct `{major, minor, revision, build}` — este sí lo es). Detalle y el hallazgo completo en
       [13 · 11 §4.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#43-numerar-las-versiones).
 - [ ] **Configuración Release** activa o pasada por `--config Release`.

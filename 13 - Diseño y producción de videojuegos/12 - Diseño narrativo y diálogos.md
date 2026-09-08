@@ -978,6 +978,27 @@ function Guion() constructor
 
     static existe = function(_id) { return struct_exists(nodos, _id); };
 }
+
+/// @func dialogo_empezar(_nodo_id)
+/// @desc Arranca la conversación en el nodo indicado. Punto de entrada único desde
+///       los disparadores (§6.3) y las cinemáticas (`PasoDialogo`, §6.6).
+/// 🔺 Esto arranca el diálogo (pone global.dialogo_activo a true); CERRARLO —
+///    ponerlo de vuelta a false cuando el jugador termina de leer— es cosa de tu
+///    caja de diálogo (obj_dialogo de 13 · 24, o Chatterbox §5.1): este documento
+///    modela el contenido y los disparadores, no dibuja la UI. Sin esa mitad,
+///    PasoDialogo.terminado() (más abajo) nunca deja avanzar una cinemática.
+function dialogo_empezar(_nodo_id)
+{
+    if (!global.guion.existe(_nodo_id))
+    {
+        show_debug_message($"dialogo_empezar: nodo inexistente '{_nodo_id}'");
+        return;
+    }
+    global.nodo_actual    = _nodo_id;
+    global.dialogo_activo = true;
+    var _nodo = global.guion.obtener(_nodo_id);
+    if (is_method(_nodo.al_entrar)) _nodo.al_entrar();
+}
 ```
 
 Montar un nodo con condición y efecto queda así de corto:
@@ -985,6 +1006,14 @@ Montar un nodo con condición y efecto queda así de corto:
 ```gml
 /// obj_narrativa · Create — un nodo escrito a mano
 global.guion = new Guion();
+
+// dialogo_empezar() (arriba) y PasoDialogo (§6.6) leen estas antes de que exista
+// ninguna conversación — sin inicializarlas aquí, la biblioteca cinemática (y
+// obj_jugador · Step de 04 · 48 §3.4.1, que lee las tres) revienta con «variable
+// global no definida» en su primer uso.
+global.dialogo_activo      = false;   // ninguna conversación en curso
+global.nodo_actual         = "";      // "" = sin nodo activo
+global.cinematica_en_curso = false;   // Cinematica.empezar()/terminar() (§6.6) la mueven
 
 var _n = global.guion.anadir(new Nodo("herrero_intro"));
 _n.anadir_linea(new Linea("dlg_herrero_intro_1", "herrero"));

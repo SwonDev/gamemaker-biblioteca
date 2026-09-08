@@ -880,6 +880,17 @@ function altura_del_terreno(_px, _py) {
     return lerp(lerp(_h00, _h10, _fx), lerp(_h01, _h11, _fx), _fy);
 }
 ```
+
+```gml
+/// obj_control · Create — terreno de ejemplo (llano, 64×64 celdas a altura 0).
+/// Sustitúyelo por tu import de heightmap o por ruido procedural (04 · 05) — sin
+/// esta línea, altura_del_terreno() lee un global.mapa_altura que nunca se creó.
+global.mapa_altura = array_create(64);
+for (var _i = 0; _i < 64; _i++)
+{
+    global.mapa_altura[_i] = array_create(64, 0);
+}
+```
 ```gml
 /// obj_jugador · Step — caminar sobre el terreno con gravedad
 z_velocidad -= 0.6;                       // gravedad: con Z arriba, se resta

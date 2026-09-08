@@ -397,6 +397,13 @@ function construir_arbol_guardia() {
 Un BT que no puedes ver es una caja negra peor que la FSM que sustituiste.
 
 ```gml
+/// obj_control · Create — depth muy negativo para ir primero (mismo patrón que
+/// objTime, 04 · 15 §5.0): sin esto, el primer obj_guardia revienta con
+/// «variable global 'depurar_ia' no definida» en su propio Create de más abajo.
+global.depurar_ia = false;   // pon a `true` mientras ajustas el árbol
+```
+
+```gml
 /// obj_guardia · Draw
 draw_self();
 if (global.depurar_ia) {

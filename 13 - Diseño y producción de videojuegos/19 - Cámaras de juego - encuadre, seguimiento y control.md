@@ -1064,6 +1064,11 @@ function objetivo_lock_buscar(_x, _y, _direccion_frente, _alcance, _semiangulo, 
 }
 ```
 
+> 🔺 **`global.gamepad_slot` no es de este documento.** Es de
+> [`01 · 12 — Input`](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado%2C%20ratón%20y%20gamepad.md#varios-mandos-uno-por-jugador-co-op-local),
+> que lo inicializa en `obj_game · Create` (`global.gamepad_slot = noone;`) y lo mantiene
+> actualizado en su `Async - System` al conectar/desconectar mandos: no se repite aquí.
+
 ```gml
 /// obj_camara_director — Step  (activar/desactivar el lock; cualquier estado)
 var _pulsa_lock = keyboard_check_pressed(vk_tab)

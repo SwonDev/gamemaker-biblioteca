@@ -30,10 +30,14 @@ ratón y la traducción salen casi solos.
 
 ## 1 · Los datos
 
+`save_exists()` es de [`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml)
+(ver también [01 · 14 — Persistencia y archivos](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md))
+— cambia `"slot1"` por el slot real de tu juego.
+
 ```gml
 /// obj_menu · Create
 opciones = [
-    { texto: "Continuar",   accion: menu_continuar,  activa: global.hay_partida },
+    { texto: "Continuar",   accion: menu_continuar,  activa: save_exists("slot1") },
     { texto: "Nueva partida", accion: menu_nueva,    activa: true },
     { texto: "Opciones",    accion: menu_opciones,   activa: true },
     { texto: "Créditos",    accion: menu_creditos,   activa: true },

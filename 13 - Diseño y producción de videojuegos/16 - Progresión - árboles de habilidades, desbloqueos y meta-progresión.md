@@ -846,6 +846,11 @@ if (!save_game("meta", _datos_meta))
 
 ```gml
 /// obj_arranque · Create --------------------------------------------------
+// La DEFINICIÓN del árbol (§3.1) es igual para todos los jugadores — no depende
+// del save. Sin esta línea, obj_ui_arbol · Create (§4) lee un global.arbol_actual
+// que nunca se creó y revienta en cuanto se abre la pantalla de habilidades.
+global.arbol_actual = arbol_cargar("datafiles/progresion/arbol_habilidades.json");
+
 if (save_exists("meta"))
 {
     var _datos = load_game("meta");                  // aplica migración si hace falta (ver abajo)
@@ -857,6 +862,12 @@ else
     global.meta              = new MetaProgress();
     global.arbol_meta_estado = new EstadoArbol(0);
 }
+
+// global.estado_arbol es el progreso POR PARTIDA/personaje (§3.3) — distinto de
+// global.arbol_meta_estado (meta-progresión entre partidas, arriba). El documento
+// no fija en qué save de partida se guarda: en un proyecto real, cárgalo con el
+// mismo patrón deserializar()/EstadoArbol.deserializar() que ya usa arbol_meta_estado.
+global.estado_arbol = new EstadoArbol(0);
 ```
 
 **La migración que vas a necesitar seguro**: añadir un nodo nuevo al árbol no rompe nada (un save

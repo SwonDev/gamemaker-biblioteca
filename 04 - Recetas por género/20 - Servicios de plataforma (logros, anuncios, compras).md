@@ -492,7 +492,12 @@ if !xboxlive_user_is_signed_in()
 }
 else
 {
+    // xboxlive_get_user(0): UWP en PC solo permite un usuario a la vez (§6.1). Este
+    // puntero es el "user_id" que piden xboxlive_stats_setup(), xboxlive_achievements_
+    // set_progress() y el resto de funciones de estadísticas/logros de §6.3 — sin
+    // guardarlo, cualquier logro o estadística revienta con una global sin definir.
     global.gamertag = xboxlive_gamertag_for_user();
+    global.user_id  = xboxlive_get_user(0);
 }
 ```
 

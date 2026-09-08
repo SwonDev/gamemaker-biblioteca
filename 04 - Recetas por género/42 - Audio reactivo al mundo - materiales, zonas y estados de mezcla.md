@@ -250,15 +250,20 @@ switch (event_data[? "message"])
 }
 ```
 
-> ⚠️ **`sonar_limitado()` no pasa `emitter`**: por la regla de §1.2, estos pasos suenan por el
-> **bus principal**, no por `global.bus.sfx`. Es una elección razonable —los pasos del propio
-> jugador casi nunca necesitan reverberación de zona, y añadir un cálculo de emisor a un sonido
-> que se dispara varias veces por segundo tiene un coste que no compensa—, pero es una elección,
-> no un accidente: si quieres que los pasos SÍ lleven la reverberación de §3.2 (por ejemplo, unos
-> pasos muy resonantes en una catedral), sustituye la llamada por
-> `sonar_en(banco_siguiente(_banco), x, bbox_bottom, db_to_lin(-20), 8)`, que sí usa el anillo de
-> emisores — a cambio, pierdes el cupo de voces de `sonar_limitado()` (§5 de este documento
-> explica cómo combinarlos si de verdad los necesitas juntos).
+> ⚠️ **`sonar_limitado()` no pasa `emitter` por defecto**: por la regla de §1.2, estos pasos suenan
+> por el **bus principal**, no por `global.bus.sfx`. Es una elección razonable —los pasos del
+> propio jugador casi nunca necesitan reverberación de zona, y añadir un cálculo de emisor a un
+> sonido que se dispara varias veces por segundo tiene un coste que no compensa—, pero es una
+> elección, no un accidente:
+> [`13 · 09` §3.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#33-prioridad-voces-y-el-límite-que-te-falta)
+> la deja explícita con un quinto parámetro opcional, `_emisor`. Si quieres que los pasos SÍ lleven
+> la reverberación de §3.2 (por ejemplo, unos pasos muy resonantes en una catedral), la forma más
+> simple es pasarlo: `sonar_limitado(banco_siguiente(_banco), 3, db_to_lin(-20), 8, global.em.sfx)`
+> — mantiene el cupo de voces Y pasa por el bus. La alternativa de sustituir la llamada entera por
+> `sonar_en(banco_siguiente(_banco), x, bbox_bottom, db_to_lin(-20), 8)` sigue siendo válida, pero
+> ya no es necesaria solo para esto: úsala cuando de verdad quieras el anillo posicional (§5.2) y
+> no el cupo de voces (§5 de este documento explica cómo combinarlos si de verdad los necesitas
+> juntos).
 
 ### 3.2 Zonas de reverberación: `Reverb1` por ambiente con transición interpolada
 

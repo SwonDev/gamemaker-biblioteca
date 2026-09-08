@@ -279,6 +279,20 @@ está muerta. `obj_camara_zona` y `cam_set_bounds` (`06/scr_camera.gml`) no camb
 — lo que añade este documento es la condición de avance.
 
 ```gml
+/// scr_brawler_encuentros_definir — llamar UNA vez, antes de que la sala cree los
+/// obj_arena_trigger (p. ej. desde el Create de un obj_control_nivel con depth muy
+/// negativo, o desde el Game Start si el nivel tiene una sola arena). Necesita que
+/// `global.arquetipos` ya exista (04 · 33 §1, obj_control · Game Start) — si tu nivel
+/// tiene más de una calle, añade aquí una entrada por cada `obj_arena_trigger`.
+global.encuentros = {
+    calle_01 : new EncuentroDef("calle_01", [
+        new GrupoEncuentro(global.arquetipos.enjambre, 3),
+        new GrupoEncuentro(global.arquetipos.muro,     1)
+    ])
+};
+```
+
+```gml
 /// obj_arena_trigger — Create
 encuentro    = global.encuentros.calle_01;   // EncuentroDef de 04 · 33 §2
 resuelta     = false;
@@ -542,11 +556,23 @@ ranura al gestor correspondiente. No hace falta ningún sistema nuevo — solo d
 mismo constructor.
 
 ⚠️ **Nombra el gestor de un solo jugador `global.gestor_p1`, no `global.gestor_jugador`, en
-cuanto el nivel sea cooperativo.** El bloque de `obj_control_nivel · Create` de más arriba usa
-`global.gestor_jugador` porque ahí solo hay un jugador; en un nivel de dos, cambia esa línea por
-`global.gestor_p1 = new GestorFichas(global.jugador_1, …)` (mismos argumentos) para que exista
-antes de que el primer enemigo pida su gestor abajo — `global.gestor_p2` ya se crea aparte, al
-unirse el segundo jugador (§8.4).
+cuanto el nivel sea cooperativo** — y guarda la instancia del primer jugador en
+`global.jugador_1`, tal y como la del segundo ya se guarda en `global.jugador_2` (§8.4), para
+que ambas existan antes de que el primer enemigo pida su gestor abajo:
+
+```gml
+/// obj_jugador_1 — Create (el objeto fijo del primer jugador, ya colocado en la sala)
+global.jugador_1 = id;
+```
+
+```gml
+/// obj_control_nivel — Create, en un nivel cooperativo (sustituye al bloque de un solo
+/// jugador de más arriba: mismos argumentos de GestorFichas, otro nombre y otro objetivo)
+global.gestor_p1 = new GestorFichas(global.jugador_1, 3, 2,
+                                     BRAWLER_RADIO_ACERCARSE, BRAWLER_RADIO_ATAQUE);
+```
+
+`global.gestor_p2` ya se crea aparte, al unirse el segundo jugador (§8.4).
 
 ```gml
 /// obj_enemigo — Create, en un nivel cooperativo
@@ -687,9 +713,11 @@ drop_obj      = obj_pickup_vida;
 hp_objeto -= 1;
 if (hp_objeto <= 0)
 {
-    // El estallido en trozos ya está resuelto como VFX genérico: 04 · 39 §3.6
-    // (pt_escombro, con sprite propio). No se repite el sistema de partículas aquí.
-    part_particles_create(global.ps_mundo, x, y, global.pt_escombro, 10);
+    // El estallido en trozos ya está resuelto como VFX genérico: 04 · 39 §3.1
+    // (pt_escombro, parte del Create de objFx). No se repite el sistema de partículas
+    // aquí — se reutiliza tal cual, como variables de INSTANCIA de objFx (04 · 39 §3.2,
+    // fx_explosion_completa()), no como globales.
+    part_particles_create(objFx.ps, x, y, objFx.pt_escombro, 10);
 
     if (random(1) < drop_prob)
     {

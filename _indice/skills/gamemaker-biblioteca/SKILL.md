@@ -125,7 +125,7 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 | Publicar, exportar, tiendas | `05 - Referencia/02 - Publicar y exportar.md` → `05 - Referencia/05 - Entregar el juego…` (firmar, notarizar, `steamcmd`, Play, App Store) → `13 - …/11 - Producción, alcance y lanzamiento.md` |
 | Publicar en **consola** (Nintendo, PlayStation, Xbox) | `05 - Referencia/06 - Publicar en consolas…` — trámite, licencia, *lotcheck*, TRC/XR, y dónde empieza el NDA |
 | Marcas, *fan games*, EULA, menores | `13 - …/25 - Legal de terceros…` y `13 - …/20 - Modelo de negocio…` |
-| No tengo sprites ni sonidos | `12 - …/09 §7` (gráficos) y `13 - …/09 §8 bis` (sonido sintetizado por código) |
+| No tengo sprites ni sonidos | `12 - …/09 §5.2` (gráficos) y `13 - …/09 §8 bis` (sonido sintetizado por código) |
 | Qué cambió en 2026, qué versión usar | `02 - Novedades 2026/01 - Resumen LTS 2026.0.md` → `README.md` §2 |
 | Enseñar a alguien que aprende | `RUTA.md`: sitúa el nivel por lo que sabe hacer y da solo material de su nivel y el siguiente |
 | No sé por dónde empezar | `_indice/COMO-BUSCAR.md` |
@@ -155,7 +155,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   Nombra en español sin tildes ni eñes; `validar-codigo-gml.py` lo detecta.
 - El asset **Extensión** es la única excepción a lo anterior: `resourcetool` no puede crearlo
   (`Resource type 'extension' is not creatable`), solo el IDE. Ver `07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md`.
-- Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada.
+- Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. Y **compilar limpio
+  no es funcionar**: la fuente muda y el guardado roto de las trampas 5 y 6 compilan sin una queja
+  (`13/10 §8.6` da las dos comprobaciones que sí los cazan).
+- No declares un juego «terminado» sin compararlo punto por punto con el checklist maestro de
+  `04/00`. Si algo falta o no aplica, dilo; el silencio no vale.
 
 ## Flujo para un desarrollo real
 
@@ -174,7 +178,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
 6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala. Recuerda que
    compilar limpio **no** significa que el código sea correcto (trampa 4).
-7. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
+7. **Antes de decir «terminado»**: compara el resultado, pantalla por pantalla, contra el
+   checklist maestro de `04/00 - Anatomía de un juego completo` (menú, pausa, opciones, guardado,
+   fin de partida, créditos, icono y versión del build) y contra `13/05 §4`. Lo que recortes, se
+   dice; no se omite en silencio.
+8. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
    `05/05 - Entregar el juego` (firmar y subir) → `05/06` si va a consola.
 
 ## Convenciones del código que generes

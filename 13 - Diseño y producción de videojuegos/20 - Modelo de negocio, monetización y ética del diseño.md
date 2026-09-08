@@ -615,6 +615,15 @@ function catalogo_auditar_pay_to_win(_catalogo)
 
 ```gml
 /// obj_debug_tienda · Create — correr la auditoría al arrancar en modo debug
+// El catálogo real se declara donde montes tu tienda de verdad, con tus propios
+// objetos — esto es un ejemplo mínimo para que la auditoría de abajo tenga algo
+// que revisar. Sin esta línea, catalogo_auditar_pay_to_win() lee una global que
+// nunca se creó y revienta.
+global.catalogo_tienda = [
+    objeto_tienda_declarar("skin_ejemplo",   CategoriaVenta.COSMETICO,    false),
+    objeto_tienda_declarar("pase_temporada", CategoriaVenta.CONVENIENCIA, false),
+];
+
 if (DEBUG_MODE)
 {
     var _alertas = catalogo_auditar_pay_to_win(global.catalogo_tienda);
@@ -751,6 +760,13 @@ function pase_temporada_entregar(_pase, _indice_nivel)
         entregar_recompensa(_nivel.recompensa_premium);
     }
 }
+```
+
+```gml
+/// obj_arranque · Create — el pase de ESTA temporada, con su curva de niveles.
+/// Ajusta el array de XP a tu temporada real; sin esta línea, tanto la compra
+/// de abajo como pase_temporada_sumar_xp() leen una global que nunca se creó.
+global.pase_actual = pase_temporada_crear([100, 150, 200, 250, 300]);
 ```
 
 ```gml

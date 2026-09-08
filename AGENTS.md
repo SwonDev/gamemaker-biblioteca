@@ -221,7 +221,16 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
 5. **Sigue las convenciones** de `05 - Referencia/04 - Convenciones y estilo GML.md`:
    `snake_case`, locales con `_` (`var _speed`), prefijos `obj_ spr_ snd_ rm_ scr_`.
    Nada de nombres reservados (`x`, `y`, `speed`, `direction`, `id`, `depth`, `score`, `health`).
-6. **Compila y corrige** hasta que salga limpio: `gm-cli compile`.
+6. **Compila y corrige** hasta que salga limpio: `gm-cli compile`. Pero **compilar limpio no es
+   funcionar**: una fuente sin glifos y un guardado roto compilan sin una queja. Las dos
+   comprobaciones que sí los cazan —capturar la pantalla y mirarla, y verificar el guardado
+   matando el proceso y reabriéndolo— están en
+   [`13 - Diseño y producción de videojuegos/10 - Testing y QA.md §8.6`](./13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/10%20-%20Testing%20y%20QA.md).
+7. **Antes de decir «terminado»**, compara el resultado punto por punto con el checklist maestro
+   de [`04 - Recetas por género/00 - Anatomía de un juego completo.md`](./04%20-%20Recetas%20por%20g%C3%A9nero/00%20-%20Anatom%C3%ADa%20de%20un%20juego%20completo.md):
+   menú, pausa, opciones, guardado, fin de partida, créditos, icono y versión del build. Un juego
+   sin envoltura es un prototipo, no un juego. **Lo que recortes, se dice**; omitirlo en silencio
+   es lo que convierte un encargo en una entrega a medias.
 
 ---
 

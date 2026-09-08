@@ -215,6 +215,134 @@ EXCEPCIONES_DUPLICADOS = {
 
 
 # ---------------------------------------------------------------------------
+# `global.X` LEÍDO SIN ESCRIBIRSE EN LA BIBLIOTECA — pero NO es un bug.
+#
+# La auditoría 2026-09 clasificó a mano los 59 avisos que esta capa emitía ese día
+# (ver `_indice/auditorias/` para el detalle completo). De esos 59: 42 eran BUGS
+# REALES (arreglados: se instanció la global donde correspondía, casi siempre en
+# el Create del objeto que va primero, siguiendo el patrón ya establecido por
+# `global.feel` en 04 · 15) y 17 caían en dos categorías que NO son bugs:
+#
+#   1. CONVENCIÓN DEL LECTOR — la global es evidentemente del PROYECTO DE CADA
+#      LECTOR (su puntuación, su flag de consentimiento, el layout de tiles de SU
+#      room), usada como EJEMPLO de algo que cada juego define a su manera. La
+#      biblioteca no puede rellenar ese hueco sin inventar contenido que no le
+#      corresponde. Casi siempre delatado por uno de estos rasgos: (a) el propio
+#      texto dice explícitamente "esto es tuyo, ajústalo" (a veces en una cita
+#      `>` FUERA de un bloque ```gml, que por diseño esta capa no cuenta como
+#      escritura real — ver `mascara_solo_fences`); (b) es una de varias claves
+#      de ejemplo intercambiables dentro de un contrato ya declarado como "struct
+#      cualquiera"; (c) aparece en un documento de referencia/interoperabilidad
+#      que ilustra CÓMO usar una API, no QUÉ sistema construir.
+#   2. DEFINIDA FUERA DEL ALCANCE ESCANEADO — se escribe de verdad en un
+#      documento real (con su propio `global.X = …` en un bloque ```gml), pero
+#      vive fuera de `DIRS_INCLUIDAS` (por ejemplo en `01 - Fundamentos/`), que
+#      esta capa excluye a propósito para no ahogarse en el código pedagógico de
+#      esas carpetas (ver el comentario de `DIRS_INCLUIDAS`, arriba). La
+#      remisión al documento real ya está en el texto que lee la global.
+#
+# Cada entrada de abajo es una decisión tomada leyendo el documento a mano, no un
+# silenciador genérico: si en el futuro esa MISMA global empieza a leerse también
+# en un documento nuevo que NO está en `docs`, la excepción NO cubre ese caso —
+# `docs` es la lista exacta de sitios donde ya se revisó y se decidió que no era
+# bug, igual que `EXCEPCIONES_DUPLICADOS` de arriba. Si te encuentras añadiendo
+# una entrada aquí para acallar un aviso sin haber podido justificar por qué es
+# imposible que sea un bug real, es casi seguro que SÍ es un bug real: arréglalo
+# en el documento en vez de silenciarlo (la regla dura de la auditoría: ante la
+# duda, es bug, porque el coste de arreglarlo es bajo y el de dejarlo pasar es
+# alto — ya se demostró con `global.feel`, `global.gestor_jugador` y una docena
+# de casos más en esta misma auditoría).
+# ---------------------------------------------------------------------------
+EXCEPCIONES_GLOBALS_LECTOR = {
+    "tilemap_terreno": {
+        "docs": {
+            "04 - Recetas por género/09 - Survival y crafting.md",
+            "04 - Recetas por género/51 - Colonia y constructor de bases - trabajadores autónomos.md",
+        },
+        "motivo": "El ID de la capa de tiles del terreno depende del layout de la room de CADA "
+                  "proyecto (nombre de capa, room de mundo). 04 · 09 §5.4 lo advierte en una cita "
+                  "`>` explícita, con la línea exacta a copiar (`layer_tilemap_get_id(...)`) — "
+                  "a propósito FUERA de un bloque ```gml: no es código de la biblioteca, es la "
+                  "instrucción de qué escribir en tu Room Start. 04 · 51 reutiliza la misma "
+                  "convención con remisión explícita a 04 · 09.",
+    },
+    "hp": {
+        "docs": {"04 - Recetas por género/17 - Interoperabilidad con la web (HTML5).md"},
+        "motivo": "Placeholder de ejemplo en guardar_web() (§ interoperabilidad JS↔GML): "
+                  "'lo que sea que tu juego trackee' al serializar el estado para localStorage, "
+                  "no un sistema de vida que la biblioteca deba proporcionar.",
+    },
+    "nivel": {
+        "docs": {"04 - Recetas por género/17 - Interoperabilidad con la web (HTML5).md"},
+        "motivo": "Mismo ejemplo que 'hp' en guardar_web(): placeholder del progreso de CADA "
+                  "juego, no un sistema de niveles de la biblioteca.",
+    },
+    "nombre": {
+        "docs": {"04 - Recetas por género/17 - Interoperabilidad con la web (HTML5).md"},
+        "motivo": "Ejemplo de § 'Comunicarte con tu propio servidor' (POST HTTP): la identidad "
+                  "del jugador de CADA proyecto, no algo que la biblioteca defina.",
+    },
+    "puntos": {
+        "docs": {
+            "04 - Recetas por género/17 - Interoperabilidad con la web (HTML5).md",
+            "04 - Recetas por género/20 - Servicios de plataforma (logros, anuncios, compras).md",
+        },
+        "motivo": "Marcador de 'donde sea que viva tu puntuación': ejemplo de POST HTTP en 04 · 17 "
+                  "y de subida a un leaderboard de Steam en 04 · 20. Ningún documento de la "
+                  "biblioteca define un sistema de puntuación canónico al que redirigir estos dos.",
+    },
+    "save_logger": {
+        "docs": {"06 - Assets y Scripts/scr_save_load.gml"},
+        "motivo": "Hook opcional documentado en la cabecera del propio script y protegido con "
+                  "variable_global_exists('save_logger') && is_method(...) en su única lectura: "
+                  "sin definirlo, el script se comporta exactamente igual (solo show_debug_message).",
+    },
+    "telemetria_consentida": {
+        "docs": {"13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md"},
+        "motivo": "Guardado con variable_global_exists() antes de leerse: sin consentimiento "
+                  "explícito, telemetria_enviar() no envía nada por defecto. La pantalla de "
+                  "consentimiento y cómo se guarda la respuesta son responsabilidad legal de "
+                  "cada juego, no un sistema GDPR genérico que la biblioteca deba imponer.",
+    },
+    "datos_partida_recolectar": {
+        "docs": {"13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md"},
+        "motivo": "Hook opcional del manejador de caídas (caidas_instalar_manejador), guardado con "
+                  "variable_global_exists() && is_method() antes de llamarse: cada proyecto "
+                  "recolecta los datos de su guardado de emergencia de forma distinta.",
+    },
+    "clima": {
+        "docs": {"13 - Diseño y producción de videojuegos/12 - Diseño narrativo y diálogos.md"},
+        "motivo": "Una de varias claves de ejemplo del struct `_hechos` que consume "
+                  "BancoBarks.elegir() — el propio texto declara ese struct como 'cualquiera'. "
+                  "No hay ningún sistema de clima en el resto de la biblioteca al que remitir.",
+    },
+    "zona_actual": {
+        "docs": {"13 - Diseño y producción de videojuegos/12 - Diseño narrativo y diálogos.md"},
+        "motivo": "Mismo struct de ejemplo `_hechos` que 'clima', misma justificación: clave "
+                  "intercambiable de un contrato 'struct cualquiera', no un sistema que falte.",
+    },
+    "paredes": {
+        "docs": {"13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md"},
+        "motivo": "Ejemplo de uso de cortan_segmentos() (función matemática pura) en un documento "
+                  "de referencia de matemáticas de juego: la lista de segmentos de pared es del "
+                  "sistema de colisión de CADA proyecto, no algo que la biblioteca deba instanciar.",
+    },
+    "xp_total": {
+        "docs": {"13 - Diseño y producción de videojuegos/13 - Matemáticas aplicadas al juego.md"},
+        "motivo": "Ejemplo de uso de nivel_desde_xp() (función pura, recibe la XP como parámetro): "
+                  "la XP acumulada es del sistema de progresión de CADA juego (13 · 01/13 · 16, "
+                  "que no usan ni escriben este nombre), no un dato que la biblioteca deba dar.",
+    },
+    "gamepad_slot": {
+        "docs": {"13 - Diseño y producción de videojuegos/19 - Cámaras de juego - encuadre, seguimiento y control.md"},
+        "motivo": "Se escribe de verdad en 01 · 12 — Input (`obj_game · Create` y su `Async - "
+                  "System`), fuera de `DIRS_INCLUIDAS` a propósito (esa carpeta es Fundamentos, "
+                  "no recetas/diseño/scripts). La remisión ya está en el texto de 13 · 19.",
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Capa 1 y 2 — extracción estática
 # ---------------------------------------------------------------------------
 
@@ -462,12 +590,26 @@ GLOBAL_ESCRITURA = re.compile(r"\s*(\+\+|--|\?\?=|[+\-*/]?=(?!=))")
 
 def extraer_globals(limpio):
     """Devuelve (lecturas, escrituras): sets de nombres `global.NOMBRE` según cómo
-    aparecen en el texto ya enmascarado (comentarios/cadenas fuera, solo bloques ```gml)."""
+    aparecen en el texto ya enmascarado (comentarios/cadenas fuera, solo bloques ```gml).
+
+    IMPORTANTE: `GLOBAL_ESCRITURA` se compara con `.match(limpio, m.end())` — directamente
+    sobre el texto completo, sin recortar antes una ventana de caracteres fija. Hasta la
+    r4 se usaba `resto = limpio[m.end():m.end()+12]` (12 caracteres), y una asignación con
+    espacios de alineación de columna (`global.pool_enemigos            = ...`, un estilo
+    que esta biblioteca usa mucho para que varias líneas queden alineadas visualmente) caía
+    fuera de esa ventana: el `=` quedaba en la posición 13 o más, `GLOBAL_ESCRITURA` nunca lo
+    veía, y la escritura real se clasificaba como lectura — falso positivo confirmado en
+    `global.salas` (04·14), `global.pool_enemigos` (04·44) y `global.crono_splits` (04·54),
+    los tres con alineación de columna. Al quitar el recorte, `\\s*` en `GLOBAL_ESCRITURA`
+    consume cualquier cantidad de espacio en blanco hasta encontrar el operador — o hasta
+    tropezar con el primer carácter que no sea espacio, momento en el que `.match()` falla
+    igual que antes (sigue sin colar un `=` que esté varias líneas más abajo por casualidad,
+    porque en cuanto aparece código real que no es espacio en blanco ni el operador, el
+    match se detiene ahí)."""
     lecturas, escrituras = set(), set()
     for m in GLOBAL_REF.finditer(limpio):
         nombre = m.group(1)
-        resto = limpio[m.end():m.end() + 12]
-        if GLOBAL_ESCRITURA.match(resto):
+        if GLOBAL_ESCRITURA.match(limpio, m.end()):
             escrituras.add(nombre)
         else:
             lecturas.add(nombre)
@@ -576,6 +718,9 @@ def capa_1_y_2():
         for nombre in sorted(huerfanos):
             if nombre in escrituras_totales:
                 continue   # algún OTRO documento sí lo instancia (p.ej. el esqueleto 04 · 00)
+            excepcion = EXCEPCIONES_GLOBALS_LECTOR.get(nombre)
+            if excepcion and rel in excepcion["docs"]:
+                continue   # convención del lector o definida fuera del alcance escaneado — ver cabecera
             avisos_globals.append((rel, nombre))
 
     return graves, medios, menores, avisos_globals

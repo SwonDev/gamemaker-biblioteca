@@ -8,22 +8,22 @@
 > La música por capas, en [04 · 26](../04%20-%20Recetas%20por%20género/26%20-%20Música%20adaptativa%20por%20capas.md);
 > la librería Vinyl, en [07 · 21](../07%20-%20Ecosistema/21%20-%20Vinyl%20-%20audio%20avanzado%20%28guía%20en%20español%29.md).
 >
-> ⚠️ **Este documento SÍ repite nombres propios con
-> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>)**:
-> `mezcla_aplicar`, `sonar_en`, `sonar_limitado`, `voz_decir`, `voces_paso`, `apagar_con_fundido`,
-> `banco_crear`, `banco_siguiente`, `ambiente_poner`, `variacion_tono` y `variacion_ganancia`
-> existen en los dos sitios, escritos por separado, con **globals distintos** (`global.bus.*` /
-> `global.volumen_*` aquí, frente a `global.audio.bus.*` / `global.audio.volumen.*` en
-> `scr_audio.gml`) y constantes de *headroom* distintas. Ninguno de los dos documentos citaba al
-> otro hasta esta nota. **No copies código de los dos a la vez**: son dos implementaciones
-> completas e incompatibles del mismo sistema — GameMaker rechaza `mezcla_aplicar` (y el resto)
-> declarada dos veces. Esta receta es la que citan de verdad las recetas de género que usan audio
-> (`04 · 26`, `04 · 42`, `04 · 45`…, todas con `global.bus.*`): si tu proyecto ya las sigue, usa
-> el audio de AQUÍ y no `scr_audio.gml`. Si partes de `06 - Assets y Scripts` como base de
-> proyecto, usa `scr_audio.gml` y no copies el código de este documento — la teoría (niveles,
-> *headroom*, *ducking*, prioridad de voces) sigue siendo válida igualmente, cambia solo el
-> nombre de los globals. Reconciliar los dos en un único sistema es tarea pendiente, fuera del
-> alcance de esta ronda.
+> ✅ **Unificado con
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>).** Hasta la
+> ronda anterior este documento y `scr_audio.gml` definían, por separado, dos sistemas de audio
+> completos e incompatibles con ~10 nombres de función coincidentes (`mezcla_aplicar`, `sonar_en`,
+> `sonar_limitado`, `voz_decir`, `voces_paso`, `apagar_con_fundido`, `banco_crear`,
+> `banco_siguiente`, `ambiente_poner`, `variacion_tono`, `variacion_ganancia`) y globals distintos.
+> Ya no: **el código vive únicamente en `scr_audio.gml`**, con los nombres de global que ya usaban
+> este documento y las recetas construidas encima (`global.bus.*`, `global.em.*`,
+> `global.volumen_*`) — son los que citan de verdad `04 · 26`, `04 · 42`, `04 · 45`, `13 · 10` y
+> `13 · 24`. `scr_audio.gml` absorbió además lo que aquí faltaba: `sfx()`, `sfx_ui()` y
+> `musica_poner()` como funciones reales (antes solo descritas), y las cifras de *headroom* y
+> *ducking* de abajo son las mismas que usan sus macros (`AUDIO_HEADROOM_*`, `AUDIO_DUCK_*`).
+> **Este documento ya NO redefine esas funciones**: explica la teoría (por qué esas cifras, por
+> qué esa curva, el mapa de bandas de EQ, LUFS…) y remite al script para el código. La única
+> diferencia de comportamiento real que sobrevivió a la unificación —`sonar_limitado()` sin
+> `emitter` por defecto— está señalada en §3.3, con el porqué.
 > Aquí se decide **qué** suena, **cuándo**, **a qué nivel** y **por qué**.
 
 ---
@@ -150,41 +150,12 @@ primero, tres tomas en bucle son un patrón detectable al minuto. El tono se pie
 no en porcentajes: `±1,5 semitonos` es un multiplicador entre 0,91 y 1,09 —el «±10 %» de toda la
 vida— y no desafina nada.
 
+> El código real —`variacion_tono()`, `variacion_ganancia()`, `banco_crear()` y
+> `banco_siguiente()`— vive en
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>): mismas firmas
+> y mismos valores por defecto que los de aquí abajo. No los redeclares en tu proyecto; impórtalo.
+
 ```gml
-// ═══════════ scr_variacion ═══════════
-
-// ±1.5 semitonos ≈ multiplicador 0.91-1.09. Pensarlo en semitonos evita el error clásico
-// de mover el tono un 30 % "porque sí".
-function variacion_tono(_semitonos = 1.5)
-{
-    return power(2, random_range(-_semitonos, _semitonos) / 12);
-}
-
-// Solo hacia abajo: nunca subes del nivel que fijaste en la mezcla.
-function variacion_ganancia(_db = 2)
-{
-    return db_to_lin(random_range(-_db, 0));
-}
-
-// Un "banco" agrupa las tomas de una misma acción y las sirve sin repetir la anterior.
-// Con azar puro, tres tomas repiten seguido el 33 % de las veces.
-function banco_crear(_tomas)
-{
-    // `ultima` arranca en una toma al azar: si arrancase en -1, la toma 0 nunca podría sonar
-    // la primera vez, porque el salto de abajo la descartaría siempre.
-    return { tomas : _tomas, ultima : irandom(array_length(_tomas) - 1) };
-}
-
-function banco_siguiente(_banco)
-{
-    var _n = array_length(_banco.tomas);
-    if (_n <= 1) { return _banco.tomas[0]; }
-    var _i = irandom(_n - 2);                    // elegimos entre n-1 candidatas...
-    if (_i >= _banco.ultima) { _i += 1; }        // ...saltándonos la que sonó la última vez
-    _banco.ultima = _i;
-    return _banco.tomas[_i];
-}
-
 // ── Uso ──
 // Create:  banco_pasos = banco_crear([snd_paso_1, snd_paso_2, snd_paso_3, snd_paso_4]);
 // Al pisar:
@@ -202,60 +173,27 @@ protege el motor, no tu mezcla: veinte impactos idénticos en un frame caben de 
 suenan como un cañonazo de ruido con el volumen sumado. **El límite que necesitas es por sonido, y
 lo escribes tú.**
 
+> El código real —`voces_iniciar()`, `apagar_con_fundido()`, `voces_paso()` y `sonar_limitado()`—
+> vive en
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>). `voces_iniciar()`
+> una vez (en `rm_init`, o dentro de `audio_init()` si ya usas el sistema completo) · `voces_paso()`
+> cada frame (ya la llama `audio_step()`). Roba la voz MÁS ANTIGUA al llenarse el cupo: un cupo de
+> 3-5 voces por sonido arregla el 90 % de las mezclas sucias de un juego indie, y es más barato y
+> más eficaz que un compresor.
+>
+> ⚠️ **`sonar_limitado()` no pasa `emitter` por defecto**: el sonido sale por el bus principal, sin
+> el coste de calcular un emisor y sin que le afecten el volumen de "Efectos" ni ningún efecto
+> colgado de un bus propio. No es un descuido: es la opción correcta para un sonido que se dispara
+> muchas veces por segundo (los pasos de `04 · 42` §1.2/§3.1, que documenta el porqué con detalle).
+> Si el sonido SÍ necesita pasar por un bus, pásalo explícitamente con el quinto parámetro:
+> `sonar_limitado(snd_impacto_metal, 4, db_to_lin(-8), 15, global.em.sfx)`.
+
 ```gml
-// ═══════════ scr_voces ═══════════
-// voces_iniciar() una vez en rm_init · voces_paso() cada frame desde obj_audio · Step
+// Uso: como mucho 4 impactos idénticos a la vez, por el bus principal (barato)
+sonar_limitado(snd_impacto_metal, 4, db_to_lin(-8), 15);
 
-function voces_iniciar()
-{
-    global.voces    = {};   // nombre del sonido -> array de instancias vivas
-    global.apagando = [];   // { voz, restante } con fundido de salida en marcha
-}
-
-// Nunca pares un sonido en seco: cortar a mitad de onda produce un CLICK audible.
-// Con 30-60 ms desaparece sin que se note el fundido.
-function apagar_con_fundido(_voz, _ms = 40)
-{
-    if (_voz == -1 || !audio_is_playing(_voz)) { return; }
-    audio_sound_gain(_voz, 0, _ms);
-    array_push(global.apagando, { voz : _voz, restante : _ms / 1000 });
-}
-
-function voces_paso()
-{
-    var _dt = delta_time / 1000000;              // delta_time viene en MICROsegundos
-    for (var _i = array_length(global.apagando) - 1; _i >= 0; _i -= 1)
-    {
-        var _e = global.apagando[_i];
-        _e.restante -= _dt;
-        if (_e.restante <= 0) { audio_stop_sound(_e.voz); array_delete(global.apagando, _i, 1); }
-    }
-}
-
-// Roba la voz MÁS ANTIGUA al llenarse el cupo. Un cupo de 3-5 voces por sonido arregla el
-// 90 % de las mezclas sucias de un juego indie, y es más barato y más eficaz que un compresor.
-function sonar_limitado(_sonido, _max_voces, _gain = 1, _prioridad = 10)
-{
-    var _clave = audio_get_name(_sonido);
-    if (!struct_exists(global.voces, _clave)) { struct_set(global.voces, _clave, []); }
-    var _lista = struct_get(global.voces, _clave);
-    for (var _i = array_length(_lista) - 1; _i >= 0; _i -= 1)   // podar las que ya acabaron
-    { if (!audio_is_playing(_lista[_i])) { array_delete(_lista, _i, 1); } }
-    while (array_length(_lista) >= _max_voces)
-    {
-        apagar_con_fundido(_lista[0], 30);
-        array_delete(_lista, 0, 1);
-    }
-    var _voz = audio_play_sound_ext({
-        sound : _sonido, priority : _prioridad,
-        gain  : _gain * variacion_ganancia(1.5), pitch : variacion_tono(1.5)
-    });
-    if (_voz != -1) { array_push(_lista, _voz); }
-    return _voz;
-}
-
-// Uso: como mucho 4 impactos idénticos a la vez
-// sonar_limitado(snd_impacto_metal, 4, db_to_lin(-8), 15);
+// Uso: igual, pero que respete el volumen de "Efectos" y la reverberación de zona (§3.2, §5.2)
+sonar_limitado(snd_impacto_metal, 4, db_to_lin(-8), 15, global.em.sfx);
 ```
 
 ---
@@ -298,86 +236,25 @@ mezclador escrito:
 | EQ solo en la música, o *ducking* con efectos | **Bus propio + emisor de categoría**, reproduciendo con la clave `emitter` |
 | SFX posicional que además pase por el bus de efectos | **Emisores colocados en el mundo**, no `audio_play_sound_at` |
 
-```gml
-// ═══════════ obj_audio · Create — singleton persistente, creado en rm_init ═══════════
-if (instance_number(obj_audio) > 1) { instance_destroy(); exit; }
-persistent = true;
-voces_iniciar();
+> El código real de todo lo anterior —el `obj_audio` Create/Step/Clean Up con sus cinco buses y
+> cinco emisores de categoría, `mezcla_aplicar()`, `voz_decir()` y el ducking de música mientras
+> hay diálogo— vive en
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>), detrás de tres
+> únicas llamadas: `audio_init()` en el Create de tu controlador persistente, `audio_step()` en su
+> Step, `audio_destruir()` en su Clean Up. No repitas este bloque en tu proyecto.
 
-global.volumen_musica = 0.7;  global.volumen_sfx = 1.0;  global.volumen_ui = 0.8;
-global.volumen_voz    = 1.0;  global.volumen_ambiente = 0.6;
+| Slider (0..1) | Bus | *Headroom* | En código |
+|---|---|---|---|
+| `global.volumen_musica` | `global.bus.musica` | −10 dB | `AUDIO_HEADROOM_MUSICA` |
+| `global.volumen_sfx` | `global.bus.sfx` | −6 dB | `AUDIO_HEADROOM_SFX` |
+| `global.volumen_ui` | `global.bus.ui` | −9 dB | `AUDIO_HEADROOM_UI` |
+| `global.volumen_voz` | `global.bus.voz` | 0 dB (la referencia) | — |
+| `global.volumen_ambiente` | `global.bus.ambiente` | −20 dB | `AUDIO_HEADROOM_AMBIENTE` |
 
-// Un bus por categoría, y un emisor por bus: es la ÚNICA vía de entrada al bus
-global.bus = { musica : audio_bus_create(), ui : audio_bus_create(), voz : audio_bus_create(),
-               ambiente : audio_bus_create(), sfx : audio_bus_create() };
-global.em  = { musica : audio_emitter_create(), ui : audio_emitter_create(),
-               voz : audio_emitter_create(), ambiente : audio_emitter_create() };
-
-// ⚠️ audio_falloff_set_model() es GLOBAL: al cambiarlo para el sonido posicional (§5.1) estos
-// emisores de categoría también se atenuarían. Con factor 0 la ganancia sale 1 en todos los
-// modelos salvo los "_scaled" (se ve en las fórmulas publicadas del manual).
-var _cats = ["musica", "ui", "voz", "ambiente"];
-for (var _i = 0; _i < array_length(_cats); _i += 1)
-{
-    var _em = struct_get(global.em, _cats[_i]);
-    audio_emitter_bus(_em, struct_get(global.bus, _cats[_i]));
-    audio_emitter_falloff(_em, 1, 2, 0);
-}
-
-duck = 1;  voz_voz = -1;     // duck: la música se agacha al hablar · voz_voz: la línea actual
-global.ambiente_voz = -1;  global.ambiente_snd = undefined;      // estado del bed de zona (§6)
-mezcla_aplicar();
-emisores_iniciar(24, global.bus.sfx);        // el anillo posicional del §5.2
-
-// ═══════════ obj_audio · Clean Up ═══════════
-// ⚠️ Los emisores SON recursos dinámicos: sin liberarlos hay fuga de memoria. Los buses NO se
-// liberan: los recoge el recolector de basura cuando nadie los referencia.
-var _n = struct_get_names(global.em);
-for (var _i = 0; _i < array_length(_n); _i += 1) { audio_emitter_free(struct_get(global.em, _n[_i])); }
-emisores_liberar();
-
-
-// ═══════════ scr_mezcla ═══════════
-
-// Traduce los sliders (0..1) a la ganancia de cada bus. Llamar al arrancar y cada vez que el
-// jugador mueve un slider. El `gain` de un bus va de 0 a 1.
-function mezcla_aplicar()
-{
-    global.bus.musica.gain   = global.volumen_musica   * db_to_lin(-10);
-    global.bus.ui.gain       = global.volumen_ui       * db_to_lin(-9);
-    global.bus.voz.gain      = global.volumen_voz;                      // la referencia: 0 dB
-    global.bus.ambiente.gain = global.volumen_ambiente * db_to_lin(-20);
-    global.bus.sfx.gain      = global.volumen_sfx      * db_to_lin(-6);
-}
-
-// Los sonidos de interfaz salen por su emisor, nunca posicionales y con prioridad alta para que
-// no los descarte el límite de canales:
-//     audio_play_sound_ext({ sound : _sonido, priority : 80, emitter : global.em.ui });
-
-// Corta la línea anterior con fundido: dos voces solapadas no se entienden.
-function voz_decir(_sonido)
-{
-    if (obj_audio.voz_voz != -1) { apagar_con_fundido(obj_audio.voz_voz, 60); }
-    obj_audio.voz_voz = audio_play_sound_ext({ sound : _sonido, priority : 100,
-                                               emitter : global.em.voz });
-    return obj_audio.voz_voz;
-}
-
-
-// ═══════════ obj_audio · Step — ducking: bajar rápido y subir despacio; si sube tan rápido
-//             como baja, se oye "bombear" en cada pausa del diálogo ═══════════
-voces_paso();
-
-var _hablando  = (voz_voz != -1 && audio_is_playing(voz_voz));
-var _objetivo  = _hablando ? db_to_lin(-9) : 1;     // −9 dB mientras hay diálogo
-var _velocidad = _hablando ? 0.30 : 0.04;           // baja en ~3 frames, sube en ~25
-duck = lerp(duck, _objetivo, _velocidad);
-global.bus.musica.gain = global.volumen_musica * db_to_lin(-10) * duck;
-```
-
-> ⚠️ El `lerp` con factor fijo depende de la tasa de frames: a 30 fps el fundido tarda el doble. Si
-> no fijas los fps, corrige el factor con `delta_time`
-> ([04 · 15](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md)).
+> ⚠️ El ducking de `audio_step()` usa `lerp` con factor fijo: depende de la tasa de frames, a 30 fps
+> el fundido tarda el doble. Si no fijas los fps, corrige el factor con `delta_time`
+> ([04 · 15](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md)) — pendiente de
+> aplicar en `scr_audio.gml` si tu proyecto no fija los fps.
 
 ### 4.3 Compresor, «limitador» y EQ para hacer sitio
 
@@ -491,55 +368,15 @@ desactiva en todos los modelos salvo los `_scaled`).
 Si quieres sonido posicional **y** que pase por tu bus de efectos, `audio_play_sound_at()` no
 sirve: el audio 3D va directo al bus principal. La solución es un anillo de emisores reutilizables.
 
-```gml
-// ═══════════ scr_emisores ═══════════
-
-function emisores_iniciar(_cantidad, _bus)
-{
-    global.emisores = [];  global.emisor_i = 0;
-    repeat (_cantidad)
-    {
-        var _em = audio_emitter_create();  audio_emitter_bus(_em, _bus);
-        audio_emitter_falloff(_em, 240, 720, 1);        // referencia, máxima, factor
-        array_push(global.emisores, _em);
-    }
-}
-
-function emisores_liberar()   // llamar desde obj_audio · Clean Up
-{
-    for (var _i = 0; _i < array_length(global.emisores); _i += 1) { audio_emitter_free(global.emisores[_i]); }
-    global.emisores = [];
-}
-
-// Coge el siguiente emisor del anillo, lo coloca y dispara ahí.
-// ⚠️ Reutilizar un emisor MUEVE los sonidos que sigan sonando en él. Con SFX cortos (< 500 ms) y
-// 16-32 emisores no se nota; para bucles largos (un fuego, una cascada) usa un emisor dedicado.
-function sonar_en(_sonido, _px, _py, _gain = 1, _prioridad = 10)
-{
-    var _n = array_length(global.emisores);
-    if (_n == 0) { return -1; }
-
-    var _em = global.emisores[global.emisor_i];
-    global.emisor_i = (global.emisor_i + 1) mod _n;
-    audio_emitter_position(_em, _px, _py, 0);
-
-    return audio_play_sound_ext({
-        sound : _sonido, priority : _prioridad, emitter : _em,
-        gain  : _gain * variacion_ganancia(1.5), pitch : variacion_tono(1.5)
-    });
-}
-
-
-// ═══════════ obj_audio · Step (continuación) ═══════════
-// El oyente va con la CÁMARA, no con el jugador: si va con el jugador y la cámara se adelanta,
-// oyes cosas que no ves y no oyes las que ves.
-var _cam = camera_get_active();
-if (_cam != -1)
-{
-    audio_listener_position(camera_get_view_x(_cam) + camera_get_view_width(_cam)  * 0.5,
-                            camera_get_view_y(_cam) + camera_get_view_height(_cam) * 0.5, 0);
-}
-```
+> El código real —`emisores_iniciar(_cantidad, _bus)`, `emisores_liberar()`, `sonar_en()` y el
+> posicionado del oyente en la cámara cada frame— vive en
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>), ya integrado en
+> `audio_init()` / `audio_step()` / `audio_destruir()`. Las referencias de atenuación del anillo
+> (240 · 720 · 1) están en sus macros `AUDIO_ANILLO_FALLOFF_REF` / `AUDIO_ANILLO_FALLOFF_MAX`.
+>
+> ⚠️ **Reutilizar un emisor MUEVE los sonidos que sigan sonando en él.** Con SFX cortos (< 500 ms) y
+> 16-32 emisores no se nota; para bucles largos (un fuego, una cascada) usa un emisor dedicado
+> (§5.3 hace exactamente eso).
 
 > 🔺 **En un juego con zoom, el oyente en la cámara falla**: al alejarse todo enmudece a la vez. O
 > escalas la distancia de referencia con el zoom, o dejas el oyente en el jugador y aceptas la
@@ -637,25 +474,14 @@ if (siguiente <= 0)
     }
 }
 
-
-// ═══════════ scr_ambiente — un bed por zona, con fundido cruzado ═══════════
-// Los dos beds suenan a la vez durante el cruce: uno bajando y otro subiendo. 2000-4000 ms hacen
-// que el cambio de zona no se note como un corte.
-function ambiente_poner(_sonido, _ms = 2500)
-{
-    if (!is_undefined(global.ambiente_snd) && global.ambiente_snd == _sonido) { return; }
-    apagar_con_fundido(global.ambiente_voz, _ms);
-
-    global.ambiente_snd = _sonido;
-    global.ambiente_voz = audio_play_sound_ext({
-        sound    : _sonido, loop : true,
-        gain     : 0,                    // entra desde el silencio
-        priority : 90,                   // alta: que no lo descarte el límite de canales
-        emitter  : global.em.ambiente
-    });
-    audio_sound_gain(global.ambiente_voz, 1, _ms);        // el bus ya lleva el −20 dB
-}
 ```
+
+Cambia el bed con `ambiente_poner(_sonido, [_ms])` — 2000-4000 ms hacen que el cambio de zona no
+se note como un corte, los dos beds suenan a la vez durante el cruce, uno bajando y otro subiendo.
+La música se cambia igual, con `musica_poner(_sonido, [_ms])` (mismo crossfade, mismo patrón, otro
+bus). El código real de ambas —comparten la misma implementación genérica por dentro— vive en
+[`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>); no las
+redeclares.
 
 Los *stingers* están cubiertos en
 [04 · 26](../04%20-%20Recetas%20por%20género/26%20-%20Música%20adaptativa%20por%20capas.md); lo de
@@ -990,6 +816,7 @@ salen bus y emisor) → **prioridad** (UI y voz altas, ambiente baja) → **cupo
 
 ## Ver también
 
+- [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>) — el código real de todo lo que este documento explica: `audio_init`, `audio_step`, `audio_destruir`, `mezcla_aplicar`, `voces_iniciar`, `emisores_iniciar`, `emisores_liberar`, `variacion_tono`, `variacion_ganancia`, `banco_crear`, `banco_siguiente`, `apagar_con_fundido`, `voces_paso`, `sonar_limitado`, `sonar_en`, `sfx`, `sfx_ui`, `voz_decir`, `musica_poner`, `ambiente_poner`
 - [01 · 13 — Audio](../01%20-%20Fundamentos/13%20-%20Audio.md) — la API completa: reproducción, voces, emisores, grupos, streaming, errores
 - [02 · 07 — Audio: buses y efectos](../02%20-%20Novedades%202026/07%20-%20Audio%20-%20buses%20y%20efectos.md) — `AudioEffectType`, parámetros de cada efecto, `audio_play_sound_ext`, puntos de bucle
 - [04 · 26 — Música adaptativa por capas](../04%20-%20Recetas%20por%20género/26%20-%20Música%20adaptativa%20por%20capas.md) · [04 · 19 — Programación rítmica](../04%20-%20Recetas%20por%20género/19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md) — *vertical layering*, crossfade sincronizado, stingers y sincronía con el compás

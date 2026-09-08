@@ -390,9 +390,16 @@ debug_time_end("pathfinding");
 
 ### `scr_audio.gml` — Gestor de audio
 
-**Incluye:** `audio_init`, `audio_step`, `audio_destruir`, `mezcla_aplicar`, `variacion_tono`,
-`variacion_ganancia`, `banco_crear`, `banco_siguiente`, `apagar_con_fundido`, `voces_paso`,
-`sonar_limitado`, `sonar_en`, `sfx`, `sfx_ui`, `voz_decir`, `musica_poner`, `ambiente_poner`.
+**Incluye:** `audio_init`, `audio_step`, `audio_destruir`, `mezcla_aplicar`, `voces_iniciar`,
+`emisores_iniciar`, `emisores_liberar`, `variacion_tono`, `variacion_ganancia`, `banco_crear`,
+`banco_siguiente`, `apagar_con_fundido`, `voces_paso`, `sonar_limitado`, `sonar_en`, `sfx`,
+`sfx_ui`, `voz_decir`, `musica_poner`, `ambiente_poner`.
+
+> ✅ **Unificado con
+> [`13 - Diseño y producción de videojuegos/09`](<../13 - Diseño y producción de videojuegos/09 - Diseño de sonido y mezcla.md>)
+> (Diseño de sonido y mezcla)**: hasta la ronda anterior ambos documentos definían, por separado,
+> el mismo sistema con globals distintos. Este script es ahora la única implementación real; 13 · 09
+> explica la teoría (niveles, *headroom*, *ducking*, LUFS…) y remite aquí para el código.
 
 ```gml
 // Create de obj_audio (persistente, creado en la sala de arranque)
@@ -407,12 +414,12 @@ audio_destruir();
 // Desde cualquier sitio del juego
 sfx(snd_disparo);                                 // efecto suelto
 sonar_en(snd_explosion, other.x, other.y, 0.9);    // efecto EN el mundo
-sonar_limitado(snd_impacto, 4, db_to_lin(-8));     // como mucho 4 a la vez
+sonar_limitado(snd_impacto, 4, db_to_lin(-8));     // como mucho 4 a la vez, por el bus principal
 musica_poner(snd_boss_theme);                      // crossfade de música
 voz_decir(snd_linea_01);                           // agacha la música mientras suena
 
 // El jugador mueve un slider en Opciones
-global.audio.volumen.musica = 0.4;
+global.volumen_musica = 0.4;
 mezcla_aplicar();
 ```
 
@@ -422,6 +429,12 @@ asignado a un bus recibe su ganancia y sus efectos. De ahí que `sfx()`, `sfx_ui
 `musica_poner()` y `ambiente_poner()` reproduzcan siempre a través de un emisor de su categoría, y
 que el sonido posicional (`sonar_en()`) use un **anillo** de emisores reutilizables en vez de
 `audio_play_sound_at()`.
+
+> ⚠️ **`sonar_limitado()` es la excepción a propósito**: por defecto NO pasa `emitter` (va al bus
+> principal, más barato para sonidos que se disparan muchas veces por segundo, como los pasos).
+> Pásale un quinto argumento —normalmente `global.em.sfx`— si ese sonido concreto sí necesita el
+> volumen de "Efectos" o un efecto de zona: `sonar_limitado(snd_impacto, 4, db_to_lin(-8), 10,
+> global.em.sfx)`.
 
 > ⚠️ El modelo de atenuación por defecto es `audio_falloff_none` (ganancia siempre 1):
 > `audio_init()` lo cambia una sola vez, para todo el juego, a `audio_falloff_inverse_distance_clamped`.

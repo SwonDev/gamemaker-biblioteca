@@ -1571,12 +1571,13 @@ un campo que mande el propio cliente:
 /// @func es_mi_turno()
 /// @desc Se ejecuta en el CLIENTE, solo para decidir si mostrar los controles
 ///       activos (arrastrar cartas, botón de pasar turno). NO autoriza nada:
-///       la autoridad real está en el servidor (§3.6.5). global.net_id_local
-///       lo asigna el servidor al conectar, igual que cualquier net_id de
-///       §2.4 de 04 · 14.
+///       la autoridad real está en el servidor (§3.6.5). El id propio del
+///       cliente NO es una global nueva: es `objNetManager.mi_id`, el mismo
+///       que ya asigna `NetMsg.server_welcome` en 04 · 14 §5.4 — no lo
+///       dupliques en un global.net_id_local que nadie llegaría a escribir.
 function es_mi_turno()
 {
-    return (obj_combate.turno_de_net_id == global.net_id_local);
+    return (obj_combate.turno_de_net_id == objNetManager.mi_id);
 }
 
 /// @func avanzar_turno_pvp()

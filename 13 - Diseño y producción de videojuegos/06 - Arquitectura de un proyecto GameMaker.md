@@ -152,6 +152,12 @@ servicio_poner("partida", new GestorPartida());
 servicio_poner("juego",   id);   // así nadie escribe `obj_game.` fuera de aquí
 
 acumulador = 0;                  // §3.9
+
+// §3.7: estado del patrón comando de obj_jugador · Step — debe existir antes de su
+// primer Step, y obj_game es el primer objeto persistente del proyecto (igual que
+// acumulador, arriba). Sin esto, la sala revienta en el primer frame con jugador.
+global.modo_entrada = Entrada.JUGADOR;
+global.repeticion   = { semilla: random_get_seed(), frames: [] };   // forma en §3.7
 ```
 
 ```gml
