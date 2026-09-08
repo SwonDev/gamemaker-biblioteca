@@ -11,6 +11,13 @@ Regenera:
   · _indice/documentos.json  (documentos en español + páginas del manual)
   · _indice/simbolos.json    (metadatos: solo recuenta los .gml analizados)
 
+Los dos están en .gitignore: se derivan del disco y del runtime instalado, no se
+publican. En un clon limpio no existen todavía — este script los CREA desde cero,
+no solo los actualiza — siempre que haya un runtime de GameMaker instalado (de ahí
+sale `simbolos.json`, vía GmlSpec.xml). Sin runtime y sin un `simbolos.json` previo
+que conservar, no hay forma de derivar la API por primera vez: falla con un
+mensaje explicando qué instalar, no con un traceback.
+
 No toca MAPA.json: ese lleva descripciones escritas a mano ("usar_cuando",
 "no_usar_para") que no se pueden deducir del disco. Al añadir una carpeta nueva,
 edítalo a mano.
@@ -404,7 +411,15 @@ def main():
               open(os.path.join(IND, "documentos.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
 
-    previo = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))
+    ruta_simbolos = os.path.join(IND, "simbolos.json")
+    if os.path.exists(ruta_simbolos):
+        previo = json.load(open(ruta_simbolos, encoding="utf-8"))
+    else:
+        # Primer arranque en un clon limpio: no hay índice previo que conservar
+        # (ejemplos_en_codigo, meta...). Se parte de vacío; si hay runtime instalado,
+        # el bloque de abajo lo rellena entero desde GmlSpec.xml.
+        previo = {"meta": {}, "simbolos": {}}
+    primera_vez = not previo["simbolos"]  # no confundir "se genera por primera vez" con "cambió"
     dir_rt, version_rt = runtime_instalado()
 
     if dir_rt:
@@ -422,11 +437,24 @@ def main():
         antes = {k for k, v in previo["simbolos"].items() if v.get("fuente") != "fnames"}
         cambios = {"añadidos": sorted(set(nuevos) - antes),
                    "retirados": sorted(antes - set(nuevos))}
-        simb = {"meta": previo["meta"], "simbolos": nuevos}
+        simb = {"meta": previo.get("meta") or {}, "simbolos": nuevos}
         simb["meta"]["runtime"] = version_rt
-    else:
+    elif previo["simbolos"]:
         print("⚠ no hay runtime instalado: se conservan los símbolos anteriores")
         simb, cambios = previo, {"añadidos": [], "retirados": []}
+    else:
+        # Ni runtime instalado ni un simbolos.json previo que conservar: no hay
+        # ningún camino para derivar la API por primera vez. Fallar con claridad
+        # en vez de escribir un índice vacío que luego mentiría en silencio.
+        print("✗ No hay ningún runtime de GameMaker instalado en esta máquina, y")
+        print(f"  {os.path.relpath(ruta_simbolos, RAIZ)} no existe todavía: no hay nada")
+        print("  que conservar de una ejecución anterior.")
+        print()
+        print("  Los símbolos de esta biblioteca se derivan del GmlSpec.xml del runtime")
+        print("  instalado (no hay una lista escrita a mano). Instala GameMaker Studio 2")
+        print("  LTS 2026 (o solo el runtime, con `gm-cli`) y vuelve a ejecutar:")
+        print("      python3 _indice/actualizar.py")
+        return 1
 
     simb["meta"]["archivos_gml_analizados"] = contar_gml()
     extra = fusionar_fnames(simb["simbolos"])
@@ -448,7 +476,12 @@ def main():
           f"  (de ellos {simb['meta']['solo_en_fnames']} solo en fnames)")
     print(f"runtime leído          : {simb['meta']['runtime']}")
 
-    if cambios["añadidos"] or cambios["retirados"]:
+    if primera_vez:
+        # No es que "cambiara": es la primera vez que se generan en este clon. Decirlo
+        # como un cambio de API confundiría a quien acaba de clonar el repositorio.
+        print(f"\nPrimera generación en este clon: {len(cambios['añadidos'])} símbolos "
+              "cargados desde el runtime instalado.")
+    elif cambios["añadidos"] or cambios["retirados"]:
         print(f"\n\033[1mLA API HA CAMBIADO\033[0m respecto al índice anterior:")
         if cambios["añadidos"]:
             print(f"  + {len(cambios['añadidos'])} símbolos nuevos: "

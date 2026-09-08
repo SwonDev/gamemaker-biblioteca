@@ -49,7 +49,13 @@ def avisar_si_caducado(meta):
 
 
 def cargar(avisar=True):
-    with open(os.path.join(IDX, "simbolos.json"), encoding="utf-8") as f:
+    ruta = os.path.join(IDX, "simbolos.json")
+    if not os.path.exists(ruta):
+        print("✗ No existe _indice/simbolos.json todavía.")
+        print("  Se genera (desde el GmlSpec.xml de tu runtime instalado) con:")
+        print("      python3 _indice/actualizar.py")
+        sys.exit(1)
+    with open(ruta, encoding="utf-8") as f:
         d = json.load(f)
     if avisar:
         avisar_si_caducado(d.get("meta", {}))
@@ -59,6 +65,7 @@ def cargar(avisar=True):
 def _mencionado_en(nombre, limite=6):
     """Busca el literal en los documentos y en el manual. Devuelve rutas, sin duplicar."""
     args = ["grep", "-rlI", "--include=*.md", "-F", "-e", nombre]
+    rutas_previas = len(args)
     for d in ("01 - Fundamentos", "02 - Novedades 2026", "04 - Recetas por género",
               "07 - Ecosistema", "08 - Referencia GML completa",
               "12 - Utilidades e integraciones",
@@ -66,6 +73,10 @@ def _mencionado_en(nombre, limite=6):
         ruta = os.path.join(RAIZ, d)
         if os.path.exists(ruta):
             args.append(ruta)
+    if len(args) == rutas_previas:
+        # Ninguna de las carpetas existe: un grep sin rutas recorrería el
+        # directorio de trabajo entero en vez de devolver "sin resultados".
+        return []
     try:
         r = subprocess.run(args, capture_output=True, text=True, check=False)
     except OSError:
@@ -164,13 +175,24 @@ def ficha(nombre):
 
 
 def grep(subdirs, patron, exts, limite=40):
+    # acepta tanto carpetas como archivos sueltos (README.md, RUTA.md…)
+    existentes = [os.path.join(RAIZ, d) for d in subdirs
+                  if os.path.exists(os.path.join(RAIZ, d))]
+    if not existentes:
+        # Sin rutas, un `grep -r` de este sistema no falla ni calla: recorre el
+        # directorio de trabajo entero. Avisar de qué falta es lo correcto, no
+        # devolver resultados de donde no tocaba buscar.
+        print(f"No está instalado: {', '.join(subdirs)}")
+        if any(d.startswith("09 - Manual oficial") for d in subdirs):
+            print("  Instálalo con ./reconstruir.sh manual, o consulta "
+                  "gm-cli manual read \"<tema>\" mientras tanto.")
+        elif any(d.startswith("11 - Código descargado") for d in subdirs):
+            print("  Instálalo con ./reconstruir.sh codigo.")
+        return 0
     args = ["grep", "-rniI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
-    args += ["-e", patron]
-    # acepta tanto carpetas como archivos sueltos (README.md, RUTA.md…)
-    args += [os.path.join(RAIZ, d) for d in subdirs
-             if os.path.exists(os.path.join(RAIZ, d))]
+    args += ["-e", patron] + existentes
     r = subprocess.run(args, capture_output=True, text=True)
     lineas = r.stdout.splitlines()
     # Las coincidencias de PALABRA COMPLETA van primero. Sin esto, buscar «respec»
@@ -193,12 +215,16 @@ def grep(subdirs, patron, exts, limite=40):
 
 def _buscar_en(subdirs, patron, exts, muestra=4):
     """Cuenta coincidencias en unas carpetas y devuelve (total, primeras rutas)."""
+    existentes = [os.path.join(_RAIZ, d) for d in subdirs
+                  if os.path.exists(os.path.join(_RAIZ, d))]
+    if not existentes:
+        # Sin rutas reales, un `grep -r` recorrería el directorio de trabajo
+        # entero en vez de devolver "nada" — ver el mismo guardado en grep().
+        return 0, []
     args = ["grep", "-rilI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
-    args += ["-e", patron]
-    args += [os.path.join(_RAIZ, d) for d in subdirs
-             if os.path.exists(os.path.join(_RAIZ, d))]
+    args += ["-e", patron] + existentes
     try:
         r = subprocess.run(args, capture_output=True, text=True)
     except OSError:
@@ -209,12 +235,14 @@ def _buscar_en(subdirs, patron, exts, muestra=4):
 
 def _buscar_en3(subdirs, patron, exts, muestra=4):
     """Como _buscar_en pero devuelve además la lista completa (para agrupar)."""
+    existentes = [os.path.join(_RAIZ, d) for d in subdirs
+                  if os.path.exists(os.path.join(_RAIZ, d))]
+    if not existentes:
+        return 0, [], []
     args = ["grep", "-rilI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
-    args += ["-e", patron]
-    args += [os.path.join(_RAIZ, d) for d in subdirs
-             if os.path.exists(os.path.join(_RAIZ, d))]
+    args += ["-e", patron] + existentes
     try:
         r = subprocess.run(args, capture_output=True, text=True)
     except OSError:

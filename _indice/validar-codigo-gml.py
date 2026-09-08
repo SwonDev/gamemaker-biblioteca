@@ -178,8 +178,17 @@ def funciones_externas():
     """
     ext = set()
     base = os.path.join(RAIZ, "11 - Código descargado")
-    if not os.path.isdir(base):
-        return ext
+    # El corpus es opcional: no viaja en el repositorio público (licencias de terceros).
+    # Sin él no se puede DESCARTAR una función de extensión, así que lo que aquí sería un
+    # descarte limpio se convertiría en un falso «inventada». Quien clone el repositorio
+    # vería «hay código que llama a funciones que no existen» sin que sea cierto. Se
+    # devuelve None —distinto de conjunto vacío— para que quien llama sepa que no puede
+    # afirmar nada sobre las funciones de extensión, y lo diga en vez de acusar.
+    if not os.path.isdir(base) or not any(
+        os.path.isdir(os.path.join(base, d)) for d in os.listdir(base)
+        if not d.startswith((".", "_"))
+    ):
+        return None
     for raiz, dirs, files in os.walk(base):
         dirs[:] = [d for d in dirs if not d.startswith(".git")]
         for f in files:
@@ -263,6 +272,9 @@ def main():
     runtime = set(simbolos)
     aridad = aridades_funciones(simbolos)
     externas = funciones_externas()
+    corpus_instalado = externas is not None
+    if not corpus_instalado:
+        externas = set()   # no se puede descartar por extensión: se avisará al final
 
     # 1 · recolectar TODAS las funciones y métodos que la biblioteca define (son legítimas)
     definidas = set()
@@ -348,9 +360,22 @@ def main():
     propias = {n: d for n, d in sospechosas.items() if n not in graves and not es_extension(n)}
 
     print(f"runtime: {len(runtime)} símbolos · propias definidas: {len(definidas)} · "
-          f"extensiones/librerías: {len(externas)}")
+          f"extensiones/librerías: {len(externas) if corpus_instalado else "sin instalar"}")
     print(f"{len(propias)} funciones propias de ejemplo (informativo) · "
           f"{len(graves)} posibles funciones del runtime INVENTADAS")
+
+    if graves and not corpus_instalado:
+        # Sin el corpus de `11 - Código descargado` no se puede distinguir una función
+        # inventada de una de extensión (steam_*, scribble_*, input_*…). Se informa, pero
+        # NO se acusa ni se hace fallar: acusar en falso a quien acaba de clonar el
+        # repositorio es peor que no comprobarlo.
+        print(f"\n⚠ {len(graves)} nombre(s) sin resolver, pero el corpus de "
+              "`11 - Código descargado` no está instalado:")
+        for nom in sorted(graves):
+            print(f"    · {nom}()")
+        print("  Pueden ser funciones de extensión perfectamente válidas. Para comprobarlo,")
+        print("  trae el corpus con `./reconstruir.sh codigo` y vuelve a ejecutar.")
+        graves = {}
 
     if graves:
         print("\n\033[1mFUNCIONES DEL RUNTIME QUE NO EXISTEN — a corregir:\033[0m")

@@ -22,6 +22,26 @@ def salida(*args):
     return r.stdout
 
 
+def _carpeta_instalada(nombre):
+    ruta = os.path.join(RAIZ, nombre)
+    if not os.path.isdir(ruta):
+        return False
+    return bool([e for e in os.listdir(ruta) if e not in ("_RUTAS.json", "_CATALOGO.md")])
+
+
+MANUAL_INSTALADO = _carpeta_instalada("09 - Manual oficial")
+CODIGO_INSTALADO = _carpeta_instalada("11 - Código descargado")
+
+# Etiquetas de la salida de buscar.py que SOLO pueden aparecer si el manual espejado o el
+# código descargado están instalados en esta máquina (ver verificar-enlaces.py). En un clon
+# limpio sin reconstruir, exigirlas no prueba que el descubrimiento falle: prueba que una
+# fuente opcional no está — eso ya lo dice actualizar.py en su propio paso, no hace falta
+# repetirlo aquí como si fuera un fallo del buscador.
+ETIQUETAS_MANUAL = {"manual (es)"}
+ETIQUETAS_CODIGO = {"CÓDIGO real", "juegos_y_motores", "extensiones_oficiales",
+                     "herramientas", "librerias", "plantillas_y_ejemplos"}
+
+
 # Cada caso: (descripción de la tarea, argumentos de buscar.py, textos que DEBEN aparecer)
 CASOS = [
     ("Quiero hacer que el jugador salte con margen de perdón",
@@ -229,7 +249,15 @@ def main():
     fallos = 0
     for desc, args, esperados in CASOS:
         out = salida(*args)
-        faltan = [e for e in esperados if e not in out]
+        faltan = []
+        for e in esperados:
+            if e in out:
+                continue
+            if not MANUAL_INSTALADO and e in ETIQUETAS_MANUAL:
+                continue
+            if not CODIGO_INSTALADO and e in ETIQUETAS_CODIGO:
+                continue
+            faltan.append(e)
         if faltan:
             fallos += 1
             print(f"✗ {desc}")

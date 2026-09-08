@@ -34,6 +34,18 @@ AGENTS_GENERADO = os.path.join(SKILL, "AGENTS.md")
 # archivo de la raíz o por _indice/. Se admite «NN/…» abreviado solo en prosa, no aquí.
 RUTA = re.compile(r"`((?:\d\d - |_indice/|README\.md|RUTA\.md|AGENTS\.md|CLAUDE\.md)[^`]*)`")
 
+# «09 - Manual oficial» y «11 - Código descargado» son opcionales por diseño (ver
+# verificar-enlaces.py): una ruta de la skill que cae dentro de una de las dos y no está
+# instalada en esta máquina no es una ruta rota, es contenido pendiente de reconstruir.
+CARPETAS_OPCIONALES = ("09 - Manual oficial", "11 - Código descargado")
+
+
+def _carpeta_instalada(nombre):
+    ruta = os.path.join(RAIZ, nombre)
+    if not os.path.isdir(ruta):
+        return False
+    return bool([e for e in os.listdir(ruta) if e not in ("_RUTAS.json", "_CATALOGO.md")])
+
 
 def generar_indice():
     m = json.load(open(os.path.join(IND, "MAPA.json"), encoding="utf-8"))
@@ -87,11 +99,32 @@ def generar_agents_md():
     if len(partes) < 3:
         return None  # SKILL.md sin frontmatter: no debería pasar, no se genera nada falso
     frontmatter, cuerpo = partes[1], partes[2]
-    descripcion = ""
-    for linea in frontmatter.splitlines():
-        if linea.strip().startswith("description:"):
-            descripcion = linea.split(":", 1)[1].strip()
-            break
+
+    # El frontmatter tiene que ser YAML VÁLIDO SEGÚN LA ESPECIFICACIÓN, no solo «válido para
+    # Claude Code». Kimi Code usa un parser estricto y rechazaba la skill entera —sin cargarla—
+    # porque la descripción sin comillas contenía «: » en mitad del valor, que en YAML abre un
+    # mapa. Claude Code y opencode lo toleran; kimi no. Como el fallo es silencioso en unos CLI
+    # y fatal en otro, se comprueba aquí: es el único punto por el que pasa toda edición.
+    try:
+        import yaml  # PyYAML viene con el sistema en este entorno
+        datos = yaml.safe_load(frontmatter)
+        if not isinstance(datos, dict) or "description" not in datos:
+            print("  ✗ El frontmatter de SKILL.md no tiene 'description'.")
+            return None
+        descripcion = str(datos["description"])
+    except ImportError:
+        # Sin PyYAML no se puede validar; se avisa y se sigue con el método simple.
+        print("  ⚠ Sin PyYAML: no se ha podido validar el frontmatter de SKILL.md.")
+        descripcion = ""
+        for linea in frontmatter.splitlines():
+            if linea.strip().startswith("description:"):
+                descripcion = linea.split(":", 1)[1].strip().strip('"')
+                break
+    except Exception as e:
+        print(f"  ✗ El frontmatter de SKILL.md NO es YAML válido: {e}")
+        print("    Kimi Code y otros parsers estrictos rechazarán la skill entera.")
+        print("    Suele ser una descripción sin comillas que contiene «: ». Entrecomíllala.")
+        return None
     out = [
         "# AGENTS.md — Biblioteca GameMaker (generado desde la skill)\n",
         "> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**\n"
@@ -125,8 +158,13 @@ def rutas_rotas():
             r = m.group(1).split("#")[0].rstrip("/")
             if r.endswith("…") or "…" in r:
                 continue                      # una ruta abreviada a propósito en prosa
-            if not os.path.exists(os.path.join(RAIZ, r)):
-                rotas.append((os.path.relpath(fp, RAIZ), r))
+            if os.path.exists(os.path.join(RAIZ, r)):
+                continue
+            carpeta = next((c for c in CARPETAS_OPCIONALES
+                            if r == c or r.startswith(c + "/")), None)
+            if carpeta and not _carpeta_instalada(carpeta):
+                continue                      # carpeta opcional no instalada: no es un roto
+            rotas.append((os.path.relpath(fp, RAIZ), r))
     return rotas
 
 

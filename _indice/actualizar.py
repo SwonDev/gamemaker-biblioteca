@@ -32,6 +32,21 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IND = os.path.join(RAIZ, "_indice")
 PY = sys.executable
 
+# «09 - Manual oficial» y «11 - Código descargado» son opcionales por diseño (se
+# reconstruyen con ./reconstruir.sh): en un clon limpio no están, y eso es su estado
+# normal, no trabajo pendiente. Varios pasos de abajo comparan estas dos carpetas con
+# lo que citan MAPA.json / _RUTAS.json / la skill; todos usan este mismo criterio para
+# no confundir "no instalada" con "rota".
+CARPETAS_OPCIONALES = ("09 - Manual oficial", "11 - Código descargado")
+
+
+def carpeta_instalada(nombre):
+    """¿Hay contenido real en esta carpeta opcional, o solo está vacía / con el catálogo?"""
+    ruta = os.path.join(RAIZ, nombre)
+    if not os.path.isdir(ruta):
+        return False
+    return bool([e for e in os.listdir(ruta) if e not in ("_RUTAS.json", "_CATALOGO.md")])
+
 
 def paso(n, titulo):
     print(f"\n\033[1m{n}. {titulo}\033[0m")
@@ -233,11 +248,19 @@ def revisar_rutas_codigo():
     El catálogo de código se mantiene a mano; este chequeo avisa si se descargó
     un repo nuevo y no se registró (o si una ruta ya no existe), para que no
     quede fuera de la búsqueda por olvido.
+
+    En un clon limpio «11 - Código descargado» solo trae el catálogo (`_RUTAS.json` +
+    `_CATALOGO.md`), sin los ~600 repos reales: comparar entonces cada entrada contra el
+    disco produciría cientos de avisos falsos («ya no existe») por algo que nunca se ha
+    instalado, no por algo que se borró. Se compara de verdad solo si la carpeta SÍ tiene
+    contenido descargado (ver ./reconstruir.sh codigo).
     """
     import json as _json
     base = os.path.join(RAIZ, "11 - Código descargado")
     rutas_p = os.path.join(base, "_RUTAS.json")
     if not os.path.isfile(rutas_p):
+        return []
+    if not carpeta_instalada("11 - Código descargado"):
         return []
     d = _json.load(open(rutas_p, encoding="utf-8"))
     avisos = []
@@ -256,16 +279,30 @@ def revisar_rutas_codigo():
     return avisos
 
 
+def _bajo_carpeta_opcional_no_instalada(ruta_rel):
+    """¿`ruta_rel` cae dentro de 09/11 y esa carpeta no está instalada ahora mismo?"""
+    for c in CARPETAS_OPCIONALES:
+        if (ruta_rel == c or ruta_rel.startswith(c + "/")) and not carpeta_instalada(c):
+            return True
+    return False
+
+
 def revisar_mapa():
     m = json.load(open(os.path.join(IND, "MAPA.json"), encoding="utf-8"))
     falta = []
     for c in m["carpetas"]:
         for d in c.get("documentos", []):
-            if not os.path.exists(os.path.join(RAIZ, d["ruta"])):
-                falta.append(d["ruta"])
+            if os.path.exists(os.path.join(RAIZ, d["ruta"])):
+                continue
+            if _bajo_carpeta_opcional_no_instalada(d["ruta"]):
+                continue
+            falta.append(d["ruta"])
     for k in m.get("puntos_de_entrada", {}):
-        if not os.path.exists(os.path.join(RAIZ, k)):
-            falta.append(k)
+        if os.path.exists(os.path.join(RAIZ, k)):
+            continue
+        if _bajo_carpeta_opcional_no_instalada(k):
+            continue
+        falta.append(k)
     return falta, sum(len(c.get("documentos", [])) for c in m["carpetas"])
 
 
