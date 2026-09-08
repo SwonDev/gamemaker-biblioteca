@@ -1116,6 +1116,9 @@ if (char_index >= string_length(nodo.text))
 > completo (comando → submenú → objetivo → confirmación → retroceso) y la mitad táctica en
 > rejilla (movimiento por coste, línea de tiro, terreno y altura) — vive en
 > [04 · 35 — Combate por turnos y táctico en rejilla](./35%20-%20Combate%20por%20turnos%20y%20táctico%20en%20rejilla.md).
+> **No uses las dos a la vez:** ambas declaran `enum BattleState` y `objBattleManager` — en
+> cuanto adoptes `04 · 35`, borra el `enum BattleState` de aquí (GameMaker no permite dos con el
+> mismo nombre) y sustituye este `objBattleManager` por el suyo.
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -1408,88 +1411,57 @@ function tile_es_hierba(_x, _y)
 
 ### 5.8 Save / load completo
 
+> Usa el estándar de la biblioteca —
+> [`scr_save_load.gml`](<../06 - Assets y Scripts/scr_save_load.gml>) — para el guardado en sí
+> (escritura atómica, checksum, copias de seguridad rotativas, versión de esquema).
+> **No redefinas `save_game`/`load_game`/`delete_save` ni `#macro SAVE_VERSION`**: ya existen ahí
+> y los reutilizan [`13 · 06`](<../13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md>)
+> (arquitectura de cualquier proyecto) y [`04 · 54`](./54%20-%20Metajuego%20transversal%20-%20logros%2C%20galer%C3%ADa%2C%20speedrun%20y%20espectador.md)
+> (metajuego). Lo propio del RPG —qué structs entran en `_datos`, cómo se reconstruyen y la
+> vuelta a la room guardada— vive en las funciones de abajo, que **extienden** el estándar en vez
+> de duplicarlo.
+
 ```gml
 // ---------------------------------------------------------------------------
-// scr_save
+// scr_rpg_save — construye/aplica el struct de datos del RPG y se lo entrega
+// al estándar de la biblioteca (06/scr_save_load.gml). NO reimplementa
+// escritura de archivo, checksum ni backups: eso ya está resuelto ahí.
 // ---------------------------------------------------------------------------
 
-#macro SAVE_VERSION 3
-#macro SAVE_FILE    "savegame.json"
+#macro RPG_SLOT_PARTIDA "partida"   // un solo slot; usa otro nombre por hueco si añades varios
 
-/// @func save_game()
-/// @desc Serializa TODO el estado relevante del juego.
-function save_game()
+/// @func rpg_recolectar_datos()
+/// @desc Junta todo el estado del RPG en un struct plano, listo para
+///       save_game(). Si tu juego también guarda logros/PB (04 · 54), añade
+///       esos campos a ESTE mismo struct antes de llamar a save_game(): una
+///       sola llamada, un solo archivo por slot (ver 04 · 54 §2.4).
+/// @returns {Struct}
+function rpg_recolectar_datos()
 {
-    var _data = {
-        version:     SAVE_VERSION,
-        timestamp:   date_datetime_string(date_current_datetime()),
-
-        // Posición del jugador en el mundo
+    return {
         room_name:   room_get_name(room),
         player_x:    objPlayer.x,
         player_y:    objPlayer.y,
 
-        // Estado del jugador
         stats:       global.player_stats.serialize(),
         progression: global.progression.serialize(),
         inventory:   global.inventory.serialize(),
         equipment:   global.equipment.serialize(),
 
-        // Estado del mundo
         flags:       global.flags,
         quests:      global.quest_log.serialize(),
         defeated:    global.enemigos_derrotados,
         opened:      global.cofres_abiertos,
         playtime:    global.playtime_frames
     };
-
-    var _json = json_stringify(_data, true);   // pretty print para depurar
-
-    // ⚠️ game_save_id, NO working_directory: en una build exportada working_directory
-    // es de solo lectura y la escritura falla en silencio. Detalle: 01 - Fundamentos/
-    // 14 - Persistencia y archivos.md §1.
-    var _f = file_text_open_write(game_save_id + SAVE_FILE);
-    file_text_write_string(_f, _json);
-    file_text_close(_f);
-
-    show_debug_message("Partida guardada: " + string(string_length(_json)) + " bytes");
-    return true;
 }
 
-/// @func load_game()
-/// @desc Carga y reconstruye el estado. Devuelve true si tuvo éxito.
-function load_game()
+/// @func rpg_aplicar_datos(_data)
+/// @desc Reconstruye el estado del juego a partir de un struct ya cargado
+///       (con `load_game()` del estándar) y va a la room guardada.
+/// @param {Struct} _data
+function rpg_aplicar_datos(_data)
 {
-    var _path = game_save_id + SAVE_FILE;
-    if (!file_exists(_path))
-    {
-        show_debug_message("No hay partida guardada.");
-        return false;
-    }
-
-    var _f = file_text_open_read(_path);
-    var _json = "";
-    while (!file_text_eof(_f))
-    {
-        _json += file_text_read_string(_f);
-        file_text_readln(_f);
-    }
-    file_text_close(_f);
-
-    var _data = json_parse(_json);
-
-    // Verificación de versión
-    if (!variable_struct_exists(_data, "version"))
-    {
-        show_debug_message("Save corrupto: sin versión.");
-        return false;
-    }
-    if (_data.version != SAVE_VERSION)
-    {
-        return migrate_save(_data);
-    }
-
-    // Reconstruir structs
     global.player_stats = Stats.deserialize(_data.stats);
     global.progression  = Progression.deserialize(_data.progression);
     global.inventory    = Inventory.deserialize(_data.inventory);
@@ -1511,46 +1483,66 @@ function load_game()
         global.pending_player_y = _data.player_y;
         room_goto(_room);
     }
-
-    return true;
 }
 
-/// @func migrate_save(_data)
-/// @desc Migra un save de una versión antigua. Imprescindible si vas en serio.
-function migrate_save(_data)
+/// @func rpg_guardar(_slot)
+/// @desc Guarda la partida en el slot dado con el estándar `save_game()`
+///       (scr_save_load.gml): escritura atómica, checksum y backup rotativo
+///       ya resueltos ahí.
+/// @param {String} _slot
+/// @returns {Bool}
+function rpg_guardar(_slot = RPG_SLOT_PARTIDA)
 {
-    show_debug_message("Migrando save v" + string(_data.version) +
-                       " → v" + string(SAVE_VERSION));
-
-    // Ejemplo: en la v2 no existía el campo "equipment"
-    if (_data.version < 3)
+    var _ok = save_game(_slot, rpg_recolectar_datos());
+    if (_ok)
     {
-        _data.equipment = { weapon: -1, armor: -1, accessory: -1 };
-        _data.version = 3;
+        show_debug_message("Partida guardada en '" + string(_slot) + "'.");
     }
+    return _ok;
+}
 
-    if (_data.version != SAVE_VERSION)
+/// @func rpg_cargar(_slot)
+/// @desc Carga el slot dado con `load_game()` del estándar (que ya aplica la
+///       migración de esquema vía `global.save_migrar` si hace falta) y
+///       reconstruye el estado del RPG. Devuelve true si tuvo éxito.
+/// @param {String} _slot
+/// @returns {Bool}
+function rpg_cargar(_slot = RPG_SLOT_PARTIDA)
+{
+    var _data = load_game(_slot);
+    if (!is_struct(_data))
     {
-        show_debug_message("Migración incompleta. Save descartado.");
+        show_debug_message("No hay partida guardada en '" + string(_slot) + "'.");
         return false;
     }
 
-    // Reintentar con los datos ya migrados
-    // ⚠️ game_save_id, NO working_directory: en una build exportada working_directory
-    // es de solo lectura y la escritura falla en silencio. Detalle: 01 - Fundamentos/
-    // 14 - Persistencia y archivos.md §1.
-    var _f = file_text_open_write(game_save_id + SAVE_FILE);
-    file_text_write_string(_f, json_stringify(_data));
-    file_text_close(_f);
-
-    return load_game();
+    rpg_aplicar_datos(_data);
+    return true;
 }
 
-/// @func delete_save()
-function delete_save()
+/// @func rpg_migrar_datos(_datos, _version_vieja)
+/// @desc Hook de migración que espera el estándar: engánchalo con
+///       `global.save_migrar = rpg_migrar_datos;` en el Create de objGame
+///       (ver §6 más abajo). `load_game()` lo llama solo cuando la versión
+///       guardada es más antigua que `SAVE_VERSION` (de scr_save_load.gml):
+///       no hace falta comprobar la versión a mano ni redefinir el macro.
+/// @param {Struct} _datos
+/// @param {Real}   _version_vieja
+/// @returns {Struct}
+function rpg_migrar_datos(_datos, _version_vieja)
 {
-    var _path = game_save_id + SAVE_FILE;
-    if (file_exists(_path)) file_delete(_path);
+    // Ejemplo: una versión anterior de tu juego no guardaba "equipment"
+    if (!variable_struct_exists(_datos, "equipment"))
+    {
+        _datos.equipment = { weapon: -1, armor: -1, accessory: -1 };
+    }
+    return _datos;
+}
+
+/// @func rpg_borrar_partida(_slot)
+function rpg_borrar_partida(_slot = RPG_SLOT_PARTIDA)
+{
+    delete_save(_slot);
 }
 ```
 
@@ -1569,6 +1561,9 @@ El estado completo del jugador, centralizado:
 if (variable_global_exists("game_initialized")) exit;
 
 global.game_initialized = true;
+
+// --- Guardado: hook de migración que espera el estándar (scr_save_load.gml) ---
+global.save_migrar = rpg_migrar_datos;      // §5.8 más arriba
 
 // --- Sistemas ---
 global.player_stats = new Stats(60, 12, 6, 10);
@@ -1757,7 +1752,7 @@ function QuestLog() constructor
 | Contenido hardcodeado en código | 50 objetos = 500 líneas imposibles de mantener | JSON + catálogo global |
 | No registrar los archivos en el `.yyp` | Los JSON no se encuentran en el build exportado | Revisa el `.yyp` tras añadir `datafiles/` |
 | Serializar structs CON métodos | Los métodos se pierden; el save carga roto | Método `serialize()` que devuelve un struct plano |
-| Sin versión en el save | No puedes migrar; los jugadores pierden la partida | Campo `version` + función `migrate_save()` |
+| Sin versión en el save | No puedes migrar; los jugadores pierden la partida | `SAVE_VERSION` (de `scr_save_load.gml`) + `global.save_migrar` (aquí, `rpg_migrar_datos()`) |
 | Guardar IDs de instancia | Al recargar, apuntan a otra cosa o a nada | Guarda posiciones y tipos, no referencias |
 | `json_parse` sobre JSON con comentarios | Falla en silencio o da undefined | Nada de comentarios en los JSON de datos |
 | `variable_struct_exists` contra clave inexistente en save viejo | Crash al cargar | Comprueba siempre antes de leer |
@@ -1784,7 +1779,7 @@ function QuestLog() constructor
    receta 13) alimentados desde structs.
 7. **Localización** — como los textos viven en JSON, tener `items_es.json` e
    `items_en.json` es casi gratis.
-8. **Autosave** — cada cambio de room, llama a `save_game()` en background.
+8. **Autosave** — cada cambio de room, llama a `rpg_guardar()` en background.
 
 **Cuándo pasar a otra receta:** cuando tu RPG tiene inventario, equipo,
 diálogos ramificados y save/load, tienes la base para el roguelike (receta 05)

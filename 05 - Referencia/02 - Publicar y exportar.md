@@ -505,16 +505,33 @@ Regla práctica: **VM durante el desarrollo**, **YYC para el build de release**.
 
 ### 4.4 Checklist previa a un build de release
 
-- [ ] **Nombre de producto/display** correcto en Game Options (ya no vale «Created in GameMaker»).
-- [ ] **Icono** y **splash** propios por plataforma.
-- [ ] **Versión** en formato `X.Y.Z.B`.
+- [ ] **Nombre de producto/display** correcto en Game Options (ya no vale «Created in GameMaker»)
+      — la propiedad real es `option_windows_display_name` en Windows, `option_windows_product_info`
+      para el nombre de producto; nombres equivalentes por plataforma en
+      [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado).
+- [ ] **Icono** y **splash** propios por plataforma — `option_windows_icon` en Windows (ruta a un
+      `.ico`, tabla completa por plataforma en [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado)).
+- [ ] **Versión** en formato `X.Y.Z.B`. ⚠️ Hay DOS campos de versión distintos, no uno: `option_version`
+      (Main Options, un entero plano — no es `X.Y.Z.B`) y `option_windows_version` (por plataforma, un
+      struct `{major, minor, revision, build}` — este sí lo es). Detalle y el hallazgo completo en
+      [13 · 11 §4.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/11%20-%20Producción,%20alcance%20y%20lanzamiento.md#43-numerar-las-versiones).
 - [ ] **Configuración Release** activa o pasada por `--config Release`.
 - [ ] Compilar con **`--runtime native`** (YYC).
 - [ ] Revisar el **descarte automático de assets**: si cargas algo por nombre en tiempo de
       ejecución, márcalo con `gml_pragma("MarkTagAsUsed", ...)`.
 - [ ] **Texture Groups** revisados (tamaño de páginas, mipmaps).
 - [ ] **Vsync** e **interpolación de color** según el resultado visual que busques.
+- [ ] **Sin `show_debug_message()` de depuración sobrante.** El patrón correcto (niveles de log
+      que se apagan solos en release) está en
+      [13 · 10 §7.2](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md);
+      revisa en concreto el código propio del proyecto, no solo el copiado de esta biblioteca —
+      `show_debug_message` aparece en decenas de recetas como ejemplo de depuración, no como algo
+      que deba sobrevivir al build final.
 - [ ] Probar el **build empaquetado**, no sólo el Run del IDE: es lo que se instala el jugador.
+- [ ] **Probar el instalador/paquete en una máquina que NUNCA tuvo GameMaker instalado** (una VM
+      limpia basta): DLLs y redistribuibles ausentes son el fallo clásico de un build de Windows
+      que «funciona en mi máquina» y falla en la del jugador — el Run del IDE y una máquina de
+      desarrollo perdonan dependencias que el instalador real no trae solo.
 - [ ] Comprobar el **tamaño del paquete** y los tiempos de carga (cómo medirlo y qué es
       razonable: §4.5).
 - [ ] Si publicas en GX.games: portada y capturas **16:9 exactos**, clasificación por edad y
@@ -522,6 +539,17 @@ Regla práctica: **VM durante el desarrollo**, **YYC para el build de release**.
 - [ ] Si distribuyes fuera de GX.games: el `.exe` de Windows y el `.app` de macOS van **firmados**
       (y el de macOS, además, **notarizado**) antes de llegar a un jugador —
       [05 · 05 §2 y §3](./05%20-%20Entregar%20el%20juego%20-%20firmar%2C%20notarizar%20y%20subir%20a%20las%20tiendas.md).
+
+> ⚠️ **Si `resourcetool options set/get/info` te devuelve `No licensed options for platform 'X'`,
+> no es tu licencia: es la red.** Bajo el *sandbox* del Bash de un agente, Igor no puede validar la
+> licencia y el mensaje que acaba viendo el agente es ese, que despista. Verificado el 08-09-2026:
+> con el sandbox desactivado el comando funciona y hasta valida las dimensiones del icono.
+> Si te pasa, comprueba `gm-cli login status` primero (puede ser la licencia, no un bug), y si
+> sigue sin funcionar, **usa el IDE**: la ventana de *Game Options* por plataforma edita los
+> mismos campos de esta lista directamente, y *Herramientas → Project Image Generator* rellena el
+> icono en todas las plataformas de una vez
+> ([07 · 24 §2.6](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#26-la-alternativa-desde-el-ide-project-image-generator)).
+> Nunca edites el `.yy` de las Game Options a mano (`AGENTS.md §4`).
 
 ### 4.5. Presupuesto de build: tamaño y arranque
 

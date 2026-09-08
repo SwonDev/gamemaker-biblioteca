@@ -27,7 +27,8 @@
 //   file_text_eof, file_text_close, file_exists, file_delete, file_rename,
 //   directory_exists, directory_create, is_struct, is_string, struct_exists,
 //   date_current_datetime, date_datetime_string, sha1_string_utf8, is_method,
-//   variable_global_exists, game_save_id
+//   variable_global_exists, game_save_id, screen_save_part, sprite_add,
+//   sprite_exists, sprite_delete
 //
 // Dependencias: ninguna obligatoria. Opcional: si tu juego define
 //   global.save_logger = function(_nivel, _texto) { registrar(_nivel, _texto); }
@@ -35,6 +36,17 @@
 // cierre), los fallos de guardado/carga quedan también en `partida.log`, no
 // solo en la consola de desarrollo. Sin ese hook, este script se comporta
 // exactamente como antes: solo `show_debug_message()`.
+//
+// METADATOS DE RANURA (§ "UX de ranura de guardado" — hueco B4b de
+// _indice/auditorias/r5-juego-completo.md, cerrado aquí). `save_game()` acepta
+// un tercer argumento OPCIONAL, `_meta`: un struct plano (zona, tiempo jugado,
+// porcentaje... lo que tu juego quiera mostrar en la pantalla de "elige
+// partida") que viaja en el propio sobre, al lado de `version`/`fecha`, y que
+// `save_get_meta()`/`save_list()` devuelven SIN cargar `datos` completo. La
+// miniatura es aparte, como archivo PNG: `save_thumbnail_capture()` la toma
+// con `screen_save_part()` en el momento de guardar, y `save_thumbnail_load()`
+// la recupera como sprite para la ficha de la ranura — ver 13 · 05, componente
+// n) Ranura de guardado (metadatos, miniatura y "guardando…").
 //
 // USO RAPIDO
 //   // Guardar
@@ -118,10 +130,43 @@ function save_backup_path(_slot, _n) {
 /// @function save_ensure_dir()
 /// @desc    Crea la carpeta de guardado si no existe. `game_save_id` suele
 ///          existir ya, pero en algunos targets puede no estar creada.
-/// @returns {Bool}  True si la carpeta existe o se pudo crear.
+///
+///          ⚠️ NO SE FÍA del resultado de `directory_exists()`/`directory_create()`:
+///          bajo `gm-cli run --target mac` (runtime GMS2 2026.0.0.23), ambas
+///          funciones pueden devolver `false` SIEMPRE, incluso sobre una
+///          carpeta que ya existe y tiene archivos dentro — mientras que
+///          escribir un fichero ahí con `file_text_open_write()` funciona sin
+///          ningún problema. Confiar en la rama `if` de arriba bloqueaba
+///          `save_game()` para siempre, en silencio, sin ningún error visible
+///          salvo una línea de log que hay que estar mirando a propósito.
+///          Verificado en vivo construyendo un juego completo de punta a
+///          punta: `_indice/auditorias/r5-prueba-e2e.md` §2, documentado como
+///          Trampa 6 en
+///          `12 - Utilidades e integraciones/09 - Manual del agente de IA...md`
+///          y en `01 · 14` §11. La corrección: en vez de devolver lo que digan
+///          esas dos funciones, se intenta escribir un fichero centinela de
+///          verdad — si la escritura funciona, la carpeta es utilizable, sin
+///          importar lo que hayan dicho `directory_exists()`/`directory_create()`.
+/// @returns {Bool}  True si la carpeta existe o se pudo crear (o ya es
+///                   utilizable aunque el sistema diga lo contrario).
 function save_ensure_dir() {
+    // Si el sistema SÍ confirma que existe, no hace falta nada más.
     if (directory_exists(game_save_id)) { return true; }
-    return directory_create(game_save_id);
+
+    // El sistema dice que no existe: puede ser cierto, o puede ser el bug de
+    // arriba. Intentamos crearla de todas formas (no cuesta nada si ya existe)...
+    directory_create(game_save_id);
+
+    // ...y comprobamos con una ESCRITURA REAL, no con otra llamada a
+    // directory_exists()/directory_create(): ambas pueden seguir devolviendo
+    // false aunque la carpeta ya sea perfectamente utilizable.
+    var _centinela = game_save_id + "__save_ensure_dir.tmp";
+    var _f = file_text_open_write(_centinela);
+    if (_f == -1) { return false; }   // esto sí es un fallo real: no se puede escribir ahí
+
+    file_text_close(_f);
+    file_delete(_centinela);
+    return true;
 }
 
 
@@ -197,14 +242,19 @@ function __save_envelope_checksum_ok(_sobre) {
 }
 
 
-/// @function save_game(_slot, _datos)
+/// @function save_game(_slot, _datos, _meta)
 /// @desc    Guarda un struct (o un array) como partida. Escritura segura, con
 ///          checksum de integridad y copia de seguridad rotativa del save
 ///          anterior antes de reemplazarlo.
 /// @param   {String}        _slot   Nombre del slot.
 /// @param   {Struct|Array}  _datos  Tus datos. Deben ser serializables a JSON.
+/// @param   {Struct}        _meta   OPCIONAL. Metadatos ligeros para pintar la
+///                                  ficha de la ranura sin cargar `_datos`
+///                                  entero: zona, tiempo jugado, porcentaje...
+///                                  lo que tu juego quiera mostrar. Se guarda
+///                                  tal cual, sin forma fija.
 /// @returns {Bool}                  True si se guardo correctamente.
-function save_game(_slot, _datos) {
+function save_game(_slot, _datos, _meta = undefined) {
     if (!is_struct(_datos) && !is_array(_datos)) {
         __save_log(SAVE_LOG_NIVEL_ERROR, "save_game: los datos deben ser un struct o un array.");
         return false;
@@ -226,6 +276,10 @@ function save_game(_slot, _datos) {
         checksum : sha1_string_utf8(_datos_json),
         datos    : _datos_json
     };
+    // `meta` viaja SIN envolver (no es texto JSON como `datos`): es pequeño y
+    // no necesita checksum propio — si el sobre entero pasa el checksum de
+    // `datos`, `meta` llegó en el mismo archivo íntegro.
+    if (is_struct(_meta)) { _sobre.meta = _meta; }
 
     var _ruta_final = save_get_path(_slot);
     var _ruta_temp  = __save_get_temp_path(_slot);
@@ -468,24 +522,94 @@ function load_game_recover(_slot, _validador = undefined) {
 
 
 /// @function save_get_meta(_slot)
-/// @desc    Devuelve solo los metadatos (versión y fecha) sin cargar los datos.
-///          Ideal para pintar la pantalla de "elige partida".
+/// @desc    Devuelve version, fecha y los metadatos opcionales de save_game()
+///          (zona, tiempo jugado, porcentaje...) SIN que el resto del juego
+///          tenga que leer `datos`. Ideal para pintar la pantalla de "elige
+///          partida" — ver 13 · 05, componente n) Ranura de guardado.
 /// @param   {String} _slot
-/// @returns {Struct|Undefined}  { versión, fecha } o `undefined`.
+/// @returns {Struct|Undefined}  { versión, fecha, meta } o `undefined`. `meta`
+///                              es `undefined` si el guardado no la trae (por
+///                              ejemplo, un guardado hecho antes de adoptar
+///                              este campo, o sin `_meta` en `save_game()`).
 function save_get_meta(_slot) {
     var _sobre = load_game_raw(_slot);
     if (!is_struct(_sobre)) { return undefined; }
 
     return {
         version : _sobre.version,
-        fecha   : struct_exists(_sobre, "fecha") ? _sobre.fecha : "desconocida"
+        fecha   : struct_exists(_sobre, "fecha") ? _sobre.fecha : "desconocida",
+        meta    : struct_exists(_sobre, "meta")  ? _sobre.meta  : undefined
     };
+}
+
+
+/// @function save_thumbnail_path(_slot)
+/// @desc    Ruta del archivo PNG de la miniatura de un slot. Uso interno, pero
+///          pública por si necesitas comprobarla tú mismo con `file_exists()`.
+/// @param   {String} _slot
+/// @returns {String}
+function save_thumbnail_path(_slot) {
+    return game_save_id + string(_slot) + "_miniatura.png";
+}
+
+
+/// @function save_thumbnail_capture(_slot, _x, _y, _w, _h)
+/// @desc    Captura un trozo de la pantalla actual y lo guarda como la miniatura
+///          de ese slot, con `screen_save_part()`. Llámala justo ANTES de
+///          `save_game()` (con el juego todavía dibujado, no con el menú de
+///          pausa ya encima): captura lo que se ve en ese instante, que es la
+///          miniatura útil para "elige partida".
+/// @param   {String} _slot
+/// @param   {Real}   _x  Esquina superior izquierda del recorte, en pantalla.
+/// @param   {Real}   _y
+/// @param   {Real}   _w  Ancho del recorte.
+/// @param   {Real}   _h  Alto del recorte.
+/// @returns {Bool}   True si se pudo escribir el archivo.
+function save_thumbnail_capture(_slot, _x, _y, _w, _h) {
+    if (!save_ensure_dir()) { return false; }
+    screen_save_part(save_thumbnail_path(_slot), _x, _y, _w, _h);
+    return file_exists(save_thumbnail_path(_slot));
+}
+
+
+/// @function save_thumbnail_load(_slot)
+/// @desc    Carga la miniatura de un slot como sprite, para dibujarla en la
+///          ficha de la ranura. ⚠️ El sprite que devuelve NO se libera solo:
+///          bórralo con `sprite_delete()` cuando dejes de necesitarlo (al
+///          cambiar de pantalla, o al recargar la lista) — si no, cada
+///          repintado de la lista de partidas deja una fuga de memoria.
+/// @param   {String} _slot
+/// @returns {Asset.GMSprite|Undefined}  El sprite, o `undefined` si esa ranura
+///                                      no tiene miniatura.
+function save_thumbnail_load(_slot) {
+    var _ruta = save_thumbnail_path(_slot);
+    if (!file_exists(_ruta)) { return undefined; }
+
+    var _spr = sprite_add(_ruta, 1, false, false, 0, 0);
+    if (!sprite_exists(_spr)) { return undefined; }
+
+    return _spr;
+}
+
+
+/// @function save_thumbnail_delete(_slot)
+/// @desc    Borra el archivo de miniatura de un slot, si existe. `delete_save()`
+///          ya la llama sola; solo hace falta a mano si quieres limpiar la
+///          miniatura sin borrar la partida.
+/// @param   {String} _slot
+/// @returns {Bool}  True si había algo que borrar.
+function save_thumbnail_delete(_slot) {
+    var _ruta = save_thumbnail_path(_slot);
+    if (!file_exists(_ruta)) { return false; }
+    file_delete(_ruta);
+    return true;
 }
 
 
 /// @function delete_save(_slot)
 /// @desc    Borra una partida. También limpia los temporales huérfanos que
-///          haya podido dejar un intento de guardado fallido.
+///          haya podido dejar un intento de guardado fallido, y la miniatura
+///          de la ranura si existe (save_thumbnail_capture()).
 ///          ⚠️ NO borra las copias de seguridad rotativas: quedan disponibles
 ///          para `load_game_recover()` aunque el slot principal se borre.
 /// @param   {String} _slot
@@ -503,6 +627,8 @@ function delete_save(_slot) {
     var _temp = __save_get_temp_path(_slot);
     if (file_exists(_temp)) { file_delete(_temp); }
 
+    save_thumbnail_delete(_slot);   // no hace nada si la ranura no tenía miniatura
+
     return _borrado;
 }
 
@@ -511,7 +637,7 @@ function delete_save(_slot) {
 /// @desc    Devuelve la información de varios slots de una vez, para pintar un
 ///          menu de seleccion de partida.
 /// @param   {Array<String>} _slots  Nombres de slot a consultar.
-/// @returns {Array<Struct>}         Array de { slot, existe, versión, fecha }.
+/// @returns {Array<Struct>}         Array de { slot, existe, versión, fecha, meta }.
 function save_list(_slots) {
     var _resultado = [];
 
@@ -526,7 +652,8 @@ function save_list(_slots) {
             slot    : _slot,
             existe  : save_exists(_slot),
             version : is_struct(_meta) ? _meta.version : -1,
-            fecha   : is_struct(_meta) ? _meta.fecha   : ""
+            fecha   : is_struct(_meta) ? _meta.fecha   : "",
+            meta    : is_struct(_meta) ? _meta.meta    : undefined
         });
     }
 

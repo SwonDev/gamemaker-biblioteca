@@ -960,7 +960,7 @@ Las extensiones oficiales móviles, con su estado y su última actualización, e
 | | Medido en un dispositivo de gama baja, no solo en el tuyo, y media hora seguida sin degradación por calor |
 | | Build de *release* en YYC si la licencia lo permite |
 | **Sistema** | Los permisos se piden cuando hacen falta, con explicación, y las tres respuestas se manejan |
-| | Icono adaptativo (Android) e iconos completos (iOS), y pantalla de carga en cada orientación soportada |
+| | Icono adaptativo (Android) e iconos completos (iOS) — receta completa y verificada por propiedad de `resourcetool` en [07 · 24 §2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#2--el-icono-del-ejecutable-por-plataforma) —, y pantalla de carga en cada orientación soportada |
 | | Target/Minimum/Build SDK al día con los requisitos vigentes de la tienda; ARM64 sí, lo que no uses fuera |
 | | Probada la build **firmada** por el canal de pruebas internas / TestFlight |
 

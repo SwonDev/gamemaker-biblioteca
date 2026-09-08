@@ -454,7 +454,10 @@ if (global.control.sala == room && global.control.orden >= orden) { exit; }
 
 global.control = { sala: room, px: x, py: y - 8, orden: orden };
 audio_play_sound(snd_checkpoint, 10, false);
-partida_guardar();            // ← scr_save_load
+// save_game()/scr_save_load.gml: guarda (junto con el resto de tu partida) el
+// checkpoint. Ejemplo reducido a un solo campo; en tu juego real _datos lleva
+// todo lo que ya construyes para save_game() (ver 04 · 54 §2.4).
+save_game("checkpoint", { control: global.control });
 
 /// obj_jugador — función de reaparición
 function reaparecer()
@@ -837,5 +840,5 @@ Consultadas el **6 de septiembre de 2026**.
 **Verificación** · Todos los símbolos de GML de este documento se comprobaron con `python3 "_indice/buscar.py"
 <símbolo>` contra el `GmlSpec.xml` del runtime **2026.0.0.23**. Las funciones de los ejemplos que **no** son del
 runtime —`medir_salto`, `nivel_leer`, `nivel_pintar`, `nivel_poblar`, `editor_guardar`, `comprobar_solido`,
-`reaparecer`, `recibir_dano`, `partida_guardar`, `senal_emitir`— son código de esta biblioteca. Los números del §3.11
+`reaparecer`, `recibir_dano`, `save_game`, `senal_emitir`— son código de esta biblioteca. Los números del §3.11
 salen de ejecutar la simulación de `medir_salto()` con las constantes de la receta 01, no de una estimación.

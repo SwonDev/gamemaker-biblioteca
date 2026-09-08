@@ -441,15 +441,43 @@ constante `GM_version` en tiempo de ejecución, y es también el formato que esp
 ```bash
 gm-cli resourcetool eval "options info platform=windows"   # ver las propiedades disponibles
 gm-cli resourcetool eval "options get  platform=windows"   # ver sus valores
-gm-cli resourcetool eval "options set  platform=windows property=<Version> value=1.0.0.42"
+gm-cli resourcetool eval "options set  platform=windows property=option_windows_version value=1.0.0.42"
 ```
 
-> ⚠️ **No verificado en esta sesión**: el nombre exacto de la propiedad `Version` en `OPTIONS SET`.
-> El CLI de este equipo respondió `No licensed options for platform 'windows'`, así que no se pudo
-> listar. Sí está verificada la firma del comando (`OPTIONS SET → PLATFORM / PROPERTY / VALUE`,
-> ver [07 · 13](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)).
-> Ejecuta `options info platform=windows` en tu proyecto para obtener el nombre real antes de
-> automatizarlo, y **no edites el `.yy` a mano** para cambiarlo.
+> ⚠️ **El nombre de la propiedad ya está cerrado — no es `Version`.** No hay ninguna propiedad
+> llamada `Version` a secas: leyendo los ficheros de esquema del propio toolchain instalado
+> (`ResourceTool@2026.0.17`, `Formats/225/BaseProject/options/`, la misma clase de fuente
+> primaria que ya usa `_indice/simbolos.json` con `GmlSpec.xml`) hay **dos** campos de versión
+> distintos: `option_version` (Main Options, un **entero plano**, p. ej. `100` — no sirve para
+> `X.Y.Z.B`) y `option_windows_version` (por plataforma, un **struct** `{ major, minor,
+> revision, build }` — este sí es el que corresponde a `X.Y.Z.B`). El icono y el nombre visible
+> tienen su propio nombre real también: `option_windows_icon` (ruta a `.ico`),
+> `option_windows_display_name` y `option_windows_product_info`. Detalle completo, con la
+> tabla de propiedades por plataforma leída del propio esquema, en
+> [07 · 24 §2.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado).
+>
+> ✅ **`resourcetool options set/get/info` funciona.** Salida real del 08-09-2026 en la máquina
+> de referencia, con un proyecto creado a partir de *Blank Pixel Game*:
+>
+> ```
+> Copied /tmp/ico_test.png -> ${options_dir}/mac/icons/1024.png for mac.icon_png
+> Saved successfully
+> ```
+>
+> El comando valida además las dimensiones: con un PNG de 512×512 responde
+> `Image ... dimensions (512 x 512) do not match the expected dimensions (1024 x 1024)`.
+>
+> ⚠️ **Si te devuelve `No licensed options for platform 'X'`, no es tu licencia: es la red.**
+> Bajo el *sandbox* del Bash de un agente, Igor no puede validar la licencia y falla con
+> `Failed to fetch license` (`FetchLicense exited with code 255`); el mensaje que acaba viendo el
+> agente es el engañoso `No licensed options`. Es el mismo problema de red que hace que
+> `resourcetool` se cuelgue, descrito en
+> [12 · 09](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md),
+> Trampa 1. Ejecuta esas llamadas **con el sandbox desactivado** y comprueba que el proyecto
+> tiene su carpeta `options/` (varias plantillas de la Marketplace no la traen). Si aun así falla,
+> queda el IDE — *Game Options* por plataforma, o
+> *Herramientas → Project Image Generator* para el icono (`07 · 24 §2.6`) — editando los mismos
+> campos que aquí se documentan, nunca el `.yy` a mano (`AGENTS.md §4`).
 
 ### 4.4 El sello de versión dentro del juego
 
@@ -536,11 +564,12 @@ el jugador lo pegue en tu Discord.
 El manejador de arriba le dice a un archivo qué pasó, pero al jugador no le dice nada: el juego
 simplemente desaparece. Tres añadidos lo arreglan sin saltarse ninguna de las tres restricciones
 del manual (nada de render, no hay forma de seguir jugando, y solo la E/S de archivo —y los
-diálogos del propio sistema operativo— son seguros aquí dentro):
+diálogos del propio sistema operativo— son seguros aquí dentro). **Este bloque REEMPLAZA al de
+§4.5** — mismo nombre, no lo declares dos veces (GameMaker no lo permite):
 
 ```gml
 /// @func caidas_instalar_manejador()
-/// @desc Versión ampliada de la de arriba: además del informe, avisa al jugador
+/// @desc Versión ampliada de la de §4.5: además del informe, avisa al jugador
 ///       en su idioma, intenta un autoguardado de emergencia y le dice dónde
 ///       quedó el log.
 function caidas_instalar_manejador() {
@@ -685,9 +714,15 @@ kilómetro que es provisional, así que nunca se cuela en la build final.
 - **Nombre definitivo desde el principio**: `spr_player_idle` con un cuadrado dentro. Sustituir el
   contenido de un sprite existente no toca el código.
 - **Los placeholders se listan en `PLACEHOLDERS.md`**, que se vacía durante la beta. Lo que no está
-  en la lista es lo que aparece en la captura de prensa.
+  en la lista es lo que aparece en la captura de prensa. **La lista cubre arte y audio por igual**:
+  un `snd_jugador_muerte` sintetizado con las funciones de
+  [13 · 09 §8 bis](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md#8-bis--un-agente-sin-archivo-de-audio-la-escalera-de-prioridad)
+  es un placeholder tanto como un sprite provisional, y entra en la misma tabla.
 - Para prototipar rápido, los *Asset Bundles* oficiales y Kenney.nl son la vía más corta: catálogo
-  en [07 · 09](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gr%C3%A1ficos.md).
+  en [07 · 09](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gr%C3%A1ficos.md). Si
+  ningún pack encaja y hace falta dibujar algo con criterio, la escalera completa —sin caer en el
+  rectángulo de color como sprite final— está en
+  [12 · 09 §5.2](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano).
 
 **Comprar o encargar.** Antes del dinero, la licencia: la tabla completa y la práctica del
 `CREDITS.md` están en
@@ -761,6 +796,9 @@ más que cualquier plan: *no retrases la página esperando el momento perfecto*.
   lo que más convierte. Que empiece con gameplay en los tres primeros segundos.
 - **Los GIFs son el formato de las redes** y salen gratis de tus builds quincenales. Grábalos desde
   la build, no desde el IDE.
+- **Cómo llenar estos tamaños sin artista**, la cover de itch.io y el icono del ejecutable por
+  plataforma (Windows/macOS/Android/iOS), con la escalera de prioridad completa y comandos
+  probados: [07 · 24 §2-3](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md).
 
 ### 6.3 Las wishlists como métrica
 

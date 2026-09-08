@@ -6,11 +6,12 @@
 > OpenGameArt, Freesound, Tiled→GameMaker, paletas, fuentes…), con licencias verificadas y qué
 > formato bajar. Este README cubre solo los **scripts GML**.
 
-> Once scripts `.gml` listos para importar en cualquier proyecto de **GameMaker LTS 2026**.
-> Generado en **agosto de 2026** (`scr_audio.gml` y `scr_tiempo.gml`, en **septiembre de 2026**)
-> · Verificado contra el manual oficial con `gm-cli manual read`.
+> Doce scripts `.gml` listos para importar en cualquier proyecto de **GameMaker LTS 2026**.
+> Generado en **agosto de 2026** (`scr_audio.gml` y `scr_tiempo.gml`, en **septiembre de 2026**;
+> `scr_ui_confirmar.gml`, el 8 de septiembre de 2026) · Verificado contra el manual oficial con
+> `gm-cli manual read`.
 >
-> ✅ **Compilación verificada (2026-09-06):** los once scripts se compilaron juntos en un
+> ✅ **Compilación verificada (2026-09-08):** los doce scripts se compilaron juntos en un
 > proyecto real con `gm-cli compile` contra el runtime **2026.0.0.23** — cero errores de GML.
 > La prueba es reproducible: `bash _indice/validar-compilacion.sh` (crea el proyecto en
 > `~/gm_prueba_scripts`, mete los scripts, compila y borra el proyecto al terminar; sale con 0
@@ -65,6 +66,7 @@ Lo segundo es más limpio.
 | [`scr_debug.gml`](./scr_debug.gml) | Panel de depuración: variables en vivo, log, gráfica de FPS y medición de tiempos | ninguna | ⭐ Desarrollo |
 | [`scr_audio.gml`](./scr_audio.gml) | Gestor de audio: buses y emisores por categoría, mezcla con ducking, banco de tomas con round robin, cupo de voces con fundido, anillo de emisores posicionales y crossfade de música/ambiente | ninguna | ⭐ Esencial |
 | [`scr_tiempo.gml`](./scr_tiempo.gml) | `Cooldown` para habilidades, `Temporizador` independiente del framerate y un reloj de juego con escala de tiempo | ninguna | ⭐ Esencial |
+| [`scr_ui_confirmar.gml`](./scr_ui_confirmar.gml) | Diálogo de confirmación (Sí/No) genérico, con «No» siempre por defecto — sin `show_question()` | ninguna | ⭐ Esencial |
 
 ---
 
@@ -187,7 +189,8 @@ tween_to(obj_menu, { image_alpha: 0 }, 0.3, ease_in_quad, function() {
 
 **Incluye:** `save_game`, `load_game`, `load_game_safe`, `load_game_recover`, `load_game_raw`,
 `save_exists`, `save_get_meta`, `save_list`, `save_backup`, `save_backup_path`, `delete_save`,
-`save_export_string`, `save_import_string`.
+`save_export_string`, `save_import_string`, `save_thumbnail_path`, `save_thumbnail_capture`,
+`save_thumbnail_load`, `save_thumbnail_delete`.
 
 ```gml
 // Guardar
@@ -220,6 +223,48 @@ var _datos_recuperados = load_game_recover("slot1");
 > `registrar()` de
 > [`13 · 10 §7.2`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#72-un-log-con-niveles-que-sobrevive-al-cierre).
 > Sin ese hook, el script se comporta exactamente igual que antes.
+
+> 💡 **Metadatos de ranura y miniatura (septiembre 2026).** `save_game()` acepta un tercer
+> argumento opcional, `_meta` — un struct libre (zona, tiempo jugado, porcentaje…) que
+> `save_get_meta()`/`save_list()` devuelven sin cargar `datos` completo. Las cuatro funciones
+> `save_thumbnail_*` capturan y recuperan una miniatura PNG por slot con `screen_save_part()`.
+> Es la pieza que faltaba para pintar una pantalla de «elige partida» de verdad — receta
+> completa (ficha de ranura, indicador de «guardando…», confirmación al sobrescribir) en
+> [`13 · 05`, componente n)](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#n-ranura-de-guardado-metadatos-miniatura-y-guardando).
+
+---
+
+### `scr_ui_confirmar.gml` — Confirmación (Sí/No) reutilizable
+
+**Incluye:** `confirmar_configurar_textos`, `confirmar_abrir`, `confirmar_activo`,
+`confirmar_step`, `confirmar_dibujar`.
+
+```gml
+// Una vez, al arrancar (después de cargar la localización)
+confirmar_configurar_textos(txt("comun_si"), txt("comun_no"));
+
+// Step / Draw GUI de un objeto persistente
+confirmar_step();
+confirmar_dibujar();
+
+// Donde haga falta confirmar algo destructivo
+confirmar_abrir(txt("pausa_confirmar_salir"),
+    function() { room_goto(rm_menu_principal); },   // "Sí"
+    undefined);                                      // "No": solo cierra
+```
+
+Widget de confirmación genérico — «No» siempre empieza con el foco — para CUALQUIER acción
+destructiva: salir, sobrescribir una ranura de guardado, borrar una partida, restablecer
+ajustes. Generaliza el patrón de un solo uso que ya traía
+[`04 · 41` §3.4.4](../04%20-%20Recetas%20por%20género/41%20-%20Transiciones%2C%20carga%20y%20pausa.md#344-seguro-que-quieres-salir--con-no-por-defecto-sin-show_question),
+que la propia receta señalaba como «todavía sin generalizar». **No usa `show_question()`**:
+bloquea el juego y se ignora fuera de Windows salvo en modo debug. Detalle completo, componente
+m), en [`13 · 05`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#m-confirmación-síno-con-no-por-defecto).
+
+> 💡 Este script **no llama a `txt()` directamente** (si tu proyecto no la define, ni
+> compilaría): fija los rótulos una vez con `confirmar_configurar_textos()`, igual que
+> `iniciar_audio()` u otros sistemas globales de
+> [`04 · 00` §1](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md#1--los-sistemas-globales--se-montan-primero).
 
 ---
 
@@ -553,6 +598,21 @@ positivos del extractor.
 **Sobre `c_aqua`, `c_dkgray` y `pi`:** la búsqueda del CLI no las indexa por nombre, pero están
 confirmadas en las tablas de constantes del manual (`gm-cli manual read "Colour Constants"` y
 `gm-cli manual read "Maths"`).
+
+### Ampliación (8 de septiembre de 2026): `scr_ui_confirmar.gml` y metadatos de `scr_save_load.gml`
+
+Mismos pasos, con los **doce** scripts juntos en un proyecto nuevo (hueco A11/B4b de
+`_indice/auditorias/r5-juego-completo.md`):
+
+| Prueba | Comando | Resultado |
+|---|---|---|
+| Todos los símbolos de GML nuevos (`scr_ui_confirmar.gml` y el `_meta`/miniatura de `scr_save_load.gml`) | `python3 "_indice/buscar.py" <símbolo>`, uno a uno | ✅ Todos existen en el runtime |
+| El código nuevo no inventa funciones ni usa identificadores con tilde/eñe | `python3 _indice/validar-codigo-gml.py` | ✅ 0 funciones inventadas · 0 identificadores no ASCII |
+| Proyecto de prueba creado en `~/gm_prueba_scripts` | `bash _indice/validar-compilacion.sh` (lista de scripts ampliada con `scr_ui_confirmar`) | ✅ Creado y borrado al terminar |
+| Los 12 scripts importados como recursos | mismo script, un `RESOURCE CREATE TYPE=script` por archivo | ✅ 12/12 creados |
+| Compilación con `gm-cli compile` contra `GMS2@2026.0.0.23` | `bash _indice/validar-compilacion.sh` | ✅ "Los 12 scripts reutilizables compilan sin errores" |
+| Todos los bloques ```gml de los documentos que citan estos scripts (04 · 00, 04 · 41, 04 · 57, 13 · 05) | `python3 _indice/validar-compilacion-docs.py` | ✅ 3364/3364 bloques compilan |
+| Enlaces internos nuevos (README, 04 · 57, 13 · 05, 04 · 00, 04 · 41) | `python3 _indice/verificar-enlaces.py` | ✅ 0 rutas rotas · 0 anclas rotas |
 
 ### ⚠️ Lo que NO he podido probar
 

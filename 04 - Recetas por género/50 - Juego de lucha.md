@@ -869,7 +869,7 @@ al llegar al fotograma activo:
 // ---------------------------------------------------------------------------
 
 #macro AGARRE_ARRANQUE      5
-#macro AGARRE_RADIO         18
+#macro LUCHA_AGARRE_RADIO         18
 #macro AGARRE_VENTANA_TECH  10   // fotogramas para escapar tras conectar
 #macro AGARRE_DANO          12
 #macro AGARRE_HITSTUN       28   // si NO se escapa
@@ -892,7 +892,7 @@ function agarre_intentar(_atacante)
         var _signo = sign(image_xscale);
         if (_signo == 0) _signo = 1;
 
-        var _obj = instance_place(x + AGARRE_RADIO * _signo, y, obj_enemigo);
+        var _obj = instance_place(x + LUCHA_AGARRE_RADIO * _signo, y, obj_enemigo);
         if (_obj == noone) return false;
         if (_obj.agarrado_por != noone || _obj.agarrando_a != noone) return false;
         if (_obj.combate.iframes > 0) return false;   // invulnerable: el agarre falla
@@ -978,7 +978,7 @@ function agarre_aereo_intentar(_atacante)
         var _signo = sign(image_xscale);
         if (_signo == 0) _signo = 1;
 
-        var _obj = instance_place(x + AGARRE_RADIO * _signo, y, obj_enemigo);
+        var _obj = instance_place(x + LUCHA_AGARRE_RADIO * _signo, y, obj_enemigo);
         if (_obj == noone || _obj.en_el_suelo) return false;
         if (_obj.agarrado_por != noone) return false;
 
@@ -1502,8 +1502,10 @@ que se cita la página que sí se pudo leer):
 - `array_push`, `array_shift`, `array_length`, `array_contains`, `variable_clone` — Manual
   oficial, `09 - Manual oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Variable_Functions/`.
 - `variable_struct_exists`, `variable_instance_exists`, `is_undefined` — ídem.
-- `collision_rectangle_list`, `instance_place`, `point_distance`, `point_direction` —
-  ya verificadas y citadas en `04 · 30` §9; reutilizadas aquí sin cambiar de firma.
+- `collision_rectangle_list` — ya verificada y citada en `04 · 30` §9; reutilizada aquí sin
+  cambiar de firma. `instance_place` (no `instance_place_list`, que es la que cita `04 · 30`
+  §9) y `point_distance`/`point_direction` son funciones estándar del runtime, verificadas
+  aparte con `buscar.py`.
 - **Structs y arrays son por referencia** —
   [`01 · 04 — Structs y constructores`](../01%20-%20Fundamentos/04%20-%20Structs%20y%20constructores%20%28POO%20en%20GML%29.md)
   §"Structs vs instancias", base técnica de la §3.8.1 de este documento.

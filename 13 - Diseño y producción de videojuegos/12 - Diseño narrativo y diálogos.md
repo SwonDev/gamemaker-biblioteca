@@ -1166,9 +1166,19 @@ function flag_una_vez(_nombre)
 **Guardar y cargar.** El struct es plano: cabe entero en la partida sin conversión, con el
 `save_game` / `load_game` de [`scr_save_load`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml).
 
+> ⚠️ **Nombradas `narrativa_*`, no `partida_*`.** `13 · 06` (Arquitectura) ya define
+> `partida_cargar(_slot)` como el patrón genérico de CUALQUIER proyecto: carga + migra el
+> esquema y **devuelve el struct** para que el llamador decida qué hacer con él. La de aquí es
+> distinta a propósito — específica de narrativa, **aplica** el estado ella misma (flags y
+> misiones) y devuelve `Bool` — así que lleva un nombre distinto para no declarar dos funciones
+> con el mismo nombre y contratos incompatibles en el mismo proyecto. Si usas ambas a la vez,
+> encadénalas: `narrativa_cargar()` puede llamar a `partida_migrar()` de `13 · 06` antes de leer
+> `_d`, o directamente sustituir su `load_game(_slot)` por `partida_cargar(_slot)` si tu proyecto
+> ya sigue esa arquitectura.
+
 ```gml
 /// guardar: los flags van dentro del struct de la partida, tal cual
-function partida_guardar(_slot)
+function narrativa_guardar(_slot)
 {
     return save_game(_slot, {
         flags:      global.flags,                 // struct plano: se serializa solo
@@ -1179,7 +1189,7 @@ function partida_guardar(_slot)
 }
 
 /// cargar: y el detalle que evita el 90 % de los crashes al cargar partidas viejas
-function partida_cargar(_slot)
+function narrativa_cargar(_slot)
 {
     var _d = load_game(_slot);
     if (!is_struct(_d)) return false;
@@ -2400,7 +2410,7 @@ Todos los símbolos de GML de este documento se comprobaron con
 `python3 "_indice/buscar.py" <símbolo>` contra el `GmlSpec.xml` del runtime **2026.0.0.23**.
 Las funciones y constructores de los ejemplos que **no** son del runtime —`flag_leer`,
 `flag_poner`, `flag_sumar`, `flag_una_vez`, `flags_iniciar`, `guion_cargar`, `nombre_generar`,
-`subtitulo_duracion`, `dialogo_empezar`, `bark_mostrar`, `partida_guardar`, `partida_cargar`,
+`subtitulo_duracion`, `dialogo_empezar`, `bark_mostrar`, `narrativa_guardar`, `narrativa_cargar`,
 `mostrar_aviso_salto`, `inventario_anadir`, `txt`, `senal_emitir`, `save_game`, `load_game`,
 `MisionesDeserializar`, `time_is_frozen`, y los constructores `Linea`, `Opcion`, `Nodo`, `Guion`,
 `BancoBarks`, `Misiones`, `Cinematica`, `PasoEsperar`, `PasoDialogo`, `PasoFlag`,

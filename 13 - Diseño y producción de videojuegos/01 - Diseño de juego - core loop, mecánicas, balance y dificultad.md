@@ -913,10 +913,17 @@ nada.
 
 ### 9.2 · `scr_config` — las constantes
 
+> Subconjunto ilustrativo — el script real de tu proyecto es UNO SOLO con todas las constantes
+> juntas (patrón completo en
+> [`13 · 06` §3.12](<06 - Arquitectura de un proyecto GameMaker.md#312-macros-enums-y-configs-del-ide>)).
+> El macro de tamaño de tile se llama `TAMANO_TILE` aquí para no chocar con el `TILE` que ya
+> declara [`13 · 13` §7.1](<13 - Matemáticas aplicadas al juego.md#71--mundo--celda--mundo>)
+> (mismo valor, 16 px): en tu `scr_config` real, uno solo de los dos nombres, no los dos.
+
 ```gml
 /// scr_config — constantes de diseño. NO se tocan en caliente: si cambian, se recompila.
 #macro JUEGO_FPS             60
-#macro TILE                  16
+#macro TAMANO_TILE           16
 #macro BALANCE_ARCHIVO       "balance.json"
 #macro BALANCE_VERSION       "1.4.0"
 #macro TELEMETRIA_ARCHIVO    "telemetria.json"

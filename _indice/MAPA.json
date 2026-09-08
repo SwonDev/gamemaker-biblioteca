@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 251 documentos con su título",
+    "_indice/documentos.json": "los 254 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -679,11 +679,15 @@
           "titulo": "56 · Combate no letal — pacifismo, aturdir, huir y negociar"
         },
         {
+          "ruta": "04 - Recetas por género/57 - Selección de nivel y capítulo.md",
+          "titulo": "57 · Selección de nivel y capítulo"
+        },
+        {
           "ruta": "04 - Recetas por género/_INDICE-RECETAS.md",
           "titulo": "Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)"
         }
       ],
-      "n_documentos": 58
+      "n_documentos": 59
     },
     {
       "titulo": "Referencia rápida",
@@ -781,9 +785,13 @@
         {
           "ruta": "06 - Assets y Scripts/scr_tween.gml",
           "titulo": "scr_tween — Sistema de tweens (interpolaciones animadas) con structs, dirigido"
+        },
+        {
+          "ruta": "06 - Assets y Scripts/scr_ui_confirmar.gml",
+          "titulo": "scr_ui_confirmar — Diálogo de confirmación genérico (Sí/No), con «No» siempre por defecto"
         }
       ],
-      "n_documentos": 12
+      "n_documentos": 13
     },
     {
       "titulo": "El ecosistema alrededor del motor",
@@ -890,11 +898,15 @@
           "titulo": "23 · Arte generado por IA (pixel art y assets 2D)"
         },
         {
+          "ruta": "07 - Ecosistema/24 - Logotipo, icono del ejecutable y capsule de tienda.md",
+          "titulo": "24 · Logotipo, icono del ejecutable y capsule de tienda"
+        },
+        {
           "ruta": "07 - Ecosistema/_INDICE-ECOSISTEMA.md",
           "titulo": "Índice del ecosistema GameMaker"
         }
       ],
-      "n_documentos": 24
+      "n_documentos": 25
     },
     {
       "titulo": "Referencia técnica de GML en español + la API completa",
@@ -1349,11 +1361,15 @@
           "titulo": "27 · Formatos de producción especiales"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md",
+          "titulo": "28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 28
+      "n_documentos": 29
     }
   ],
   "puntos_de_entrada": {
@@ -1396,7 +1412,7 @@
       "no_usar_para": []
     }
   },
-  "total_documentos": 251,
+  "total_documentos": 254,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

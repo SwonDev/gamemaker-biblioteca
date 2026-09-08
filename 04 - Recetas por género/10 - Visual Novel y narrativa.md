@@ -161,6 +161,40 @@ El retrato muestra quién habla y su emoción. Implementación:
   ligeramente menor, o tono gris).
 - Transición de entrada/salida con un tween corto (8-12 frames).
 
+### 4.3 bis Retrato sin artista: de dónde sale el busto
+
+§4.3 y §5.5 cubren cómo se **muestra** y se **cambia** un retrato; lo que falta es de dónde sale
+la imagen en sí cuando no hay artista. Tres vías, en orden de coste:
+
+1. **Recorta un sprite de cuerpo entero que ya generaste con la escalera de
+   [12 · 09 §5.2](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano)**,
+   reencuadrado a busto (cabeza + hombros) y escalado al tamaño del panel de diálogo. Es gratis
+   si el personaje ya existe como sprite jugable o de enemigo, y mantiene la coherencia de paleta
+   con el resto del juego.
+2. **Busca un retrato genérico en los mismos bancos de
+   [07 · 09](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gráficos.md)** —
+   varios packs de personajes de itch.io y OpenGameArt incluyen bustos de diálogo pensados para
+   novela visual, con la licencia ya comprobada en ese documento.
+3. **IA generativa, y aquí sí como candidata seria, no solo de referencia**: el propio
+   [`07 · 23` §1](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#1--qué-sirve-hoy-de-verdad)
+   señala «retratos puntuales sin animar» como uno de los usos que sí funcionan hoy — una sola
+   imagen por personaje, sin la exigencia de consistencia entre 40 fotogramas que rompe la IA en
+   un ciclo de animación. Comando verificado en esta sesión, el mismo patrón que
+   [`07 · 24` §1.2](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#12-receta-codex-exec--gpt-image-2):
+
+   ```bash
+   codex exec -C <dir_proyecto> --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \
+     -o <scratch>/codex_last.txt \
+     "Usa tu herramienta de generación de imágenes (gpt-image-2) para crear el retrato de busto
+      de '<personaje>': <descripción física, ropa, expresión>, estilo coherente con <estilo del
+      juego>, fondo transparente o neutro, sin texto. Genera 2-3 expresiones distintas (neutral,
+      feliz, enfadado). Guarda los PNG en <ruta>. Al terminar lista las rutas."
+   ```
+
+   Si el retrato va a redibujarse a mano después, es referencia (`07 · 23` §5, fila «Hoja de
+   referencia»); si va a shippear tal cual, **decláralo** igual que cualquier otra pieza de IA
+   generativa (`07 · 23` §4.2-§4.3) y pasa el checklist de `07 · 23` §6 antes de darlo por bueno.
+
 ### 4.4 Elecciones ramificadas
 
 Una elección tiene: texto, destino y **condición opcional**. Las condiciones

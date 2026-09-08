@@ -149,7 +149,8 @@ if (tecla_pulsada) {
 }
 ```
 
-Y a partir de ahí, todo juicio la descuenta:
+Y a partir de ahí, todo juicio la descuenta — **este bloque REEMPLAZA al `conductor_error()` de
+§2**, mismo nombre, no lo declares dos veces:
 
 ```gml
 function conductor_error() {

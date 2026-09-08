@@ -335,6 +335,20 @@ function GestorFichas(_objetivo, _capacidad_rejilla, _capacidad_ataque,
 
 ### Uso: un enemigo completo pasando por las tres fases
 
+Antes de que un solo `obj_embestidor` llegue a su Step necesitas el gestor **instanciado**: es
+un struct por objetivo (uno por jugador), no una función global suelta.
+
+```gml
+/// obj_jugador · Create (o donde inicialices la partida — UNA vez, no por enemigo)
+global.gestor_jugador = new GestorFichas(id, /*capacidad_rejilla*/ 4, /*capacidad_ataque*/ 2,
+                                          /*radio_aproximacion*/ 64, /*radio_ataque*/ 48);
+```
+
+> 🔺 Sin esta línea, `global.gestor_jugador.solicitar_acercarse(...)` en el Step de abajo lanza
+> "variable global name 'gestor_jugador' index (…) not set before reading it" en cuanto el
+> primer `obj_embestidor` llega a su Step — confirmado en ejecución real. El mismo patrón que
+> `global.feel` en [`04 · 15` §5.0](./15%20-%20Game%20feel%20y%20juice.md#50-sistema-de-tiempo-hit-stop-y-time-scale).
+
 ```gml
 /// obj_embestidor · Create
 arquetipo    = global.arquetipos.embestidor;

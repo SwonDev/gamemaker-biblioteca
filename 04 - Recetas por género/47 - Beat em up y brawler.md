@@ -367,7 +367,7 @@ lanzamiento que usa el eje Z falso de `04 · 46` para el arco.
 // scr_brawler_agarres
 // ---------------------------------------------------------------------------
 
-#macro AGARRE_RADIO       20
+#macro BRAWLER_AGARRE_RADIO       20
 #macro AGARRE_GOLPES_MAX  3      // cuántos golpes gratis se pueden dar agarrado antes de soltar
 
 /// obj_entidad_beatemup — Create (variables de agarre, en todas las entidades)
@@ -380,8 +380,8 @@ agarre_golpes = 0;
 /// obj_jugador — Step, al pulsar el botón de agarre
 if (keyboard_check_pressed(vk_control) && agarrando_a == noone && agarrado_por == noone)
 {
-    var _obj = instance_place(x + lengthdir_x(AGARRE_RADIO, image_angle),
-                               y + lengthdir_y(AGARRE_RADIO, image_angle),
+    var _obj = instance_place(x + lengthdir_x(BRAWLER_AGARRE_RADIO, image_angle),
+                               y + lengthdir_y(BRAWLER_AGARRE_RADIO, image_angle),
                                obj_enemigo);
 
     if (_obj != noone && _obj.agarrado_por == noone && _obj.z <= 4)   // no se agarra en el aire
@@ -540,6 +540,13 @@ estado_ficha = "retirandose";
 objetivo, y cada enemigo elige con `instance_nearest` a qué jugador acosar antes de pedir su
 ranura al gestor correspondiente. No hace falta ningún sistema nuevo — solo dos instancias del
 mismo constructor.
+
+⚠️ **Nombra el gestor de un solo jugador `global.gestor_p1`, no `global.gestor_jugador`, en
+cuanto el nivel sea cooperativo.** El bloque de `obj_control_nivel · Create` de más arriba usa
+`global.gestor_jugador` porque ahí solo hay un jugador; en un nivel de dos, cambia esa línea por
+`global.gestor_p1 = new GestorFichas(global.jugador_1, …)` (mismos argumentos) para que exista
+antes de que el primer enemigo pida su gestor abajo — `global.gestor_p2` ya se crea aparte, al
+unirse el segundo jugador (§8.4).
 
 ```gml
 /// obj_enemigo — Create, en un nivel cooperativo

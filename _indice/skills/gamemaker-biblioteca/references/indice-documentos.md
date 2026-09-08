@@ -183,6 +183,7 @@ Qué cambió en LTS 2026 y qué rompe el código antiguo. Handles, GMRT, UI Laye
 - `04 - Recetas por género/54 - Metajuego transversal - logros, galería, speedrun y espectador.md` — 54 · Metajuego transversal — logros, galería, speedrun y espectador
 - `04 - Recetas por género/55 - Party games, minijuegos y creación casual.md` — 55 · Party games, minijuegos y creación casual
 - `04 - Recetas por género/56 - Combate no letal - pacifismo, aturdir, huir y negociar.md` — 56 · Combate no letal — pacifismo, aturdir, huir y negociar
+- `04 - Recetas por género/57 - Selección de nivel y capítulo.md` — 57 · Selección de nivel y capítulo
 - `04 - Recetas por género/_INDICE-RECETAS.md` — Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)
 
 
@@ -220,6 +221,7 @@ Tutoriales oficiales catalogados, publicación y exportación, glosario A-Z y co
 - `06 - Assets y Scripts/scr_state_machine.gml` — scr_state_machine — Máquina de estados finitos (FSM) implementada con structs, SIN objetos
 - `06 - Assets y Scripts/scr_tiempo.gml` — scr_tiempo — Tres piezas de tiempo que se reescriben en cada receta: un `Cooldown`
 - `06 - Assets y Scripts/scr_tween.gml` — scr_tween — Sistema de tweens (interpolaciones animadas) con structs, dirigido
+- `06 - Assets y Scripts/scr_ui_confirmar.gml` — scr_ui_confirmar — Diálogo de confirmación genérico (Sí/No), con «No» siempre por defecto
 
 
 ## `07 - Ecosistema` — El ecosistema alrededor del motor
@@ -251,6 +253,7 @@ GitHub de YoYoGames, librerías, extensiones, proyectos de ejemplo, foro, itch.i
 - `07 - Ecosistema/21 - Vinyl - audio avanzado (guía en español).md` — 21 · Vinyl — audio avanzado (guía en español)
 - `07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md` — 22 · Crear una extensión nativa (guía en español)
 - `07 - Ecosistema/23 - Arte generado por IA (pixel art y assets 2D).md` — 23 · Arte generado por IA (pixel art y assets 2D)
+- `07 - Ecosistema/24 - Logotipo, icono del ejecutable y capsule de tienda.md` — 24 · Logotipo, icono del ejecutable y capsule de tienda
 - `07 - Ecosistema/_INDICE-ECOSISTEMA.md` — Índice del ecosistema GameMaker
 
 
@@ -390,4 +393,5 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/25 - Legal de terceros - marcas, fan games y parodia.md` — 25 · Legal de terceros: marcas, fan games y parodia
 - `13 - Diseño y producción de videojuegos/26 - Comunidad propia - Discord, moderación y gestión de crisis.md` — 26 · Comunidad propia: Discord, moderación y gestión de crisis
 - `13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md` — 27 · Formatos de producción especiales
+- `13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md` — 28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice

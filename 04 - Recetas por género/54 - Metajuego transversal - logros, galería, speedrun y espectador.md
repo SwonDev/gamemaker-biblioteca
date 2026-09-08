@@ -672,12 +672,32 @@ cliente que **nunca envía input**, solo recibe *snapshots* e interpola exactame
 
 El `enum NetMsg` de `04 · 14` §5.0 ya se amplió una vez en §10.1 con los mensajes de sala (hasta
 `room_kicked = 65`). Se amplía otra vez aquí, con el mismo criterio que dice esa sección — "los
-números de mensaje comparten un solo espacio", así que es el mismo enum, no uno nuevo:
+números de mensaje comparten un solo espacio", así que es el mismo enum, no uno nuevo: GameMaker
+no permite declarar `enum NetMsg` una tercera vez, así que este bloque **reemplaza** al de
+`04 · 14` §10.1, no lo añade:
 
 ```gml
-// Amplía el enum NetMsg de 04 · 14 §5.0 (ya extendido en §10.1 hasta 65).
+// enum NetMsg completo — REEMPLAZA al de 04 · 14 §10.1, no lo declares dos veces.
 enum NetMsg
 {
+    // --- de 04 · 14 §5.0 -----------------------------------------------------
+    ping            = 1,
+    pong            = 2,
+    client_input    = 10,
+    server_snapshot = 20,
+    spawn_entity    = 30,
+    kill_entity     = 31,
+    chat            = 40,
+    client_hello    = 50,
+    server_welcome  = 51,
+    // --- de 04 · 14 §10.1: gestión de salas -----------------------------------
+    room_create        = 60,
+    room_list_request  = 61,
+    room_list          = 62,
+    room_join          = 63,
+    room_join_denied   = 64,
+    room_kicked        = 65,
+    // --- nuevo aquí ------------------------------------------------------------
     spectator_join = 66   // cliente -> servidor: quiero VER la sala, no jugar en ella
 }
 ```

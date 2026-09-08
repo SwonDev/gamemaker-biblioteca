@@ -1269,7 +1269,10 @@ puerta cerrada con un macro de configuración:
 ```gml
 // ═══════════ scr_modo_qa ═══════════
 #macro MODO_QA          true      // desarrollo
-#macro MODO_QA_Release  false     // el build de tienda
+#macro Release:MODO_QA  false     // sintaxis de macro por CONFIGURACIÓN (13 · 06 §3.12):
+                                   // "Release" es el nombre de la Config, no un macro nuevo.
+                                   // #macro MODO_QA_Release (con guion bajo) NO haría nada:
+                                   // sería un macro suelto sin relación con MODO_QA.
 
 /// @desc Atajos de QA. Llámalo desde el Step del controlador. En Release no compila nada.
 function modo_qa_paso()
@@ -1502,7 +1505,7 @@ consola_registrar("nivel", function(_args)
 
 ```gml
 // ═══════════ obj_consola — Step ═══════════
-if (!MODO_QA) { exit; }   // en Release, MODO_QA_Release es false: el compilador borra todo esto
+if (!MODO_QA) { exit; }   // en Release, Release:MODO_QA vale false: el compilador borra todo esto
 
 if (keyboard_check_pressed(TECLA_CONSOLA))
 {
@@ -1623,12 +1626,9 @@ el jugador se mueva por debajo — si no quieres eso, comprueba `obj_consola.abi
 
 #### Cómo se desactiva en la build de release, para que no sea un agujero
 
-La consola entera cuelga de `MODO_QA`, el mismo macro de §7.4:
-
-```gml
-#macro MODO_QA          true
-#macro MODO_QA_Release  false
-```
+La consola entera cuelga de `MODO_QA`, el mismo macro de §7.4 — no lo vuelvas a declarar aquí
+(un `#macro` repetido no compila): `MODO_QA` y su sobrescritura `Release:MODO_QA` viven en un
+único sitio, `scr_modo_qa`.
 
 El primer `if (!MODO_QA) { exit; }` del Step **y** del Draw GUI hace que, compilando con
 `--config Release`, el compilador elimine ese código por ser un `if (false)` sobre una constante
@@ -1787,6 +1787,83 @@ Detalle completo del matiz — `validar-proyecto.py` solo hace fallar el comando
 funciones con prefijo de familia del runtime; un nombre de dominio sin prefijo con una errata
 solo aparece en la categoría `desconocida`, y **solo con `--todo`** — en
 [`12 · 09` §7.5](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#75-por-qué-validar-proyectopy-no-es-opcional--y-un-matiz-importante-sobre-lo-que-detecta-de-verdad).
+
+### 8.6 Compilar limpio no es lo mismo que funcionar: el fallo silencioso de tiempo de ejecución
+
+`gm-cli compile` con `exit 0` certifica **sintaxis**, no comportamiento. §8.5 ya lo dice para
+funciones inventadas — pero hay una segunda clase de fallo, más difícil de sospechar porque ni
+siquiera necesita una función mal escrita: código que compila limpio, que el propio catálogo de
+esta biblioteca da por **verificado**, y que en tiempo de ejecución hace exactamente lo
+contrario de lo que promete, sin ningún error visible.
+[`_indice/auditorias/r5-prueba-e2e.md`](../_indice/auditorias/r5-prueba-e2e.md) documentó dos
+casos reales construyendo un juego completo de punta a punta:
+
+- Una fuente creada con `resourcetool` compila, el objeto que la usa compila, `gm-cli run` no
+  imprime ningún error — y el juego entero se queda mudo, sin una sola letra en pantalla
+  (Trampa 5 de [`12 · 09`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-5--las-fuentes-creadas-por-resourcetool-compilan-limpio-y-no-dibujan-ni-una-letra)).
+- `directory_exists()`/`directory_create()` devuelven `false` para cualquier ruta bajo `gm-cli
+  run --target mac`, incluida la carpeta de guardado que ya existe — y `save_game()` falla en
+  silencio, con la única pista una línea de log que hay que estar mirando a propósito
+  (Trampa 6 de [`12 · 09`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-6--directory_existsdirectory_create-devuelven-false-siempre-bajo-gm-cli-run---target-mac)).
+
+Ninguno de los dos apareció en el compilador ni en `validar-proyecto.py`. La checklist de
+[`12 · 09` §8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#8--checklist-final-antes-de-dar-una-tarea-por-terminada),
+seguida al pie de la letra, marcaba las siete casillas — incluida «ejecutaste el juego» — y aun
+así el juego habría salido mudo y sin guardado. La lección no es «prueba más»: es que **dos
+comprobaciones concretas, no genéricas, habrían cazado ambos bugs**, y ningún checklist de esta
+biblioteca las pedía hasta ahora (§12 ya las incorpora). Ejecútalas como **procedimiento**, no
+como buena intención:
+
+#### Procedimiento 1 · Capturar la pantalla y mirarla de verdad
+
+No basta con que `screen_save()` (§7.3) no lance un error, ni con comprobar que el PNG existe en
+disco con `file_exists()` — eso solo demuestra que la función de captura funcionó, no que lo que
+hay **dentro** del PNG sea correcto. La fuente muda de la Trampa 5 habría pasado esa
+comprobación sin problema: la captura se generaba perfectamente, con la pantalla completa, el
+fondo, los botones... y ningún texto.
+
+1. Dispara la captura en el punto exacto que quieres validar — el modo QA de §7.4 ya te da el
+   mecanismo (`capturar_incidencia()` o una tecla dedicada) sin tener que jugar a mano.
+2. **Abre el PNG y léelo tú, o pídeselo a un agente con capacidad de leer imágenes** (la
+   herramienta de lectura de archivos de la mayoría de agentes de IA muestra PNG directamente).
+   Comprobar que el archivo pesa más de X bytes no sirve: un PNG de una pantalla con texto vacío
+   pesa, a simple vista, lo mismo que uno con texto — la diferencia solo se ve mirando.
+3. Confirma explícitamente, por cada pantalla que pruebes, lo que el propio encargo pedía
+   verificar: que el texto que el código dice que dibuja aparece de verdad, que los botones
+   están donde deberían, que ningún elemento se solapa o queda cortado.
+4. No asumas que una fuente o una pantalla nueva funciona por analogía con una ya probada: cada
+   fuente creada por `resourcetool` (que no rasteriza glifos — Trampa 5) y cada pantalla nueva
+   necesita su propia captura mirada, no una inferencia sobre una captura anterior.
+
+#### Procedimiento 2 · Verificar el guardado tras cerrar y reabrir el proceso
+
+`save_game()` devolviendo `true` en el mismo `run` **no demuestra que el guardado sobreviva**:
+demuestra que la función terminó sin error interno, y nada más. La Trampa 6 fallaba exactamente
+ahí — el *gate* de `save_ensure_dir()` podía decir que no, mientras la escritura real seguía
+funcionando en otros puntos del flujo, así que un chequeo superficial («¿el archivo existe justo
+después de guardar?») podía salir en verde por pura coincidencia. La única prueba que no se
+puede falsear así es el ciclo completo de proceso:
+
+1. Arranca el juego (`gm-cli run`), juega o fuerza (con el modo QA de §7.4) hasta un estado que
+   dispare `save_game()` con datos identificables — una puntuación concreta, no un valor por
+   defecto que podría venir de cualquier sitio.
+2. Confirma en el log (`registrar()` de §7.2, o `show_debug_message`) que el guardado devolvió
+   `true` — necesario, pero no suficiente.
+3. **Mata el proceso del runner por completo** ([`12 · 09` §4.3](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#43-gm-cli-run-no-propaga-el-estado-del-juego--y-deja-procesos-huérfanos-si-crashea):
+   `pkill -f Mac_Runner` o el nombre del runner de tu plataforma) — no reinicies la room, no
+   llames a una función de «recargar»: el objetivo es que no quede nada del proceso anterior en
+   memoria.
+4. Vuelve a lanzar el juego desde cero (`gm-cli run` otra vez) y comprueba, mirando la pantalla
+   o el log, que el dato identificable del paso 1 aparece cargado — el récord, la posición, el
+   inventario, lo que hayas guardado.
+5. Si el paso 4 no reproduce el dato, el bug está en el guardado a disco (Trampa 6, o cualquier
+   otro fallo silencioso de E/S de tu plataforma), no en la lógica de partida — nunca lo
+   descartes solo porque el paso 2 salió en verde.
+
+Ninguno de los dos procedimientos exige herramientas fuera de lo que esta biblioteca ya
+documenta (`screen_save()` de §7.3, el modo QA de §7.4, `gm-cli run`/`pkill` de `12 · 09` §4.3):
+lo que faltaba no era capacidad, era la disciplina de no aceptar «no dio ningún error» como
+sinónimo de «funciona». Los dos quedan en el checklist de §12.
 
 ---
 
@@ -2086,6 +2163,12 @@ QA MANUAL Y PLAYTESTING
 [ ] Sesión larga mirando la ventana Memory al principio y al final.
 [ ] Al menos 5 personas que no habían visto el juego, observadas en silencio.
 [ ] Cada observación se convirtió en tarea con criterio de aceptación.
+
+«COMPILA LIMPIO» NO ES «FUNCIONA» (§8.6)
+[ ] Al menos una captura de pantalla por flujo/pantalla nuevo, ABIERTA y mirada de verdad —
+    no solo comprobada por que screen_save() no dio error o el PNG existe en disco.
+[ ] El guardado se verificó MATANDO el proceso del juego por completo y volviendo a lanzarlo,
+    no solo con save_game() == true en el mismo run.
 ```
 
 ---
@@ -2104,7 +2187,7 @@ QA MANUAL Y PLAYTESTING
 | **Comparar reales con `==`** | `100 * (1 - 0.9)` no es `10`. Verificado en este documento | Compara con tolerancia, o reordena la expresión para no restar cerca de cero |
 | **Un solo tester: tú** | Ya sabes dónde está la palanca. No puedes perderte | Cinco personas que no han visto el juego |
 | **Ayudar durante el playtest** | Destruyes la única medida que te interesa | Silencio. Preguntas al final |
-| **Dejar las teclas de QA en el build final** | Un jugador encuentra el modo dios y lo cuenta | `#macro MODO_QA_Release false` |
+| **Dejar las teclas de QA en el build final** | Un jugador encuentra el modo dios y lo cuenta | `#macro Release:MODO_QA false` |
 | **Escribir el log a disco cada frame** | Abre y cierra el fichero 60 veces por segundo | Acumula en un array y vuelca cada N segundos |
 | **Informes sin pasos** | «Se cierra a veces» no es un bug, es una sensación | La plantilla de §11.1, con versión, plataforma y adjuntos |
 
@@ -2421,8 +2504,10 @@ si no:
 - [`07 · 01 — GitHub · organización YoYoGames`](../07%20-%20Ecosistema/01%20-%20GitHub%20-%20organizaci%C3%B3n%20YoYoGames.md) — GM-TestFramework y GameMaker-Bugs.
 - [`07 · 13 — GM CLI`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md) — el CLI al completo.
 - [`12 · 01 — Herramientas del flujo de trabajo`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md) §4 y §5 — tabla comparada de frameworks y de herramientas de depuración en runtime.
+- [`12 · 09 — Manual del agente de IA`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md) — las seis trampas que hacen fracasar a un agente, con las Trampas 5 y 6 detrás de §8.6.
 - [`11 · _CATALOGO.md`](../11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) y [`_RUTAS.json`](../11%20-%20C%C3%B3digo%20descargado/_RUTAS.json) — dónde está cada repositorio clonado.
 - [`AGENTS.md`](../AGENTS.md) §4 y §5 — las prohibiciones duras y el flujo de desarrollo.
+- [`_indice/auditorias/r5-prueba-e2e.md`](../_indice/auditorias/r5-prueba-e2e.md) — la prueba end-to-end que motiva §8.6: los dos bugs que ningún checklist anterior habría cazado.
 
 **En esta misma carpeta**
 

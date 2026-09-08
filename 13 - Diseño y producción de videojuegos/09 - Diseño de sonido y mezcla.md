@@ -2,11 +2,28 @@
 
 > El **oficio** del audio, no su API: qué sonidos necesita tu juego, cómo se construye cada uno, a
 > qué nivel relativo va cada cosa, cómo se coloca en el espacio y cómo se comprueba antes de
-> publicar. **No se repite ni una firma**: reproducción, emisores, buses, efectos y grupos están en
-> [01 · 13 — Audio](../01%20-%20Fundamentos/13%20-%20Audio.md) y
+> publicar. No se repite ninguna firma del **runtime** — reproducción, emisores, buses, efectos y
+> grupos están en [01 · 13 — Audio](../01%20-%20Fundamentos/13%20-%20Audio.md) y
 > [02 · 07 — Audio: buses y efectos](../02%20-%20Novedades%202026/07%20-%20Audio%20-%20buses%20y%20efectos.md).
 > La música por capas, en [04 · 26](../04%20-%20Recetas%20por%20género/26%20-%20Música%20adaptativa%20por%20capas.md);
 > la librería Vinyl, en [07 · 21](../07%20-%20Ecosistema/21%20-%20Vinyl%20-%20audio%20avanzado%20%28guía%20en%20español%29.md).
+>
+> ⚠️ **Este documento SÍ repite nombres propios con
+> [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>)**:
+> `mezcla_aplicar`, `sonar_en`, `sonar_limitado`, `voz_decir`, `voces_paso`, `apagar_con_fundido`,
+> `banco_crear`, `banco_siguiente`, `ambiente_poner`, `variacion_tono` y `variacion_ganancia`
+> existen en los dos sitios, escritos por separado, con **globals distintos** (`global.bus.*` /
+> `global.volumen_*` aquí, frente a `global.audio.bus.*` / `global.audio.volumen.*` en
+> `scr_audio.gml`) y constantes de *headroom* distintas. Ninguno de los dos documentos citaba al
+> otro hasta esta nota. **No copies código de los dos a la vez**: son dos implementaciones
+> completas e incompatibles del mismo sistema — GameMaker rechaza `mezcla_aplicar` (y el resto)
+> declarada dos veces. Esta receta es la que citan de verdad las recetas de género que usan audio
+> (`04 · 26`, `04 · 42`, `04 · 45`…, todas con `global.bus.*`): si tu proyecto ya las sigue, usa
+> el audio de AQUÍ y no `scr_audio.gml`. Si partes de `06 - Assets y Scripts` como base de
+> proyecto, usa `scr_audio.gml` y no copies el código de este documento — la teoría (niveles,
+> *headroom*, *ducking*, prioridad de voces) sigue siendo válida igualmente, cambia solo el
+> nombre de los globals. Reconciliar los dos en un único sistema es tarea pendiente, fuera del
+> alcance de esta ronda.
 > Aquí se decide **qué** suena, **cuándo**, **a qué nivel** y **por qué**.
 
 ---
@@ -821,6 +838,88 @@ Regla de implementación: **cualquier evento que dispare un sonido informativo d
 en el mismo sitio del código, su representación visual.** Si están en sitios distintos, uno se
 desincronizará; la forma limpia es emitir una señal única que escuchen audio e interfaz
 ([04 · 16](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md)).
+
+### 8 ter · Un `.wav` como archivo, no solo en runtime
+
+§8 bis resuelve la síntesis **en caliente**, dentro del juego en marcha — perfecta para un SFX
+que se genera y se reproduce en el mismo frame. Pero hay un caso distinto: un asset de sonido
+que necesita **persistir como archivo** — para importarlo con `resourcetool` antes de compilar,
+para adjuntarlo a una build sin recompilar, o como salida de un sistema de voz procedural que
+debe sobrevivir entre sesiones (`13 · 24 §6`). Para eso hace falta escribir un `.wav` de verdad
+en disco, y la biblioteca no tenía receta — la síntesis de §8 bis vive solo en memoria de
+GameMaker, nunca toca el disco.
+
+La solución usa el módulo `wave` de la librería estándar de Python — **sin dependencias**, y con
+el mismo criterio de envolvente que `tono_generar()`/`ruido_generar()` de
+[`08 · 24` §3](../08%20-%20Referencia%20GML%20completa/24%20-%20Audio%20avanzado%20-%20buffers%2C%20colas%2C%20sincronía%20y%20grabación.md#3--buffer-sounds-síntesis-y-audio-procedural-en-tiempo-real),
+para que el resultado suene igual de intencionado. **Verificado en esta sesión**: genera un
+`.wav` real, confirmado con `file` (`RIFF ... WAVE audio, Microsoft PCM, 16 bit, mono 22050 Hz`)
+y con `ffprobe`/`afinfo`, e importado sin errores en un proyecto de prueba:
+
+```python
+import wave, struct, random
+
+def tono_generar_wav(ruta, frecuencia_hz, duracion_seg, amplitud=0.6, tasa=22050):
+    """Onda cuadrada mono de 16 bits con ataque/caida cortos — mismo criterio que
+    tono_generar() de 08 · 24 §3, pero escrita a un .wav real en disco."""
+    n_muestras = round(tasa * duracion_seg)
+    n_ataque = round(tasa * 0.005)
+    n_caida = round(tasa * 0.05)
+    muestras_x_ciclo = tasa / frecuencia_hz
+    mitad_ciclo = muestras_x_ciclo / 2
+
+    datos = bytearray()
+    for i in range(n_muestras):
+        env = 1.0
+        if i < n_ataque:
+            env = i / n_ataque
+        elif i > n_muestras - n_caida:
+            env = (n_muestras - i) / n_caida
+        onda = 1.0 if (i % muestras_x_ciclo) < mitad_ciclo else -1.0
+        valor = max(-32768, min(32767, int(onda * env * amplitud * 32767)))
+        datos += struct.pack("<h", valor)
+
+    with wave.open(ruta, "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)       # 16 bits
+        f.setframerate(tasa)
+        f.writeframes(bytes(datos))
+
+def ruido_generar_wav(ruta, duracion_seg, amplitud=0.8, tasa=22050, semilla=None):
+    """Ruido blanco mono de 16 bits con caida de potencia — equivalente a ruido_generar()
+    de 08 · 24 §3, como archivo .wav."""
+    if semilla is not None:
+        random.seed(semilla)
+    n_muestras = round(tasa * duracion_seg)
+    datos = bytearray()
+    for i in range(n_muestras):
+        t = i / n_muestras
+        env = (1 - t) ** 3
+        valor = max(-32768, min(32767, int(random.uniform(-1, 1) * env * amplitud * 32767)))
+        datos += struct.pack("<h", valor)
+
+    with wave.open(ruta, "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(tasa)
+        f.writeframes(bytes(datos))
+
+tono_generar_wav("snd_moneda.wav", 988, 0.15)
+ruido_generar_wav("snd_impacto.wav", 0.12)
+```
+
+Impórtalo como cualquier otro asset de sonido — verificado con `gm-cli resourcetool` en esta
+sesión, compilación limpia (`exit 0`) incluida:
+
+```bash
+gm-cli resourcetool eval "resource create type=sound name=snd_moneda"
+gm-cli resourcetool eval "sound setfile name=snd_moneda path=snd_moneda.wav"
+```
+
+> ⚠️ Sigue siendo **PCM de 8 bits sin instrumentos ni timbre grabado** (la misma tabla de §8 bis
+> de qué se sintetiza razonablemente bien y qué no aplica aquí tal cual): esta receta cambia
+> *dónde vive* el sonido, no *qué tipo* de sonido es capaz de producir la síntesis. Para foley,
+> voz o música real, sigue haciendo falta un archivo grabado — `07 · 09 §5` y §8.
 
 ---
 

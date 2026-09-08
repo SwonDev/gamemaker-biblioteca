@@ -759,6 +759,12 @@ vaciar = function()
 
 ### 5.4 Chunking
 
+> `global.tilemap_terreno` (usado más abajo en `cargar_chunk()`, y reutilizado tal cual por
+> `04 · 51` §5) es el ID de la capa de tiles del terreno de la room activa — **no lo crea este
+> script**: obtenlo con `layer_tilemap_get_id()` en el `Room Start` de tu room de mundo:
+> `global.tilemap_terreno = layer_tilemap_get_id(layer_get_id("Tiles_Terreno"));` (ajusta el
+> nombre de capa al tuyo).
+
 ```gml
 // ---------------------------------------------------------------------------
 // scr_chunking
