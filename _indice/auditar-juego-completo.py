@@ -66,9 +66,14 @@ PIEZAS = [
     ("opciones",  "Pantalla de opciones",
      r"opcion|option|ajuste|setting|config",
      r"\b(opciones|ajustes|settings)\w*\s*[=\(\.]"),
+    # La pausa casi nunca es `global.pausa`: en un juego con gestor de escenas es un
+    # estado dentro de la máquina del nivel (`estado = "pausa"`, `menu_pausa`). La primera
+    # versión de este patrón solo miraba la global y daba un falso NEGATIVO sobre un juego
+    # que sí la tenía — el error más caro aquí, porque deja pasar la ausencia que buscas.
     ("pausa",     "Pausa que congela el mundo",
      r"pausa|pause",
-     r"instance_deactivate_all|\bpausad[oa]\b|\bglobal\.pausa\b|\bis_paused\b"),
+     r"instance_deactivate_all|\bpausad[oa]\b|\bis_paused\b"
+     r"|[\"']paus[ae][\"']|\bmenu_paus[ae]\b|\b\w*_paus[ae]\b|\bpaus[ae]_\w+"),
     ("guardado",  "Guardar y cargar la partida",
      r"save|guardar|partida",
      r"\b(game_save|file_text_open_write|buffer_save|json_stringify)\s*\("),
@@ -130,6 +135,13 @@ def objetos_rectangulo(ruta):
     if not os.path.isdir(dir_obj):
         return []
     figuras = re.compile(r"\bdraw_(rectangle|circle|ellipse|roundrect|triangle)\w*\s*\(")
+    # Un objeto de interfaz o de control dibuja figuras porque ese es su trabajo: paneles,
+    # barras de vida, fundidos, cartelas. Meterlo en la misma lista que un personaje sin
+    # arte convierte el aviso en ruido, y un aviso ruidoso se ignora entero. Se separan.
+    interfaz = re.compile(
+        r"^obj_(menu|splash|titulo|hud|ui|gui|credito|creditos|intro|prologo|epilogo|final|"
+        r"fundido|transicion|pausa|opciones|ajustes|nivel|gestor|control|camara|director|"
+        r"debug|dialogo|minimapa|inventario|tienda|cargando|selector)\w*$", re.I)
     sospechosos = []
     for nom in sorted(os.listdir(dir_obj)):
         carpeta = os.path.join(dir_obj, nom)
@@ -143,7 +155,8 @@ def objetos_rectangulo(ruta):
             if os.path.isfile(p) and figuras.search(leer(p)):
                 sospechosos.append(nom)
                 break
-    return sospechosos
+    return ([s for s in sospechosos if not interfaz.match(s)],
+            [s for s in sospechosos if interfaz.match(s)])
 
 
 def main():
@@ -203,13 +216,14 @@ def main():
         primera, re.I))
     res["arranque"] = arranque_ok
 
-    rect = objetos_rectangulo(ruta)
+    rect, rect_ui = objetos_rectangulo(ruta)
     n_sprites = len(tipos.get("sprites", []))
     debug = len(re.findall(r"\bshow_debug_message\s*\(", gml))
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
                           "objetos_sin_sprite_que_dibujan_figuras": rect,
+                          "objetos_de_interfaz_que_dibujan_figuras": rect_ui,
                           "sprites": n_sprites, "show_debug_message": debug},
                          ensure_ascii=False, indent=2))
     else:
@@ -235,7 +249,12 @@ def main():
             print("      prohíbe: 12/09 §5.2 da la escalera para salir de ahí. Si son")
             print("      volúmenes de lógica (triggers, zonas), están bien — dilo y sigue.")
         else:
-            print("  ✓ Ningún objeto sin sprite pintando figuras a mano")
+            print("  ✓ Ningún objeto de juego sin sprite pintando figuras a mano")
+        if rect_ui:
+            print("  · %d objeto(s) de interfaz dibujan figuras (normal: paneles, barras,"
+                  % len(rect_ui))
+            print("    fundidos). No los cuento como el rectángulo prohibido:")
+            print("      " + ", ".join(rect_ui))
         print()
         if debug:
             print("  ⚠ %d llamada(s) a show_debug_message: quítalas del build final (13/10 §7.2)"

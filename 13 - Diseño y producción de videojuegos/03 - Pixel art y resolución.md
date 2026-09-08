@@ -201,6 +201,29 @@ room_goto(rm_menu);
 > mundo: puede escalar y rotar sin perder nitidez, y eso rompe la ilusión retro si abusas.
 > El detalle está en [03 · 44](../03%20-%20Cursos%20%28YouTube%29/44%20-%20PixelatedPope%20-%20Cámaras%20y%20Resolución%202026%20-%20Parte%204%20-%20Experto.md) §3–§6.
 
+> ⚠️ **Y ese `gpu_set_texfilter(false)` también deja sin filtrar el TEXTO.** El manual lo dice sin
+> matices —*«el filtrado de la textura … de todas las imágenes dibujadas en la pantalla del
+> juego»*— y una fuente es una página de textura como cualquier otra. En cuanto la GUI se escala
+> a la ventana por un factor **no entero** —el caso normal: GUI a `base × 2` sobre una ventana a
+> `base × 3` da 1,5×— las letras de una `.ttf` salen con los bordes rotos.
+>
+> Y te va a pasar casi seguro, porque la fuente por defecto no dibuja tildes ni eñes
+> ([`12 · 09` Trampa 12](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md)),
+> así que todo juego en español acaba mezclando pixel art con tipografía real.
+>
+> La solución no es renunciar a ninguna de las dos: es encender el filtrado **solo** alrededor
+> de las llamadas de texto.
+>
+> ```gml
+> gpu_set_texfilter(true);
+> draw_text(_x, _y, _texto);
+> gpu_set_texfilter(false);
+> ```
+>
+> Hallazgo de un agente que construyó un juego entero con esta biblioteca
+> ([`r12-prueba-plataformas.md` §1.11](../_indice/auditorias/r12-prueba-plataformas.md)); ni esta
+> sección ni [`13 · 05 §3.6`](./05%20-%20UI%20y%20UX%20de%20juego.md) lo mencionaban.
+
 ---
 
 ## 2 · Paletas: menos colores, mejores decisiones

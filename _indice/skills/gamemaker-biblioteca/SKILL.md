@@ -186,6 +186,7 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
 | «No compila» o «se comporta raro» con código antiguo | `01 - Fundamentos/03 - Handles - el cambio clave de 2026.md` → `02 - Novedades 2026/02 - Cambios en GML 2026.md` → `buscar.py` (¿obsoleta?) → github.com/YoYoGames/GameMaker-Bugs |
 | Qué librería, extensión o herramienta usar | `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` → `11 - Código descargado/_CATALOGO.md` → `07 - Ecosistema/` |
+| Fijar resolución, escala de ventana, tamaño de la GUI o pantalla completa | `13 - …/03 - Pixel art y resolución.md` §1.6 — **antes** de escribir el primer `window_set_size()`; a ojo sale una escala no entera y el pixel art «hierve» |
 | Assets libres (arte, audio, tiles, fuentes) | `07 - Ecosistema/09 - Asset packs y recursos gráficos.md` |
 | **Operar GameMaker siendo un agente** (crear recursos, eventos, compilar, depurar sin ver la pantalla) | `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` |
 | Publicar, exportar, tiendas | `05 - Referencia/02 - Publicar y exportar.md` → `05 - Referencia/05 - Entregar el juego…` (firmar, notarizar, `steamcmd`, Play, App Store) → `13 - …/11 - Producción, alcance y lanzamiento.md` |
@@ -242,6 +243,10 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    completa con los valores por defecto lo que el usuario no conteste — preguntas, criterio de
    parada, defaults y plantilla en `13/28`. Escribe la especificación y **enséñasela al usuario
    antes de crear el proyecto**: no hay paso 2 sin este documento escrito primero.
+   **Si el encargo llegó cerrado y no tienes canal de vuelta** (tarea de fondo, *issue*, otro
+   agente): no preguntes al vacío — aplica los defaults, escribe la especificación igual,
+   marca cada valor asumido con `[DEFAULT]` y **entrégala con el juego**, diciendo en el mensaje
+   final qué asumiste y por qué. Es el único cambio de orden permitido, y está en `13/28 §2.2 bis`.
 1. **Plano**: `04/00 - Anatomía` + receta del género + `13/01 - Diseño de juego` (core loop) +
    `13/14 - El documento de diseño` (el GDD que un agente puede implementar) + `13/11 - Producción`
    (alcance, vertical slice) — el material que alimenta la especificación del paso 0.
@@ -261,8 +266,13 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    b. Cada ✗ es **una pregunta, no una acusación**: puede ser un falso positivo (un menú que vive
       dentro de otra sala) o puede faltar de verdad. Compruébalo tú.
    c. Compara además, pantalla por pantalla, contra el checklist maestro de
-      `04/00 - Anatomía de un juego completo` y contra `13/05 §4` — el script cubre lo que una
-      máquina puede ver; el resto (si el menú se entiende, si la historia se sostiene) no.
+      `04/00 - Anatomía de un juego completo` **y contra las tres listas que enlaza**:
+      `04/41 §4` (transiciones, carga y pausa), `13/05 §4` (UI antes de publicar) y
+      `05/02 §4.4` (build de release). **No son opcionales**: la tabla de `04/00` las presenta
+      como «detalle», y una casilla marcada sin abrir la lista que enlaza no está marcada — es
+      un fallo real y medido, no una hipótesis (`_indice/auditorias/r12-prueba-plataformas.md`
+      §1.12). El script cubre lo que una máquina puede ver; el resto —si el menú se entiende, si
+      la historia se sostiene— no lo cubre nadie más que tú.
    d. **Lo que recortes, se dice**; no se omite en silencio.
 8. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
    `05/05 - Entregar el juego` (firmar y subir) → `05/06` si va a consola.

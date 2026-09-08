@@ -166,6 +166,43 @@ Un agente no puede interrogar veinte minutos. La regla es corta:
    [§3.1](#31--la-plantilla-de-especificación-mínima) y enseñarla, no seguir conversando sobre
    ella.
 
+### 2.2 bis · Cuando no hay a quién preguntar: el encargo cerrado
+
+Todo lo anterior supone una conversación. **Cada vez más, no la hay**: un agente lanzado como
+tarea de fondo, desde un *issue*, desde un *cron* o desde otro agente recibe un encargo de un
+solo sentido y **no tiene canal de vuelta**. Ahí la regla «pregunta todo en un turno y enseña la
+especificación antes de crear el proyecto» no es que se incumpla: es que **no tiene forma**. No
+hay a quién preguntar ni a quién enseñar.
+
+Este apartado existe porque pasó de verdad: un agente construyó un juego completo siguiendo esta
+biblioteca, se saltó el paso 0 por este motivo exacto, y lo dejó anotado en vez de disimularlo
+([`r12-prueba-plataformas.md` §7](../_indice/auditorias/r12-prueba-plataformas.md)).
+
+**Qué hacer cuando no hay canal:**
+
+1. **No preguntes al vacío.** Un turno de preguntas que nadie va a leer solo retrasa el trabajo.
+2. **Aplica los valores por defecto de [§2.3](#23--los-valores-por-defecto) a todas las preguntas
+   sin respuesta**, exactamente igual que si el usuario no hubiera contestado a esa parte.
+3. **Escribe la especificación igual.** El documento no es un trámite para el usuario: es lo que
+   te impide improvisar el alcance a mitad de camino. Sin él, en el minuto cuarenta ya no
+   recuerdas qué decidiste y qué inventaste.
+4. **Marca cada valor asumido con `[DEFAULT]`**, con el mismo rigor de
+   [§1.5](#15--decidido-por-el-usuario-frente-a-asumido-por-defecto--y-por-qué-se-distinguen).
+   Aquí importa **más** que en una conversación, no menos: es lo único que le dirá a quien
+   recoja el trabajo qué decidió él y qué decidiste tú por él.
+5. **Entrégala CON el juego, no antes.** Es el único cambio de orden que autoriza este documento,
+   y solo aquí. La especificación pasa de ser una puerta a ser parte del entregable: va junto al
+   proyecto, y en el mensaje final se dice qué se asumió y qué habría cambiado el resultado.
+6. **Di explícitamente que no hubo canal.** «Asumí X, Y y Z porque el encargo no lo decía y no
+   había forma de preguntar» es una frase que el usuario necesita leer. El silencio convierte
+   una suposición razonable en un error tuyo.
+
+> ⚠️ **No lo uses como atajo.** Si tienes canal —una conversación, un turno de vuelta, cualquier
+> forma de que la respuesta te llegue— **pregunta**. Este apartado es para cuando el canal no
+> existe, no para cuando preguntar da pereza o parece que ralentiza. Confundir las dos cosas es
+> volver a «hazme un juego» → programar sin especificación, que es justo lo que este documento
+> existe para evitar.
+
 ### 2.3 · Los valores por defecto
 
 Para cuando el usuario contesta «lo que veas», «sorpréndeme», o simplemente no responde a una

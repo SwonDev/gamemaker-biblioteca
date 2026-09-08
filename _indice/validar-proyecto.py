@@ -164,6 +164,8 @@ def main():
     archivos = list(gml_del_proyecto(proyecto))
     definidas = set()
     codigos = []
+    crudos = {}          # fuente SIN limpiar, para el contraste de §desconocidas
+    literales_rotos = [] # (archivo, líneas) con una cadena que no cierra
     for fp in archivos:
         try:
             txt = open(fp, encoding="utf-8", errors="replace").read()
@@ -171,6 +173,10 @@ def main():
             continue
         cod = vcg.limpiar(txt)
         codigos.append((fp, cod))
+        crudos[fp] = txt
+        _rotas = vcg.comillas_descuadradas(txt)
+        if _rotas:
+            literales_rotos.append((os.path.relpath(fp, proyecto), _rotas))
         for pat in (vcg.DEFINE, vcg.METODO, vcg.METODO_STRUCT):
             for m in pat.finditer(cod):
                 definidas.add(m.group(1))
@@ -263,10 +269,38 @@ def main():
     else:
         print("\n✓ Ninguna llamada a una función del runtime con un número de argumentos "
               "que no cuadre con su firma.")
+    # Un literal sin cerrar descuadra el análisis del archivo entero: lo que sigue a la
+    # comilla huérfana se lee como cadena, y las funciones definidas ahí «desaparecen».
+    # Se avisa ANTES de la lista de desconocidas porque, sin este aviso, esa lista mezcla
+    # nombres falsos con los de verdad y enseña a desconfiar de ella entera — que es
+    # exactamente cómo se cuela el fallo que sí importa.
+    if literales_rotos:
+        print(f"\n⚠ {len(literales_rotos)} archivo(s) con una cadena que NO cierra. GameMaker no")
+        print("  los compilará, y mientras tanto este análisis pierde lo que venga después:")
+        for rel, lineas in literales_rotos[:10]:
+            print(f"  {rel}  ·  línea(s) {', '.join(str(x) for x in lineas[:6])}")
+        print("  Suele ser un generador que escribe un « \" » sin escapar dentro del literal.")
+        print("  Arregla esto ANTES de leer la lista de nombres desconocidos de abajo.")
+
+    # Contraste contra el fuente crudo: si el nombre SÍ aparece definido en el archivo,
+    # el análisis se perdió (casi siempre por lo de arriba) y decirlo evita que alguien
+    # persiga una función que existe.
+    fantasmas = set()
+    if desconocidas:
+        crudo_todo = "\n".join(crudos.values())
+        for nom in desconocidas:
+            if re.search(r"function\s+" + re.escape(nom) + r"\s*\(", crudo_todo):
+                fantasmas.add(nom)
+    if fantasmas:
+        print(f"\n⚠ {len(fantasmas)} de esos nombres SÍ están definidos en el proyecto y el")
+        print("  analizador no los vio — no los persigas, arregla el archivo que los contiene:")
+        print("      " + ", ".join(sorted(fantasmas)))
+
     if desconocidas and todo:
-        print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
+        reales = {n: d for n, d in desconocidas.items() if n not in fantasmas}
+        print(f"\n· {len(reales)} nombres que el proyecto no define ni el runtime declara "
               f"(métodos de struct, funciones que faltan o extensiones sin instalar):")
-        for nom, donde in sorted(desconocidas.items()):
+        for nom, donde in sorted(reales.items()):
             print(f"  {nom}()  en {', '.join(sorted(donde)[:3])}")
     elif desconocidas:
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "

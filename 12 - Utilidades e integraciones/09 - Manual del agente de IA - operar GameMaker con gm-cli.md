@@ -889,6 +889,47 @@ NSIS del instalador — **todo eso hay que pedírselo al humano, que lo ponga de
 Game Options del IDE.** Solo el nombre visible, el icono, la imagen de splash, si arranca a
 pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 
+> 🔴 **Y de las cinco que sí se escriben, una te miente: `OPTIONS SET` trunca el valor en el
+> primer espacio y responde «éxito».** Verificado el 08-09-2026:
+>
+> ```console
+> $ gm-cli resourcetool eval "options set platform=windows property=display_name value=La Ultima Chispa"
+> Set windows.display_name = La
+> Saved successfully
+> ResourceTool Successful          ← ni un aviso
+> $ gm-cli resourcetool eval "options get platform=windows property=display_name"
+> display_name = La
+> ```
+>
+> El juego habría salido llamándose **«La»** en el Finder y en el conmutador de aplicaciones, y
+> no hay forma de enterarse salvo releyéndolo. **Entrecomilla siempre el valor** — funciona
+> incluso con tildes:
+>
+> ```console
+> $ gm-cli resourcetool eval 'options set platform=windows property=display_name value="La Última Chispa"'
+> Set windows.display_name = La Última Chispa
+> ```
+>
+> Encontrado por un agente que construyó un juego entero usando solo esta biblioteca
+> ([`r12-prueba-plataformas.md` §1.2](../_indice/auditorias/r12-prueba-plataformas.md)).
+
+> ⚠️ **Los nombres de las propiedades NO son los mismos en todas las plataformas.** La tabla de
+> arriba es la de Windows, y en Mac dos de las cinco escribibles se llaman de otra forma:
+>
+> | Escribible | Windows | macOS |
+> |---|---|---|
+> | Nombre visible | `display_name` | `display_name` |
+> | Interpolar píxeles | `interpolate_pixels` | `interpolate_pixels` |
+> | Arrancar a pantalla completa | `start_fullscreen` | `start_fullscreen` |
+> | Icono | `icon` (un `.ico`) | **`icon_png`** (PNG 1024×1024) |
+> | Splash | `splash_screen` | **`splash_png`** |
+>
+> Pedir `icon` en Mac da `is not available for platform 'mac'`, no un valor por defecto.
+> **Lista siempre las propiedades reales de tu plataforma antes de escribir**, con
+> `options info platform=<la tuya>` — y si no imprime nada, con el truco del nombre inventado.
+> La tabla por plataforma para los iconos está en
+> [`07 · 24 §2.2`](../07%20-%20Ecosistema/24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md#22-la-vía-nativa-de-gamemaker-resourcetool-options-set-hallazgo-verificado).
+
 **Pero esas cinco sí se fijan POR CONFIGURACIÓN, y eso cambia bastante.** Es exactamente como se
 prepara una build de demo o de prensa con otro nombre y otro icono, y no estaba documentado
 (verificado el 08-09-2026):
