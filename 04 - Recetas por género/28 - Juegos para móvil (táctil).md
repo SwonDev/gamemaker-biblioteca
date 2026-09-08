@@ -368,6 +368,17 @@ if (toque_en_circulo(x, y, radio_tactil)) global.saltar = true;
 draw_sprite_ext(spr_boton_salto, 0, x, y, 1, 1, 0, c_white, 0.75);
 ```
 
+> ⚠️ **El suelo de 48 px/9 mm es correcto por control individual — nadie te avisa si la suma no
+> cabe.** Verificado con un caso real
+> ([`_indice/auditorias/r7-prueba-movil.md` §2.5-2](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva)):
+> un menú de 5 botones, cada uno con una altura generosa y por encima del mínimo exigido, sumaba
+> más alto que la propia sala en apaisado — el título se solapaba con el primero y el último
+> quedaba fuera de la pantalla. Antes de dar un bloque de controles apilados por terminado, suma
+> sus alturas (más la separación de 8 dp entre cada uno) contra el alto de GUI disponible, no
+> solo el tamaño de cada control por separado — y confírmalo con una captura real
+> ([`13 · 10` §8.6](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#86-compilar-limpio-no-es-lo-mismo-que-funcionar-el-fallo-silencioso-de-tiempo-de-ejecución)),
+> nunca por analogía con un solo botón que ya probaste suelto.
+
 ### 5.2 Multi-touch: cada dedo es un «dispositivo»
 
 GameMaker numera los toques simultáneos de `0` en adelante y los lee con la familia
@@ -378,6 +389,11 @@ puede soltar el primer dedo y quedarse con el 1 activo); **usa las variantes `_t
 interfaz, porque mezclar coordenadas de mundo y de GUI es el bug táctil número uno; y **guarda
 qué dedo controla qué** en vez de recalcularlo, porque si dos dedos entran en el mismo botón uno
 tiene que ganar. `mb_left` es el botón que reportan todos los toques.
+
+> ⚠️ Este código se verifica contra el manual, pero **no se puede ejercitar de verdad con dos
+> dedos simultáneos desde un escritorio** — ni con ratón, ni con `cliclick`, ni con AppleScript.
+> Qué se puede probar sin dispositivo y qué exige uno real, en
+> [§9.1 bis](#91-bis--qué-se-puede-probar-sin-dispositivo-y-qué-exige-uno-de-verdad).
 
 ### 5.3 Un joystick virtual completo
 
@@ -886,6 +902,44 @@ el idioma del jugador sin preguntar. El sistema completo de textos está en
 el calor no se pueden medir, y los anuncios y las compras suelen fallar. Un juego que va a 60 fps
 en un AVD puede ir a 22 en un teléfono de 120 €.
 
+### 9.1 bis · Qué se puede probar sin dispositivo, y qué exige uno de verdad
+
+**Un dedo, sí. Dos dedos a la vez, no — de ninguna forma, con ninguna herramienta de
+escritorio.** Es una frontera honesta que conviene decir con esas palabras, porque no es obvia
+hasta que se intenta:
+
+**Sí se puede probar desde un Mac/PC, con el ratón haciendo de dedo `0`** (verificado en
+[`_indice/auditorias/r7-prueba-movil.md` §2.4](../_indice/auditorias/r7-prueba-movil.md#24--pude-comprobar-algo-sin-un-dispositivo-me-dijo-la-biblioteca-cómo)
+lanzando el juego compilado con `gm-cli run --target mac` y `cliclick`, la herramienta de
+automatización de ratón de macOS): navegación de menús por toque, un joystick virtual completo
+(aparece donde tocas, sigue el arrastre, la base «camina» si sales del radio), un botón que
+dispara con un solo dedo, *sliders* arrastrables, confirmaciones, y en general **cualquier
+interacción que solo necesite un punto de contacto a la vez** — es justo lo que dice
+[`01 · 12` §8 bis](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md#8-bis-input-táctil-móvil-gestos-y-teclado-virtual):
+los gestos (tap, drag, flick, pinch de un solo cursor) también funcionan con ratón.
+
+**No se puede probar desde ningún escritorio, con ninguna herramienta**: el multitáctil
+**simultáneo** — dos o más dedos tocando la pantalla a la vez, como el joystick de un pulgar y
+el botón de disparo del otro en un control de dos zonas ([§1.1](#11-un-pulgar-o-dos-pulgares)).
+Un ratón de escritorio es **un solo puntero del sistema operativo**: no existe combinación de
+`cliclick`, AppleScript, ni ninguna otra automatización de ratón en macOS (ni el equivalente en
+Windows/Linux) que produzca dos eventos de contacto independientes a la vez — solo se puede mover
+el mismo cursor único de un sitio a otro. Verificado intentándolo de verdad: mantener pulsado el
+joystick (`cliclick dd:` en una coordenada) y, en paralelo, tocar el botón de disparo (otro
+`cliclick dd:` en otra coordenada) no simula un segundo dedo — el cursor único **se desplaza**
+desde donde estaba hasta la nueva coordenada, y en pantalla se ve la base del joystick
+«caminando» literalmente hasta el botón de disparo, exactamente el bug que produciría un jugador
+real soltando el pulgar izquierdo por error.
+
+**La consecuencia práctica**: un agente puede escribir código de multitáctil correcto —
+verificado contra el manual, con la disciplina de `device_mouse_*` de [§5.2](#52-multi-touch-cada-dedo-es-un-dispositivo)
+aplicada al pie de la letra— y aun así **no tiene ninguna forma de confirmar por sí solo que dos
+zonas de contacto funcionan a la vez** hasta que alguien lo prueba en un dispositivo real
+([§9.2](#92-cómo-se-llega-al-dispositivo)). No es una limitación de esta biblioteca ni de
+GameMaker: es una limitación física de cualquier ratón de escritorio, y ningún documento de esta
+biblioteca lo decía hasta ahora. Dilo explícitamente en vez de darlo por probado — es exactamente
+la frontera que pide [`12 · 09` §4.2](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#42-lo-que-un-agente-no-puede-comprobar-por-sí-solo--pídeselo-al-humano).
+
 ### 9.2 Cómo se llega al dispositivo
 
 En el IDE, la **lista de objetivos** tiene un botón de lápiz que abre el **Gestor de
@@ -977,6 +1031,7 @@ Las extensiones oficiales móviles, con su estado y su última actualización, e
 | No reanudar el audio al volver | El juego vuelve mudo y parece colgado |
 | Página de textura de 4096 | Se ve perfecto en tu móvil y **casca al arrancar** en la gama baja |
 | Usar `mouse_x`/`mouse_y` para multi-touch | Solo lee el primer dedo; usa `device_mouse_x_to_gui(i)` en bucle |
+| Dar por probado el multitáctil simultáneo con ratón/`cliclick`/AppleScript | Ningún escritorio simula dos dedos a la vez — el cursor único «camina» entre los dos puntos; hace falta un dispositivo real ([§9.1 bis](#91-bis--qué-se-puede-probar-sin-dispositivo-y-qué-exige-uno-de-verdad)) |
 | Mezclar coordenadas de mundo y de GUI al tocar | El botón responde a 200 px de donde se ve |
 | Publicar HTML5 «porque es más fácil» que nativo | Sin IAP nativas, sin logros, sin rendimiento y sin presencia en las tiendas |
 | Suponer que `display_set_orientation` existe | No existe. Ese código no compila |

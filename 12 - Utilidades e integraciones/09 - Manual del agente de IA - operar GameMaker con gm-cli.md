@@ -5,7 +5,7 @@
 > IDE. No repite lo que ya explican [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)
 > (referencia completa del CLI) y [`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)
 > (qué es el andamiaje `--ai` y cómo se prepara un proyecto para un agente): este documento
-> añade **lo que ninguno de los dos cubre** — los once sitios donde un agente se atasca hoy,
+> añade **lo que ninguno de los dos cubre** — los trece sitios donde un agente se atasca hoy,
 > el nombre exacto de archivo que le toca a cada evento, el inventario real de las 80
 > herramientas del MCP, la frontera entre lo que un agente puede comprobar solo y lo que debe
 > pedir al humano, los errores que un LLM comete por reflejo al tratar GML como si fuera C#
@@ -81,10 +81,36 @@
 > sino de GML, documentado con detalle en
 > [`01 · 08` §9](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md#9-errores-típicos),
 > con una nota de aviso cruzada en el §5.2 de este documento.
+>
+> **Sexta corrección del 8 de septiembre de 2026**: una prueba de un juego para móvil
+> (`_indice/auditorias/r7-prueba-movil.md`) confirmó en vivo, con captura de pantalla y
+> hexdump de los bytes UTF-8 antes y después de compilar, un hallazgo serio para una biblioteca
+> escrita entera en español: **la fuente por defecto de GameMaker (`draw_set_font(-1)`, o no
+> fijar ninguna) no tiene glifos de `á é í ó ú ñ Ñ ¿ ¡` y los omite en silencio**, sin caja de
+> «glifo no encontrado» ni aviso de ningún tipo — «¡Añádeme más peón!» se dibuja «Ademe ms
+> pen!». No es un problema de codificación: los bytes UTF-8 llegan intactos hasta el juego
+> compilado. Compila limpio y `validar-proyecto.py` no lo detecta — solo se ve mirando la
+> pantalla. Nueva **Trampa 12** en §0, con la solución verificada de punta a punta (combina
+> `font_add()` con la receta de *Included Files* de la Trampa 8): cross-referencias en
+> [`08 · 03`](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md) y en el
+> documento de dibujo de
+> [`01 · 11`](../01%20-%20Fundamentos/11%20-%20Dibujo%20y%20renderizado.md#la-fuente-por-defecto-no-tiene-acentos-españoles).
+>
+> **Séptima corrección del 8 de septiembre de 2026**: una prueba de un juego de gestión
+> (`_indice/auditorias/r7-prueba-gestion.md`) confirmó en vivo, comparando contra una captura
+> de pantalla real de macOS (`screencapture`) tomada mientras el mismo fotograma se veía en la
+> ventana del runner, que **`screen_save()` invierte la imagen verticalmente en el runner de
+> Mac** — la ventana real se ve perfectamente, derecha; el PNG que produce `screen_save()` sale
+> boca abajo y con el orden vertical invertido. Es relevante para cualquier agente que use
+> `screen_save()` como canal de verificación (§4.1 de este documento, y el Procedimiento 1 de
+> [`13 · 10` §8.6](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#86-compilar-limpio-no-es-lo-mismo-que-funcionar-el-fallo-silencioso-de-tiempo-de-ejecución)):
+> **la captura automática puede mentir sobre la orientación mientras el juego real se ve bien**.
+> Nueva **Trampa 13** en §0, con la mitigación (contrastar al menos una vez con
+> `screencapture`) y la nota correspondiente en el guion de humo de `13 · 10` §8.7.
 
 ---
 
-## 0 · Las once trampas que hacen fracasar a un agente hoy
+## 0 · Las trece trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -256,6 +282,14 @@ el propio `.yy`:
 gm-cli resourcetool eval "font glyphlist name=fnt_titulo"
 # {} vacío -> la fuente no tiene ni un solo glifo rasterizado, por más ranges/size que tenga
 ```
+
+> ⚠️ **No esquives esta trampa apoyándote en `draw_set_font(-1)` (la fuente por defecto) si el
+> juego tiene texto en español.** Es la vía «segura» de verdad para no tocar `resourcetool`,
+> pero abre una trampa distinta: la fuente por defecto tampoco tiene glifos de
+> `á é í ó ú ñ Ñ ¿ ¡`, y los omite en silencio — «Créditos» se dibuja «Crditos». Detalle completo
+> y la solución (`font_add()` real, no la fuente por defecto) en la
+> [Trampa 12](#trampa-12--la-fuente-por-defecto-de-gamemaker-no-dibuja-acentos-españoles--ni-un-aviso-los-omite-en-silencio)
+> de este mismo §0.
 
 **La alternativa más simple, si te vale**: si tu juego solo necesita un puñado de caracteres
 fijos (dígitos para un marcador, un logotipo de tres letras), una **fuente de sprite** — dibujar
@@ -778,6 +812,132 @@ reintentar**, así que trátalo como un hábito, no como un diagnóstico previo:
 primer paso es repetir la misma llamada, no investigar qué se rompió. Añadido al checklist de
 [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
+### Trampa 12 · La fuente por defecto de GameMaker no dibuja acentos españoles — ni un aviso, los omite en silencio
+
+**El síntoma**: `draw_set_font(-1)` (o no fijar ninguna fuente) es la vía «segura» que esta
+misma biblioteca sugiere para esquivar la Trampa 5 — no crear ninguna fuente por `resourcetool`,
+depender de la fuente por defecto del motor. `gm-cli compile` sale con `exit 0`, sin ningún
+`WARNING`. El juego arranca, `screen_save()` produce una captura perfecta... salvo que
+**cualquier `á é í ó ú ñ Ñ ¿ ¡` desaparece del texto, sin dejar hueco ni caja de «glifo no
+encontrado»**. `draw_text(x, y, "¡Añádeme más peón!")` se dibuja «Ademe ms pen!»: el motor
+recorre la cadena carácter a carácter y **salta en silencio** cualquiera que no tenga glifo en el
+atlas integrado, como si nunca hubiera estado ahí — ni el hueco ni el orden del resto del texto
+delatan que falta algo.
+
+**Verificado en esta sesión** (proyecto de prueba bajo `~`, borrado al terminar): un objeto con
+`draw_set_font(-1); draw_text(16, 16, "¡Añádeme más peón!");` en Draw GUI, compilado y ejecutado
+con `gm-cli run --target mac`, capturado con `screen_save()` y leído el PNG resultante. Antes de
+mirar la pantalla se comprobó que **no es un problema de codificación de origen**: los bytes
+UTF-8 de cada tilde y eñe están intactos y son idénticos tanto en el `.gml` fuente como dentro
+del `game.ios` ya compilado (mismo `xxd`/hexdump en los dos). El fallo es exclusivamente de
+**renderizado**, en el juego de glifos que trae la fuente integrada del motor — no en cómo el
+texto llegó hasta ahí.
+
+**La causa**: la fuente que usa el motor cuando no cargas ninguna propia solo trae rasterizado un
+subconjunto de caracteres (en la práctica, ASCII básico); no incluye los caracteres por encima de
+ese rango, y GameMaker no avisa cuando pide dibujar uno que no tiene — simplemente lo descarta.
+Es la misma familia de fallo silencioso que las Trampas 5, 6 y 8: **compila limpio y no se
+detecta ni por el compilador ni por `validar-proyecto.py`**, porque ninguno de los dos mira un
+solo píxel de la pantalla. Para una biblioteca escrita entera en español, y cuya regla número uno
+es que todo el texto del juego lleve ortografía completa, es el hueco más grave de los tres que
+esta sesión encontró: contradice de hecho la recomendación implícita de
+[`08 · 03`](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md) de usar
+`draw_set_font(-1)` como alternativa «segura» frente al horneado roto de la Trampa 5 — es segura
+para **compilar**, no para **mostrar texto en español**.
+
+**Cómo se detecta**: igual que la Trampa 5, solo capturando la pantalla de verdad y leyendo el
+PNG ([§4.1](#41-lo-que-un-agente-sí-puede-observar-por-sí-solo)); ninguna herramienta de texto
+(`validar-proyecto.py`, el compilador, un `grep` sobre el `.gml`) lo detecta, porque el propio
+código fuente es correcto — el fallo está en qué elige rasterizar la fuente del motor, no en lo
+que el agente escribió.
+
+**La solución, verificada de punta a punta en esta misma sesión**: no es una fuente nueva de la
+nada — es **conectar dos piezas de esta biblioteca que hasta ahora no estaban enlazadas entre
+sí**: `font_add()` ([`08 · 03` — Gestión de fuentes](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md#gestión-de-fuentes))
+cargando un `.ttf` real, empaquetado como *Included File* siguiendo al pie de la letra la receta
+de la [Trampa 8](#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta)
+de este mismo §0 (crear el recurso, copiar el archivo físico a `datafiles/`, y fijar `filePath`
+con `resource set expr=project.IncludedFiles[0].filePath value=datafiles`):
+
+```gml
+/// Create — carga una fuente real con acentos, en vez de depender de la fuente por defecto
+/// Verificado: font_add
+fnt_ui = font_add("fuente_ui.ttf", 24, false, false, 32, 255);
+// first=32, last=255: cubre ASCII completo + Latin-1 (á, é, í, ó, ú, ñ, Ñ, ¿, ¡)
+```
+
+```gml
+/// Draw GUI
+draw_set_font(fnt_ui);           // NUNCA draw_set_font(-1) si el texto lleva español
+draw_text(16, 16, "¡Añádeme más peón!");
+```
+
+Reproducido con `SFNSMono.ttf` del propio sistema (válido solo para verificar localmente —
+**nunca para distribuir**: hace falta una fuente con licencia redistribuible para publicar de
+verdad): compiló sin ningún `WARNING`, el `.ttf` entró en el paquete compilado
+(`unzip -l … | grep ttf` → `assets/fuente_ui.ttf`), y el texto en pantalla pasó de
+«¡Añádeme más peón!» dibujado «Ademe ms pen!» a las tildes y la eñe completas — capturas de
+antes y después comparadas píxel a píxel en la misma sesión que verificó esta trampa.
+
+**Severidad**: alta, y de la familia silenciosa de las Trampas 5, 6 y 8 — con el agravante de que
+la vía que parece más segura (no tocar `resourcetool`, fiarse de la fuente por defecto) es
+precisamente la que lo dispara. Cross-referencias con la explicación completa y el aviso para
+cualquier documento que enseñe a dibujar texto en
+[`01 · 11` § La fuente por defecto no tiene acentos españoles](../01%20-%20Fundamentos/11%20-%20Dibujo%20y%20renderizado.md#la-fuente-por-defecto-no-tiene-acentos-españoles)
+y en [`13 · 05` §3.6](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#36-tipografía-bitmap-ttf-y-sdf).
+Detalle completo, con el hexdump de verificación y las capturas de antes y después, en
+[`_indice/auditorias/r7-prueba-movil.md` §2.5-1](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva).
+
+### Trampa 13 · `screen_save()` invierte la imagen verticalmente en el runner de Mac — la ventana real no
+
+**El síntoma**: al comprobar una captura tomada con `screen_save()` (§7.3 de
+[`13 · 10`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md))
+para verificar visualmente un horneado de fuente o un elemento de UI, el PNG resultante muestra
+el contenido **boca abajo y con el orden vertical invertido**: un título dibujado en `y=20`
+aparece al fondo de la imagen, no arriba; un sprite anclado al borde superior de la GUI aparece
+pegado al borde inferior. El juego, jugado en directo, **se ve correcto** — el volteo es
+exclusivo del archivo que produce `screen_save()`.
+
+**Verificado en esta sesión** (`~/gm_prueba_gestion`, proyecto de prueba, borrado al terminar;
+`gm-cli` 2.3.0, runtime `2026.0.0.23`, `--target mac`): un horneado de fuente y un sprite de
+prueba se capturaron con `screen_save()` y salieron invertidos verticalmente. Antes de asumir
+que el horneado estaba mal, se comparó contra una captura de pantalla real del sistema operativo
+(`screencapture`) tomada mientras el mismo fotograma se veía en la ventana del runner: **la
+ventana se ve perfectamente, derecha, en el orden correcto** — confirma que el volteo es de
+`screen_save()` en esta combinación concreta, no del juego ni del código del agente.
+
+**La causa**: no confirmada contra el manual oficial (que no documenta ninguna diferencia de
+orientación entre lo que se ve en pantalla y lo que escribe `screen_save()`) — consistente con
+una diferencia de convención de ejes Y entre el *buffer* que lee `screen_save()` en el *runner*
+de Mac y el que compone la ventana, específica de esta combinación de `gm-cli`/runtime/target.
+No se investigó más a fondo por no ser el objetivo de la sesión que la encontró; el hecho
+verificado es el síntoma, con su contraste contra `screencapture`, no la causa interna del
+motor.
+
+**Cómo se detecta**: comparando, al menos una vez por sesión de verificación visual, una captura
+de `screen_save()` contra una captura de pantalla real del sistema operativo (`screencapture` en
+Mac) tomada mientras se ve el mismo fotograma en la ventana del runner. Si las dos coinciden en
+todo menos en el eje vertical, es esta trampa, no un bug del juego.
+
+**La mitigación**: si tu procedimiento de verificación (`§4.1` de este documento,
+[`13 · 10` §8.6 Procedimiento 1](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#86-compilar-limpio-no-es-lo-mismo-que-funcionar-el-fallo-silencioso-de-tiempo-de-ejecución)
+o el guion de humo de
+[`13 · 10` §8.7](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#87--el-guion-de-humo-arrancar-capturar-sola-y-verificar-el-guardado-sin-manos))
+depende de `screen_save()` para diagnosticar POSICIÓN vertical (un elemento arriba/abajo,
+solapamiento con el borde superior o inferior), voltea la imagen mentalmente —o con cualquier
+herramienta de imagen— antes de concluir nada sobre el eje Y, o contrasta con
+`screencapture` esa captura en concreto. Para diagnósticos que no dependen de arriba/abajo
+(¿aparece el texto?, ¿está el color correcto?, ¿existe el sprite?) esta trampa no afecta a la
+conclusión.
+
+**Severidad**: media — no bloquea nada por sí sola, pero **puede llevar a un diagnóstico
+equivocado de un bug de renderizado que no existe** (o a no ver uno real que sí existe, si el
+agente da por buena una posición vertical que en realidad está invertida). Es la misma familia
+de fallo que las Trampas 5 y 12: la herramienta de verificación automática no es sincera sobre lo
+que muestra, y solo se ve contrastando con otra fuente. Detalle completo, con el hallazgo en
+contexto, en
+[`_indice/auditorias/r7-prueba-gestion.md` §9](../_indice/auditorias/r7-prueba-gestion.md#9--las-once-trampas--cuáles-se-usaron-de-verdad-y-una-nueva).
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -807,7 +967,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -1037,6 +1197,19 @@ pkill -f Mac_Runner 2>/dev/null   # en macOS; el nombre del runner cambia por pl
 
 Un agente que solo ponga un `timeout` al comando padre y no mate el proceso hijo del *runner*
 por nombre acumula juegos zombis en cada iteración de depuración automatizada.
+
+> ⚠️ **Con más de una sesión de agente activa en el mismo Mac, `pkill -f Mac_Runner` es
+> demasiado ancho: mata TODOS los runners, no solo el tuyo.** Verificado en
+> [`_indice/auditorias/r7-prueba-movil.md` §7](../_indice/auditorias/r7-prueba-movil.md#7--limpieza):
+> dos sesiones distintas pueden tener cada una su propio `Mac_Runner` corriendo a la vez, ambos
+> con el mismo título de ventana literal `${project_name}` y, por defecto, la misma posición en
+> pantalla — indistinguibles a simple vista, así que una captura o un clic pensados para tu
+> juego pueden aterrizar en la ventana del otro. Aísla tu propio proceso por el argumento
+> `-game <ruta-a-tu-proyecto>` de `ps aux`, y mata solo ese PID, no el nombre del runner entero:
+> ```bash
+> ps aux | grep -- "-game .*/mi-juego/" | grep -v grep   # localiza SOLO tu proceso
+> kill <PID>                                              # nunca pkill -f Mac_Runner a ciegas
+> ```
 
 ---
 
@@ -1503,7 +1676,7 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -1522,7 +1695,11 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] Si una llamada de `resourcetool` falló con `System.AccessViolationException` sobre un
       proyecto que ya sabes sano, la reintentaste antes de asumir que el proyecto está corrupto —
       el propio `ResourceTool@2026.0.17` puede fallar así de forma no determinista
-      (Trampa 11 de [§0](#0--las-once-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      (Trampa 11 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+- [ ] Si el juego dibuja texto en español, comprobaste **mirando la captura**, no el código,
+      que las tildes y la eñe se ven — nunca dependiendo de `draw_set_font(-1)`/la fuente por
+      defecto para texto en español (Trampa 12 de
+      [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 
 ---
 

@@ -593,6 +593,20 @@ function Inventory(_capacidad) constructor
 }
 ```
 
+> ⚠️ **No es el mismo modelo que el inventario en cuadrícula de
+> [`13 · 05` §3.5e](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#e-inventario-en-cuadrícula-con-arrastrar-y-soltar)
+> — son dos elecciones de diseño válidas, no una versión vieja de la otra.** `Inventory.slots`
+> es una **lista dinámica** que crece al final: no tiene posición fija ni campo `icono` (se
+> resuelve con `item_get_def(item_id)`), y encaja cuando lo que importa es la CANTIDAD de cada
+> objeto, no el hueco — survival, crafteo, cualquier economía con oro (`Inventory.oro` de
+> arriba es también la cartera del jugador, la única de la biblioteca). El de `13 · 05 §3.5e`
+> es un array de **ranuras fijas** con posición e icono propios, para cuando el jugador
+> organiza el hueco a mano (arrastrar y soltar entre celdas). No comparten ni un campo: no
+> asignes uno al otro directamente. Si tu UI necesita mostrar este `Inventory` como una
+> cuadrícula, proyecta `slots[]` sobre un array de celdas fijo cada vez que se abre la
+> ventana — la función `inventario_ui_proyectar()` de `13 · 05 §3.5e` es el patrón mínimo,
+> confirmado en vivo en `r7-prueba-gestion.md` §2.2.
+
 ```gml
 /// @func Equipment()
 /// @desc Slots de equipamiento. Guarda { item_id } para poder reconstruirlo.
@@ -657,6 +671,46 @@ function Equipment() constructor
     };
 }
 ```
+
+> 🔴 **BUG confirmado, no una hipótesis: `Inventory.deserialize(...)` revienta con «Variable
+> \<unknown_object\>.deserialize(...) not set before reading it» si es la PRIMERA vez que algo
+> toca `Inventory` en el proceso** — el flujo exacto de un jugador real que cierra el juego y
+> lo reabre para pulsar «Continuar» sin pasar antes por «Nueva partida» en esa sesión
+> (reproducido en vivo, causa raíz confirmada contra el manual oficial:
+> [`Static_Variables`](<../09 - Manual oficial/manual-lts-2026-es/GameMaker_Language/GML_Overview/Functions/Static_Variables.md>)
+> — «las variables estáticas en los constructores solo se inicializan una vez para ese
+> constructor», la primera vez que se llama con `new`; informe de auditoría
+> `r7-prueba-gestion.md` §5.1). Un método `static` como `deserialize` de arriba **no existe
+> como miembro accesible de `Inventory`/`Equipment` hasta que `new Inventory(...)`/
+> `new Equipment()` se ha ejecutado al menos una vez en ese proceso** — no una vez en general,
+> una vez en ESTA ejecución del juego. El mismo patrón se repite en `Stats` (§5.0),
+> `Progression` (§5.1) y `QuestLog` (§5.8), y en cualquier otro constructor de la biblioteca con
+> `static deserialize`/`static parse`/`static from` (`04 · 06`, `04 · 09`, `04 · 10`, `04 · 45`,
+> `04 · 51`) — buscar `grep -n "static .* = function"` dentro de un constructor no basta para
+> encontrarlos: hace falta comprobar si su `deserialize` puede ser la PRIMERA llamada al
+> constructor en el proceso.
+>
+> **El arreglo — cebar el constructor, incondicionalmente, antes de que cualquier ruta de carga
+> pueda ejecutarse:**
+> ```gml
+> /// obj_juego · Create — arranque incondicional, ANTES de mostrar el menú
+> /// "Cebar" cada constructor con static deserialize: una instancia desechable basta para
+> /// que sus miembros static queden accesibles el resto del proceso, tanto si el jugador
+> /// elige "Nueva partida" como si pulsa "Continuar" directamente.
+> new Inventory(1);
+> new Equipment();
+> ```
+> **Esto es justo lo que hace §6 de este documento** (`objGame::Create` llama a
+> `new Stats(...)`, `new Progression()`, `new Inventory(24)`, `new Equipment()` y
+> `new QuestLog()` de forma incondicional, antes de cualquier menú) — no es solo
+> inicialización por comodidad, es la única razón de que la receta RPG de esta biblioteca, tal
+> cual está escrita completa, NO tenga este bug. **El riesgo aparece en cuanto otro documento
+> reutiliza `Inventory` (o cualquier constructor con `static deserialize`) SIN reproducir esa
+> misma llamada incondicional en su propio objeto de arranque** — es exactamente lo que le pasó
+> a la receta de granja de `04 · 45 §5`, que solo llamaba a `new Inventory()` desde su
+> equivalente de «Nueva partida». Si tu receta define su PROPIO objeto de arranque en vez de
+> `objGame` de §6, asegúrate de que cebe cada constructor con `static deserialize` que uses,
+> antes de que cualquier «Continuar» pueda leerlo.
 
 **Peso y capacidad de carga** (informe de auditoría r3-2026-09-06, tema 3: mencionado en
 `04 · 09 §4.2` como «opcional», sin campo ni fórmula en ningún sitio de la biblioteca). Se añade
@@ -1566,6 +1620,12 @@ global.game_initialized = true;
 global.save_migrar = rpg_migrar_datos;      // §5.8 más arriba
 
 // --- Sistemas ---
+// Incondicional a propósito, tanto si luego el jugador elige "Nueva partida" como
+// "Continuar": cada uno de estos constructores tiene un método static deserialize (§5.0,
+// §5.1, §5.2, §5.8) que no existe como miembro accesible hasta el primer `new`. Sin este
+// bloque corriendo ANTES del menú, "Continuar" en frío revienta en la primera línea de
+// rpg_aplicar_datos() que llama a Stats.deserialize()/Inventory.deserialize()/etc — ver el
+// aviso de §5.2 para la causa raíz completa contra el manual.
 global.player_stats = new Stats(60, 12, 6, 10);
 global.progression  = new Progression();
 global.inventory    = new Inventory(24);

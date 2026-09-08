@@ -197,6 +197,28 @@ draw_set_valign(fa_top);
 
 > ⚠️ `draw_set_*` afecta al estado **global** de dibujo. Si cambias la fuente, el color o la alineación, **resétalos** o afectarás a todo lo que se dibuje después.
 
+### La fuente por defecto no tiene acentos españoles
+
+**`draw_set_font(-1)` (o no fijar ninguna fuente) no dibuja `á é í ó ú ñ Ñ ¿ ¡`. Los omite en
+silencio, sin caja de «glifo no encontrado» ni ningún aviso.** `draw_text(x, y, "¡Añádeme más
+peón!")` con la fuente por defecto se dibuja «Ademe ms pen!» — cada tilde, la eñe y los signos de
+apertura desaparecen, el resto del texto se recoloca como si nunca hubieran estado ahí.
+
+Verificado con captura de pantalla real y con hexdump de los bytes UTF-8 antes y después de
+compilar (no es un problema de codificación: los bytes de cada tilde llegan intactos hasta el
+juego compilado; el fallo es solo de qué glifos trae rasterizados la fuente integrada del
+motor). Compila limpio, sin ningún `WARNING`, y `validar-proyecto.py` no lo detecta — ninguno de
+los dos mira un solo píxel de la pantalla. Detalle completo en
+[`12 · 09` — Trampa 12](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-12--la-fuente-por-defecto-de-gamemaker-no-dibuja-acentos-españoles--ni-un-aviso-los-omite-en-silencio).
+
+**La regla práctica**: si el juego dibuja aunque sea una sola cadena en español, no uses
+`draw_set_font(-1)` para dibujarla — carga siempre una fuente propia con `font_add()`
+([`08 · 03`](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md#gestión-de-fuentes),
+rango `first=32, last=255` como mínimo para cubrir á/é/í/ó/ú/ñ/Ñ/¿/¡) y compruébalo **mirando una
+captura de pantalla real**, no leyendo el código: es el único método que detecta este fallo. La
+misma advertencia aplica a cualquier `draw_text*` de esta biblioteca — se documenta aquí una sola
+vez, no en cada receta o documento de UI que dibuja texto.
+
 ---
 
 ## 5. Color y alpha

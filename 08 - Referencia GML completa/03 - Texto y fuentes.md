@@ -45,6 +45,13 @@ draw_set_font(-1); // vuelve a la fuente por defecto
 ```
 - **Notas / trampas:** la fuente debe existir como asset del proyecto o haber sido creada con
   `font_add`, `font_add_sprite` o `font_add_sprite_ext`. Pasa `-1` para la fuente por defecto.
+  ⚠️ **La fuente por defecto (`-1`) no tiene glifos de `á é í ó ú ñ Ñ ¿ ¡`** y los omite en
+  silencio, sin ninguna caja de «glifo no encontrado» — verificado con captura de pantalla y
+  hexdump en `_indice/auditorias/r7-prueba-movil.md`. Si el juego dibuja texto en español, carga
+  siempre una fuente propia con `font_add()` (ver «Gestión de fuentes» más abajo); no dependas
+  de `-1` más allá de HUDs puramente numéricos o texto de depuración en inglés. Detalle completo
+  y la solución en
+  [`12 · 09` — Trampa 12](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-12--la-fuente-por-defecto-de-gamemaker-no-dibuja-acentos-españoles--ni-un-aviso-los-omite-en-silencio).
 
 ### `draw_set_halign(halign)`
 - **Devuelve:** `N/A`
@@ -329,6 +336,13 @@ if (global.fnt_pixel == -1) show_debug_message("No se pudo cargar la fuente");
   - Si no sabes qué rango usar: `first = 32`, `last = 128` (ASCII básico). Para español conviene
     llegar al menos a 255 (á, é, í, ó, ú, ñ, Ñ, ¿, ¡).
   - Devuelve `-1` si algo falla: comprueba siempre el resultado.
+  - **Es la vía correcta para tener acentos españoles de verdad** — frente a la fuente por
+    defecto (`draw_set_font(-1)`), que no los tiene (ver la nota de `draw_set_font` más arriba).
+    Si operas por CLI/`resourcetool` en vez de por el IDE, el `.ttf` se empaqueta como
+    *Included File* con la receta de
+    [`12 · 09` — Trampa 8](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-8--resource-create-typeincludedfile-deja-filepath-fuera-de-datafiles-y---errors-only-no-lo-detecta):
+    crear el recurso `includedfile`, copiar el `.ttf` a `datafiles/` y fijar su `filePath` —
+    sin ese paso, `font_add()` no encuentra el archivo en tiempo de ejecución.
 
 ### `font_add_enable_aa(enable)`
 - **Devuelve:** `N/A`

@@ -1406,6 +1406,16 @@ function TiendaNPC(_catalogo) constructor
 }
 ```
 
+> ⚠️ **`TiendaNPC` es el modelo de datos, no la pantalla.** No dibuja nada ni gestiona botones
+> o confirmaciones — para la interfaz reutiliza el catálogo de tienda de
+> [`13 · 05` §3.5k](./05%20-%20UI%20y%20UX%20de%20juego.md#k-tienda-precio-no-te-lo-puedes-permitir-confirmación-y-venta),
+> llamando a `precio_venta()`/`precio_compra()` **cada frame** en vez de leer un precio fijo
+> una sola vez — la sección k trae el detalle completo, incluida la rama por dirección
+> (compra/venta) que hace falta si el mismo catálogo vende Y compra al jugador, un caso que el
+> ejemplo de arriba no cubre porque `step()` solo repone hacia `stock_max`. Los dos documentos
+> no se citaban entre sí hasta esta nota, pese a resolver la misma «tienda» cada uno por su
+> lado (informe de auditoría `r7-prueba-gestion.md` §2.3).
+
 ### 9.9 · Mercado entre jugadores, en código
 
 ```gml
