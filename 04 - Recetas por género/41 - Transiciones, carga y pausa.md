@@ -931,12 +931,15 @@ function dibujar_confirmacion_salir(_gw, _gh) {
 }
 ```
 
-> 🔺 Este es un diálogo mínimo, escrito para esta receta. La biblioteca **todavía no tiene** un
-> widget de confirmación reutilizable de propósito general — el componente «Diálogo» de
+> 🔺 Este es el diálogo mínimo de esta receta, escrito solo para «salir». **Actualización:** el
+> patrón ya está generalizado en
+> [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml) — un widget de
+> confirmación reutilizable para CUALQUIER acción destructiva (salir, sobrescribir una ranura de
+> guardado, borrar partida, restablecer controles…), documentado como componente m) en
+> [13/05 §3.5](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#m-confirmación-síno-con-no-por-defecto).
+> El componente «Diálogo» de
 > [13/05 §3.5f](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#f-diálogo-la-caja-no-el-texto)
-> es para texto narrativo, no para confirmar/cancelar. Si tu juego necesita confirmar varias
-> cosas (borrar partida, restablecer controles, salir), vale la pena generalizar este patrón en
-> su propio `scr_ui_confirmar.gml`.
+> sigue siendo para texto narrativo, no para confirmar/cancelar — son componentes distintos.
 
 #### 3.4.5 El foco que vuelve donde estaba
 
@@ -989,6 +992,10 @@ if (global.opciones_origen == "pausa") {
 ---
 
 ## 4 · Checklist
+
+> Esta lista es el detalle de transiciones/carga/pausa. El índice maestro de «juego completo»
+> —el que compara TODO el envoltorio, no solo esta pieza— es
+> [04 · 00](./00%20-%20Anatomía%20de%20un%20juego%20completo.md#el-checklist-de-juego-completo).
 
 **Transiciones**
 - [ ] Hay un tipo por defecto (normalmente Fundido) y los demás se usan con intención, no al azar

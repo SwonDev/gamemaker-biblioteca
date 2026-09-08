@@ -451,7 +451,7 @@ function fire_weapon(_dir)
     {
         image_angle = _dir;
     }
-    objCamera.camera_shake(1.2, 4);
+    objCamera.camera_shake_basico_td(1.2, 4);
 }
 
 /// @func take_damage(_cantidad, _origen_x, _origen_y)
@@ -468,7 +468,7 @@ function take_damage(_cantidad, _origen_x, _origen_y)
     vel_x += lengthdir_x(6, _kb_dir);
     vel_y += lengthdir_y(6, _kb_dir);
 
-    objCamera.camera_shake(4, 10);
+    objCamera.camera_shake_basico_td(4, 10);
 
     if (hp <= 0)
     {
@@ -646,6 +646,14 @@ for (var _i = 0; _i < _len; _i++)
 
 ### 5.7 `objCamera` — seguimiento con look-ahead hacia el ratón
 
+> ⚠️ **Shake básico, no la firma canónica.** La biblioteca tiene UNA sola
+> `camera_shake(_cantidad)` (modelo de trauma, un argumento) en
+> [`04 · 15` §5.1](./15%20-%20Game%20feel%20y%20juice.md#5-código-base); si tu
+> proyecto también usa esa receta, **no definas `camera_shake()` aquí**:
+> GameMaker no permite dos funciones con el mismo nombre en el mismo
+> proyecto. El shake de abajo se llama `camera_shake_basico_td()` para poder
+> convivir con la canónica sin colisionar.
+
 ```gml
 // ---------------------------------------------------------------------------
 // objCamera — Create
@@ -656,7 +664,11 @@ cam_y = y;
 shake_mag    = 0;
 shake_frames = 0;
 
-function camera_shake(_magnitud, _frames)
+/// @func camera_shake_basico_td(_magnitud, _frames)
+/// @desc Shake independiente, solo para este objCamera si NO usas 04 · 15.
+///       Si usas game feel/juice, usa camera_shake(_cantidad) de 04 · 15 §5.1
+///       en su lugar y borra esta función.
+function camera_shake_basico_td(_magnitud, _frames)
 {
     shake_mag    = max(shake_mag, _magnitud);
     shake_frames = max(shake_frames, _frames);

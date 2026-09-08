@@ -207,7 +207,7 @@ Igual que en la receta 03: structs, no código.
 #macro GRID_W       24
 #macro GRID_H       18
 
-#macro VIDAS_INICIALES 20
+#macro TD_VIDAS_INICIALES 20
 #macro ORO_INICIAL     150
 ```
 
@@ -1116,7 +1116,7 @@ function spawn_enemigo(_def_id)
 function TDState() constructor
 {
     oro          = ORO_INICIAL;
-    vidas        = VIDAS_INICIALES;
+    vidas        = TD_VIDAS_INICIALES;
     oleada       = 0;
     enemigos_muertos = 0;
     torres_colocadas = 0;

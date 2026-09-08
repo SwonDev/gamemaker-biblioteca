@@ -1085,7 +1085,7 @@ minuto con una máquina de estados simple.
 /// Ningún símbolo de aquí sustituye nada de 04 · 30/04 · 34/04 · 35: es un motor nuevo,
 /// pensado para resolverse sin física ni frame a frame.
 
-enum EstadoPartido { PRIMERA_PARTE, DESCANSO, SEGUNDA_PARTE, FINALIZADO }
+enum EstadoPartidoSim { PRIMERA_PARTE, DESCANSO, SEGUNDA_PARTE, FINALIZADO }
 enum ResultadoPosesion { SIN_LLEGADA, PARADA, GOL }
 
 /// @func jugador_crear(_nombre, _posicion, _ataque, _defensa, _valor_mercado)
@@ -1174,7 +1174,7 @@ function partido_crear(_local, _visitante)
     return {
         local: _local, visitante: _visitante,
         goles_local: 0, goles_visitante: 0,
-        minuto: 0, estado: EstadoPartido.PRIMERA_PARTE,
+        minuto: 0, estado: EstadoPartidoSim.PRIMERA_PARTE,
         eventos: []                          // feed de texto para un marcador "en directo"
     };
 }
@@ -1217,23 +1217,23 @@ function partido_avanzar_minuto(_partido)
 {
     switch (_partido.estado)
     {
-        case EstadoPartido.PRIMERA_PARTE:
+        case EstadoPartidoSim.PRIMERA_PARTE:
             _partido.minuto += 1;
             partido_simular_minuto(_partido);
-            if (_partido.minuto >= 45) { _partido.estado = EstadoPartido.DESCANSO; }
+            if (_partido.minuto >= 45) { _partido.estado = EstadoPartidoSim.DESCANSO; }
             break;
 
-        case EstadoPartido.DESCANSO:
-            _partido.estado = EstadoPartido.SEGUNDA_PARTE;
+        case EstadoPartidoSim.DESCANSO:
+            _partido.estado = EstadoPartidoSim.SEGUNDA_PARTE;
             break;
 
-        case EstadoPartido.SEGUNDA_PARTE:
+        case EstadoPartidoSim.SEGUNDA_PARTE:
             _partido.minuto += 1;
             partido_simular_minuto(_partido);
-            if (_partido.minuto >= 90) { _partido.estado = EstadoPartido.FINALIZADO; }
+            if (_partido.minuto >= 90) { _partido.estado = EstadoPartidoSim.FINALIZADO; }
             break;
 
-        case EstadoPartido.FINALIZADO:
+        case EstadoPartidoSim.FINALIZADO:
             break;                            // nada más: el llamador debe dejar de avanzar
     }
 }
@@ -1245,7 +1245,7 @@ function partido_avanzar_minuto(_partido)
 function partido_simular_completo(_local, _visitante)
 {
     var _partido = partido_crear(_local, _visitante);
-    while (_partido.estado != EstadoPartido.FINALIZADO) { partido_avanzar_minuto(_partido); }
+    while (_partido.estado != EstadoPartidoSim.FINALIZADO) { partido_avanzar_minuto(_partido); }
     return _partido;
 }
 ```

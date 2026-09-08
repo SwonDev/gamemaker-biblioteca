@@ -13,9 +13,14 @@ Hace, en orden y parando al primer fallo real:
      carpeta nueva).
   4. Comprueba que MAPA.json no apunta a nada inexistente.
   5. Comprueba la ortografía española en los documentos nuevos.
-  … y varias comprobaciones más (cobertura, descubrimiento, código GML) hasta la 11:
- 11. Regenera el índice de la skill `gamemaker-biblioteca` y comprueba sus rutas.
- 12. Compara el espejo español del manual con el inglés (ver verificar-espejo.py):
+  … y varias comprobaciones más (cobertura, descubrimiento, código GML, compilación) hasta la 11:
+ 11. Integración entre documentos (ver validar-integracion.py): nombres duplicados con
+     distinta aridad o macro/enum redeclarado entre DOS documentos — lo que ningún otro
+     paso ve porque cada uno compila/valida un documento a la vez, nunca la combinación.
+     Solo las capas estáticas (segundos); la compilación conjunta real con gm-cli
+     (`--compilar`) es manual, documentada en la cabecera de ese script.
+ 12. Regenera el índice de la skill `gamemaker-biblioteca` y comprueba sus rutas.
+ 13. Compara el espejo español del manual con el inglés (ver verificar-espejo.py):
      páginas ausentes, incompletas o con literales de la API traducidos.
 
 Sale con 0 solo si todo está correcto. Cualquier otra cosa es trabajo pendiente
@@ -361,14 +366,26 @@ def main():
         problemas.append("hay bloques ```gml de la documentación que no compilan "
                           "(python3 _indice/validar-compilacion-docs.py para el detalle)")
 
-    paso(11, "Skill para agentes (gamemaker-biblioteca): índice generado y rutas citadas")
+    paso(11, "Integración entre documentos (¿dos recetas definen lo mismo distinto?)")
+    r = subprocess.run([PY, os.path.join(IND, "validar-integracion.py")],
+                       capture_output=True, text=True)
+    for l in r.stdout.splitlines():
+        if (l.strip().startswith(("✗", "✓", "⚠", "🔴", "🟠", "🟡")) or "duplicación(es)" in l
+                or "leído(s) sin" in l or "GameMaker no permite" in l):
+            print("  " + l.strip())
+    if r.returncode != 0:
+        problemas.append("hay nombres duplicados con distinta aridad, o macro/enum redeclarado, entre "
+                          "documentos (python3 _indice/validar-integracion.py para el detalle; "
+                          "--compilar añade la prueba de compilación conjunta real, no la corre este paso)")
+
+    paso(12, "Skill para agentes (gamemaker-biblioteca): índice generado y rutas citadas")
     r = subprocess.run([PY, os.path.join(IND, "sincronizar-skill.py")],
                        capture_output=True, text=True)
     print("\n".join("  " + l for l in r.stdout.splitlines()))
     if r.returncode != 0:
         problemas.append("la skill cita rutas que ya no existen (actualiza references/mapa-disciplinas.md)")
 
-    paso(12, "Espejo español del manual (¿va a la par del inglés?)")
+    paso(13, "Espejo español del manual (¿va a la par del inglés?)")
     r = subprocess.run([PY, os.path.join(IND, "verificar-espejo.py"), "--resumen"],
                        capture_output=True, text=True)
     print("  " + r.stdout.strip())

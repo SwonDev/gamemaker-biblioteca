@@ -909,8 +909,8 @@ casillas jugables en vez de 9, y `tablero_evaluar` contaría piezas y coronadas 
 /// scr_minimax_tres_en_raya
 /// Tablero: array de 9 casillas (índice = fila * 3 + columna).
 /// 0 = vacía · 1 = ficha de MAX · 2 = ficha de MIN.
-function tablero_nuevo() {
-    return array_create(9, 0);
+function tres_en_raya_tablero_nuevo() {   // nombre específico: no colisiona con
+    return array_create(9, 0);                // tablero_nuevo(_columnas,_filas) de 04 · 44 (deckbuilder)
 }
 
 /// Las 8 líneas que ganan la partida, precalculadas una sola vez.
@@ -1148,7 +1148,7 @@ function mejor_movimiento(_tablero, _ficha, _presupuesto_ms = 50, _tope_nodos = 
 
 ```gml
 /// Uso: obj_ia_tres_en_raya · el turno de la IA (ficha 2)
-tablero = tablero_nuevo();
+tablero = tres_en_raya_tablero_nuevo();
 // ... el jugador coloca su ficha con tablero[_casilla] = 1 en algún punto anterior ...
 var _casilla_ia = mejor_movimiento(tablero, 2, 50, 50000);   // 50 ms, 50 000 nodos como mucho
 tablero[_casilla_ia] = 2;

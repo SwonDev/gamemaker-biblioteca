@@ -39,12 +39,20 @@ partida. Se crean en una sala de arranque (`rm_init`) y nunca se destruyen.
 | Sistema | Qué hace | Receta |
 |---|---|---|
 | **Gestor de escenas** | Cambiar de sala con transición y sin perder estado | *(§2, aquí abajo)* |
-| **Guardado / carga** | Persistir progreso entre sesiones | [`scr_save_load`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) · [14 · Persistencia](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) |
+| **Guardado / carga — una sola partida** | El mínimo: persistir progreso entre sesiones, SIN ranuras | [14 · Persistencia §9](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) |
+| **Guardado / carga — ranuras múltiples** | Varias partidas, copia de seguridad rotativa, checksum de integridad y metadatos de ranura (zona, tiempo jugado, miniatura) | [`scr_save_load`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) · ficha de ranura en [13 · 05, componente n)](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#n-ranura-de-guardado-metadatos-miniatura-y-guardando) |
 | **Localización** | Todo el texto por `txt(clave)` | [21 · Localización e idiomas](./21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md) |
 | **Audio** | Música por escena, volumen, buses | [13 · Audio](../01%20-%20Fundamentos/13%20-%20Audio.md) |
 | **Input** | Teclado + mando + táctil, con rebinding | [12 · Input](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md) |
 | **Señales** | Que los sistemas se hablen sin acoplarse | [16 · Señales](./16%20-%20Señales%20y%20desacoplamiento.md) |
 
+> ⚠️ **«Guardado / carga» son DOS sistemas distintos, no dos formas de citar lo mismo.**
+> [`01 · 14 §9`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) es un único
+> archivo hardcodeado (`#macro ARCHIVO_GUARDADO "save01.json"`), sin concepto de ranura.
+> [`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) sí soporta varias
+> ranuras con nombre, copias de seguridad rotativas y checksum. **Si tu juego necesita más de
+> una partida guardada — la mayoría —, usa `scr_save_load.gml` desde el principio**: migrar de
+> uno a otro a mitad de proyecto obliga a reescribir el formato de guardado entero.
 ```gml
 /// rm_init · un objeto obj_arranque, en su Create
 // crea los persistentes en orden y salta al menú
@@ -71,7 +79,7 @@ pulido no salta en seco: se funde a negro.
 
 ```gml
 /// scr_escenas — cambio de sala con fundido
-function ir_a_escena(_sala) {
+function ir_a_escena_simple(_sala) {
     global.escena_destino = _sala;
     global.fundido = 0;
     global.fundiendo = true;      // obj_fundido hará el resto
@@ -95,6 +103,13 @@ if (global.fundido > 0) {
 }
 ```
 
+> ⚠️ **Es el esqueleto, no la versión final.** `ir_a_escena_simple(_sala)` de aquí, con nombre
+> distinto a propósito, es la versión mínima: para arrancar el arco basta con un fundido a
+> negro. En cuanto necesites pausa de verdad, pantalla de carga o más de un tipo de transición,
+> sustitúyelo por el `ir_a_escena(_room, _tipo, _callback)` de
+> [04 · 41 §3](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md) — y actualiza también las
+> llamadas de más abajo.
+
 > 💡 **GameMaker no tiene una función de transición entre salas** (`transition_define` no
 > existe en este runtime). El fundido lo dibujas tú, y por eso lo controlas: velocidad, color,
 > forma. Ver [11 · Dibujo y renderizado](../01%20-%20Fundamentos/11%20-%20Dibujo%20y%20renderizado.md).
@@ -112,7 +127,13 @@ el jugador pulsa.
 - Estructura y scroll: [18 · Menús con scroll y navegación](./18%20-%20Menús%20con%20scroll%20y%20navegación.md)
 - «Continuar» solo aparece **si hay partida guardada** (`file_exists`): es la opción
   desactivada del menú-como-datos.
-- «Opciones» abre la pantalla de ajustes (volumen, idioma, controles, pantalla completa).
+- «Opciones» abre la pantalla de ajustes → [25 · Menú de opciones y ajustes](./25%20-%20Menú%20de%20opciones%20y%20ajustes.md)
+  (volumen por bus, idioma, controles, pantalla completa) y
+  [27 · Accesibilidad](./27%20-%20Accesibilidad.md).
+- Si el juego tiene niveles o capítulos discretos (plataformas, puzzle, arcade), hace falta
+  una pantalla más entre el menú y el bucle de juego → [57 · Selección de nivel y capítulo](./57%20-%20Selección%20de%20nivel%20y%20capítulo.md).
+  Si tu juego es lineal de una sola sesión o un mundo interconectado ([06 · Metroidvania](./06%20-%20Metroidvania.md)),
+  no aplica — dilo explícitamente en el checklist, no lo omitas.
 
 ```gml
 /// las opciones del menú, con «Continuar» condicionada
@@ -156,7 +177,7 @@ if (video_get_status() == video_status_playing) {
 if (video_get_status() == video_status_closed
  || keyboard_check_pressed(vk_anykey)) {
     video_close();
-    ir_a_escena(rm_zona1);
+    ir_a_escena_simple(rm_zona1);
 }
 ```
 
@@ -226,7 +247,7 @@ function reanudar() {
   guardado) o «Menú». `room_restart()` reinicia la sala actual.
 - **Endgame** → el jefe final y el cierre de la historia. Suele ser una zona especial más una
   cinemática de cierre (texto o vídeo, §4).
-- **Créditos** → una sala con texto que sube; al acabar, `ir_a_escena(rm_menu)`. Guarda un flag
+- **Créditos** → una sala con texto que sube; al acabar, `ir_a_escena_simple(rm_menu)`. Guarda un flag
   `juego_completado` para desbloquear extras o un «New Game+».
 
 ```gml
@@ -234,29 +255,74 @@ function reanudar() {
 /// obj_creditos · Draw GUI
 desplaz -= 0.5;
 draw_text(display_get_gui_width() / 2, display_get_gui_height() + desplaz, global.texto_creditos);
-if (desplaz < -altura_total) ir_a_escena(rm_menu);
+if (desplaz < -altura_total) ir_a_escena_simple(rm_menu);
 ```
 
 ---
 
 ## El checklist de "juego completo"
 
-Un LLM que reciba «hazme un juego de X» y quiera entregarlo **entero** debería poder marcar:
+**Esta es la lista MAESTRA.** Compárala punto por punto antes de decir que un juego está
+terminado — es la que resume `_indice/auditorias/r5-juego-completo.md` pedía como gate: sin
+ella, «terminado» tiende a significar «el bucle de juego funciona», y un juego entero es mucho
+más que su bucle. Hay otras tres listas en esta biblioteca con más detalle sobre una pieza
+concreta — **no las repiten, las tienen por debajo**:
+
+| Si necesitas el detalle de… | Ábrela | Puntos |
+|---|---|---|
+| Transiciones, pantalla de carga y pausa | [04 · 41 §4](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md#4--checklist) | 15 |
+| UI antes de publicar (legibilidad, mando+teclado, feedback, accesibilidad) | [13 · 05 §4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#4--checklist-de-ui-antes-de-publicar) | 26 |
+| Si escribiste un GDD completo antes de programar, que esté terminado y sea implementable | [13 · 14 §4](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md#4--checklist) | — |
+| Checklist de build de release (icono, versión, firma, tamaño) | [05 · 02 §4.4](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#44-checklist-previa-a-un-build-de-release) | — |
+
+**Si tu encargo recorta algo de esta lista a propósito, dilo explícitamente** — «no aplica:
+juego lineal de una sola sesión», «no aplica: sin niveles discretos» — nunca lo omitas en
+silencio. Es el mismo criterio que ya usa `13 · 14 §1.5` para las secciones vacías de un GDD.
+
+### Envoltura
 
 - [ ] Splash saltable
 - [ ] Menú principal con Jugar / Continuar (condicionado) / Opciones / Créditos / Salir
-- [ ] Pantalla de opciones: volumen, idioma, controles, pantalla completa
+- [ ] Selección de nivel o capítulo, si el juego tiene niveles discretos —
+      [57 · Selección de nivel y capítulo](./57%20-%20Selección%20de%20nivel%20y%20capítulo.md)
+      (marca «no aplica» si es lineal o un mundo interconectado, no lo omitas)
+- [ ] Pantalla de opciones: volumen por bus, vídeo, controles, idioma, accesibilidad
 - [ ] Intro/prólogo saltable (texto, cinemática o vídeo)
+- [ ] Menú de pausa que congela el mundo de verdad, no solo el dibujo (detalle: `04 · 41 §4`)
+- [ ] Toda acción destructiva confirma con «No» por defecto —
+      [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml), no un
+      diálogo distinto cada vez
+- [ ] Créditos → vuelta al menú
+
+### Ciclo y guardado
+
 - [ ] Bucle de juego con las zonas del género
 - [ ] HUD en Draw GUI
-- [ ] Pausa que congela el mundo
-- [ ] Guardado y carga (y «Continuar» que los usa)
+- [ ] Guardado y carga (y «Continuar» que los usa) — con **ranuras** si el juego admite más de
+      una partida (`scr_save_load.gml`, §1 más arriba: no confundir con el mínimo de una sola
+      partida de `01 · 14 §9`)
+- [ ] Si hay ranuras: ficha con metadatos (zona, tiempo jugado, miniatura), indicador de
+      «guardando…» y confirmación al sobrescribir —
+      [13 · 05, componente n)](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#n-ranura-de-guardado-metadatos-miniatura-y-guardando)
 - [ ] Muerte → Game Over → reintentar / menú
 - [ ] Endgame: jefe/cierre final
-- [ ] Créditos → vuelta al menú
+
+### Presentación
+
 - [ ] Todo el texto por `txt(clave)`, listo para traducir
 - [ ] Sonido y música por escena
 - [ ] Funciona con teclado **y** mando
+
+### Cierre / publicación
+
+- [ ] Sin `show_debug_message()` de depuración sobrante en el build final (`13 · 10 §7.2`)
+- [ ] Icono, nombre de producto y versión del ejecutable configurados — ⚠️
+      [05 · 02 §4.4](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#44-checklist-previa-a-un-build-de-release):
+      el mecanismo por `gm-cli resourcetool` está limitado por licencia en algunas máquinas; la
+      vía que sí funciona hoy es el IDE, documentada ahí
+- [ ] Build probado empaquetado, no solo el Run del IDE — y si distribuyes fuera de una tienda,
+      probado en una máquina que nunca tuvo GameMaker instalado
+- [ ] Firma y notarización si aplica (`05 · 05`)
 
 > 💡 **El orden de construcción recomendado:** primero el bucle de juego de una zona (para
 > tener algo jugable), luego el gestor de escenas y el menú, luego guardado, luego intro/endgame
@@ -270,3 +336,9 @@ Un LLM que reciba «hazme un juego de X» y quiera entregarlo **entero** deberí
 - [RUTA.md](../RUTA.md) — el itinerario de cero a experto; este documento es su nivel «juego completo»
 - Todas las recetas de género de esta carpeta (01–14)
 - [15 · Game feel y juice](./15%20-%20Game%20feel%20y%20juice.md) — lo que separa un juego funcional de uno que se siente bien
+- [41 · Transiciones, carga y pausa](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md) — el detalle de pausa/carga/transiciones que este documento resume en §5, con su propio checklist (§4)
+- [57 · Selección de nivel y capítulo](./57%20-%20Selección%20de%20nivel%20y%20capítulo.md) — la pantalla que falta entre el menú y el bucle de juego cuando hay niveles discretos
+- [13 · 05 — UI y UX de juego](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md) — el mapa de pantallas, los componentes de UI y su propio checklist (§4)
+- [13 · 14 — El documento de diseño](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md) — si el juego se diseñó con un GDD, la sección «Envoltorio de pantallas» remite aquí
+- [05 · 02 §4.4 — Checklist de build de release](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md#44-checklist-previa-a-un-build-de-release) — icono, nombre y versión del ejecutable
+- [`06 · scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) y [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml) — el guardado con ranuras y el widget de confirmación que usa este checklist

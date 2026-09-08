@@ -239,6 +239,12 @@ y justos**. Sin anticipación, el jugador solo puede reaccionar por reflejos.
 global.hit_stop   = 0;      // frames de congelación restantes
 global.time_scale = 1.0;    // 1.0 = normal · 0.2 = tiempo bala · 2.0 = rápido
 global.game_freeze = false; // congelación total (pausa, muerte, transición)
+
+// Ajustes de accesibilidad/sensación (constructor FeelSettings en §6). Se crea
+// AQUÍ, en el objeto que va primero (depth muy negativo), para que exista antes
+// de que cualquier camera_shake()/hit_stop() lo lea — si no se instancia, el
+// primer golpe del juego cuelga con "variable global 'feel' no definida".
+global.feel = new FeelSettings();
 ```
 
 ```gml
@@ -259,8 +265,12 @@ if (abs(global.time_scale - 1.0) < 0.01) global.time_scale = 1.0;
 
 /// @func hit_stop(_frames)
 /// @desc Congela el gameplay durante N frames. 3-6 frames es el rango útil.
+///       Respeta `global.feel.hitstop_enabled` (§6): esta es la ÚNICA
+///       definición de `hit_stop()` del documento — GameMaker no permite
+///       declarar dos funciones con el mismo nombre en el mismo proyecto.
 function hit_stop(_frames)
 {
+    if (variable_global_exists("feel") && !global.feel.hitstop_enabled) return;
     global.hit_stop = max(global.hit_stop, _frames);
 }
 
@@ -341,10 +351,20 @@ function camera_add_trauma(_cantidad)
 }
 
 /// @func camera_shake(_cantidad)
-/// @desc Alias legible: golpe débil 0.15, normal 0.3, explosión 0.6+.
+/// @desc Sacude la cámara con el modelo de trauma (golpe débil 0.15, normal
+///       0.3, explosión 0.6+). Firma **canónica** de toda la biblioteca:
+///       `04 · 01` y `04 · 02` remiten aquí en vez de definir la suya.
+///       Respeta `global.feel.shake_enabled/shake_intensity` (§6) si ya
+///       existe. Esta es la ÚNICA definición de `camera_shake()` del
+///       documento — GameMaker no permite declarar dos funciones con el
+///       mismo nombre en el mismo proyecto.
+/// @param {Real} _cantidad  0..1, o más para un golpe brutal (se clampa en
+///                          camera_add_trauma()).
 function camera_shake(_cantidad)
 {
-    camera_add_trauma(_cantidad);
+    if (variable_global_exists("feel") && !global.feel.shake_enabled) return;
+    var _intensidad = variable_global_exists("feel") ? global.feel.shake_intensity : 1;
+    camera_add_trauma(_cantidad * _intensidad);
 }
 
 /// @func camera_punch(_direccion, _fuerza)
@@ -433,6 +453,21 @@ else                camera_set_view_angle(cam, 0);
 ```
 
 ### 5.2 Tween helper con structs
+
+> ⚠️ **Deuda técnica del repositorio, léela antes de copiar nada de aquí:** hay **dos** sistemas
+> de tween con una función que se llama igual. El de abajo define
+> `tween_to(_target, _prop, _hasta, _duracion, _ease, _on_end)` con duración en **fotogramas**,
+> `_prop` como **string** de una sola propiedad y necesita el objeto `objTweenManager`.
+> [`06 · scr_tween.gml`](../06%20-%20Assets%20y%20Scripts/scr_tween.gml) define OTRO
+> `tween_to(_objetivo, _props, _duracion, _easing, _on_complete, _retraso)` con duración en
+> **segundos** y un struct de varias propiedades a la vez — y es el que usa
+> [`13 · 04` §4](<../13 - Diseño y producción de videojuegos/04 - Animación de sprites, Sequences y Animation Curves.md#4--animación-procedural-en-código>)
+> y el que la biblioteca trata como estándar cuando no hace falta el `objTweenManager` de esta
+> receta (el shake/hit-stop no dependen del tween). **No crees un tercero, y no mezcles los dos
+> en el mismo proyecto**: GameMaker no permite declarar dos funciones con el mismo nombre.
+> Si tu juego ya usa `scr_tween.gml`, reutilízalo aquí también en vez de este bloque — la única
+> pieza que este documento aporta de más es `objTweenManager` como cola centralizada, que puedes
+> adaptar para llamar al `tween_to()` de `scr_tween.gml` con su propia firma.
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -1032,7 +1067,7 @@ if (hit_flash > 0)
 // scr_hit_complete
 // ---------------------------------------------------------------------------
 
-/// @func hit_complete(_atacante, _victima, _dano, _direccion)
+/// @func hit_complete(_victima, _dano, _direccion)
 /// @desc Aplica un golpe CON TODAS LAS CAPAS DE FEEDBACK.
 ///       Es la función que debes llamar cada vez que algo recibe daño.
 /// @param {Id.Instance} _victima    Quién recibe
@@ -1347,23 +1382,15 @@ function FeelSettings() constructor
 }
 ```
 
-Y envolver las llamadas:
-
-```gml
-/// @func camera_shake(_cantidad)  — versión que respeta la configuración
-function camera_shake(_cantidad)
-{
-    if (!global.feel.shake_enabled) return;
-    camera_add_trauma(_cantidad * global.feel.shake_intensity);
-}
-
-/// @func hit_stop(_frames) — versión que respeta la configuración
-function hit_stop(_frames)
-{
-    if (!global.feel.hitstop_enabled) return;
-    global.hit_stop = max(global.hit_stop, _frames);
-}
-```
+**No hace falta "envolver" `camera_shake()` ni `hit_stop()` aquí.** Ya leen
+`global.feel.shake_enabled`/`shake_intensity`/`hitstop_enabled` desde su ÚNICA
+definición (§5.0 y §5.1 más arriba) — declararlas otra vez con este mismo
+nombre es justo el error que este documento tenía antes: GameMaker rechaza
+`duplicate script name found` en cuanto las dos versiones coexisten en el
+proyecto. Lo único que falta es que `global.feel` exista antes del primer
+golpe, y ya se crea en el `Create` de `objTime` (§5.0) — si tu juego no usa
+`objTime`, crea `global.feel = new FeelSettings();` en el primer código que
+se ejecute (tu `objGame`, por ejemplo).
 
 ---
 

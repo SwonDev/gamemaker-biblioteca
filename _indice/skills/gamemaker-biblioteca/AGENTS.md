@@ -58,7 +58,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las cuatro trampas que hacen fracasar a un agente
+## Las seis trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -77,6 +77,15 @@ el primer comando; el detalle y las tablas completas están en
 4. **El compilador NO detecta funciones inventadas ni variables sin declarar.** Compila con
    `exit 0` y revienta al ejecutar. Por eso `validar-proyecto.py --todo` **no es opcional**: es
    quien caza lo que el compilador deja pasar.
+5. **Una fuente creada con `resourcetool` compila limpio y no dibuja ni una letra.** Rasterizar
+   glifos es trabajo del IDE, no del CLI: el `.yy` se queda con `"glyphs":{}` pase lo que pase.
+   Hornéalo con Pillow a partir de un `.yy` de referencia, o abre el IDE una vez — y valida el
+   JSON antes: uno mal formado no falla limpio, tumba `resourcetool` y `compile` con un
+   `AccessViolationException` nativo.
+6. **`directory_exists()`/`directory_create()` pueden devolver `false` siempre** bajo `gm-cli run
+   --target mac`, incluso sobre la carpeta de guardado que ya existe, y rompen en silencio el
+   *gate* de `save_ensure_dir()`. No te fíes de esas dos funciones: intenta escribir de verdad y
+   deja que la escritura decida — ya parcheado en `06 - Assets y Scripts/scr_save_load.gml`.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
@@ -157,9 +166,14 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 
 ## Flujo para un desarrollo real
 
+0. **Especificación**: si el encargo es «hazme un juego» y no trae ya género, alcance y
+   plataforma decididos, pregúntalos en un único turno (nunca un interrogatorio secuencial) y
+   completa con los valores por defecto lo que el usuario no conteste — preguntas, criterio de
+   parada, defaults y plantilla en `13/28`. Escribe la especificación y **enséñasela al usuario
+   antes de crear el proyecto**: no hay paso 2 sin este documento escrito primero.
 1. **Plano**: `04/00 - Anatomía` + receta del género + `13/01 - Diseño de juego` (core loop) +
    `13/14 - El documento de diseño` (el GDD que un agente puede implementar) + `13/11 - Producción`
-   (alcance, vertical slice).
+   (alcance, vertical slice) — el material que alimenta la especificación del paso 0.
 2. **Proyecto**: `gm-cli init` (o el `.yyp` existente; `gm-mcp-setup .` si falta el MCP).
 3. **Arquitectura**: `13/06` (gestores, escenas, datos) + convenciones `05/04`.
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,

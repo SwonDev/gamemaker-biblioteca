@@ -262,6 +262,12 @@ La solución de los juegos profesionales tiene tres piezas:
 
 ### 5.0 Configuración global (`scr_config`)
 
+> ⚠️ Si tu proyecto ya sigue la arquitectura de
+> [`13 · 06` §3.12](<../13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md#312-macros-enums-y-configs-del-ide>)
+> («un solo script `scr_config` con TODAS las constantes»), fusiona este bloque con el suyo en
+> vez de tener dos — `13 · 06` remite aquí para `COYOTE_FRAMES` a propósito, para no acabar con
+> dos valores distintos del mismo macro.
+
 ```gml
 // ---------------------------------------------------------------------------
 // scr_config — constantes de juego. Se ejecuta una sola vez al arrancar.
@@ -628,6 +634,17 @@ draw_sprite_ext(
 
 ### 5.7 `objCamera` — deadzone + look-ahead + shake
 
+> ⚠️ **Shake básico, no la firma canónica.** La biblioteca tiene UNA sola
+> `camera_shake(_cantidad)` (modelo de trauma, un argumento) en
+> [`04 · 15` §5.1](./15%20-%20Game%20feel%20y%20juice.md#5-código-base); si tu
+> proyecto también usa esa receta (recomendado en cuanto pase de prototipo),
+> **no definas `camera_shake()` aquí**: GameMaker no permite dos funciones con
+> el mismo nombre en el mismo proyecto, y las dos firmas son incompatibles
+> (dos argumentos y un modelo de acumulado-con-decaimiento, contra un
+> argumento y trauma al cuadrado). El shake de abajo se llama
+> `camera_shake_basico()` — dos argumentos, sin dependencias — para poder
+> convivir con la canónica sin colisionar.
+
 ```gml
 // ---------------------------------------------------------------------------
 // objCamera — Create (un único objeto persistente en la room)
@@ -636,7 +653,7 @@ cam = view_camera[0];
 cam_target_x = x;
 cam_target_y = y;
 
-// Shake
+// Shake básico (independiente del modelo de trauma de 04 · 15 §5.1)
 shake_mag    = 0;
 shake_frames = 0;
 
@@ -647,8 +664,11 @@ if (instance_exists(objPlayer))
     cam_target_y = objPlayer.y;
 }
 
-/// @func camera_shake(_magnitud, _frames)
-function camera_shake(_magnitud, _frames)
+/// @func camera_shake_basico(_magnitud, _frames)
+/// @desc Shake independiente, solo para este objCamera si NO usas 04 · 15.
+///       Si usas game feel/juice, usa camera_shake(_cantidad) de 04 · 15 §5.1
+///       en su lugar y borra esta función.
+function camera_shake_basico(_magnitud, _frames)
 {
     shake_mag    = max(shake_mag, _magnitud);
     shake_frames = max(shake_frames, _frames);

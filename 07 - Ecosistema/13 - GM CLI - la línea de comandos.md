@@ -508,6 +508,16 @@ La versión que corre por debajo es **`ResourceTool@2026.0.17`**.
 | `TILESET RENAME` | Tileset | `NAME / NEWNAME` |
 | `TILESET SETSPRITE` | Tileset | `NAME / SPRITE` |
 
+> ⚠️ **`FOLDER CREATE` no comparte argumentos con `RESOURCE CREATE`**, aunque la tabla los ponga
+> uno junto al otro y sea tentador adivinar por analogía. `RESOURCE CREATE` se coloca con
+> `TYPE / NAME† / PARENT† / FOLDER†`; `FOLDER CREATE` solo acepta `FOLDER†` — la ruta de la
+> carpeta a crear, no un destino junto a un `NAME`/`TYPE`. Verificado en
+> `_indice/auditorias/r5-prueba-e2e.md` §5: pedir `folder create name=Objetos type=object` no da
+> ningún error — cada argumento sobrante se ignora en silencio (`Ignoring Argument: NAME` /
+> `Ignoring Argument: TYPE`) y la carpeta se crea en la **ruta vacía** (`''`) en vez de donde se
+> pretendía. La forma correcta: `folder create folder=<ruta>` (por ejemplo, `folder create
+> folder=Objetos/Enemigos`).
+
 ### Los 17 tipos de recurso
 
 ```bash

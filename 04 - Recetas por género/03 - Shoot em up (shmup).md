@@ -117,6 +117,14 @@ cam_y -= SCROLL_SPEED;
 camera_set_view_pos(cam, camera_get_view_x(cam), cam_y);
 ```
 
+> Este documento llama a `objCamera.camera_shake_basico_td(_magnitud_px, _frames)` en varios
+> puntos (fases de jefe, explosión final, bomba) — es el shake de dos argumentos en píxeles de
+> [`04 · 02` §5.7](./02%20-%20Top-Down%20_%20Twin-Stick.md#57-objcamera--seguimiento-con-look-ahead-hacia-el-rat%C3%B3n),
+> no la `camera_shake(_cantidad)` canónica de un argumento (modelo de trauma) de
+> [`04 · 15` §5.1](./15%20-%20Game%20feel%20y%20juice.md#5-código-base). Añade esa función al
+> `Create` de tu `objCamera`, o usa la canónica de 04 · 15 si ya la tienes (convierte los píxeles
+> a 0..1 en el punto de llamada).
+
 **B. Las capas de fondo se mueven** (mundo del tamaño de la pantalla). Más
 simple y más habitual en shmups clásicos.
 
@@ -889,7 +897,7 @@ if (_next < array_length(phases) && _ratio <= phases[_next].hp_threshold)
 
     // Transición: invulnerable + shake + limpia las balas en pantalla
     invulnerable = true;
-    objCamera.camera_shake(6, 20);
+    objCamera.camera_shake_basico_td(6, 20);
     with (objBulletEnemy) if (active) bullet_enemy_release(id);
 
     phases[phase_index].on_enter(self);
@@ -923,7 +931,7 @@ repeat (12)
         delay = irandom(30);
     }
 }
-objCamera.camera_shake(10, 45);
+objCamera.camera_shake_basico_td(10, 45);
 objGame.add_score(10000);
 with (objBulletEnemy) if (active) bullet_enemy_release(id);
 ```
@@ -1014,7 +1022,7 @@ function take_hit(_dano)
     power_level = max(1, power_level - 1);
     invuln_time = 120;
 
-    objCamera.camera_shake(6, 20);
+    objCamera.camera_shake_basico_td(6, 20);
     instance_create_layer(x, y, "Effects", objExplosion);
 
     // Limpia las balas cercanas (bomba de emergencia gratuita)
@@ -1151,7 +1159,7 @@ function bomb_usar()
     }
 
     objGame.add_score(_convertidas * BOMB_SCORE_PER_BULLET);
-    objCamera.camera_shake(8, BOMB_INVULN_FRAMES);
+    objCamera.camera_shake_basico_td(8, BOMB_INVULN_FRAMES);
     instance_create_layer(objPlayer.x, objPlayer.y, "Effects", objBombFlash);
 
     return true;

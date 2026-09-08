@@ -121,7 +121,7 @@ PlayerStateTopDown.ammo   (04/02 §6 — sin tocar)
 ┌─ Tras el disparo ─────────────────────────────────────────────────────┐
 │ 5. ammo_state.consumir_disparo(): -1 bala del cargador, la dispersión │
 │    actual sube un escalón                                              │
-│ 6. Retroceso: empuje al portador + camera_shake (04/02 §5.7, reutilizado)│
+│ 6. Retroceso: empuje al portador + camera_shake_basico_td (04/02 §5.7)  │
 └────────────────────────────────────────────────────────────────────┘
 ┌─ Cada Step, dispare o no ──────────────────────────────────────────────┐
 │ 7. ammo_state.actualizar(reserva): recupera dispersión; si está        │
@@ -176,8 +176,10 @@ Dos curvas, dos números: `spread_growth_deg` (cuánto sube cada disparo) y
 `recovery` lento premia ráfagas cortas; un rifle con `growth` bajo perdona el fuego sostenido.
 
 El retroceso **de cámara** es distinto de la dispersión: no cambia dónde va la bala, solo
-cómo se *siente* el disparo. Reutiliza `camera_shake()` de `04/02 §5.7` — no hace falta un
-sistema nuevo.
+cómo se *siente* el disparo. Reutiliza `camera_shake_basico_td()` de `04/02 §5.7` — no hace falta un
+sistema nuevo. (Si tu proyecto usa `04 · 15` para el resto del juice, usa en su lugar la
+`camera_shake(_cantidad)` canónica de esa receta — modelo de trauma, un solo argumento — y
+convierte `recoil_kick` a 0..1 en el punto de llamada.)
 
 ### 4.3 Hitscan: los tres límites de `collision_line`, resueltos
 
@@ -308,7 +310,7 @@ spread_min_deg      = spread_deg;      // dispersión en reposo: hereda la que y
 spread_max_deg      = spread_deg * 3;  // dispersión al mantener el gatillo
 spread_growth_deg   = 1.2;             // crece esto por CADA disparo
 spread_recovery_deg = 2.0;             // se recupera esto por CADA frame sin disparar
-recoil_kick         = 2;               // magnitud del camera_shake al disparar (px)
+recoil_kick         = 2;               // magnitud del camera_shake_basico_td al disparar (px)
 
 // --- Asistencia de puntería ---------------------------------------------------
 aim_assist_cone_deg           = 6;    // apertura del cono de corrección, en grados
@@ -617,10 +619,10 @@ function disparar_arma_avanzado(_dir_cruda)
 
     ammo_state.consumir_disparo();
 
-    // Retroceso: empuje al portador + camera_shake, reutilizando 04/02 §5.7
+    // Retroceso: empuje al portador + camera_shake_basico_td, reutilizando 04/02 §5.7
     vel_x -= lengthdir_x(weapon.recoil_kick, _dir);
     vel_y -= lengthdir_y(weapon.recoil_kick, _dir);
-    objCamera.camera_shake(weapon.recoil_kick, 6);
+    objCamera.camera_shake_basico_td(weapon.recoil_kick, 6);
 
     return true;
 }

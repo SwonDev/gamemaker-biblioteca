@@ -78,6 +78,14 @@ dos capas.
 Orden de montaje de un proyecto nuevo. Cada paso depende del anterior; saltarse uno se paga
 rehaciendo.
 
+0. **Ya existe una especificación.** El GDD de una página
+   ([13 · 01 §8.1](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#81--gdd-de-una-página--plantilla))
+   como mínimo, o el completo de
+   [13 · 14](./14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md)
+   si el proyecto lo pide — escrito siguiendo el protocolo de elicitación de
+   [13 · 28](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md)
+   si el encargo llegó como una frase suelta. Sin esto no hay paso 1: este método monta el
+   proyecto, no lo diseña.
 1. **Crear el proyecto con el CLI**, no a mano:
    `gm-cli init --no-interactive -n mi-juego -t "Blank Pixel Game" --ai --toolchain GMS2@2026.0.0.23`
    ([07 · 13](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20línea%20de%20comandos.md)).
@@ -581,9 +589,9 @@ Si escribes tu propia física necesitas el tercer modelo: el bucle con acumulado
 Programming Patterns*, traducido a los eventos de GameMaker.
 
 ```gml
-/// scr_config.gml
-#macro PASOS_FISICA        120     // pasos de simulación por segundo, independiente de los FPS
-#macro MAX_PASOS_POR_FRAME   5     // tope que corta la «espiral de la muerte»
+// PASOS_FISICA y MAX_PASOS_POR_FRAME viven en scr_config.gml (§3.12 más abajo, el ÚNICO
+// sitio donde se declaran con #macro) — aquí solo se usan, no se redeclaran: GameMaker
+// rechaza un macro definido dos veces aunque el valor sea idéntico.
 
 /// obj_game · Create
 acumulador = 0;
@@ -636,8 +644,9 @@ buffers y las trampas de `json_parse` con handles en
 que casi nadie hace y siempre se acaba necesitando: versionar el formato.**
 
 ```gml
-/// scr_migraciones.gml
-#macro VERSION_GUARDADO 3      // súbelo CADA VEZ que cambie la forma de los datos
+/// scr_migraciones.gml — VERSION_GUARDADO se declara en scr_config.gml (§3.12, la única
+/// fuente de constantes del proyecto); súbelo ahí CADA VEZ que cambie la forma de los
+/// datos. Aquí solo se usa, no se redeclara con #macro otra vez.
 
 /// @desc Lleva un guardado de cualquier versión anterior a la actual. Las migraciones son
 ///       escalones: se aplican en orden y sin saltarse ninguna.
@@ -809,7 +818,8 @@ recomendamos que crees un script asset dedicado y definas todas tus macros ahí�
 // ── Balance (lo que el diseñador va a tocar) ───────────────────────────────
 #macro GRAVEDAD             0.4
 #macro FUERZA_SALTO         9
-#macro COYOTE_FRAMES        6
+// El coyote time tiene su propio macro y su explicación completa en
+// 04 · 01 §5.0 (COYOTE_FRAMES) — no lo repitas aquí con otro valor.
 
 // ── Guardado ───────────────────────────────────────────────────────────────
 #macro VERSION_GUARDADO     3

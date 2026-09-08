@@ -1502,13 +1502,25 @@ function sala_expulsar(_id_sala, _quien_expulsa, _id_red_objetivo)
 ```
 
 **Por la red**, las cuatro operaciones son cuatro mensajes más en el mismo protocolo de la
-§5.0 — añádelos al `enum NetMsg` que ya tienes, no crees uno nuevo (los números de mensaje
-comparten un solo espacio):
+§5.0. GameMaker no permite declarar `enum NetMsg` dos veces — **no es una segunda declaración,
+es la primera de la §5.0 con estos seis valores añadidos**: sustituye tu `enum NetMsg` entero
+por este bloque (los números de mensaje comparten un solo espacio):
 
 ```gml
-// Amplía el enum NetMsg de la §5.0 con estos valores (mismo enum, no uno nuevo):
+// enum NetMsg completo — REEMPLAZA al de la §5.0, no lo declares dos veces.
 enum NetMsg
 {
+    // --- de la §5.0 ---------------------------------------------------------
+    ping            = 1,
+    pong            = 2,
+    client_input    = 10,   // cliente → servidor: intención de movimiento
+    server_snapshot = 20,   // servidor → cliente: estado del mundo
+    spawn_entity    = 30,
+    kill_entity     = 31,
+    chat            = 40,
+    client_hello    = 50,
+    server_welcome  = 51,
+    // --- nuevo aquí: gestión de salas ---------------------------------------
     room_create        = 60,
     room_list_request  = 61,
     room_list          = 62,   // servidor → cliente: resultado de room_list_request

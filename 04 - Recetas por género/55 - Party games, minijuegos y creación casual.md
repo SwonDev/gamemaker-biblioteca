@@ -76,7 +76,7 @@ curva de dificultad.
 #macro RONDA_SEGUNDOS_MERMA    0.15   // cuánto se acorta la ronda por cada ronda superada
 #macro INSTRUCCION_SEGUNDOS    1.2    // "¡SALTA!" en pantalla antes de que empiece a contar
 #macro RESULTADO_SEGUNDOS      0.8    // "¡BIEN!" / "FALLASTE" antes de la siguiente ronda
-#macro VIDAS_INICIALES         4      // igual que WarioWare — ver Fuentes
+#macro PARTY_VIDAS_INICIALES         4      // igual que WarioWare — ver Fuentes
 ```
 
 El jugador ve y **oye** el mismo reloj en cada ronda: una barra que se vacía (el "fusible" que
@@ -151,7 +151,7 @@ frames_restantes      = 0;
 duracion_ronda_frames = 0;
 segundo_anterior      = -1;
 
-vidas             = VIDAS_INICIALES;
+vidas             = PARTY_VIDAS_INICIALES;
 rondas_superadas  = 0;
 puntos_totales    = 0;
 gano_la_ronda     = false;

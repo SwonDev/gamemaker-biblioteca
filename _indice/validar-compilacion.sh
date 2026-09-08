@@ -38,7 +38,7 @@ done
 
 echo "Añadiendo y compilando los scripts de la biblioteca…"
 for scr in scr_audio scr_camera scr_debug scr_grid_pathfinding scr_input_buffer scr_math_util \
-           scr_pool scr_save_load scr_state_machine scr_tiempo scr_tween; do
+           scr_pool scr_save_load scr_state_machine scr_tiempo scr_tween scr_ui_confirmar; do
     gm-cli resourcetool eval "resource create type=script name=$scr" "$YYP" >/dev/null 2>&1
     cp "$BIB/$scr.gml" "$PROY/scripts/$scr/$scr.gml" 2>/dev/null
 done
@@ -47,7 +47,7 @@ SALIDA="$(cd "$PROY" && gm-cli compile 2>&1)"
 ERRS="$(echo "$SALIDA" | grep -icE "compile error|syntax error|Error : |expecting|malformed")"
 
 if echo "$SALIDA" | grep -q "Compilation finished" && [ "$ERRS" -eq 0 ]; then
-    echo "✓ Los 11 scripts reutilizables compilan sin errores contra el runtime 2026.0.0.23."
+    echo "✓ Los 12 scripts reutilizables compilan sin errores contra el runtime 2026.0.0.23."
     exit 0
 else
     echo "✗ La compilación falló:"

@@ -31,6 +31,7 @@
 | 20 | [SNAP — datos y formatos (guía ES)](./20%20-%20SNAP%20-%20datos%20y%20formatos%20%28gu%C3%ADa%20en%20espa%C3%B1ol%29.md) | **Guía traducida**: serializar structs a/desde JSON, CSV, YAML, XML, MessagePack. API verificada | 1 |
 | 21 | [Vinyl — audio avanzado (guía ES)](./21%20-%20Vinyl%20-%20audio%20avanzado%20%28gu%C3%ADa%20en%20espa%C3%B1ol%29.md) | **Guía traducida**: mezclador por etiqueta, fundidos, ducking, sincronía con el beat. API verificada | 1 |
 | 23 | [Arte generado por IA](./23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md) | 🆕 Qué sirve hoy (referencia, upscalers, texturas) y qué no (consistencia de personaje, animación, pixel art real); técnicas de consistencia de estilo (seed, ControlNet, LoRA); estado legal verificado (U.S. Copyright Office, Content Survey de Steam, AI Disclosure de itch.io) | — |
+| 24 | [Logotipo, icono del ejecutable y capsule de tienda](./24%20-%20Logotipo%2C%20icono%20del%20ejecutable%20y%20capsule%20de%20tienda.md) | 🆕 Logotipo con `codex exec`+`gpt-image-2`; icono del ejecutable por plataforma con `resourcetool options set` (hallazgo verificado, incluido un bug real del `.ico` de Windows) y la técnica squircle de macOS; capsule de Steam e itch.io sin artista | — |
 
 ### Documentos complementarios en `05 - Referencia`
 

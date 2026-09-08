@@ -80,6 +80,17 @@
 //     Ver "13 - Diseño y producción de videojuegos/09" §5.3.
 //   - Voz, subtítulos y localización de audio: fuera de alcance de un script
 //     genérico. Ver la misma carpeta, documento "14".
+//
+// ⚠️ CHOQUE DE NOMBRES CON "13 - Diseño y producción de videojuegos/09" (Diseño de
+//   sonido y mezcla): ese documento define, por separado, mezcla_aplicar, sonar_en,
+//   sonar_limitado, voz_decir, voces_paso, apagar_con_fundido, banco_crear,
+//   banco_siguiente, ambiente_poner, variacion_tono y variacion_ganancia — MISMOS
+//   NOMBRES, pero con global.bus.*/global.volumen_* en vez de global.audio.bus.*/
+//   global.audio.volumen.*, y otras cifras de headroom. Las recetas de género que
+//   usan audio (04 · 26, 04 · 42, 04 · 45…) citan la versión de 13 · 09, no esta. NO
+//   copies código de los dos sitios al mismo proyecto: GameMaker rechaza cualquiera
+//   de estas funciones declarada dos veces. Reconciliar ambos en un solo sistema
+//   queda pendiente; mientras tanto, elige uno de los dos por proyecto.
 // ============================================================================
 
 

@@ -178,7 +178,7 @@ if (!_listo)
 if (place_meeting(x + hspeed, y, obj_muro_invisible))
 {
     accion_rechazada(x, y, "");   // sin texto: el choque ya dice "por aquí no"
-    camera_shake(0.05);           // sacudida sutil — no la del golpe de combate de 04 · 15 §5.7
+    camera_shake(0.05);           // sacudida sutil — no la del golpe de combate de 04 · 15 §5.1
 }
 ```
 
@@ -2043,6 +2043,189 @@ function campo_texto_dibujar(_campo, _px, _py) {
 > [01 · 12, «IME y entrada de texto no ASCII (CJK)»](../01%20-%20Fundamentos/12%20-%20Input%20-%20teclado,%20ratón%20y%20gamepad.md).
 > El widget no necesita ningún cambio: `keyboard_string` es la misma variable en los dos casos.
 
+#### m) Confirmación (Sí/No, con «No» por defecto)
+
+> **Hueco cerrado.** `04 · 41 §3.4.4` ya resolvía la confirmación de «¿Seguro que quieres
+> salir?» y señalaba explícitamente que la biblioteca «todavía no tiene un widget de
+> confirmación reutilizable de propósito general». Este componente lo es —
+> [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml), verificado
+> con `buscar.py`— y sirve para salir, sobrescribir una ranura de guardado (componente n,
+> justo debajo), borrar una partida o restablecer los ajustes de `04 · 25`. La regla que aplica
+> siempre es la misma: **toda acción destructiva confirma, y «No» empieza con el foco**
+> ([§2.1, regla 3](#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada)).
+
+```gml
+/// obj_pausa (o cualquier objeto persistente que gestione la UI) · Create
+confirmar_configurar_textos(txt("comun_si"), txt("comun_no"));   // una vez, con la localización ya cargada
+
+/// Step — antes que cualquier otro input de la pantalla lea la tecla de aceptar/cancelar
+confirmar_step();
+
+/// Draw GUI — por encima de todo lo demás
+confirmar_dibujar();
+
+/// En cualquier sitio donde haga falta confirmar algo:
+confirmar_abrir(txt("pausa_confirmar_salir"),
+    function() { reanudar_de_verdad(); ir_a_escena(rm_menu_principal); },   // "Sí"
+    undefined);                                                            // "No": solo cierra
+```
+
+> ⚠️ **No usa `show_question()`**: bloquea el juego en un bucle cerrado y se ignora fuera de
+> Windows salvo en modo debug (`01 · 15 §12`). Es un estado más de tu propia máquina, como el
+> resto de esta biblioteca.
+
+#### n) Ranura de guardado (metadatos, miniatura y «guardando…»)
+
+> **Hueco cerrado.** La ronda 2 de auditoría (`feedback-ux.md`, hallazgo K3) ya señalaba que
+> faltaba una ficha de ranura con metadatos; `_indice/auditorias/r5-juego-completo.md`
+> (hallazgo B4b) confirmó que seguía sin existir. `06 · scr_save_load.gml` ya soporta un
+> tercer argumento `_meta` en `save_game()` y las funciones `save_thumbnail_*` — este
+> componente es la pantalla que los usa.
+
+**El catálogo de metadatos que le pasas a `save_game()`.** `_meta` es un struct libre — pon lo
+que tu juego necesite mostrar (zona/room, tiempo jugado, porcentaje completado…):
+
+```gml
+/// En el punto donde ya guardas la partida (checkpoint, autoguardado, guardado manual)
+/// Verificado: room_get_name, date_second_span, date_current_datetime
+
+var _meta = {
+    zona          : room_get_name(room),
+    tiempo_jugado : global.tiempo_jugado_segundos,   // el propio juego lleva la cuenta (abajo)
+    porcentaje    : calcular_porcentaje_completado(),   // función TUYA, específica del juego
+};
+guardado_con_indicador("slot1", _datos_de_la_partida, _meta);
+```
+
+```gml
+/// obj_arranque (o donde ya lleves el reloj de partida) · Create
+global.tiempo_jugado_segundos = 0;
+global.tiempo_jugado_desde    = date_current_datetime();
+
+/// Step — solo suma mientras NO está pausado (usa el mismo global.pausado de 04 · 00 §5)
+if (!global.pausado) {
+    global.tiempo_jugado_segundos += date_second_span(global.tiempo_jugado_desde, date_current_datetime());
+    global.tiempo_jugado_desde = date_current_datetime();
+}
+```
+
+**El indicador «guardando…», sin parpadear en un guardado casi instantáneo.** Mismo principio
+que la duración mínima de la pantalla de carga
+([04 · 41 §1.2](../04%20-%20Recetas%20por%20género/41%20-%20Transiciones%2C%20carga%20y%20pausa.md#12-una-barra-de-carga-honesta-mide-lo-que-carga-una-barra-decorativa-es-peor-que-nada)):
+
+```gml
+/// Verificado: current_time
+
+#macro GUARDANDO_INDICADOR_MIN_MS 500
+
+/// @func guardado_con_indicador(_slot, _datos, _meta)
+/// @desc Guarda y deja el indicador visible un mínimo de tiempo (abajo), para que un guardado
+///       de un JSON pequeño (unos pocos ms) no se vea como un parpadeo de un solo frame.
+function guardado_con_indicador(_slot, _datos, _meta) {
+    global.guardando_activo = true;
+    global.guardando_desde  = current_time;
+    return save_game(_slot, _datos, _meta);
+}
+
+/// Draw GUI, en cualquier pantalla donde pueda dispararse un guardado
+if (global.guardando_activo) {
+    if (current_time - global.guardando_desde < GUARDANDO_INDICADOR_MIN_MS) {
+        draw_text(display_get_gui_width() - 140, display_get_gui_height() - 30, txt("comun_guardando"));
+    } else {
+        global.guardando_activo = false;
+    }
+}
+```
+
+**La ficha de ranura, con miniaturas cargadas UNA vez, no cada frame.** Cargar un sprite desde
+disco en cada Draw sería el mismo error que ya marca `13/05 §4` para las surfaces: trabajo
+repetido que sobra. Se carga en `Create` de la pantalla de selección y se libera en `Clean Up`:
+
+```gml
+/// obj_seleccion_partida · Create
+/// Verificado: save_list, save_thumbnail_load, array_create, array_length
+
+ranuras    = save_list(["slot1", "slot2", "slot3"]);
+miniaturas = array_create(array_length(ranuras), undefined);
+
+for (var _i = 0; _i < array_length(ranuras); _i++) {
+    if (ranuras[_i].existe) { miniaturas[_i] = save_thumbnail_load(ranuras[_i].slot); }
+}
+
+/// obj_seleccion_partida · Clean Up
+/// Verificado: sprite_exists, sprite_delete
+for (var _i = 0; _i < array_length(miniaturas); _i++) {
+    if (miniaturas[_i] != undefined && sprite_exists(miniaturas[_i])) { sprite_delete(miniaturas[_i]); }
+}
+```
+
+```gml
+/// obj_seleccion_partida · Draw GUI — una fila por ranura
+/// Verificado: draw_sprite_ext, draw_text, string, is_struct, struct_exists
+
+for (var _i = 0; _i < array_length(ranuras); _i++) {
+    var _r  = ranuras[_i];
+    var _fy = _y0 + _i * 100;
+
+    if (!_r.existe) { draw_text(_x0, _fy, txt("ranura_vacia")); continue; }
+
+    if (miniaturas[_i] != undefined) { draw_sprite_ext(miniaturas[_i], 0, _x0, _fy, 0.25, 0.25, 0, c_white, 1); }
+
+    draw_text(_x0 + 90, _fy, _r.fecha);
+
+    if (is_struct(_r.meta)) {
+        if (struct_exists(_r.meta, "zona"))          { draw_text(_x0 + 90, _fy + 18, _r.meta.zona); }
+        if (struct_exists(_r.meta, "tiempo_jugado"))  { draw_text(_x0 + 90, _fy + 36, tiempo_jugado_formatear(_r.meta.tiempo_jugado)); }
+        if (struct_exists(_r.meta, "porcentaje"))     { draw_text(_x0 + 90, _fy + 54, string(_r.meta.porcentaje) + "%"); }
+    }
+}
+```
+
+```gml
+// Verificado: floor, string, string_format, string_replace_all
+
+/// @func tiempo_jugado_formatear(_segundos)
+/// @desc Como tiempo_texto() (§3.5h), pero con HORAS: ese formatea el cronómetro de una
+///       sesión o partida (segundos), este el tiempo ACUMULADO de toda la partida guardada
+///       (que sí puede pasar de una hora). No lo sustituye: le añade el rango que falta.
+/// @returns {String}  "H:MM:SS" si dura una hora o más, "MM:SS" si no.
+function tiempo_jugado_formatear(_segundos) {
+    var _h = floor(_segundos / 3600);
+    var _m = floor(_segundos / 60) mod 60;
+    var _s = floor(_segundos) mod 60;
+    var _txt = (_h > 0)
+        ? string(_h) + ":" + string_format(_m, 2, 0) + ":" + string_format(_s, 2, 0)
+        : string_format(_m, 2, 0) + ":" + string_format(_s, 2, 0);
+    return string_replace_all(_txt, " ", "0");   // string_format rellena con espacios, no ceros (§3.5h)
+}
+```
+
+**Sobrescribir y borrar, con el widget de confirmación de arriba — nunca en silencio:**
+
+```gml
+/// Verificado: save_exists (06 · scr_save_load.gml)
+
+/// @func ranura_pedir_sobrescribir(_slot, _datos, _meta)
+/// @desc Si la ranura está vacía, guarda directo. Si ya tiene partida, confirma primero.
+function ranura_pedir_sobrescribir(_slot, _datos, _meta) {
+    if (!save_exists(_slot)) { guardado_con_indicador(_slot, _datos, _meta); return; }
+    confirmar_abrir(txt("ranura_sobrescribir_pregunta"),
+        function() { guardado_con_indicador(_slot, _datos, _meta); },
+        undefined);
+}
+
+/// @func ranura_pedir_borrado(_slot, _al_borrar)
+/// @desc _al_borrar es TUYA: normalmente, recargar la lista de ranuras de §Create de arriba.
+function ranura_pedir_borrado(_slot, _al_borrar) {
+    confirmar_abrir(txt("ranura_borrar_pregunta"),
+        function() { delete_save(_slot); _al_borrar(); },
+        undefined);
+}
+```
+
+> 🔺 **`delete_save()` ya borra la miniatura sola** (`06 · scr_save_load.gml`, actualizado):
+> no hace falta llamar a `save_thumbnail_delete()` aparte al borrar una partida entera.
+
 ### 3.6 Tipografía: bitmap, TTF y SDF
 
 | | **Fuente de sprite (bitmap)** | **TTF/OTF del IDE** | **SDF** |
@@ -2193,6 +2376,12 @@ a tiempo completo. Hay librerías maduras y con licencia MIT en el
 
 ## 4 · Checklist de UI antes de publicar
 
+> Esta es la lista de la UI en concreto: layout, interacción, feedback, accesibilidad. No
+> repite el checklist de «juego completo» —
+> [04 · 00](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md#el-checklist-de-juego-completo)
+> es el índice maestro (splash, menú, guardado, cierre…) y remite aquí para el detalle de UI
+> que sigue. Compara contra los dos antes de decir que un juego está terminado.
+
 **Legibilidad y layout**
 
 - [ ] Ningún texto por debajo de **26 px equivalentes a 1080p** si el juego sale en consola
@@ -2212,7 +2401,8 @@ a tiempo completo. Hay librerías maduras y con licencia MIT en el
 - [ ] Los iconos de botón cambian solos al cambiar de dispositivo (§2.3).
 - [ ] Los iconos reflejan el **rebinding** del jugador, no la asignación por defecto.
 - [ ] Cada pantalla tiene una salida visible, y siempre con el mismo botón.
-- [ ] Toda acción destructiva pide confirmación, con «No» por defecto.
+- [ ] Toda acción destructiva pide confirmación, con «No» por defecto (componente m,
+      `scr_ui_confirmar.gml` — no un diálogo distinto cada vez).
 - [ ] La repetición al mantener una dirección funciona (0,4 s + 0,1 s) y no se dispara sola
       con un stick desgastado.
 
@@ -2279,6 +2469,9 @@ a tiempo completo. Hay librerías maduras y con licencia MIT en el
 - [08 · 12 — Strings](../08%20-%20Referencia%20GML%20completa/12%20-%20Strings.md#portapapeles) — `clipboard_get_text`/`has_text`/`set_text` y las funciones de manipulación que usa `campo_texto_actualizar()` (§3.5l)
 - [04 · 11 — Arcade y juegos de un botón](../04%20-%20Recetas%20por%20género/11%20-%20Arcade%20y%20juegos%20de%20un%20botón.md) — la alta de highscore con `keyboard_lastchar`, el caso simple que §3.5l generaliza sin repetirlo
 - [`scr_tween.gml`](../06%20-%20Assets%20y%20Scripts/scr_tween.gml) · [`scr_math_util.gml`](../06%20-%20Assets%20y%20Scripts/scr_math_util.gml) — tweens y easing listos para copiar
+- [`scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml) — el widget de confirmación del componente m)
+- [`scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) — `save_game()`, `save_list()` y `save_thumbnail_*` que usa el componente n)
+- [04 · 57 — Selección de nivel y capítulo](../04%20-%20Recetas%20por%20género/57%20-%20Selección%20de%20nivel%20y%20capítulo.md) — otra pantalla de «elegir entre varias opciones con estado», con el mismo criterio de estados visuales del componente n)
 - [11 · Catálogo de código descargado](../11%20-%20Código%20descargado/_CATALOGO.md) — las librerías de UI de la comunidad
 - [05 · 04 — Convenciones y estilo GML](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md)
 

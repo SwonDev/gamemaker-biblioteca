@@ -214,6 +214,19 @@ MejoraOpcion   una fila del menú de "elige 1 de 3": a qué arma o pasiva afecta
 `RecogiblesXP` → `Enemigos` → `Jugador` → `ProyectilesJugador` → `UI`. El orden de dibujado
 importa poco aquí porque casi todo usa `depth = -y` para el orden top-down habitual de `04 · 02`.
 
+Los tres "pool" de arriba son `Pool` de verdad
+([`06/scr_pool.gml`](<../06 - Assets y Scripts/scr_pool.gml>) §USO RÁPIDO), y `global.semilla_combate`
+(§1.4.2 y §1.5) tiene que existir antes del primer enemigo — sin esto, todo lo que sigue en este
+documento lee un `global.pool_*`/`global.semilla_combate` que nunca se creó:
+
+```gml
+/// obj_director_oleadas · Create — antes de spawnear el primer enemigo
+global.pool_enemigos            = new Pool(obj_enemigo, 200, "Enemigos");
+global.pool_proyectiles_jugador = new Pool(obj_proyectil_jugador, 300, "ProyectilesJugador");
+global.pool_recogibles_xp       = new Pool(obj_recogible_xp, 150, "RecogiblesXP");
+global.semilla_combate          = irandom(999999);   // fija por partida; guárdala si quieres replays
+```
+
 ### 1.3 · El bucle central
 
 ```
@@ -1031,12 +1044,14 @@ no lo redefinas aquí:
 // scr_combate_auto
 // ---------------------------------------------------------------------------
 
-/// @func simular_combate(_equipo_a, _equipo_b, _semilla)
+/// @func equipos_simular_combate(_equipo_a, _equipo_b, _semilla)
 /// @desc Corre el combate entero de una vez, sin dibujar nada. _equipo_a y
 ///       _equipo_b son copias INDEPENDIENTES de las unidades del tablero
 ///       (variable_clone, para no mutar el tablero real mientras se simula).
+///       Nombre específico (no `simular_combate` a secas): `13 · 21` ya usa ese
+///       nombre para su simulación de TTK arma-contra-enemigo, con otra aridad.
 /// @returns {Struct} { gano_a: Bool, log: Array, sobrevivientes_a: Array }
-function simular_combate(_equipo_a, _equipo_b, _semilla)
+function equipos_simular_combate(_equipo_a, _equipo_b, _semilla)
 {
     var _rng = new RNG(_semilla);   // constructor completo en 04 · 05 §5.0
     var _log = [];
@@ -1153,6 +1168,14 @@ CartaDef       catálogo estático: coste de energía, tipo, efecto(s) por datos
 CartaInstancia una COPIA de CartaDef en el mazo del jugador (variable_clone — §3.4.1),
                con su propio estado de "mejorada" si el género lo permite
 Mazo           las cuatro pilas (mazo, mano, descarte, exilio) y sus transiciones
+```
+
+`array_clone_barajado()` (§3.4.2) y el `Create` PvP (§3.6) leen `global.semilla_combate`: fíjala
+al entrar en el combate, ANTES de barajar el mazo —
+
+```gml
+/// obj_combate · Create (un jugador; en PvP la fija el servidor antes de crear las dos bandas)
+global.semilla_combate = irandom(999999);   // guárdala si el run necesita ser reproducible
 ```
 
 ### 3.3 · El bucle central

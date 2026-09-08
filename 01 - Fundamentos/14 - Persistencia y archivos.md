@@ -605,6 +605,20 @@ if (!directory_exists("perfiles"))
 > ⚠️ Solo funcionan en el **save area**.
 > ⚠️ En **HTML5** no puedes crear ni destruir directorios.
 
+> 🔴 **`directory_exists()`/`directory_create()` pueden devolver `false` SIEMPRE bajo `gm-cli run
+> --target mac`**, incluso sobre una carpeta que ya existe y tiene archivos dentro — verificado
+> en vivo, construyendo un juego completo de punta a punta, sobre el runtime GMS2 2026.0.0.23
+> (`_indice/auditorias/r5-prueba-e2e.md` §2, documentado como Trampa 6 de
+> [`12 · 09` — Manual del agente de IA](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-6--directory_existsdirectory_create-devuelven-false-siempre-bajo-gm-cli-run---target-mac)).
+> Mientras tanto, escribir un fichero ahí con `file_text_open_write()` funciona sin ningún
+> problema: el bug está en las dos funciones de comprobación, no en el sistema de archivos real.
+> No es un alcance confirmado del runtime en general — puede ser específico del *runner* de
+> pruebas sin firma que lanza `gm-cli run` —, pero es exactamente el flujo que esta biblioteca
+> recomienda para probar un juego, así que **no confíes en el resultado de estas dos funciones
+> para decidir si puedes escribir: intenta la escritura de verdad y deja que ella decida.**
+> `06 - Assets y Scripts/scr_save_load.gml` → `save_ensure_dir()` ya implementa este patrón
+> (fichero centinela + `file_delete()`), con el porqué documentado en el propio script.
+
 ---
 
 ## 12. Codificación y hashes

@@ -43,7 +43,13 @@ una sola ya compensa:
    propio de esta biblioteca ([§6](#6--la-versión-para-llm-qué-necesita-un-agente-para-implementar-sin-inventar)
    lo desarrolla entero): un agente no tiene el contexto tácito que tiene un compañero humano, así
    que la ambigüedad que un humano rellenaría preguntando, el agente la rellena **inventando**. Un
-   documento completo, con reglas numeradas y parámetros con rango, es lo que evita eso.
+   documento completo, con reglas numeradas y parámetros con rango, es lo que evita eso — y esa
+   ambigüedad no es solo de mecánicas: un GDD que nunca menciona el envoltorio del juego
+   (splash, menú, pausa, opciones, créditos) deja que el agente decida por su cuenta si eso
+   cuenta como parte del encargo. La fila **2.14 bis** de [§2](#2--el-método-paso-a-paso) y el
+   checklist maestro de
+   [04 · 00](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md#el-checklist-de-juego-completo)
+   existen para que esa ambigüedad concreta no dependa de que quien redacta el GDD se acuerde.
 
 Si ninguna de las cuatro aplica, vuelve a `13/01 §8` y no sigas leyendo: escribir un GDD de 40
 páginas para un juego de una persona y seis semanas es el propio **feature creep** de `13/11 §1.6`
@@ -204,6 +210,7 @@ enlaza y no se repite.
 | 2.12 | **Arte y dirección visual** | Paleta, resolución base, referencias visuales, hoja de estilo de animación | El pipeline técnico Aseprite → GameMaker (va en 2.15) | [13 · 03](./03%20-%20Pixel%20art%20y%20resolución.md) y [13 · 04](./04%20-%20Animación%20de%20sprites,%20Sequences%20y%20Animation%20Curves.md) |
 | 2.13 | **Audio** | Categorías de sonido, presupuesto, referencias de mezcla, hoja de sonido | La configuración de buses en código (va en 2.15) | [13 · 09](./09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) |
 | 2.14 | **UI y UX** | Mapa de pantallas, taxonomía diegética, componentes necesarios | El nine-slice y el layout en píxeles (va en 2.15) | [13 · 05](./05%20-%20UI%20y%20UX%20de%20juego.md), mapa de pantallas en [§2.1](./05%20-%20UI%20y%20UX%20de%20juego.md#21-el-mapa-de-pantallas-se-dibuja-antes-de-programar-nada) |
+| 2.14 bis | **Envoltorio de pantallas** | Marca cada pieza del envoltorio como presente o «no aplica: `<razón>`» — splash, menú principal, selección de nivel (si hay), pausa, opciones, créditos. No describe CÓMO se construye cada una (eso ya está en la columna de la derecha): solo obliga a que el GDD las nombre, para que no desaparezcan por omisión | El diseño detallado de cada pantalla (vive en 2.14, arriba) | [04 · 00 — el checklist maestro de «juego completo»](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md#el-checklist-de-juego-completo); selección de nivel en [04 · 57](../04%20-%20Recetas%20por%20género/57%20-%20Selección%20de%20nivel%20y%20capítulo.md) |
 | 2.15 | **Técnica y arquitectura** | Capas del proyecto, dónde vive el estado, formato de los datos, qué motor de físicas | El código en sí (vive en `.gml`, no en el GDD) | [13 · 06](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) |
 | 2.16 | **Monetización y modelo de negocio** | Qué modelo (premium, F2P, DLC) y su efecto en el resto del diseño | La integración con Steamworks/AdMob/IAP (implementación, no diseño) | [13 · 20](./20%20-%20Modelo%20de%20negocio,%20monetización%20y%20ética%20del%20diseño.md) para el criterio de diseño; implementación en [04 · 20](../04%20-%20Recetas%20por%20género/20%20-%20Servicios%20de%20plataforma%20%28logros%2C%20anuncios%2C%20compras%29.md); precio y regiones en [13 · 11 §6.7](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#67-fecha-precio-y-regiones) |
 | 2.17 | **Marketing y lanzamiento** | Cuándo publicar la página de tienda, activos necesarios, press kit, wishlists | El texto final del press kit (se rellena con la plantilla, no se redacta aquí) | [13 · 11 §6](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#6--lanzamiento) y [§8.4](./11%20-%20Producción,%20alcance%20y%20lanzamiento.md#84-press-kit) |
@@ -447,6 +454,14 @@ Dirección visual:
 Dirección de sonido:
 Mapa de pantallas:
 
+## 9 bis · Envoltorio de pantallas       (fila 2.14 bis; checklist maestro en 04/00)
+Splash:                    presente | no aplica: <razón>
+Menú principal:             presente | no aplica: <razón>
+Selección de nivel/capítulo: presente | no aplica: <razón>   (04/57, si el juego tiene niveles discretos)
+Pausa:                      presente | no aplica: <razón>
+Opciones:                   presente | no aplica: <razón>
+Créditos:                   presente | no aplica: <razón>
+
 ## 10 · Técnica
 Motor de físicas, formato de datos, dónde vive el estado:
 
@@ -475,9 +490,10 @@ Registro de cambios de este documento:
 
 **Antes de dar el documento por listo**
 
-- [ ] Cada una de las 19 secciones de [§2](#2--el-método-paso-a-paso) tiene contenido o dice
+- [ ] Cada una de las 20 secciones de [§2](#2--el-método-paso-a-paso) tiene contenido o dice
       explícitamente **por qué no aplica** a este proyecto (una sección vacía sin explicación es
-      indistinguible de un olvido)
+      indistinguible de un olvido) — incluida **2.14 bis, el envoltorio**: splash, menú, pausa,
+      opciones y créditos marcados uno a uno, no asumidos
 - [ ] Los pilares son 3-5, están en frase afirmativa, y al menos uno ha rechazado una idea real
 - [ ] El pitch de venta y el de diseño son textos **distintos**, no el mismo copiado dos veces
 - [ ] Ningún número de balance está escrito dos veces (documento y `balance.json`): el documento
@@ -527,7 +543,7 @@ Un GDD escrito para un compañero humano puede permitirse ambigüedad porque un 
 en el pasillo en diez segundos. Un agente no pregunta por defecto — cuando la respuesta falta,
 **inventa una firma, un número o una regla que suena plausible**, que es exactamente el fallo que
 esta biblioteca entera existe para evitar (`AGENTS.md §1`). La diferencia entre un GDD para
-persona y uno para agente no es de formato: es de **dónde se traslada la ambigüedad**. Cuatro
+persona y uno para agente no es de formato: es de **dónde se traslada la ambigüedad**. Cinco
 condiciones, en orden de coste si faltan:
 
 1. **Reglas numeradas y en imperativo**, no prosa. «El salto se siente ágil» no es implementable;
@@ -541,6 +557,15 @@ condiciones, en orden de coste si faltan:
    nadie le dijo que eso restaba en vez de sumar.
 4. **Un criterio de aceptación que no dependa de una opinión.** «Que se sienta bien» no cierra una
    tarea; «los 3 niveles compilan y las 3 gemas de cada uno son recogibles» sí.
+5. **Lo que no está decidido se señala como pregunta abierta, nunca se implementa por iniciativa
+   propia.** Si una regla es ambigua, un parámetro no tiene rango, o el usuario pide algo que el
+   recorte del punto 3 ya excluyó, el agente lo dice y espera respuesta — no rellena el hueco con
+   la opción que le parece razonable. Es la regla que ya aplicaba el recorte de
+   [§6.3 punto 9](#63--ejemplo-real-un-plataformas-de-3-niveles), generalizada aquí: gobierna
+   cualquier ambigüedad de esta sección, no solo el recorte. El protocolo para llegar hasta este
+   punto —qué preguntar antes de escribir la primera versión del documento, cuándo parar de
+   preguntar y qué asumir por defecto— es
+   [13 · 28](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md#16--lo-que-no-está-decidido-se-señala-como-pregunta-abierta-nunca-se-implementa-por-iniciativa-propia).
 
 Esto no sustituye la verificación de símbolos GML que exige `AGENTS.md §1` (`buscar.py` antes de
 escribir cualquier función): un GDD perfecto no libra al agente de comprobar que `place_meeting`

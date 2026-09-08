@@ -189,6 +189,13 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
 
 ## 5. Flujo recomendado para desarrollar un proyecto
 
+0. **Especificación primero.** «Hazme un juego de X» **es** un encargo que incluye diseñar,
+   aunque no lo diga con esas palabras: si no trae ya una especificación (un GDD, una ficha de
+   sistema, o las respuestas a las preguntas de arranque), pregúntalas en un único turno y
+   escribe la especificación antes de seguir — preguntas, criterio de parada, valores por
+   defecto y plantilla en
+   [`13 - Diseño y producción de videojuegos/28`](./13%20-%20Diseño%20y%20producción%20de%20videojuegos/28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md).
+   No se crea el proyecto (paso 3) sin ese documento escrito y enseñado al usuario.
 1. **Lee la receta del género** en `04 - Recetas por género/`. Te dice qué sistemas construir
    y en qué orden. Si el encargo incluye diseñar (mecánicas, niveles, arte, UI, sonido,
    historia) o producir (alcance, hitos, lanzamiento), pasa antes por
@@ -202,10 +209,11 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
    ⚠️ Las plantillas con *prefabs* fallan en `gm-cli` 2.3.0 en macOS: de las 18 plantillas de
    juego, **9 fallan y 9 funcionan** (no solo *Platformer*). Usa *Space Rocks* o
    *Blank Pixel Game* — ambas funcionan —, o crea el proyecto desde el IDE. Tabla completa de
-   las 18, verificada una a una, y las otras tres trampas que hacen fracasar a un agente hoy
+   las 18, verificada una a una, y las otras cinco trampas que hacen fracasar a un agente hoy
    (`resourcetool`/`compile` colgados bajo sandbox, el evento equivocado sin avisar, funciones
-   inventadas que el compilador no detecta) en
-   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-cuatro-trampas-que-hacen-fracasar-a-un-agente-hoy)
+   inventadas que el compilador no detecta, fuentes que compilan y no dibujan texto, guardado
+   que falla en silencio bajo `gm-cli run`) en
+   [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-seis-trampas-que-hacen-fracasar-a-un-agente-hoy)
    — léelo entero si vas a operar este repo por terminal, es la guía específica para agentes.
 4. **Escribe GML** verificando cada símbolo con `buscar.py` antes de usarlo. Al terminar,
    `python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>` lista cualquier función
