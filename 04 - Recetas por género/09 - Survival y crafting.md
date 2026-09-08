@@ -1644,6 +1644,21 @@ function survival_load()
 }
 ```
 
+> 🔴 **`survival_load()` revienta si es la primera llamada del proceso que toca `SurvivalState`,
+> `ChunkData` o `Inventory`.** Los tres son `static deserialize` (arriba, `04 · 04 §5.2` para
+> `Inventory`): ese método no existe como miembro accesible hasta que `new SurvivalState()`,
+> `new ChunkData()`/`new Inventory()` se han ejecutado al menos una vez EN ESTE PROCESO — no
+> antes, no "en general". Causa raíz completa, confirmada contra el manual oficial, en
+> [`04 · 04` §5.2](./04%20-%20RPG%20_%20Action%20RPG.md#52-inventario-y-equipamiento). Cébalos
+> de forma incondicional, ANTES de decidir si hay partida guardada o no — el mismo patrón que
+> usa `04 · 04 §6` (`objGame::Create`):
+> ```gml
+> /// obj_game · Create — antes de comprobar file_exists() en survival_load()
+> new SurvivalState();
+> new ChunkData(0, 0);       // ajusta los argumentos a la firma real de tu ChunkData
+> new Inventory(30);         // 04 · 04 §5.2 — descártala si tu partida nueva ya crea la suya
+> ```
+
 ---
 
 ## 7. Errores clásicos y cómo evitarlos

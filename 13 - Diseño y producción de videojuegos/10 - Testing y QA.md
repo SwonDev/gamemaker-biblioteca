@@ -1261,6 +1261,12 @@ Buenos momentos para dispararlo: cuando los FPS bajan de un umbral varios segund
 cuando el jugador muere en el mismo sitio por tercera vez, cuando una aserción de producción
 falla, y —siempre— con la tecla de «reportar bug» del modo QA.
 
+> ⚠️ **En Mac, el PNG que produce `screen_save()` puede salir invertido verticalmente aunque la
+> ventana real se vea bien** (Trampa 13 de
+> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invierte-la-imagen-verticalmente-en-el-runner-de-mac--la-ventana-real-no)).
+> No afecta a si algo aparece o no, solo a si arriba/abajo en el PNG es arriba/abajo de verdad
+> — relevante para §8.6 y el guion de humo de §8.7.
+
 ### 7.4 El modo QA: teclas ocultas que no llegan al jugador
 
 Un tester necesita saltarse el nivel 3 para probar el 4. La forma correcta de dárselo es una
@@ -1847,6 +1853,25 @@ fondo, los botones... y ningún texto.
    fuente creada por `resourcetool` (que no rasteriza glifos — Trampa 5) y cada pantalla nueva
    necesita su propia captura mirada, no una inferencia sobre una captura anterior.
 
+> ✅ **Dos casos concretos del paso 3, verificados construyendo un juego móvil completo**
+> ([`_indice/auditorias/r7-prueba-movil.md` §2.5-2 y §2.5-3](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva)),
+> ninguno de ellos una función rota: **cómo un agente compone piezas correctas**, algo que ni el
+> compilador ni `validar-proyecto.py` pueden ver porque no es una cuestión de sintaxis.
+>
+> - Un menú con 5 botones a una altura «generosa» — bien por encima del suelo táctil mínimo de
+>   [`04 · 28` §5.1](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#51-el-tamaño-mínimo-de-un-botón) —
+>   medía, sumado, más que el alto de diseño de la sala: el título se solapaba con el primer
+>   botón y el último quedaba fuera de la pantalla. Las fórmulas de tamaño mínimo eran correctas
+>   por separado; nadie sumó la altura total del bloque contra el espacio disponible.
+> - Un botón «Continuar» desactivado (correctamente, sin partida guardada — el código de toque
+>   ya lo ignoraba) usaba un gris más claro a menor alfa frente al gris más oscuro y mayor alfa
+>   de los botones activos: sobre fondo negro, el brillo final resultante era **prácticamente
+>   idéntico** — el botón se veía indistinguible de uno activo en la captura, un bug de
+>   *affordance*, no de lógica: no hay ningún *hover* que lo delate en una interfaz táctil.
+>
+> Los dos compilaron limpio, dos veces, sin ningún aviso. Solo se vieron aplicando este mismo
+> procedimiento — mirando la captura, no el código.
+
 #### Procedimiento 2 · Verificar el guardado tras cerrar y reabrir el proceso
 
 `save_game()` devolviendo `true` en el mismo `run` **no demuestra que el guardado sobreviva**:
@@ -2286,6 +2311,21 @@ que la mitad del contenido esperado faltaba. No hay atajo nuevo aquí: esta secc
 *cómo llegar* al archivo; lo que se hace con él una vez abierto ya está en §8.6 — y esta sesión
 es la prueba de que ese paso no es opcional.
 
+> 🔴 **`screen_save()` invierte la imagen verticalmente en el runner de Mac — la ventana real
+> no.** Confirmado en vivo (Trampa 13 de
+> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invierte-la-imagen-verticalmente-en-el-runner-de-mac--la-ventana-real-no),
+> contrastando el PNG contra una captura de pantalla real (`screencapture`) tomada mientras se
+> veía el mismo fotograma en la ventana del runner: la ventana se veía perfectamente, derecha;
+> el PNG de `screen_save()` salía boca abajo, con el orden vertical invertido. Si lo que estás
+> verificando con este procedimiento incluye POSICIÓN vertical (un elemento arriba/abajo, un
+> solapamiento con el borde superior o inferior de la pantalla, «¿el título está por encima del
+> primer botón?»), **no confíes en el eje Y de esta captura sin contrastarla al menos una vez
+> con `screencapture` en la misma sesión** — la Trampa 5 de fuentes mudas (arriba, §8.7.2/§8.7.3)
+> ya demostró que un PNG que existe y pesa lo normal puede mentir sobre su CONTENIDO; esta
+> trampa demuestra que también puede mentir sobre su ORIENTACIÓN, mientras el juego real se ve
+> bien. Para diagnósticos que no dependen de arriba/abajo (¿aparece el texto?, ¿es el color
+> correcto?, ¿existe el sprite?) esta trampa no cambia la conclusión.
+
 #### 8.7.4 El ciclo de guardado sin manos: dos lanzamientos, un objeto
 
 §8.6 Procedimiento 2 ya describe el ciclo manual (jugar, guardar, matar el proceso, reabrir,
@@ -2392,7 +2432,9 @@ antes de llegar al `Create`).
 
 **Caza, con confianza razonable**: pantalla en negro o a medias, una fuente que compila pero no
 dibuja ni una letra (la Trampa 5 exacta que motivó §8.6, y reproducida dentro de este mismo
-guion en §8.7.2/§8.7.3), un elemento de UI fuera de sitio o solapado, un guardado que no
+guion en §8.7.2/§8.7.3), un elemento de UI fuera de sitio o solapado (no hipotético — un menú
+que se salía de la pantalla y un botón desactivado indistinguible del activo, los dos casos
+reales del recuadro de §8.6), un guardado que no
 sobrevive a cerrar el proceso, un `game_end()` que nunca llega (el objeto se queda colgado sin
 terminar — el propio `MARGEN_S` de §8.7.1 lo delata por *timeout*), y una excepción no
 controlada que sí aparece en el log (§4.1 de `12 · 09`).
@@ -2436,6 +2478,13 @@ ajustar a tu juego, no una constante universal. Este guion no sustituye QA manua
 playtesting (§10): reduce el coste de la comprobación mecánica de «¿se ve algo razonable y se
 guarda de verdad?» para que el tiempo humano se dedique a lo que sí necesita ojos y manos
 humanas.
+
+Y una tercera frontera, en Mac: **el paso 5 del guion completo de §8.7.6 (mirar
+`humo_captura.png`) no es fiable para juzgar POSICIÓN vertical sin contrastarlo antes con
+`screencapture`** — `screen_save()` invierte la imagen verticalmente en el runner de Mac,
+mientras la ventana real se ve bien (Trampa 13 de `12 · 09` §0, aviso completo en §8.7.3 de
+esta misma sección). El guion detecta igual de bien que «se ve algo» o que «hay texto»; lo que
+NO garantiza sin ese contraste es que arriba/abajo en el PNG signifique arriba/abajo de verdad.
 
 #### 8.7.6 El guion de humo completo, antes de decir que un juego está terminado
 
@@ -2780,6 +2829,10 @@ QA MANUAL Y PLAYTESTING
     no solo con save_game() == true en el mismo run.
 [ ] El guion de humo de §8.7.6 corrió de punta a punta: lanzar, ###humo_captura###, mirar el
     PNG, ###humo_guardado### OK en la segunda fase, y ps -ef | grep -i runner en vacío al final.
+[ ] En Mac, si algún juicio depende de POSICIÓN vertical (arriba/abajo, solapamiento con un
+    borde), se contrastó al menos una vez una captura de screen_save() contra screencapture
+    real — screen_save() puede invertir la imagen mientras la ventana se ve bien (Trampa 13
+    de 12/09 §0, §7.3 y §8.7.3 de este documento).
 ```
 
 ---

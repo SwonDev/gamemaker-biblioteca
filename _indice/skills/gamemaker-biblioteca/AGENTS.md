@@ -62,7 +62,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las once trampas que hacen fracasar a un agente
+## Las trece trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -119,6 +119,16 @@ el primer comando; el detalle y las tablas completas están en
     5 llamadas idénticas en la medición. **Reintenta antes de buscar la causa en tus datos**: no
     lo confundas con el `.yy` mal formado de la trampa 5 ni con el `%Name`/`parent` mal fijado al
     hornear una fuente, que dan la misma excepción pero sí tienen arreglo. Detalle en `12/09`.
+12. **La fuente por defecto no dibuja tildes ni eñes.** Con `draw_set_font(-1)` —o sin fijar
+    ninguna—, «¡Añádeme más peón!» sale como «Ademe ms pen!»: los glifos `á é í ó ú ñ ¿ ¡` se
+    omiten **en silencio**, sin caja de glifo ausente, y compila limpio. Como todo lo que escribas
+    va en español, esto te afecta siempre. Solución verificada: una fuente propia con `font_add()`
+    cargando un `.ttf` por *Included File* (trampa 8), o una fuente del proyecto con sus glifos
+    horneados (trampa 5). Ver `01/11` y `12/09`.
+13. **`screen_save()` invierte la imagen verticalmente en el runner de Mac.** La ventana real se
+    ve bien; el archivo, del revés. Si verificas mirando capturas —y el guion de humo de `13/10`
+    se apoya en ellas—, contrasta al menos una vez con `screencapture` del sistema antes de sacar
+    conclusiones sobre dónde está cada cosa en pantalla.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**

@@ -1004,7 +1004,10 @@ gesture_tap_count(true);          // permitir detectar toques múltiples
 
 > 🔺 **Los gestos también funcionan con ratón en escritorio**, así que puedes desarrollar y
 > probar en el PC. Pero **prueba en un móvil real** antes de publicar: las distancias y tiempos
-> que se sienten bien con ratón no son los mismos con el dedo.
+> que se sienten bien con ratón no son los mismos con el dedo. Precisión importante: esto vale
+> para **un** puntero — un ratón de escritorio no puede simular dos dedos tocando a la vez, con
+> ninguna herramienta. Detalle de qué se puede probar sin dispositivo y qué no, en
+> [`04 · 28` §9.1 bis](../04%20-%20Recetas%20por%20género/28%20-%20Juegos%20para%20móvil%20%28táctil%29.md#91-bis--qué-se-puede-probar-sin-dispositivo-y-qué-exige-uno-de-verdad).
 >
 > 💡 Para input táctil «a mano» (sin gestos), están `device_mouse_x/y(dispositivo)` y
 > `device_mouse_check_button` — un móvil admite varios toques a la vez (multi-touch), cada uno

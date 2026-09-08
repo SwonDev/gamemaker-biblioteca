@@ -125,6 +125,17 @@ Dos reglas que no son negociables:
 - **Un botón inactivo se dibuja, no se esconde.** Si desaparece, el jugador cree que se le ha
   roto el juego; si está gris, entiende que hay una condición. Y si lo pulsa, dale un motivo
   («Necesitas 3 llaves»), no un silencio.
+  > ⚠️ **«Gris» no basta si aclarar el color y bajar el alfa se cancelan entre sí.** Caso real
+  > ([`_indice/auditorias/r7-prueba-movil.md` §2.5-3](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva)):
+  > un botón inactivo dibujado con un gris más claro a menor alfa (`c_gray` a 0,45) frente a un
+  > gris más oscuro y mayor alfa de los activos (`c_dkgray` a 0,88) — sobre fondo negro, el
+  > brillo final resultante fue prácticamente idéntico, y el botón desactivado se veía
+  > indistinguible de uno activo. No es un fallo de lógica (el toque ya lo ignoraba), es un
+  > fallo de *affordance* que en táctil pesa más que en ratón, porque no hay *hover* que lo
+  > delate de otra forma. **La corrección que funciona**: varía el alfa de forma agresiva
+  > manteniendo el **mismo** color base, o comprueba el contraste resultante contra el fondo
+  > real antes de dar el estado por legible — nunca dos variables de brillo a la vez sin sumar
+  > el resultado.
 - **El sonido de foco se dispara en el cambio de estado, no cada frame.** Si lo pones en el
   `if (encima)` sin comparar con el estado anterior, obtienes una metralleta.
 
@@ -740,7 +751,9 @@ draw_text(_p.px, _p.py, $"Vida: {obj_jugador.vida}");
 
 var _q = ancla(1, 0, 32, 32);                     // arriba a la derecha
 draw_set_halign(fa_right);
-draw_text(_q.px, _q.py, $"{global.monedas} ◆");
+// La cartera del jugador vive en Inventory.oro (04 · 04 §5.2), no en una global propia
+// de este documento — ver el aviso de §3.5k sobre las «dos carteras».
+draw_text(_q.px, _q.py, $"{global.inventory.oro} ◆");
 
 draw_set_halign(fa_left);   // deja el estado como lo encontraste
 ```
@@ -878,7 +891,7 @@ function panel_dibujar(_spr, _px, _py, _ancho, _alto, _color = c_white, _alfa = 
 }
 ```
 
-> 🔺 **Cuatro trampas del nine slice, todas reales:**
+> 🔺 **Cinco trampas del nine slice, todas reales:**
 > 1. **No funciona con `draw_sprite_part()` ni con `draw_sprite_pos()`.** Lo dice el manual:
 >    esas funciones dibujan un trozo o deforman, y el nine slice se desactiva. Usa
 >    `draw_sprite_stretched()`, `draw_sprite_stretched_ext()` o `draw_sprite_ext()`.
@@ -888,6 +901,22 @@ function panel_dibujar(_spr, _px, _py, _ancho, _alto, _color = c_white, _alfa = 
 >    modificando el sprite. Para hacer pruebas parte de `sprite_nineslice_create()`.
 > 4. **La constante del centro es `nineslice_centre`**, con *-re*. (`nineslice_center` también
 >    existe en el runtime como alias, pero el manual documenta la británica: usa esa.)
+> 5. **`panel_dibujar(_spr, ...)` es un punto de acoplamiento con un asset que TIENE que
+>    existir de antemano, y esta función no lo avisa en ningún sitio — se descubre al llamarla
+>    sin ese sprite listo** (informe de auditoría `r7-prueba-gestion.md` §2.5). El `_spr` no es
+>    un parámetro cualquiera: necesita un sprite **con nine slice activado** (en el editor, o
+>    por código con `sprite_nineslice_create()`/`sprite_set_nineslice()`, arriba en esta misma
+>    sección) antes de la primera llamada. Cada componente de §3.5 que dibuja un panel espera
+>    el suyo — `spr_panel_boton` (a), `spr_panel_pista`/`spr_panel_celda` (b, e),
+>    `spr_panel_mapa`/`spr_panel_mapa_completo` (g, j), `spr_panel_aviso` (i),
+>    `spr_panel_tienda`/`spr_panel_dialogo` (k) — y ningún componente los crea por ti: sin
+>    arte propio, la escalera de prioridad gráfica de
+>    [`12 · 09` §5.2](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano)
+>    da cómo generar uno por código o encontrar uno libre antes de escribir la primera llamada
+>    a `panel_dibujar()`. Si de verdad no hace falta arte de panel (una prueba de integración de
+>    sistemas, no de UI), sustituye `panel_dibujar()` por `draw_roundrect_ext()` sin el
+>    parámetro `_spr` — pero entonces actualiza TODAS las llamadas de los componentes que
+>    reutilices, porque ya no esperan ese primer argumento.
 >
 > 💡 **Sin nine slice también se puede**, dibujando los nueve trozos a mano con
 > `draw_sprite_part_ext()`. Es más código y más *draw calls*: solo merece la pena si necesitas
@@ -1210,6 +1239,48 @@ mostrar_pista = (espera_pista <= 0);
 Un inventario es un array plano dibujado como rejilla: `_i div _columnas` da la fila y
 `_i mod _columnas` la columna (§2.2). El arrastre es una máquina de tres estados: *nada* →
 *cogido* → *soltado*.
+
+> ⚠️ **Este es un modelo de datos DISTINTO al `Inventory` de `04 · 04 §5.2`, no una vista sobre
+> él, y ninguno de los dos documentos citaba al otro hasta esta nota.** Aquí `objetos[]` es un
+> array de **ranuras fijas** (`columnas × filas`) donde cada celda ya contiene `{icono,
+> cantidad}` directamente. `Inventory` es una **lista dinámica** `slots[]` de `{item_id,
+> cantidad}` que crece al final, sin posición fija ni campo `icono` propio (el icono se busca
+> aparte con `item_get_def(item_id)`). No comparten ni un campo — no se pueden asignar el uno
+> al otro.
+>
+> **Cuándo usar cada uno, no los mezcles sin un puente explícito:**
+> - **Esta cuadrícula** encaja cuando la POSICIÓN importa por diseño: un inventario tipo
+>   *Diablo*/*Resident Evil* donde el jugador organiza el hueco, arrastra objetos entre celdas
+>   o los combina por posición. El coste es que el tamaño es fijo (`columnas × filas`) y cada
+>   celda vacía ocupa espacio igual que una llena.
+> - **`Inventory` de `04 · 04 §5.2`** encaja cuando lo que importa es la CANTIDAD, no el hueco:
+>   un survival, un RPG con inventario por lista o un juego de gestión donde los objetos se
+>   apilan y se consumen por acción (plantar, craftear, vender) — que es el caso de cualquier
+>   receta con economía y oro, porque `Inventory` es también la cartera (`Inventory.oro`,
+>   `04 · 04 §5.2`, cartera única de la biblioteca — ver el aviso de §3.5k).
+>
+> **Si tu juego necesita los dos a la vez** (una economía por lista, mostrada en una rejilla
+> visual), no dupliques el estado: proyecta uno sobre el otro cada vez que se abre la ventana,
+> nunca guardes los dos como si fueran independientes. Patrón mínimo, confirmado en vivo
+> construyendo un juego de gestión (`r7-prueba-gestion.md` §2.2):
+> ```gml
+> /// @func inventario_ui_proyectar(_inv)
+> /// @desc Vuelca Inventory.slots[] (04 · 04 §5.2) en un array de celdas fijo, resolviendo
+> ///       icono y nombre con item_get_def(). Llámala cada vez que se ABRE la ventana, no
+> ///       cada Step: es una proyección de lectura, no una copia que haya que sincronizar.
+> function inventario_ui_proyectar(_inv, _columnas, _filas) {
+>     var _celdas = array_create(_columnas * _filas, undefined);
+>     for (var _i = 0; _i < array_length(_inv.slots); _i++) {
+>         var _s = _inv.slots[_i];
+>         _celdas[_i] = { icono: item_get_def(_s.item_id).icono, cantidad: _s.cantidad,
+>                        item_id: _s.item_id };
+>     }
+>     return _celdas;
+> }
+> ```
+> El arrastrar-y-soltar de esta sección no tiene sentido sobre una proyección de solo lectura
+> de `Inventory`: si tus objetos se consumen por acción y nunca se reordenan a mano, descarta
+> el arrastre entero y limítate a dibujar la cuadrícula.
 
 ```gml
 // scr_ui_inventario
@@ -1726,7 +1797,8 @@ lo puedes permitir", usa el `inactivo` que ya existe, con su `motivo`.
 // Verificado: array_length, array_push, string, keyboard_check_pressed, gamepad_button_check_pressed,
 //             audio_play_sound, method, method_get_self
 // Reutiliza boton_nuevo/boton_actualizar/boton_dibujar (§3.5a), panel_dibujar (§3.4),
-// aviso_lanzar (§3.5i) y global.monedas (§3.2)
+// aviso_lanzar (§3.5i) y la cartera del jugador en global.inventory.oro (Inventory.oro,
+// 04 · 04 §5.2 — ver el aviso de «dos carteras» justo debajo del código).
 
 /// @func tienda_nuevo(_catalogo)
 /// @desc _catalogo: array de { nombre, icono, precio, stat, stat_equipado, comprado }.
@@ -1758,11 +1830,11 @@ function tienda_actualizar(_t) {
     // tienda, el botón se activa solo, sin tener que cerrar y reabrir la pantalla (§1.5).
     for (var _i = 0; _i < array_length(_t.catalogo); _i++) {
         var _item = _t.catalogo[_i];
-        var _asequible = global.monedas >= _item.precio;
+        var _asequible = global.inventory.oro >= _item.precio;
         _t.botones[_i].activo = _asequible && !_item.comprado;
         _t.botones[_i].motivo = _item.comprado
             ? "Ya lo tienes"
-            : (_asequible ? "" : $"Te faltan {_item.precio - global.monedas} monedas");
+            : (_asequible ? "" : $"Te faltan {_item.precio - global.inventory.oro} monedas");
     }
 
     if (_t.confirmando >= 0) {
@@ -1791,7 +1863,7 @@ function tienda_actualizar(_t) {
 /// @func tienda_comprar(_t, _indice)
 function tienda_comprar(_t, _indice) {
     var _item = _t.catalogo[_indice];
-    global.monedas -= _item.precio;
+    global.inventory.oro -= _item.precio;
     _item.comprado = true;
     audio_play_sound(snd_ui_aceptar, 10, false);
     aviso_lanzar($"Comprado: {_item.nombre}", "info");
@@ -1802,7 +1874,7 @@ function tienda_comprar(_t, _indice) {
 ///       habitual): vender por el precio de compra íntegro invita a comprar y vender en bucle
 ///       para "duplicar" moneda.
 function tienda_vender(_t, _item, _precio_venta) {
-    global.monedas += _precio_venta;
+    global.inventory.oro += _precio_venta;
     _item.comprado = false;
     audio_play_sound(snd_ui_aceptar, 10, false);
     aviso_lanzar($"Vendido: {_item.nombre} (+{_precio_venta})", "info");
@@ -1815,7 +1887,7 @@ function tienda_dibujar(_t) {
 
     var _p = ancla(1, 0, 32, 32);
     draw_set_halign(fa_right);
-    draw_text(_p.px, _p.py, $"{global.monedas} ◆");
+    draw_text(_p.px, _p.py, $"{global.inventory.oro} ◆");
     draw_set_halign(fa_left);
 
     for (var _i = 0; _i < array_length(_t.botones); _i++) {
@@ -1846,6 +1918,20 @@ function tienda_dibujar(_t) {
 }
 ```
 
+> 🔴 **Una sola cartera en toda la biblioteca: `Inventory.oro` (`04 · 04 §5.2`), nunca una
+> `global.monedas` propia de este componente.** Una versión anterior de esta sección leía y
+> escribía `global.monedas` directamente, sin que ningún otro documento de la biblioteca
+> declarara esa global — cualquier proyecto que además usara un `Inventory` (que es lo que
+> hace CUALQUIER receta con inventario por pilas, incluida `04 · 45 §5`) acababa con **dos
+> carteras del jugador que nunca se sincronizaban** entre sí (informe de auditoría
+> `r7-prueba-gestion.md` §2.1, confirmado en vivo: comprar en la tienda no descontaba nada del
+> oro real del inventario). `validar-integracion.py` no lo cazó — su capa 2 solo pregunta si la
+> global se escribe EN ALGÚN SITIO de la biblioteca, y `global.monedas` se escribía dentro de
+> este mismo documento; el fallo real era semántico (dos nombres para el mismo concepto), una
+> categoría que ninguna de sus capas comprueba (ver la cabecera del script). Si en tu proyecto
+> el jugador no usa `Inventory` en absoluto, sustituye `global.inventory.oro` por tu propio
+> campo de moneda — pero mantén UN solo sitio, nunca un `global.monedas` paralelo.
+>
 > 💡 **`boton_nuevo` no necesitaba cambios.** El estado `inactivo` con `motivo` ya resolvía
 > "no te lo puedes permitir" desde que se escribió en §3.5a — la tienda solo decide **cuándo**
 > ponerlo a `false` y **qué motivo** enseñar. Es la señal de que el catálogo de componentes
@@ -1854,6 +1940,22 @@ function tienda_dibujar(_t) {
 > ⚠️ **La comparación con lo equipado necesita que `stat`/`stat_equipado` signifiquen lo
 > mismo.** Si un artículo compara daño y otro defensa, no los metas en el mismo campo `stat`:
 > usa `+N` en verde/rojo solo cuando de verdad son comparables, o el color mentirá.
+>
+> ⚠️ **Este catálogo y `TiendaNPC` (`13 · 01 §9.8`) resuelven la MITAD del problema cada uno, y
+> no se citaban entre sí hasta esta nota.** Este componente es la **interfaz**: precio fijo,
+> compra única con la bandera `comprado`, sin existencias — encaja bien en una tienda de
+> artículos únicos (mejoras de equipo, objetos de historia). `TiendaNPC` es el **modelo de
+> datos**: stock que se agota y repone, margen compra/venta, precio dinámico por oferta y
+> demanda (`13 · 01 §4.6-§4.7`) — encaja en cualquier tienda con economía de verdad (semillas,
+> recursos, materiales). Para combinarlos —una tienda con stock que además se ve bien— **no
+> leas el precio una vez**: sustituye `_item.precio` por una llamada a
+> `global.tienda.precio_venta(_item.id)`/`precio_compra(_item.id)` **cada frame**, dentro de
+> `tienda_actualizar()` y `tienda_dibujar()`, igual que ya se lee `global.inventory.oro` cada
+> frame arriba. Y si tu catálogo compra Y vende (dos direcciones, no solo una), la reposición
+> diaria de `TiendaNPC.step()` (`13 · 01 §9.8`) solo repone hacia `stock_max` — pensada para
+> un catálogo de un solo sentido: escribe tu propio paso diario con una rama por dirección de
+> artículo, tal como documenta `r7-prueba-gestion.md` §2.3 para el caso real de comprar
+> semillas y vender cosecha en el mismo catálogo.
 
 #### l) Campo de texto: el widget que faltaba
 
@@ -2227,6 +2329,13 @@ function ranura_pedir_borrado(_slot, _al_borrar) {
 > no hace falta llamar a `save_thumbnail_delete()` aparte al borrar una partida entera.
 
 ### 3.6 Tipografía: bitmap, TTF y SDF
+
+> ⚠️ **Ninguna de las tres columnas de esta tabla es la fuente por defecto del motor
+> (`draw_set_font(-1)`).** Esa fuente no tiene glifos de `á é í ó ú ñ Ñ ¿ ¡` y los omite en
+> silencio — invisible hasta que capturas la pantalla y la miras. Cualquier UI con texto en
+> español carga una fuente propia (sprite, TTF o SDF, las tres de esta tabla). Detalle completo
+> en [`01 · 11`](../01%20-%20Fundamentos/11%20-%20Dibujo%20y%20renderizado.md#la-fuente-por-defecto-no-tiene-acentos-españoles)
+> y en [`12 · 09` — Trampa 12](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-12--la-fuente-por-defecto-de-gamemaker-no-dibuja-acentos-españoles--ni-un-aviso-los-omite-en-silencio).
 
 | | **Fuente de sprite (bitmap)** | **TTF/OTF del IDE** | **SDF** |
 |---|---|---|---|

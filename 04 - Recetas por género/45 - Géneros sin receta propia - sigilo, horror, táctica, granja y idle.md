@@ -402,14 +402,28 @@ de supervivencia pura no necesita pero un cozy sí, porque las estaciones son su
 contenido (cultivos, festivales, ropa).
 
 ```gml
+/// obj_juego · Create — arranque INCONDICIONAL, antes del menú y de cualquier ruta de
+/// carga. global.nombres_estacion es una CONSTANTE del juego (los nombres de las cuatro
+/// estaciones no cambian entre partidas): NO va dentro del Create de obj_calendario de
+/// abajo, porque ese objeto puede no existir todavía cuando el jugador pulsa «Continuar»
+/// si tu «Continuar» reconstruye el estado a partir del JSON en vez de recrear cada
+/// objeto de cero. Bug real, reproducido en vivo (informe de auditoría
+/// `r7-prueba-gestion.md` §5.2): «montar los sistemas globales» y «empezar partida
+/// nueva» NO son el mismo momento — una tabla constante que solo se rellena en la
+/// segunda ruta se queda vacía en la primera.
+global.nombres_estacion = ["Primavera", "Verano", "Otoño", "Invierno"];
+```
+
+```gml
 /// obj_calendario · Create — una capa de días/estaciones sobre el reloj de 04 · 09 §5.5.
-/// NO sustituye a objTimeOfDay: lo observa.
+/// NO sustituye a objTimeOfDay: lo observa. Esto SÍ es estado de partida (dia_actual,
+/// estacion_indice cambian con lo jugado): a diferencia de nombres_estacion de arriba,
+/// una ruta de carga los SOBRESCRIBE con el valor guardado justo después de este Create,
+/// así que no hace falta duplicarlos en el arranque incondicional.
 dia_actual         = 1;
 estacion_indice    = 0;                 // 0 primavera · 1 verano · 2 otoño · 3 invierno
 dias_por_estacion  = 28;                // el mismo reparto que usa Stardew Valley
 tiempo_anterior    = objTimeOfDay.tiempo;
-
-global.nombres_estacion = ["Primavera", "Verano", "Otoño", "Invierno"];
 
 /// obj_calendario · Step — se dispara UNA vez por vuelta completa del reloj, no cada frame
 if (objTimeOfDay.tiempo < tiempo_anterior) {          // el reloj dio la vuelta: 0.98 → 0.01
@@ -462,11 +476,24 @@ global.tipos_semilla = [
 function huerto_indice(_col, _fila) { return _fila * global.huerto_ancho + _col; }
 
 /// @func cultivo_plantar(_col, _fila, _tipo_semilla)
-/// @return {Bool}
+/// @desc Cobra la semilla del inventario del jugador ANTES de plantar. Sin este descuento,
+///       comprar semillas en la tienda (13 · 01 §9.8 / 13 · 05 §3.5k) no tendría ningún efecto
+///       sobre el huerto: la mitad de la economía de este género quedaría desconectada de la
+///       otra mitad (bug real, informe de auditoría `r7-prueba-gestion.md` §2.4 — una versión
+///       anterior de esta función plantaba gratis). Reutiliza `Inventory.has()`/`remove()`
+///       (`04 · 04 §5.2`), que ya vive en `global.inventory` en cualquier receta que haya
+///       cargado `items.json` — el `id` de cada entrada de `tipos_semilla` de arriba DEBE
+///       tener su ficha ahí, con el mismo id.
+/// @return {Bool} false si la celda no está vacía, o si no hay semilla suficiente en el inventario.
 function cultivo_plantar(_col, _fila, _tipo_semilla)
 {
     var _i = huerto_indice(_col, _fila);
     if (global.huerto[_i].estado != EstadoCultivo.VACIA) { return false; }
+
+    var _semilla = global.tipos_semilla[_tipo_semilla];
+    if (!global.inventory.has(_semilla.id, 1)) { return false; }
+    global.inventory.remove(_semilla.id, 1);
+
     global.huerto[_i] = { estado: EstadoCultivo.PLANTADA, tipo: _tipo_semilla, edad_dias: 0, regada: false };
     return true;
 }
@@ -709,7 +736,19 @@ function animal_registrar(_tipo, _pos_x, _pos_y)
 {
     array_push(global.animales, new Animal(_tipo, _pos_x, _pos_y));
 }
+```
 
+> ⚠️ **Si escribes tu propio `animal_cargar()` sobre `Animal.deserialize()`, cébalo antes.**
+> `deserialize` es `static`: no existe como miembro accesible de `Animal` hasta que
+> `new Animal(...)` se ha ejecutado una vez en el proceso — el mismo bug confirmado en
+> [`04 · 04` §5.2](./04%20-%20RPG%20_%20Action%20RPG.md#52-inventario-y-equipamiento) para
+> `Inventory`/`Equipment`. `animal_registrar()` de arriba solo llama a `new Animal()` para un
+> animal NUEVO en la partida en curso: no cuenta como cebado si tu «Continuar» va directo a
+> deserializar el corral guardado sin haber creado antes ningún animal en ese proceso. Añade
+> `new Animal(0, 0, 0);` (desechable) al arranque incondicional, junto al resto de
+> constructores que cebes ahí.
+
+```gml
 /// obj_calendario · Create — recorre TODO el corral una vez por día, junto al huerto de §5.3
 senal_escuchar("nuevo_dia", function(_d) {
     for (var _i = array_length(global.animales) - 1; _i >= 0; _i--)

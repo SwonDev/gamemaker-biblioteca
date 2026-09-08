@@ -83,6 +83,100 @@ Este script tiene TRES capas, de más barata a más cara:
      No corre en cada `actualizar.py`: tarda minutos, no segundos, y necesita el
      instalador de GameMaker. Es un paso manual, documentado aquí y en `AGENTS.md`.
 
+FRONTERA: LO QUE ESTE SCRIPT NO PUEDE VER, CON EJEMPLOS REALES
+    Las tres capas de arriba comparan NOMBRES y SINTAXIS: mismo identificador, misma
+    aridad, misma global sin escribir, mismo proyecto que no compila. Ninguna de las tres
+    entiende SIGNIFICADO ni COMPORTAMIENTO. La prueba `r7-prueba-gestion.md` (juego de
+    gestión completo, granja + tienda, el perfil que más sistemas entrelaza) construyó un
+    proyecto real con este código y encontró SIETE incompatibilidades reales entre
+    documentos — este script, ejecutado sobre la biblioteca completa antes y después,
+    no cazó NINGUNA de las siete. Quedan aquí como ejemplo permanente de lo que
+    "sale limpio" no garantiza — que nadie se confíe con un 0 de salida:
+
+      1. DOS NOMBRES PARA EL MISMO CONCEPTO (semántica, no sintaxis). `13 · 05 §3.5k`
+         leía y escribía `global.monedas`; `04 · 04 §5.2` guarda el oro en
+         `Inventory.oro`. La capa 2 pregunta «¿se escribe esta global EN ALGÚN SITIO de
+         la biblioteca?» — y `global.monedas` SÍ se escribía, dentro del propio
+         documento que la leía. El fallo no es «variable sin escribir»: es «dos
+         variables MODELAN EL MISMO CONCEPTO sin saberlo». Ninguna capa compara
+         conceptos, solo nombres. (Corregido: ver el aviso de §3.5k en `13 · 05`.)
+
+      2-3. DOS MODELOS DE DATOS INCOMPATIBLES, SIN NI UN NOMBRE EN COMÚN. El inventario
+         en cuadrícula de `13 · 05 §3.5e` (`objetos[]`) y el `Inventory` de `04 · 04
+         §5.2` (`slots[]`) resuelven "un inventario" con vocabularios que no comparten
+         ni un identificador — la capa 1 solo dispara ante un NOMBRE repetido con
+         aridad o cuerpo distinto; aquí no hay ningún nombre que choque, así que no
+         tiene ninguna señal que comparar. Mismo caso con las dos "tiendas" que no se
+         citaban (`13 · 05 §3.5k` de interfaz, `TiendaNPC` de `13 · 01 §9.8` de datos):
+         `tienda_comprar()` frente a `TiendaNPC.vender_a_jugador()`, cero solapamiento
+         léxico. Es, con diferencia, la incompatibilidad más difícil de cazar de forma
+         estática: dos soluciones al mismo problema que no comparten ni una palabra.
+
+      4. UN BUG DE LÓGICA DE NEGOCIO DENTRO DE UNA FUNCIÓN SINTÁCTICAMENTE PERFECTA.
+         `cultivo_plantar()` (`04 · 45 §5.3`) compilaba limpio y nunca descontaba la
+         semilla del inventario del jugador — planta gratis. Ninguna capa audita QUÉ
+         hace el cuerpo de una función, solo que exista y que su firma no choque.
+
+      5. UN ACOPLAMIENTO IMPLÍCITO CON UN ASSET, NO CON CÓDIGO. `panel_dibujar(_spr,
+         ...)` (`13 · 05 §3.4`) exige un sprite con nine slice activado que ningún
+         documento avisaba que hacía falta crear. No es un símbolo de GML que
+         `validar-codigo-gml.py` pueda validar, ni una colisión de nombres: es un
+         requisito de PRODUCCIÓN DE ARTE oculto dentro de una firma de función.
+
+      6-7. BUGS QUE SOLO EXISTEN EN EJECUCIÓN, NUNCA EN COMPILACIÓN. `Inventory.
+         deserialize()` (`04 · 04 §5.2`) revienta con «Variable <unknown_object>.
+         deserialize(...) not set before reading it» si es la primera vez que el
+         proceso toca ese constructor — un `static` de un constructor no existe como
+         miembro accesible hasta el primer `new`, un comportamiento de GML que ningún
+         documento de la biblioteca mencionaba antes de esta corrección. Y
+         `global.nombres_estacion` (`04 · 45 §5.2`) se quedaba sin rellenar en la ruta
+         de «Continuar» porque vivía dentro del Create de un objeto que solo se crea
+         al empezar partida nueva. La capa 3 (`--compilar`) es la única que toca
+         GameMaker de verdad — pero **solo llama a `gm-cli compile`, nunca a
+         `gm-cli run`** (léase el código: el `cmd` que arma `_compilar_grupo()` es
+         siempre `compile`). Los dos bugs compilan limpio, exit 0, las dos veces:
+         solo revientan JUGANDO. Ninguna cantidad de análisis estático los encuentra;
+         hace falta ejecutar el juego y pulsar los botones, que es exactamente lo que
+         hizo la prueba r7 y lo que este script, por diseño, no hace.
+
+    EN UNA FRASE: capas 1-2 cazan SÍMBOLOS que chocan o que nadie escribe; capa 3 caza
+    que un GRUPO de documentos compile junto. Ninguna de las tres caza que dos símbolos
+    DISTINTOS signifiquen lo mismo, que un modelo de datos sea incompatible con otro sin
+    colisionar, que una función tenga un bug de lógica, que una firma dependa de un
+    asset no declarado, o que algo solo falle EJECUTANDO el juego. Para eso no hay
+    atajo estático: hace falta construir algo real con las piezas y jugarlo — el método
+    de las auditorías `r5-integracion.md`/`r7-prueba-gestion.md`, no de este script.
+
+    ¿MERECE LA PENA UNA CUARTA CAPA SEMÁNTICA (detectar automáticamente pares como
+    monedas/oro o vida/salud)? Se evaluó y la respuesta es NO, por diseño, no por
+    pereza:
+      - La única heurística estáticamente viable —una lista de sinónimos conocidos a
+        mano («monedas» ~ «oro», «vida» ~ «salud»)— solo detecta pares que YA SE
+        CONOCEN, es decir, pares que ya se han encontrado y corregido. Su valor
+        prospectivo (encontrar el PRÓXIMO par, el que nadie ha visto todavía, que es
+        el problema real) es cero: es una lista de "cosas que ya arreglamos",
+        disfrazada de detector.
+      - Una heurística más amplia (dos `global.X` de nombre distinto que aparecen en
+        documentos que se citan entre sí) explota en falsos positivos: el patrón
+        "Ver también" cruza CIENTOS de pares de documentos en esta biblioteca a
+        propósito (es la arquitectura, no un accidente — `AGENTS.md` §3 bis lo pide
+        expresamente), y la inmensa mayoría de esos pares de globals son conceptos
+        genuinamente distintos que conviven sin problema (`global.dia_actual` y
+        `global.tiempo_anterior`, `global.stock` y `global.inventario`…). Sin
+        entender significado, no hay forma barata de separar «duplicado real» de
+        «dos cosas que no tienen nada que ver y solo coinciden en aparecer cerca».
+      - Una herramienta ruidosa se acaba ignorando — es la advertencia que motivó
+        esta misma investigación. Diluir la señal limpia de las capas 1-2 (que SÍ
+        cazan colisiones reales, con cero ruido hasta ahora) con avisos de baja
+        confianza sería peor que no tener la capa: erosiona la confianza en las dos
+        que sí funcionan.
+    La detección de este tipo de fricción sigue siendo trabajo de REVISIÓN — humana o de
+    un agente que construya algo real con las piezas y lo ejecute (el método de r5/r7),
+    no de un script estático. Si en el futuro se automatiza, que sea como una prueba de
+    integración que COMPILA Y EJECUTA un proyecto de ejemplo que cruza sistemas (capa 3
+    ya sienta la base de "montar un proyecto real con gm-cli"), nunca como un matcher de
+    nombres por similitud textual.
+
 USO
     python3 _indice/validar-integracion.py              # capas 1 y 2 (unos segundos)
     python3 _indice/validar-integracion.py --compilar    # + capa 3, TODOS los grupos

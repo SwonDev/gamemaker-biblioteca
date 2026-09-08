@@ -911,6 +911,14 @@ function NecesidadesColono() constructor
 }
 ```
 
+> ⚠️ **`NecesidadesColono.deserialize()` (y por tanto `Needs.deserialize()` dentro) son
+> `static`: no existen como miembros accesibles hasta el primer `new` de cada constructor EN
+> ESTE PROCESO** — el mismo bug confirmado en
+> [`04 · 04` §5.2](./04%20-%20RPG%20_%20Action%20RPG.md#52-inventario-y-equipamiento). Si tu
+> «Continuar» reconstruye la colonia deserializando colonos directamente, sin haber creado
+> antes ningún `NecesidadesColono` en ese proceso, añade `new NecesidadesColono();`
+> (desechable) al `obj_game · Create` incondicional de arriba, junto a `global.almacen`.
+
 ### 4.2 · Decaimiento, umbrales y efectos al llegar a cero
 
 Los umbrales viven como macros en `scr_config_colonia.gml` (§1.4): `UMBRAL_HAMBRE_URGENTE`,

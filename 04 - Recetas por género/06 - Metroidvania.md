@@ -942,6 +942,18 @@ if (variable_global_exists("world_ready")) exit;
 
 global.world_ready = true;
 
+// 🔴 BUG real, confirmado: cebar WorldState/Stats ANTES de intentar cargar. Sin estas dos
+// líneas, un proceso que arranca directamente con una partida guardada (el jugador cierra
+// el juego y lo reabre, sin pasar por "Nueva partida" en ESTA sesión) revienta en la
+// primera línea de load_from_disk(): WorldState.deserialize()/Stats.deserialize() son
+// métodos static, y un static de un constructor no existe como miembro accesible hasta el
+// primer `new` de ese constructor EN ESTE PROCESO — confirmado contra el manual oficial
+// (Static_Variables) y en vivo en 04 · 04 §5.2, el mismo patrón con Inventory/Equipment.
+// La rama de abajo, tal como estaba antes de este aviso, solo llamaba a `new` cuando NO
+// había partida guardada — exactamente el caso que nunca dispara el bug.
+new WorldState();
+new Stats(80, 10, 5, 10);
+
 // --- Intentar cargar partida ---
 if (!load_from_disk())
 {
