@@ -1884,18 +1884,22 @@ ni ojos permanentes sobre la pantalla: cómo arrancar el juego sin quedarse colg
 conseguir que se capture y se cierre **solo**, dónde cae el archivo y cómo se verifica el
 guardado sin que nadie juegue a mano.
 
-> ⚠️ **Frontera de verificación de esta sección**: el código GML de abajo se creó con
-> `resourcetool` (incluido forzar el evento Draw GUI End real, §8.7.2) y **se compiló de verdad**
-> en un proyecto de prueba bajo `~/gm_prueba_humo_final` (nunca dentro de esta biblioteca,
-> borrado al terminar) — los 3 objetos completos (`obj_prueba_humo`, `obj_prueba_guardado_humo`,
-> `obj_controlador_humo`), `gm-cli compile --errors-only` y sin el flag, ambos con `exit 0` y sin
-> ningún `WARNING`, y `validar-proyecto.py --todo` confirmó cero funciones inventadas sobre los 6
-> archivos `.gml` nuevos. **Lo que NO se pudo verificar en esta sesión es el comportamiento en
-> tiempo de ejecución** — `gm-cli run` está prohibido por restricción explícita del usuario para
-> esta sesión, no de la biblioteca. Cada pieza de comportamiento en tiempo de ejecución que se
-> afirma abajo cita su fuente: o ya está verificada en vivo en otro documento de esta biblioteca
-> (con fecha), o queda marcada ⚠️ como inferencia razonada a partir del manual oficial, sin
-> confirmar todavía. No lo confundas con «probado».
+> ✅ **Esta sección está verificada en vivo, de punta a punta, no solo compilada.** Sesión del
+> 8 de septiembre de 2026, `gm-cli` 2.3.0, runtime `2026.0.0.23`, macOS, proyecto de prueba en
+> `~/gm_humo_real` (nunca dentro de esta biblioteca, borrado al terminar). Se montaron los 3
+> objetos (`obj_prueba_humo`, `obj_prueba_guardado_humo`, `obj_controlador_humo` — este último,
+> ausente del cuerpo del documento en la versión anterior, es el que decide cuál de los otros
+> dos instanciar; ver §8.7.2 y §8.7.4), se forzó el evento Draw GUI End real con `resource set`,
+> `gm-cli compile --errors-only` y sin el flag salieron `exit 0` sin ningún `WARNING`, y
+> `validar-proyecto.py --todo` confirmó cero funciones inventadas sobre los 7 archivos `.gml`
+> (35 llamadas analizadas). **Y, a diferencia de la revisión anterior, esta vez `gm-cli run` sí
+> se ejecutó** — de hecho fue el encargo explícito de esta sesión: la autocaptura disparó, la
+> captura apareció exactamente en la ruta que predecía §8.7.3 (confirmado con `find -newer`, no
+> supuesto), se abrió y se miró de verdad, el ciclo de guardado en dos fases sobrevivió a matar
+> el proceso entre medias, y no quedó ni un proceso huérfano al terminar. Cada afirmación que
+> sigue marcada ✅ tiene esta sesión como fuente directa; lo que sigue marcado ⚠️ es lo que
+> ni siquiera esta pasada pudo cubrir (Windows, Linux, HTML5, un paquete firmado y exportado) —
+> con la plataforma y el motivo dichos explícitamente, no por omisión.
 
 #### 8.7.1 Arrancar el juego sin bloquear la sesión y sin dejar procesos huérfanos
 
@@ -1922,18 +1926,30 @@ PID_RUN=$!
 
 # Espera activa, no un sleep ciego: si el objeto de humo llama a game_end() (caso
 # normal), gm-cli run devuelve el control por sí solo y este bucle sale enseguida —
-# verificado para el flujo de pruebas unitarias en §3.4 (correr-pruebas.sh, sin
-# segundo plano ni timeout, ya se apoya en que el proceso termina solo en verde y en
-# rojo). El margen completo solo se consume si algo se cuelga.
+# ✅ verificado en vivo, 8 de septiembre de 2026: una pasada normal de este guion
+# completa (compilar + arrancar + esperar 30 fotogramas + capturar + game_end) en
+# 2,7-6,1 s según la carga de la máquina, muy por debajo de MARGEN_S — el bucle
+# nunca llega a agotar el margen salvo que algo se cuelgue de verdad (ver más abajo).
 SEGUNDOS=0
 while kill -0 "$PID_RUN" 2>/dev/null && [ "$SEGUNDOS" -lt "$MARGEN_S" ]; do
     sleep 1
     SEGUNDOS=$((SEGUNDOS + 1))
 done
 
-# Red de seguridad, SIEMPRE, pase lo que pase arriba: un error no controlado no
-# termina el proceso de gm-cli run por sí solo, y dos ejecuciones sucesivas sin este
-# paso dejaron procesos huérfanos del runner corriendo — verificado en vivo,
+# Red de seguridad, SIEMPRE, pase lo que pase arriba — y no es un "por si acaso":
+# ✅ verificado en vivo que "kill $PID_RUN" por sí solo NO es fiable para terminar el
+# runner real. El proceso Mac_Runner nace con PPID=1 (no es hijo del proceso de
+# gm-cli, está huérfano desde el instante en que arranca — "InstallRunnerOnMac" /
+# "RunOnMac" en el log lo lanzan por fuera del árbol de procesos de gm-cli), así que
+# una señal a $PID_RUN no tiene por qué propagarse. En dos pruebas aisladas de esta
+# sesión el resultado fue distinto: una vez el runner seguía vivo un segundo después
+# de "kill $PID_RUN"; otra vez ya no estaba tras dos segundos. No lo trates como
+# determinista en ningún sentido — `pkill -f "$NOMBRE_RUNNER"` es la única línea que
+# se verificó consistente en las tres pruebas de esta sesión (incluida una con un
+# objeto que cuelga a propósito, sin llamar nunca a game_end(): el bucle agotó
+# MARGEN_S=5 en 5,06 s y `pkill` limpió el proceso, confirmado con `ps` acto
+# seguido). Además, y esto tampoco estaba documentado: dos ejecuciones sucesivas sin
+# este paso dejaron procesos huérfanos del runner corriendo — verificado en vivo,
 # `12 · 09` §4.3 / auditoría r4, hallazgo #50.
 kill "$PID_RUN" 2>/dev/null
 pkill -f "$NOMBRE_RUNNER" 2>/dev/null
@@ -1942,17 +1958,18 @@ cat "$SALIDA"
 echo "__SALIDA_EN__ $SALIDA"   # el llamador decide si borra el temporal o lo inspecciona
 ```
 
-**El nombre del runner por plataforma** — solo macOS está verificado en esta biblioteca hoy:
+**El nombre del runner por plataforma**:
 
 | Plataforma | Nombre del proceso | Verificado |
 |---|---|---|
-| macOS | `Mac_Runner` | ✅ `12 · 09` §4.3, auditoría r4 (dos procesos huérfanos reales, matados por nombre) |
+| macOS | `Mac_Runner` (ruta completa: `.../runtime-2026.0.0.23/mac/YoYo Runner.app/Contents/MacOS/Mac_Runner`, lanzado con el flag `-runTest`) | ✅ `12 · 09` §4.3, auditoría r4, y re-confirmado de forma independiente el 8 de septiembre de 2026 por esta sesión con el método de comparación de `ps` de abajo — dos fuentes, mismo nombre |
 | Windows | ⚠️ no verificado en esta biblioteca — probablemente `Windows_Runner.exe` por el patrón del nombre en macOS | ⚠️ |
 | Linux | ⚠️ no verificado — probablemente `Linux_Runner` | ⚠️ |
 
 Si no confías en el nombre (o cambia de versión en versión), no lo asumas: descúbrelo
 comparando la lista de procesos antes y después de lanzar, el mismo método que exige el resto
-de esta biblioteca para no inventar nada:
+de esta biblioteca para no inventar nada — **este bloque concreto sí se ejecutó en esta
+sesión**, con este resultado real:
 
 ```bash
 ANTES="$(ps -eo comm | sort -u)"
@@ -1963,8 +1980,22 @@ comm -13 <(echo "$ANTES") <(echo "$DESPUES")   # procesos nuevos: ahí está el 
 kill %1 2>/dev/null
 ```
 
-> ⚠️ Este bloque de descubrimiento no se ejecutó en esta sesión (exige `gm-cli run`). Es el
-> método, no un resultado — pruébalo tú antes de confiar en el nombre en tu plataforma.
+```
+/Users/…/gm_humo_real/.gmcache/igor/osx/arm64/Igor
+hdiutil
+```
+
+A los 3 segundos de lanzar, lo que aparece nuevo todavía es **Igor** (el compilador, sigue
+trabajando) y `hdiutil` (monta el `.dmg` del runner), no `Mac_Runner` — con caché fría el
+compilado tarda más que esos 3 s. `Mac_Runner` aparece un poco después; si tu primera pasada de
+este bloque no lo encuentra, sube el `sleep` o repite la comparación un par de veces antes de
+concluir nada. Con caché caliente (todas las pruebas siguientes de esta sesión), `Mac_Runner`
+ya estaba visible en `ps -ef | grep -i runner` a los 2 s de lanzar.
+
+> ✅ Este bloque de descubrimiento **sí se ejecutó en esta sesión** (8 de septiembre de 2026, la
+> salida real está justo arriba). Es el método y, para macOS, ya también un resultado
+> reproducido dos veces — pruébalo igualmente en tu plataforma antes de confiar en el nombre si
+> no es macOS.
 
 #### 8.7.2 El objeto que se captura solo: por qué Draw GUI, no Alarm ni Step
 
@@ -2015,20 +2046,27 @@ gm-cli resourcetool eval "object event list name=obj_prueba_humo"
 mv objects/obj_prueba_humo/Draw_73.gml objects/obj_prueba_humo/Draw_75.gml
 ```
 
-**Verificado en esta sesión, en un proyecto de prueba aparte** (`~/gm_prueba_humo_qa2`, borrado
-al terminar): tras `resource set expr=....eventNum value=75`, `object event list` pasó de
-`Event_Draw_DrawEnd` a **`Event_Draw_DrawGUIEnd`**, el `.yy` quedó con `"eventNum":75` de verdad,
-y `gm-cli compile --errors-only` compiló con `exit 0`. Es el evento real, no una imitación.
+**Verificado en esta sesión** (`~/gm_humo_real`, borrado al terminar): tras
+`resource set expr=....eventNum value=75`, `object event list` pasó de `Event_Draw_DrawEnd` a
+**`Event_Draw_DrawGUIEnd`**, el `.yy` quedó con `"eventNum":75` de verdad, y
+`gm-cli compile --errors-only` compiló con `exit 0`. Es el evento real, no una imitación.
 
-> ⚠️ **El paso de renombrar el `.gml` no se probó de forma aislada en esta sesión** (mi propia
-> prueba de compilación dejó el archivo como `Draw_73.gml` sin renombrar y también compiló limpio
-> — la compilación no distingue los dos casos). La única fuente que sí verifica cuál de los dos
-> hace falta de verdad para que el código **se ejecute** —no solo para que compile— es
-> [`12 · 09` §9 ter](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada),
-> escrita el mismo día por una auditoría independiente que sí llegó a esta técnica desde otro
-> ángulo: dice explícitamente que si no renombras el archivo, «el código no vive donde el evento
-> real lo busca». Esta sección sigue esa recomendación por prudencia — no la contradice ninguna
-> comprobación propia, y el coste de renombrar es cero.
+> ✅ **El paso de renombrar el `.gml` SÍ se probó de forma aislada en esta sesión, y la
+> respuesta es que es obligatorio — no una prudencia, un requisito.** La compilación por sí sola
+> no lo delata (compila `exit 0` tanto si el archivo se llama `Draw_73.gml` como
+> `Draw_75.gml`), pero el propio log de Igor sí distingue los dos casos con una línea que antes
+> nadie había mirado: `Compile Objects...finished.... N empty events`. Con el archivo mal
+> nombrado (`Draw_73.gml` y `eventNum:75`) esa línea dice **`1 empty events`**; con el nombre
+> correcto (`Draw_75.gml`) dice **`0 empty events`**. Y la consecuencia en tiempo de ejecución es
+> exactamente la que predecía [`12 · 09` §9 ter](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#9-ter--forzar-un-eventnum-real-cuando-la-whitelist-de-subtype-es-cerrada):
+> con el archivo mal nombrado, el evento Draw GUI End real existe (`eventNum:75` en el `.yy`,
+> `object event list` lo confirma) pero está **vacío** — `screen_save()` nunca se llama,
+> `debe_capturar` se queda en `true` para siempre, y el juego cuelga sin producir ni el marcador
+> `###humo_captura###` ni `game_end()`. Solo lo rescata el `MARGEN_S` de §8.7.1. Con el archivo
+> bien renombrado, mismo `.yy`, mismo `eventNum:75`, la única diferencia es el nombre del
+> archivo — y el juego captura y termina solo con normalidad. Renombrar el `.gml` no es opcional
+> ni una precaución barata: es la diferencia entre un objeto que funciona y uno que cuelga
+> siempre, de forma indistinguible por la compilación.
 
 Si por lo que sea `RESOURCE SET` sobre `eventNum` no está disponible en tu versión de
 `resourcetool`, o prefieres no depender de un campo interno no documentado por YoYo Games, la
@@ -2037,11 +2075,11 @@ vez** y crear el evento Draw GUI End desde ahí — el mismo patrón que ya resu
 fuentes mudas (`12 · 09` §0): una vez creado, `resourcetool` y el editor de archivos normal
 pueden tocar su `.gml` para siempre sin volver a abrir el IDE.
 
-El objeto completo — **compilado de verdad en esta sesión** con el evento ya forzado a Draw GUI
-End real, `gm-cli compile` con y sin `--errors-only`, `exit 0` los dos, sin `WARNING`, y
-`validar-proyecto.py --todo` en cero funciones inventadas (con el `.gml` sin renombrar, por lo
-dicho arriba — el nombre de archivo de abajo refleja el renombrado recomendado, no lo que se
-compiló literalmente):
+El objeto completo — **compilado y ejecutado de verdad en esta sesión**, con el evento ya
+forzado a Draw GUI End real y el `.gml` ya renombrado (imprescindible, no cosmético — ver el
+recuadro de arriba), `gm-cli compile` con y sin `--errors-only`, `exit 0` los dos, sin
+`WARNING`, `validar-proyecto.py --todo` en cero funciones inventadas, y en ejecución real
+(`gm-cli run`) capturó y terminó solo, de forma repetible, en varias pasadas de esta sesión:
 
 ```gml
 /// obj_prueba_humo · Create_0.gml
@@ -2062,6 +2100,39 @@ alarm_set(0, fotogramas_espera);
 /// Solo levanta la bandera — la captura real ocurre en Draw GUI End (§8.7.2 explica por qué).
 debe_capturar = true;
 ```
+
+> ⚠️ **El objeto tal y como está descrito hasta aquí no dibuja nada** — captura la pantalla,
+> pero la pantalla está en blanco (el color de fondo de la room). El paso 5 del guion completo
+> (§8.7.6) pide «confirma texto, botones y capas», y con solo `Create`/`Alarm`/Draw GUI End no
+> hay nada que confirmar. Añade un evento Draw normal (no GUI, no GUI End: éste se dibuja en
+> coordenadas de mundo, antes que el GUI End, y su resultado ya está compuesto en pantalla
+> cuando `screen_save()` se ejecuta) con contenido mínimo — verificado en esta sesión:
+
+```gml
+/// obj_prueba_humo · Draw_0.gml
+/// Contenido visual mínimo para que la autocaptura tenga algo real que demostrar.
+draw_set_colour(c_lime);
+draw_rectangle(100, 100, 500, 300, false);
+
+draw_set_font(fnt_prueba_humo);
+draw_set_colour(c_black);
+draw_text(120, 150, "HUMO OK");
+```
+
+> 🔴 **El rectángulo se vio en la captura; el texto no — Trampa 5 de `12 · 09` §0 reproducida en
+> vivo, dentro de este procedimiento concreto.** `fnt_prueba_humo` se creó con el patrón normal
+> (`resource create type=font`, `font setfile` apuntando a un `.ttf` real del sistema,
+> `font addrange lower=32 upper=255`, `resource set expr=….size value=24`) y todo respondió
+> `Success` — pero `font glyphlist name=fnt_prueba_humo` mostró el diccionario vacío, el `.yy`
+> quedó «marked for re-generation» sin regenerarse nunca, y el chunk `FONT` compiló a
+> `0.00 MB`. La captura real (§8.7.3) lo confirmó sin ambigüedad: **el rectángulo se ve
+> perfectamente; la palabra «HUMO OK» no aparece, ni un solo píxel**. Es la prueba, dentro de
+> este mismo guion de humo, de por qué §8.6 insiste en mirar la captura de verdad — un archivo
+> PNG que existe y pesa lo normal (5,9 KB aquí) no demuestra que su contenido sea correcto. Si
+> tu prueba de humo necesita texto legible, resuelve Trampa 5 primero (abrir el proyecto en el
+> IDE una vez y guardar la fuente, o el horneado con Pillow — ambos en `12 · 09` §0) **antes**
+> de fiarte de lo que la captura dice sobre el texto. El rectángulo, al no depender de ninguna
+> fuente, es la parte de esta prueba que sí es fiable de fábrica.
 
 ```gml
 /// obj_prueba_humo · Draw_75.gml  (renombrado desde Draw_73.gml tras el "resource set"
@@ -2086,21 +2157,56 @@ if (debe_terminar)
 }
 ```
 
-Coloca una instancia de `obj_prueba_humo` en la primera room que arranca (o créala desde el
-`Create` de tu controlador) **solo bajo la configuración de pruebas**, con el mismo patrón que
-ya usa §3.5:
+Coloca una instancia fija de `obj_controlador_humo` en la primera room que arranca — es un
+tercer objeto, no mencionado antes en esta sección y que hacía falta nombrar de verdad: decide
+en tiempo de ejecución cuál de los dos objetos de prueba instanciar, bajo la configuración de
+pruebas, con el mismo patrón que ya usa §3.5:
 
 ```bash
 gm-cli resourcetool eval "config create name=Humo parent=Default"
+gm-cli resourcetool eval "resource create type=object name=obj_controlador_humo"
+gm-cli resourcetool eval "object event findorcreate name=obj_controlador_humo type=create"
+
+# Colócalo de verdad en la room — la versión anterior de esta sección nunca dio este
+# comando, solo decía "coloca una instancia". ROOM y OBJECT van sin más nombre de
+# argumento; LAYER si no existe se crea. Verificado en esta sesión, "New instance
+# 'inst_…'" en la salida y la instancia visible en el .yy de la room después.
+gm-cli resourcetool eval "room instance create room=room1 object=obj_controlador_humo layer=Instances x=0 y=0"
 ```
 
+> 🔴 **Por qué hace falta un controlador y no basta con `instance_create_layer` a pelo, como
+> decía la versión anterior de esta sección.** §8.7.4 reutiliza la misma configuración `Humo`
+> para el ciclo de guardado (`obj_prueba_guardado_humo`). Si los dos objetos de prueba se
+> instancian con el mismo `if (os_get_config() == "Humo")`, los dos quedan activos a la vez: y
+> `obj_prueba_guardado_humo` llama a `game_end()` en su propio `Create`, en el fotograma 0 —
+> antes de que la alarma de `obj_prueba_humo` (30 fotogramas después) llegue siquiera a
+> dispararse. El proceso termina de golpe y ninguna de las dos pruebas corre completa. La
+> variable de entorno `HUMO_FASE` que ya usa §8.7.4 para el ciclo de guardado es también la
+> señal más barata para separar los dos casos: ausente → prueba de captura; presente → prueba
+> de guardado. Verificado en esta sesión: con esta rama, la prueba de captura corre sola cuando
+> no hay `HUMO_FASE`, y la de guardado corre sola cuando sí la hay — sin colisión, en ambos
+> sentidos.
+
 ```gml
-// En el Create del controlador de la room, o en Game Start:
+/// obj_controlador_humo · Create_0.gml
 if (os_get_config() == "Humo")
 {
-    instance_create_layer(0, 0, "Instances", obj_prueba_humo);
+    var _fase = environment_get_variable("HUMO_FASE");
+    if (_fase == "")
+    {
+        instance_create_layer(0, 0, "Instances", obj_prueba_humo);
+    }
+    else
+    {
+        instance_create_layer(0, 0, "Instances", obj_prueba_guardado_humo);
+    }
 }
 ```
+
+> ✅ Esto también confirma, de paso, algo que el manual de `environment_get_variable()` no dice
+> explícitamente: **la función devuelve cadena vacía (`""`), no un valor que rompa la
+> comparación ni un error, cuando la variable de entorno no está definida.** Es lo que hace
+> posible la rama `_fase == ""` de arriba — verificado en esta sesión, no asumido del manual.
 
 > ⚠️ **No es válido en HTML5.** `screen_save()` no funciona en ese target (nota del propio
 > manual) y `game_end()` deja el lienzo en blanco al salir (§8.3, ya documentado). Este
@@ -2117,9 +2223,10 @@ automáticamente en cuanto el sandbox no permite escribir donde apunta de verdad
 propia página de `working_directory`) — que es el caso por defecto. En la práctica, para un
 juego de escritorio sin el sandbox desactivado, **es el mismo sitio**.
 
-La ruta exacta, verificada en vivo (no en esta sesión, en la auditoría `r5-prueba-e2e`,
-08-09-2026, mismo `gm-cli` 2.3.0 y runtime `2026.0.0.23`), con una diferencia importante frente
-a lo que dice el manual en general:
+La ruta exacta, verificada en vivo dos veces — en la auditoría `r5-prueba-e2e` (08-09-2026) y
+de nuevo, de forma independiente, en esta misma sesión (también 08-09-2026, mismo `gm-cli`
+2.3.0 y runtime `2026.0.0.23`, con `find -newer` sobre una marca de tiempo real, no supuesta),
+con una diferencia importante frente a lo que dice el manual en general:
 
 ```
 game_save_id = [/Users/.../Library/Application Support/com.yoyogames.macyoyorunner/]
@@ -2134,12 +2241,22 @@ biblioteca ha inspeccionado el save area de un paquete exportado todavía.
 
 | Plataforma | Ruta con `gm-cli run` (sin firmar) | Verificado |
 |---|---|---|
-| macOS | `~/Library/Application Support/com.yoyogames.macyoyorunner/` | ✅ r5-prueba-e2e, 08-09-2026 |
+| macOS | `~/Library/Application Support/com.yoyogames.macyoyorunner/` | ✅ r5-prueba-e2e, 08-09-2026, y re-confirmado de forma independiente el mismo día por esta sesión |
 | Windows | ⚠️ previsiblemente `%localappdata%\<algo genérico del runner>`, por el mismo patrón que macOS | ⚠️ no verificado |
 | Linux | ⚠️ previsiblemente `~/.config/<algo genérico del runner>` | ⚠️ no verificado |
 
+> 🔴 **Ese directorio se comparte entre proyectos distintos que uses con `gm-cli run` en la
+> misma máquina** — no es exclusivo de tu juego. Verificado en esta sesión: junto al
+> `humo_captura.png` de esta prueba aparecían, sin relación alguna, capturas y archivos `.json`
+> de otro proyecto (`lumbre_captura_….png`, `lumbre_a.json`…) de una sesión anterior. Si dos
+> proyectos usan el mismo nombre de archivo de captura o de guardado, uno pisa al otro sin
+> avisar. Usa nombres de archivo distintivos (`humo_captura.png`, no `captura.png`) o borra el
+> archivo antes de lanzar, como hace `find -newer` de abajo al usar una marca de tiempo en vez
+> de confiar en que el archivo no existiera ya.
+
 **Cómo lo encuentra un agente sin memorizar la ruta** — el mismo principio que el resto de esta
-biblioteca aplica a todo lo demás: no confíes en una ruta fija, compruébala:
+biblioteca aplica a todo lo demás: no confíes en una ruta fija, compruébala. **Este bloque
+concreto se ejecutó en esta sesión y encontró el archivo real**, en el primer intento:
 
 ```bash
 MARCA="$(mktemp)"                          # marca de tiempo, antes de lanzar
@@ -2148,14 +2265,26 @@ gm-cli run --toolchain GMS2@2026.0.0.23 --target mac --config Humo "mi-juego.yyp
 find ~/Library/Application\ Support -maxdepth 2 -iname "*.png" -newer "$MARCA" 2>/dev/null
 ```
 
-> ⚠️ No ejecutado en esta sesión. En Windows, cambia la raíz por `%LOCALAPPDATA%`; en Linux,
-> por `~/.config`.
+```
+/Users/adrianpereradelgado/Library/Application Support/com.yoyogames.macyoyorunner/humo_captura.png
+```
+
+En Windows, cambia la raíz por `%LOCALAPPDATA%`; en Linux, por `~/.config` — ninguna de las dos
+se pudo probar en esta sesión (sin esas plataformas a mano), siguen como ⚠️ previsible por
+patrón, no verificado.
 
 **Cómo la mira el agente, una vez la tiene**: ábrela con la herramienta de lectura de archivos
 que muestre PNG (la mayoría de agentes de IA la tienen) y **mírala de verdad** — §8.6
 Procedimiento 1 ya insiste en que un archivo que existe y pesa lo normal no demuestra que su
-contenido sea correcto. No hay atajo nuevo aquí: esta sección resuelve *cómo llegar* al archivo;
-lo que se hace con él una vez abierto ya está en §8.6.
+contenido sea correcto. **Esto se hizo de verdad en esta sesión, y confirmó exactamente esa
+advertencia por las malas**: la captura de `obj_prueba_humo` (§8.7.2) mostraba el rectángulo
+verde con total nitidez, en la posición exacta del código — pero el texto «HUMO OK» que el
+mismo `Draw_0.gml` dibuja **no aparecía en absoluto**, por la Trampa 5 de fuentes vacías
+reproducida en vivo (ver el recuadro en §8.7.2). Un agente que solo comprobara «¿existe el PNG
+y pesa algo razonable?» (5,9 KB, nada sospechoso) habría dado la prueba por buena sin detectar
+que la mitad del contenido esperado faltaba. No hay atajo nuevo aquí: esta sección resuelve
+*cómo llegar* al archivo; lo que se hace con él una vez abierto ya está en §8.6 — y esta sesión
+es la prueba de que ese paso no es opcional.
 
 #### 8.7.4 El ciclo de guardado sin manos: dos lanzamientos, un objeto
 
@@ -2238,17 +2367,56 @@ HUMO_FASE=leer bash lanzar-humo.sh "$PROYECTO" Humo mac
 
 Comprueba `###humo_guardado###ESCRITO` en la salida de la fase 1 y `###humo_guardado###OK` en la
 de la fase 2 (no `FALLO`, y no la ausencia total del marcador — eso sería un cuelgue o un crash
-antes de llegar al `Create`). ⚠️ Patrón completo no ejecutado en esta sesión; cada primitiva que
-usa (`file_text_open_write/read`, `environment_get_variable`, el envoltorio de `kill`/`pkill`) sí
-lo está, por separado, en las fuentes citadas en cada bloque.
+antes de llegar al `Create`).
+
+> ✅ **El patrón completo se ejecutó de punta a punta en esta sesión, con el mismo objeto de
+> prueba, matando el proceso de verdad entre las dos fases** (no solo dejándolo terminar solo:
+> `lanzar-humo.sh` hace `kill` del proceso de `gm-cli run` y `pkill -f Mac_Runner` al final de
+> cada fase, antes de que arranque la siguiente). Salida real:
+>
+> ```
+> ── Fase 1: escribir ──
+> │  ###humo_guardado###ESCRITO###humo_valor_de_prueba_137
+> ── Fase 2: releer tras matar el proceso ──
+> │  ###humo_guardado###OK###humo_valor_de_prueba_137
+> ```
+>
+> El `OK` de la fase 2 es la parte que importa: demuestra que `humo_guardado.sav`, escrito por
+> un proceso de `Mac_Runner` que ya no existe, sigue en disco y se lee igual en un proceso
+> nuevo — exactamente la comprobación que habría cazado el bug de `directory_exists()` que
+> describe la Trampa 6 de `12 · 09` §0, sin necesidad de que nadie juegue a mano. Las dos fases
+> juntas tardaron **6,1 s** en esta sesión (≈3 s cada una, cache caliente); ningún proceso del
+> runner quedó vivo al terminar (`ps -ef | grep -i runner` vacío, comprobado justo después).
 
 #### 8.7.5 Qué caza este procedimiento y qué no
 
 **Caza, con confianza razonable**: pantalla en negro o a medias, una fuente que compila pero no
-dibuja ni una letra (la Trampa 5 exacta que motivó §8.6), un elemento de UI fuera de sitio o
-solapado, un guardado que no sobrevive a cerrar el proceso, un `game_end()` que nunca llega
-(el objeto se queda colgado sin terminar — el propio `MARGEN_S` de §8.7.1 lo delata por
-*timeout*), y una excepción no controlada que sí aparece en el log (§4.1 de `12 · 09`).
+dibuja ni una letra (la Trampa 5 exacta que motivó §8.6, y reproducida dentro de este mismo
+guion en §8.7.2/§8.7.3), un elemento de UI fuera de sitio o solapado, un guardado que no
+sobrevive a cerrar el proceso, un `game_end()` que nunca llega (el objeto se queda colgado sin
+terminar — el propio `MARGEN_S` de §8.7.1 lo delata por *timeout*), y una excepción no
+controlada que sí aparece en el log (§4.1 de `12 · 09`).
+
+> ✅ **Un caso concreto de «`game_end()` que nunca llega», reproducido a propósito en esta
+> sesión**: un evento Draw GUI End cuyo `.gml` se quedó con el nombre equivocado tras el truco
+> de `resource set` de §8.7.2 compila limpio, pero el motor lo trata como **vacío** en tiempo de
+> ejecución (`Compile Objects...finished.... 1 empty events` en el log de Igor, en vez de
+> `0 empty events`) — `screen_save()` nunca se llama, `debe_capturar` se queda en `true` para
+> siempre, y el juego no produce ni el marcador ni `game_end()`. `MARGEN_S` lo cazó igual: con
+> `MARGEN_S=5` de prueba, el corte llegó a los 5,06 s y `pkill` limpió el proceso. Este
+> procedimiento no distingue «el juego tarda en cargar» de «un evento se quedó vacío por un bug
+> de `resourcetool`»; ambos se ven igual desde fuera — silencio hasta el *timeout*. Si el
+> `fotogramas_espera` de tu objeto es razonable y aun así siempre agota `MARGEN_S`, sospecha
+> primero de un evento vacío, no de que tu juego sea lento.
+
+Un dato adicional sobre cómo se ve la salida cuando todo va bien: el propio *runner* de
+`gm-cli run`, al lanzarse con el flag `-runTest` (visible en su línea de comando), añade por su
+cuenta una línea `###game_end###N` al `debug.log` en cuanto se llama a `game_end(N)` — **no es
+algo que el objeto de prueba tenga que escribir**, es el runner el que lo hace, verificado en
+esta sesión (ningún `.gml` del proyecto de prueba contenía ese texto y aun así apareció, siempre
+justo después del marcador `###humo_captura###` y justo antes de `Game exited`). Es una segunda
+señal, gratuita, de que el juego terminó por su cuenta — el mismo patrón que ya usa `13 · 10`
+§3.4 para las pruebas unitarias.
 
 **No caza nada de esto** — la lista ya la da `12 · 09` §4.2 con más detalle, no se repite aquí
 completa:
@@ -2272,22 +2440,35 @@ humanas.
 #### 8.7.6 El guion de humo completo, antes de decir que un juego está terminado
 
 Secuencia mínima, encadenando todo lo de arriba, para ejecutar antes de dar cualquier tarea de
-GameMaker por cerrada — engánchala al checklist de §12:
+GameMaker por cerrada — engánchala al checklist de §12. **Verificada de punta a punta el 8 de
+septiembre de 2026** (`gm-cli` 2.3.0, runtime `2026.0.0.23`, macOS, proyecto `~/gm_humo_real`),
+con los tiempos reales de esa pasada:
 
 ```
-1. gm-cli compile --errors-only            → exit 0                         (§8.1)
-2. gm-cli compile (sin el flag)             → exit 0, sin WARNING            (§8.1, Trampa 8 de 12/09)
+1. gm-cli compile --errors-only            → exit 0                         (§8.1)          ~1-10 s*
+2. gm-cli compile (sin el flag)             → exit 0, sin WARNING            (§8.1, Trampa 8 de 12/09) ~1-2 s
 3. python3 _indice/validar-proyecto.py <ruta> --todo
-                                             → 0 funciones inventadas        (§8.5, Trampa 4)
-4. lanzar-humo.sh <proyecto> Humo <target>  → ###humo_captura### en la salida (§8.7.1-2)
+                                             → 0 funciones inventadas        (§8.5, Trampa 4) instantáneo
+4. lanzar-humo.sh <proyecto> Humo <target>  → ###humo_captura### en la salida (§8.7.1-2)      ~3-6 s
 5. Abre humo_captura.png (§8.7.3) y MÍRALA — confirma texto, botones y capas (§8.6 Procedimiento 1)
-6. verificar-guardado-humo.sh <proyecto>    → ESCRITO en fase 1, OK en fase 2 (§8.7.4)
-7. Ningún proceso del runner sigue vivo: ps -ef | grep -i runner → vacío     (§8.7.1)
+6. verificar-guardado-humo.sh <proyecto>    → ESCRITO en fase 1, OK en fase 2 (§8.7.4)         ~6 s (dos lanzamientos)
+7. Ningún proceso del runner sigue vivo: ps -ef | grep -i runner → vacío     (§8.7.1)          instantáneo
 ```
+
+\* El primer `compile` de una sesión paga un coste único de caché (descarga/verificación de
+Igor y del runtime si no estaban ya en `~/Library/Caches/GameMakerCLI/`); con caché caliente
+baja a ~1-2 s, igual que el paso 2. Ese coste único también se paga en el primer `gm-cli run`
+de la sesión («Downloading tools» / «Downloading Igor» / «Fetching license» / «Restoring
+prefabs» / «Installing runtime» en su salida) — no vuelve a pagarse en los lanzamientos
+siguientes, que es de donde salen los ~3-6 s del paso 4. El total de esta secuencia, de arranque
+en frío a limpio, no bajó de la cifra de un solo dígito de segundos por paso salvo el primer
+`compile`; en ningún caso llegó a acercarse al `MARGEN_S=20` por defecto.
 
 Si el paso 4 o el 6 no producen su marcador (ni `OK` ni `FALLO`, silencio total), el objeto de
 humo no llegó a `game_end()` — trátalo como un fallo, no como «tardó en arrancar»: aquí es
-exactamente donde `MARGEN_S` corta la espera y limpia el proceso.
+exactamente donde `MARGEN_S` corta la espera y limpia el proceso. Sospecha primero de un evento
+vacío por un `.gml` mal renombrado (§8.7.2, §8.7.5) antes que de que el juego sea lento — es la
+causa que esta sesión encontró de verdad al reproducir el cuelgue a propósito.
 
 ---
 
@@ -2972,11 +3153,13 @@ septiembre de 2026**, ver el bloque de fuentes propio al final de esta sección)
   `GMS2@2026.0.0.23`): `compile --errors-only` → 0, `run` en verde y en rojo,
   `run --config Pruebas`.
 
-**Añadido en esta sesión — §8.7 (8 de septiembre de 2026)**
+**Añadido — §8.7 (8 de septiembre de 2026, primera redacción)**
 
-> `gm-cli run` estuvo prohibido por restricción explícita del usuario en esta sesión, no de la
-> biblioteca — ver el aviso ⚠️ al inicio de §8.7 para la frontera exacta entre lo verificado por
-> código y lo verificado en tiempo de ejecución.
+> En la sesión que escribió esta sección por primera vez, `gm-cli run` estuvo prohibido por
+> restricción explícita del usuario — no de la biblioteca. Todo lo de abajo, de esta primera
+> tanda de fuentes, es verificación por **compilación**, no por ejecución. Una sesión posterior,
+> el mismo día, sí ejecutó `gm-cli run` de verdad: ver el bloque «Añadido — §8.7, verificación en
+> tiempo de ejecución» más abajo, y el aviso ✅ al inicio de §8.7.
 
 - Manual oficial LTS 2026, `screen_save` y `screen_save_part` (la exigencia de llamarlas desde
   Draw GUI End, y la ruta de guardado en Windows/Mac):
@@ -3008,6 +3191,49 @@ septiembre de 2026**, ver el bloque de fuentes propio al final de esta sección)
 - [`12 · 09` §0 Trampa 3](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-3--resourcetool-crea-el-evento-equivocado-sin-avisar-dos-bugs-de-numeraci%C3%B3n)
   y §4.3 (sesiones anteriores): la colisión `gui_end`→`draw_end` y el patrón de matar el proceso
   del runner por nombre, ambos reutilizados tal cual en §8.7.
+
+**Añadido — §8.7, verificación en tiempo de ejecución (8 de septiembre de 2026, sesión
+posterior a la redacción original)**
+
+Todo lo de abajo es ejecución real con `gm-cli run`, no solo compilación — `gm-cli` 2.3.0,
+runtime `2026.0.0.23`, macOS, proyecto de prueba `~/gm_humo_real` (nunca dentro de esta
+biblioteca, borrado al terminar). Ningún proceso del runner quedó vivo al cerrar la sesión
+(`ps -ef | grep -i runner` vacío, comprobado al final).
+
+- Los 3 objetos de §8.7 montados con `resourcetool` (`obj_prueba_humo`, `obj_prueba_guardado_humo`,
+  `obj_controlador_humo` — este último, sin código publicado hasta ahora, resuelto en esta
+  sesión: ver §8.7.2), la fuente `fnt_prueba_humo` para probar el texto, y la instancia de
+  `obj_controlador_humo` colocada con `resourcetool eval "room instance create room=room1
+  object=obj_controlador_humo layer=Instances x=0 y=0"`.
+- `gm-cli compile --errors-only` y sin el flag, ambos `exit 0`, sin `WARNING`;
+  `validar-proyecto.py --todo` en 0 funciones inventadas sobre 7 archivos `.gml` (35 llamadas
+  analizadas).
+- El truco de `resource set expr=<obj>.eventList[N].eventNum value=75` de §8.7.2, reproducido de
+  nuevo (índice 4 de 5 en el `eventList`, `eventNum` 73→75, `object event list` confirmó
+  `Event_Draw_DrawGUIEnd`) — y, a diferencia de la sesión anterior, esta vez **ejecutado**: con
+  el `.gml` mal renombrado, `Compile Objects...finished.... 1 empty events` en el log de Igor y
+  el juego cuelga sin capturar; con el nombre correcto, `0 empty events` y captura+cierre
+  normales. Cerraba el único ⚠️ que quedaba abierto en esa sección.
+- `lanzar-humo.sh` y `verificar-guardado-humo.sh`, escritos tal cual los da §8.7.1 y §8.7.4 y
+  ejecutados varias veces cada uno: marcador `###humo_captura###` y PNG real en
+  `~/Library/Application Support/com.yoyogames.macyoyorunner/humo_captura.png` (confirmado con
+  `find -newer`, no supuesto); ciclo de guardado en dos fases con `HUMO_FASE=escribir` y
+  `HUMO_FASE=leer`, matando el proceso entre medias, con salida `###humo_guardado###ESCRITO` y
+  luego `###humo_guardado###OK`.
+- La captura real, abierta y mirada: el rectángulo de `Draw_0.gml` se veía con nitidez; el texto
+  no apareció, por la Trampa 5 de `12 · 09` reproducida en vivo dentro de este procedimiento
+  (`font glyphlist` vacío, chunk `FONT` a `0.00 MB` tras compilar) — ver §8.7.2 y §8.7.3.
+- El escenario de cuelgue, reproducido a propósito (mismo objeto, `game_end()` comentado): con
+  `MARGEN_S=5` de prueba, el corte llegó a los 5,06 s y `pkill -f Mac_Runner` limpió el proceso
+  (confirmado con `ps` inmediatamente después) — el mecanismo que describe §8.7.1 como red de
+  seguridad funciona de verdad, no solo en teoría.
+- El nombre del proceso `Mac_Runner` en macOS, re-confirmado por el método de comparación de
+  `ps` de §8.7.1 (independiente de la fuente anterior, `12 · 09` §4.3), y la ruta completa del
+  binario (`.../runtime-2026.0.0.23/mac/YoYo Runner.app/Contents/MacOS/Mac_Runner`, con el flag
+  `-runTest`) leída directamente de su línea de comando en `ps -ef`.
+- El marcador `###game_end###N` visto en el `debug.log` sin que ningún `.gml` del proyecto lo
+  escribiera — lo emite el propio runner al llamarse a `game_end(N)` bajo `-runTest`, la misma
+  convención que ya usa `13 · 10` §3.4 para las pruebas unitarias.
 
 **Frameworks**
 

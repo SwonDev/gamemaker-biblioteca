@@ -5,7 +5,7 @@
 > IDE. No repite lo que ya explican [`07 · 13`](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md)
 > (referencia completa del CLI) y [`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)
 > (qué es el andamiaje `--ai` y cómo se prepara un proyecto para un agente): este documento
-> añade **lo que ninguno de los dos cubre** — los nueve sitios donde un agente se atasca hoy,
+> añade **lo que ninguno de los dos cubre** — los diez sitios donde un agente se atasca hoy,
 > el nombre exacto de archivo que le toca a cada evento, el inventario real de las 80
 > herramientas del MCP, la frontera entre lo que un agente puede comprobar solo y lo que debe
 > pedir al humano, los errores que un LLM comete por reflejo al tratar GML como si fuera C#
@@ -38,10 +38,26 @@
 > expresión genérica que destapó la corrección de §9. Nueva Trampa 9 en §0, receta completa en
 > §9 ter. La única afirmación de imposibilidad que se reverificó y se confirmó cierta fue la del
 > asset **Extensión**, que sigue sin poder crearse por CLI/MCP.
+>
+> **Cuarta corrección del 8 de septiembre de 2026**: esa misma auditoría dejó 4 afirmaciones de
+> imposibilidad sin verificar por depender, en apariencia, de un editor visual del IDE (presets
+> de partículas, capas de UI del editor de rooms, troceado de sprites, GMRT). Esta sesión las
+> cerró las 4: **dos se abren con un rodeo verificado** (un preset se puede replicar campo a
+> campo leyendo el `.yy` que trae el propio toolchain instalado, y una tira de sprite se puede
+> trocear con una herramienta de imagen externa y añadir fotograma a fotograma), **una se acota
+> con precisión** (un Particle System solo admite un emitter completo por CLI, no varios), y
+> **una resultó ser una limitación de máquina, no de herramienta** (el toolchain `GMRT@versión`
+> ya es seleccionable desde `gm-cli compile`/`run` sin el IDE; lo que faltó en esta sesión fue
+> el requisito de sistema **.NET 8**). Solo una limitación nueva se confirmó real y sin rodeo:
+> las capas de UI del editor de rooms no tienen ninguna raíz de expresión que las alcance. De
+> paso apareció una quinta: `OPTIONS SET` tiene una lista cerrada real de solo 5 propiedades
+> escribibles por plataforma (de ~30), y esta vez no hay campo crudo que la esquive porque las
+> opciones de plataforma no cuelgan del árbol de `RESOURCE`/`project`. Detalle completo, con
+> comandos y salidas reales, en la nueva Trampa 10 de §0 y en §9 quater.
 
 ---
 
-## 0 · Las nueve trampas que hacen fracasar a un agente hoy
+## 0 · Las diez trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -574,6 +590,91 @@ válidos) rechace algo, prueba si la propiedad cruda es alcanzable por la vía g
 (`RESOURCE INFO`/`RESOURCE SET` sobre el recurso ya creado) antes de escribir «no se puede por
 CLI/MCP». La whitelist es del comando, no siempre del formato del recurso.
 
+> ⚠️ **No teclees `type=async` directamente** — no es un `TYPE` válido de
+> `OBJECT EVENT FINDORCREATE` (los Async son `subtype=` numéricos dentro de `type=other`, como
+> arriba), y pedirlo no da un mensaje de error limpio: **revienta el propio `resourcetool` con
+> una excepción interna sin capturar** (`KeyNotFoundException: The given key 'ev_async' was not
+> present in the dictionary`, `exit 2`). Verificado en vivo el 8 de septiembre de 2026. Es fácil
+> que un agente lo intente por reflejo — el propio IDE tiene una pestaña «Async» en el diálogo de
+> creación de eventos — y un *crash* con traza de pila se lee como «esto está roto» en vez
+> de «pedí el `TYPE` equivocado». Usa siempre `type=other subtype=<número>` para esta familia.
+
+### Trampa 10 · `OPTIONS SET` tiene una lista cerrada real — y esta vez no hay campo crudo que la esquive
+
+**El síntoma**: `HELP OPTIONS SET` dice `PROPERTY = <Property name: interpolation, fullscreen,
+display_name, image, icon>`. Ni `interpolation` ni `fullscreen` son nombres de propiedad
+reales — `resourcetool` los rechaza. Y de una decena de propiedades que sí existen y se leen sin
+problema con `OPTIONS GET`/`OPTIONS INFO` (`executable_name`, `company_info`, `version`,
+`resize_window`…), **ninguna se puede escribir por CLI/MCP**, y a diferencia de las Trampas 7 y
+9, **no hay ninguna raíz de expresión que las alcance por el camino genérico**.
+
+**Verificado en vivo el 8 de septiembre de 2026**, en un proyecto de prueba bajo `~`
+(`gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli` 2.3.0 /
+`ResourceTool@2026.0.17`:
+
+1. **El propio texto de ayuda tiene nombres equivocados.** `OPTIONS GET PLATFORM=windows`
+   (sin `PROPERTY=`, para listar todo) y `OPTIONS INFO PLATFORM=windows` devuelven la tabla
+   completa y real de propiedades — 30 en Windows —, entre ellas `interpolate_pixels` y
+   `start_fullscreen`. `interpolation` y `fullscreen` (los nombres que da `HELP`) **no existen**:
+   ```bash
+   $ gm-cli resourcetool eval "options set platform=windows property=interpolation value=1"
+   Property 'interpolation' is not available for platform 'windows'. Valid properties:
+   allow_fullscreen_switching, borderless, company_info, copy_exe_to_dest, copyright_info,
+   d3dswapeffectdiscard, description_info, disable_sandbox, display_cursor, display_name,
+   executable_name, icon, installer_finished, installer_header, interpolate_pixels, license,
+   nsis_file, product_info, resize_window, save_location, scale, sleep_margin, splash_screen,
+   start_fullscreen, steam_use_alternative_launcher, texture_page, use_raw_mouse, use_splash,
+   version, vsync
+   ```
+   El nombre correcto es `interpolate_pixels`; el de «fullscreen» es `start_fullscreen`. Con los
+   nombres reales, **solo cinco de las 30 propiedades se pueden escribir**:
+   `interpolate_pixels`, `start_fullscreen`, `display_name`, `icon` y `splash_screen` (las dos
+   últimas piden una ruta a un PNG real, no un valor arbitrario). Las 25 restantes —incluidas
+   `executable_name`, `company_info`, `copyright_info`, `description_info`, `product_info`,
+   `version`, `resize_window`, `borderless`, `vsync`, `scale`, `save_location`, `sleep_margin`,
+   `texture_page`, `use_raw_mouse`, `display_cursor`, `disable_sandbox`,
+   `allow_fullscreen_switching`, `copy_exe_to_dest`, `d3dswapeffectdiscard`,
+   `steam_use_alternative_launcher`, `license`, `nsis_file`, `installer_finished`,
+   `installer_header` — dan siempre el mismo error, aunque el nombre sea correcto y el valor
+   válido:
+   ```bash
+   $ gm-cli resourcetool eval "options set platform=windows property=executable_name value=MiJuego"
+   Property 'executable_name' cannot be set on 'windows' because it is read-only.
+   ```
+2. **Por qué esta vez no sirve el truco de la Trampa 7/9**: las opciones de plataforma
+   (`GMWindowsOptions`, `GMMacOptions`…) viven en `options/<plataforma>/options_<plataforma>.yy`
+   como un recurso `.yy` normal y corriente, con `resourceType` y `%Name` como cualquier otro —
+   pero **no están entre los 17 tipos que devuelve `RESOURCE TYPES`**, y su nombre (`Windows`,
+   `Mac`…) **no es una raíz de expresión válida**:
+   ```bash
+   $ gm-cli resourcetool eval "resource info expr=Windows"
+   'Windows' not found at root
+   ```
+   Tampoco aparecen como miembro de `project` (los 18 miembros de
+   [§9 bis](#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno) no incluyen ninguno de
+   opciones). `RESOURCE INFO`/`RESOURCE SET` sencillamente no llegan hasta aquí — es un
+   subsistema aparte, gestionado en exclusiva por la familia `OPTIONS`, y esa familia decide por
+   diseño qué se puede escribir desde fuera del IDE.
+3. **Confirmado que es una limitación real, no una whitelist perezosa**: si fuera solo que
+   `OPTIONS SET` no reconoce el nombre, el error sería «not available, valid properties: …»
+   (el que da `interpolation`). En cambio, para las 25 propiedades read-only el propio mensaje
+   lo dice explícito: *«cannot be set... because it is read-only»* — es una decisión consciente
+   del comando, no un hueco de cobertura.
+
+**Qué significa para un agente que prepara un lanzamiento**: nombre de compañía, copyright,
+descripción, versión del ejecutable, si la ventana es redimensionable/sin bordes, VSync, el
+modo de escalado, la ruta de guardado, el lanzador alternativo de Steam, la licencia y el script
+NSIS del instalador — **todo eso hay que pedírselo al humano, que lo ponga desde la ventana
+Game Options del IDE.** Solo el nombre visible, el icono, la imagen de splash, si arranca a
+pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
+
+**La regla que deja esta trampa**: el patrón de la Trampa 7/9 («si un subcomando rechaza algo,
+prueba la raíz de expresión genérica») **no es universal** — solo funciona para recursos que
+viven bajo el árbol de `RESOURCE`/`project`. Antes de aplicarlo a ciegas, comprueba con
+`resource types` y `resource info expr=project` si el dato que buscas está siquiera ahí. Si no
+lo está (como las opciones de plataforma), no hay campo crudo que parchear: la limitación es
+real y hay que decírselo al humano con esa certeza, no con la esperanza de que exista un rodeo.
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -603,7 +704,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-nueve-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-diez-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -1287,7 +1388,7 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-nueve-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-diez-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -1702,6 +1803,192 @@ concreto — ver [`07 · 22`](../07%20-%20Ecosistema/22%20-%20Crear%20una%20exte
 
 ---
 
+## 9 quater · Cuatro cosas que se daban por «solo IDE visual» — dos se abren, una se acota y una se confirma
+
+Una auditoría anterior (`git log` del 8 de septiembre de 2026, «Los validadores comprueban la
+aridad, y tres "no se puede" más eran falsos») examinó 30 afirmaciones de imposibilidad de esta
+biblioteca y dejó 4 sin verificar por parecer atadas a un editor visual del IDE (presets de
+partículas, capas del editor de rooms, troceado de sprites, GMRT). No hay ningún informe aparte
+en `_indice/auditorias/` para esas 4 — la única traza es el mensaje de ese commit —, así que esta
+sesión las verificó desde cero, en vivo, el 8 de septiembre de 2026, en un proyecto de prueba
+bajo `~` (`gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli` 2.3.0 /
+`ResourceTool@2026.0.17`.
+
+### 1 · Presets de partículas — se puede configurar un emitter completo por CLI, pero no enlazarlo a un preset real, y solo cabe uno por sistema
+
+El asset **Particle System** no tiene ningún comando dedicado en absoluto (no hay `PARTICLE` ni
+`EMITTER` entre los 30 comandos de `resourcetool` — [§0 Trampa 7](#trampa-7--antes-de-dar-un-comando-por-imposible-prueba-resource-info-exprproject-y-help-comando)
+enseña a comprobarlo con `resource types`, que no lo lista). Todo pasa por la raíz de expresión
+genérica:
+
+```bash
+$ gm-cli resourcetool eval "resource create type=particlesystem name=part_test"
+$ gm-cli resourcetool eval "resource info expr=part_test.emitters"
+List has 0 items of type emitter          # ← el conteo miente, ver más abajo
+$ gm-cli resourcetool eval "resource set expr=part_test.emitters[0].name value=preset_fuego"
+part_test.emitters[0].name: preset_fuego
+Saved successfully
+```
+
+Indexar `[0]` sobre una lista de emitters que el propio `resource info` acababa de reportar como
+vacía **crea de verdad el primer emitter**, con los ~50 campos completos que trae un emitter real
+(`shape`, `distribution`, `speedMin/Max`, `startColour`/`midColour`/`endColour`, `spriteId`,
+`regionW/H`, `GMPresetName`…) — todos escribibles uno a uno con `resource set` y confirmados en
+el `.yy` final. `gm-cli compile` termina limpio. **Pero esto no generaliza**: probar
+`part_test.emitters[1]` con la lista en 1 elemento da `is out of range (0..0)` — a diferencia de
+`project.RoomOrderNodes`, la lista de emitters **no crece más allá del primero** por esta vía;
+un Particle System con varios emitters (la forma normal de construir un efecto real: uno para el
+núcleo, otro para chispas, otro para humo) **no se puede montar completo por CLI/MCP** — hace
+falta el editor visual para el segundo emitter en adelante. Y el mismo auto-relleno **no es
+general**: se probó también sobre `project.LibraryEmitters[0]` (lista vacía) y sobre
+`obj_x.eventList[0]` de un objeto recién creado sin eventos, y ambos fallan con
+`is out of range (list is empty)` — el comportamiento es específico del campo `emitters` de un
+`particlesystem`, no una regla del motor de `resourcetool`.
+
+El campo `GMPresetName` **se puede escribir** (`resource set
+expr=part_test.emitters[0].GMPresetName value=Fire` responde `Saved successfully` y compila
+limpio), pero es **cosmético**: no copia ni un solo valor real del preset «Fire» al emitter — se
+comprobó guardando el campo y releyéndolo, sin que ningún otro campo (`shape`, colores,
+velocidad…) cambiara. Enlazar de verdad un emitter a un preset, con todos sus valores aplicados,
+es una operación del editor visual
+([`02 · 05 §2.3`](../02%20-%20Novedades%202026/05%20-%20Sistema%20de%20part%C3%ADculas%20nuevo.md#23-presets-propios-compartidos-entre-assets))
+que no tiene equivalente por CLI.
+
+**El rodeo real para replicar un preset sin abrir el IDE**: los 10 presets incorporados
+(`Electricity`, `Embers`, `Embers 2`, `Fire`, `Flame Intensity`, `Rain`, `Smoke`, `Smoke 2`,
+`Sparks`, `Warp Centre`, `Warp Lines` — [`02 · 05` §2.2](../02%20-%20Novedades%202026/05%20-%20Sistema%20de%20part%C3%ADculas%20nuevo.md#22-efectos-predefinidos-library))
+**están en disco, dentro del propio toolchain instalado**, no solo dentro de la memoria del IDE:
+
+```
+GameMaker.app/Contents/MacOS/arm64/packages/gm-ide-prefabs/gm-particle-presets/
+  io.gamemaker.gmparticlepresets-1.0.0.yymps      ← ZIP normal (unzip lo abre)
+    particlelib/GM_Fire/GM_Fire.yy                ← el emitter "Fire" completo, en JSON
+    particlelib/GM_Smoke/GM_Smoke.yy
+    ... (los 10 presets, cada uno con su .yy)
+    sprites/spr_Fire/spr_Fire.png                 ← sprites que usan los presets con textura
+```
+
+Cada `.yy` trae los valores exactos (`shape`, `distribution`, `directionMin/Max`,
+`lifetimeMin/Max`, `startColour`/`midColour`/`endColour`, `sizeMin/Max`, `speedMin/Max`,
+`spriteId`…) que el editor visual aplicaría al pulsar «Select Particles → Fire». Un agente puede
+leer ese `.yy`, y reproducir el efecto campo a campo con una secuencia de `resource set
+expr=<sistema>.emitters[0].<campo> value=<valor>` sobre su propio emitter — funcionalmente
+idéntico al preset, aunque `GMPresetName` no quede enlazado. Ruta verificada en esta sesión
+(la del `.app` descrito arriba puede variar de instalación a instalación; confírmala con
+`find "<ruta de GameMaker.app>" -iname "*particle-presets*"`).
+
+### 2 · Capas de UI del editor de rooms — limitación real, confirmada, sin campo crudo que la esquive
+
+`ROOM LAYER CREATE TYPE=` solo admite `INSTANCE | ASSET | BACKGROUND | PATH | TILE | EFFECTS`
+([§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo) documenta los 6). Pedir `TYPE=UI` —la
+capa nueva de LTS 2026 que contiene Flex Panels, la forma recomendada de montar HUDs y menús
+([`09 - Manual oficial/.../UI_Layers.md`](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Room_Properties/UI_Layers.md)) — se rechaza limpio:
+
+```bash
+$ gm-cli resourcetool eval "room layer create room=Room1 name=capa_ui type=UI"
+Invalid value 'UI' for 'TYPE' argument.  Expected format: INSTANCE | ASSET | BACKGROUND | PATH | TILE | EFFECTS
+```
+
+A diferencia de la Trampa 9, **aquí no hay campo crudo que rescate el caso**: las capas de UI son
+**globales al proyecto, no por room** (el manual lo dice explícito: «viven en la "UI Folder"
+global… compartida por todas las rooms»), y ni `project` (sus 18 miembros de
+[§9 bis](#9-bis--la-raíz-project-18-miembros-probados-uno-a-uno) no incluyen nada de UI/Flexpanel)
+ni ninguna room concreta exponen una raíz de expresión para ellas. Se contrastó además contra
+`11 - Código descargado/` — ningún `.yy` de room de los proyectos reales descargados usa un
+`resourceType` de capa fuera de los 6 conocidos (`GMRAssetLayer`, `GMRBackgroundLayer`,
+`GMRInstanceLayer`, `GMRLayer`, `GMRPathLayer`, `GMRTileLayer`) — no hay un séptimo tipo
+serializado que copiar. `resourcetool` no tiene tampoco ningún comando `FLEXPANEL`/`UI`.
+
+**Conclusión, la única de las 4 que se confirma como limitación real sin rodeo**: montar una capa
+de UI y sus Flex Panels *como recurso de diseño* (lo que vería el editor de rooms) requiere el
+IDE visual — pídeselo al humano, o dile con precisión qué estructura de Flex Panels necesitas
+para que la monte. **Hay un camino distinto, no equivalente pero funcional, que no pasa por el
+editor de rooms en absoluto**: construir la interfaz en tiempo de ejecución con las
+[funciones de Flex Panel](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Flex_Panels/Flex_Panels.md)
+(`flexpanel_create_node` y familia) desde GML — el propio manual lo cubre en
+[UI_Layers_At_Runtime.md](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Room_Properties/UI_Layers_At_Runtime.md).
+Es código, no un recurso `.yy`, así que sí es alcanzable para un agente sin el IDE, pero no
+sustituye a «crear la capa de UI que pide la tarea» si lo que hace falta es justo el recurso de
+diseño.
+
+### 3 · Troceado de sprites — `SPRITE ADDFRAME` no trocea, pero trocear antes y añadir cada trozo sí funciona
+
+El editor de sprites del IDE detecta el sufijo `_stripN` en el nombre de archivo y divide la
+imagen en `N` fotogramas automáticamente al importarla
+([`09 - Manual oficial/.../Sprite_Strips.md`](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Sprite_Properties/Sprite_Strips.md)).
+`SPRITE ADDFRAME` **no reproduce esa convención**: se probó con una tira de 3 fotogramas de
+16×16 (48×16 en total), primero con un nombre de archivo cualquiera y después con el sufijo
+`_strip3` exacto que pide el manual — en los dos casos el sprite resultante quedó con
+**1 solo fotograma de 48×16** (la imagen completa, sin trocear):
+
+```bash
+$ gm-cli resourcetool eval "sprite addframe name=spr_x path=prueba_strip3.png"     # sin _stripN
+$ gm-cli resourcetool eval "resource info expr=spr_x.width"    # 48
+$ gm-cli resourcetool eval "sprite addframe name=spr_y path=..._strip3.png"        # con _stripN
+$ gm-cli resourcetool eval "resource info expr=spr_y.width"    # 48 — igual, no trocea
+```
+
+`ADDFRAME` es una operación literal: «copia este PNG tal cual como un fotograma nuevo», sin
+inspeccionar el nombre del archivo ni su contenido para decidir dividirlo.
+
+**El rodeo, verificado de punta a punta**: trocear la imagen **antes** de dársela a
+`resourcetool`, con cualquier herramienta de imagen (`ImageMagick` en esta sesión), y llamar a
+`SPRITE ADDFRAME` una vez por trozo, en orden:
+
+```bash
+$ magick tira.png -crop 16x16+0+0 +repage tile_0.png
+$ magick tira.png -crop 16x16+16+0 +repage tile_1.png
+$ magick tira.png -crop 16x16+32+0 +repage tile_2.png
+$ gm-cli resourcetool eval "sprite addframe name=spr_z path=tile_0.png frame=LAST"
+$ gm-cli resourcetool eval "sprite addframe name=spr_z path=tile_1.png frame=LAST"
+$ gm-cli resourcetool eval "sprite addframe name=spr_z path=tile_2.png frame=LAST"
+$ gm-cli resourcetool eval "resource info expr=spr_z.width"    # 16
+$ gm-cli resourcetool eval "resource info expr=spr_z.frames"   # List has 3 items
+```
+
+Resultado: sprite de 16×16 con 3 fotogramas — **funcionalmente idéntico** al que produciría
+arrastrar la tira al IDE, verificado con `gm-cli compile` limpio. Un agente sin acceso al editor
+de sprites puede trocear cualquier hoja de sprites con una herramienta de imagen normal y montar
+la animación fotograma a fotograma; el troceado en sí no es una operación de `resourcetool`,
+pero el resultado sí se consigue enteramente por CLI/MCP.
+
+### 4 · GMRT — sí es accesible desde `gm-cli`, sin el IDE; lo que falló en esta sesión fue un requisito de máquina, no una limitación de la herramienta
+
+GMRT (el nuevo runtime, [`02 · 03`](../02%20-%20Novedades%202026/03%20-%20GMRT%20-%20El%20nuevo%20runtime.md))
+tiene su propia sección de **Preferences** en el IDE (`Path to GMRT`, generador de CMake, tipo de
+build…) que sí es exclusiva del IDE — son ajustes globales del programa, guardados fuera de
+cualquier proyecto (`~/Library/Application Support/GameMakerStudio2-LTS2026/<usuario>/local_settings.json`
+en macOS), y `resourcetool` no toca nunca ese archivo porque opera sobre `.yyp`/`.yy`, no sobre
+preferencias de la IDE. Hasta ahí, la afirmación «GMRT es solo IDE» sería cierta.
+
+Pero **compilar o ejecutar con GMRT como toolchain no pasa por esas preferencias en absoluto**:
+`gm-cli compile --help` y `gm-cli run --help` documentan `--toolchain` con el ejemplo literal
+`GMRT@0.18`, exactamente igual que `GMS2@2024.14.4`:
+
+```bash
+$ gm-cli compile --toolchain "GMRT@0.21.0" --errors-only
+Command failed:
+You must install .NET to run this application.
+App: .../gmpm/lib/node_modules/@gm-tools/gmpm-mac-arm64/.../gmpm
+Failed to resolve libhostfxr.dylib [not found]
+```
+
+`gm-cli` **intentó por su cuenta resolver/instalar GMRT** invocando su propio gestor de paquetes
+(`gmpm`, el mismo Package Manager que usa el IDE, pero disparado aquí desde la CLI sin abrir
+ninguna ventana) — el fallo fue que esta máquina no tiene **.NET 8** instalado, un requisito que
+el propio [`02 · 03` §4.1](../02%20-%20Novedades%202026/03%20-%20GMRT%20-%20El%20nuevo%20runtime.md)
+ya documenta como obligatorio para GMRT, con o sin IDE (`which dotnet` → no encontrado en esta
+sesión). No es un límite de `resourcetool`/`gm-cli`: es una dependencia de sistema que falta en
+esta máquina concreta.
+
+**Conclusión**: elegir GMRT como toolchain de compilación/ejecución **es una operación de
+`gm-cli`, alcanzable sin el IDE visual**, igual que elegir una versión de GMS2. Lo que sigue
+siendo exclusivo del IDE son las *preferencias* de GMRT (rutas de herramientas de terceros,
+generador de CMake…), que un agente normal no necesita tocar salvo que el proyecto exija una
+toolchain de compilación personalizada.
+
+---
+
 ## 10 · El modo por lotes (`resourcetool script`): mucho más rápido que encadenar `eval`
 
 **No estaba documentado ni en `SKILL.md` ni en la tabla de comandos de `07 · 13`** — lo señaló
@@ -1808,6 +2095,10 @@ inicial de objetos y eventos son fácilmente decenas de comandos.
 - [`_indice/auditorias/r6-prueba-narrativa.md`](../_indice/auditorias/r6-prueba-narrativa.md) — la prueba narrativa que descubrió la Trampa 8 (`filePath` vacío en los Included Files creados por `resourcetool`) construyendo un juego con diálogos y finales ramificados de principio a fin.
 - [`06 - Assets y Scripts/scr_save_load.gml`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml) — `save_ensure_dir()` trae ya el parche de la Trampa 6, con el porqué documentado en el propio script.
 - [`06 - Assets y Scripts/README.md` §«Pruebas realizadas»](../06%20-%20Assets%20y%20Scripts/README.md) — primera constancia de la `NullReferenceException` de sprites vacíos que amplía [§7.7](#77-un-segundo-hallazgo-de-esta-sesión---errors-only-también-esconde-por-completo-un-nullreferenceexception-real-del-assetcompiler).
+- [`02 · 05 — Sistema de partículas nuevo`](../02%20-%20Novedades%202026/05%20-%20Sistema%20de%20part%C3%ADculas%20nuevo.md) — qué es el Particle System Editor, los 10 presets incorporados y cómo funcionan los presets propios por proyecto.
+- [`02 · 03 — GMRT, el nuevo runtime`](../02%20-%20Novedades%202026/03%20-%20GMRT%20-%20El%20nuevo%20runtime.md) — arquitectura, instalación y requisitos (.NET 8) de GMRT.
+- [`09 - Manual oficial/.../UI_Layers.md`](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Room_Properties/UI_Layers.md) — capas de UI y Flex Panels en el editor de rooms.
+- [`09 - Manual oficial/.../Sprite_Strips.md`](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Sprite_Properties/Sprite_Strips.md) — la convención `_stripN` que el editor de sprites detecta y `resourcetool` no.
 
 ## Fuentes
 
@@ -1899,3 +2190,29 @@ inicial de objetos y eventos son fácilmente decenas de comandos.
   un `sprite` creado por `resourcetool` sin frames hace que el `AssetCompiler` lance una
   `NullReferenceException` no capturada que `gm-cli compile --errors-only` esconde por completo
   (exit 0, cero líneas) y que impide escribir `game.zip` sin que ninguna salida lo señale.
+- **Cuarta corrección del 8 de septiembre de 2026** (§0 Trampa 10, §9 quater): ejecución en vivo
+  en un proyecto de prueba bajo `~` (`~/gm_audit_r7`, `gm-cli init -t "Blank Pixel Game"`, borrado
+  al terminar), `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`. Fuente directa de: `helptable` completo
+  (30 comandos) recorrido buscando argumentos con lista cerrada; `resource create
+  type=particlesystem` + `resource set expr=<sistema>.emitters[0].<campo> value=<valor>` sobre
+  ~15 campos distintos, confirmados en el `.yy` final y con `gm-cli compile` limpio, y la prueba
+  de que `emitters[1]` sí falla (`out of range (0..0)`) mientras `emitters[0]` sobre lista vacía
+  no; la comparación con `project.LibraryEmitters[0]` y con `eventList[0]` de un objeto sin
+  eventos (ambos fallan igual, `list is empty`) para descartar que fuera un comportamiento
+  general; extracción con `unzip` del `.yymps` bundlado en
+  `GameMaker.app/Contents/MacOS/arm64/packages/gm-ide-prefabs/gm-particle-presets/` y lectura de
+  los 10 `.yy` de presets reales; `room layer create type=UI` rechazado, contrastado contra los
+  18 miembros de `project` y contra un grep de `resourceType` de capa en todos los `.yy` de
+  `11 - Código descargado/`; una tira de prueba de 3×16×16 generada con `ImageMagick`, probada sin
+  y con el sufijo `_stripN`, y trocéada y reensamblada fotograma a fotograma con
+  `SPRITE ADDFRAME` verificando `width`/`height`/`frames` antes y después; `gm-cli compile
+  --toolchain GMRT@0.21.0` fallando por falta de **.NET 8** (`which dotnet` sin resultado) tras
+  confirmar en el propio `--help` de `compile`/`run` que `GMRT@<versión>` es un valor documentado
+  de `--toolchain`; `object event findorcreate type=async` reproducido como excepción interna sin
+  capturar (`KeyNotFoundException`, `exit 2`); y el barrido completo de `OPTIONS GET/INFO/SET
+  PLATFORM=windows` que destapó que `HELP OPTIONS SET` da nombres de propiedad equivocados
+  (`interpolation`/`fullscreen` en vez de `interpolate_pixels`/`start_fullscreen`) y que, de 30
+  propiedades reales, solo 5 son escribibles por CLI — las 25 restantes fallan con «is read-only»
+  incluso con el nombre correcto y sin que ninguna raíz de expresión (`resource info
+  expr=Windows`, los 17 tipos de `resource types`, los 18 miembros de `project`) las alcance por
+  la vía genérica.

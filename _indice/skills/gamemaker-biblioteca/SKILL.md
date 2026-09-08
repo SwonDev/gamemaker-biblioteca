@@ -55,7 +55,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las nueve trampas que hacen fracasar a un agente
+## Las diez trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -102,6 +102,11 @@ el primer comando; el detalle y las tablas completas están en
    `resource set expr=obj_x.eventList[N].eventNum value=<num>`. **Y renombra después el `.gml` al
    número real** (`Draw_74.gml`, `Other_62.gml`): si no, compila limpio y el código queda donde
    el evento no lo busca. Números y receta en `12/09 §9 ter`.
+10. **Y la excepción a la trampa 9: `OPTIONS SET` no tiene rescate.** Solo deja escribir 5 de las
+    ~30 propiedades de plataforma, y aquí **no** vale parchear el campo crudo — las opciones no
+    cuelgan del árbol de recursos. Su propio `HELP` además da nombres equivocados
+    (`interpolation` y `fullscreen`; los reales son `interpolate_pixels` y `start_fullscreen`).
+    Para el resto, el IDE. Detalle en `12/09 §9 quater`.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
