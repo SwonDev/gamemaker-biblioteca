@@ -229,6 +229,14 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   Nombra en español sin tildes ni eñes; `validar-codigo-gml.py` lo detecta.
 - El asset **Extensión** es la única excepción a lo anterior: `resourcetool` no puede crearlo
   (`Resource type 'extension' is not creatable`), solo el IDE. Ver `07 - Ecosistema/22 - Crear una extensión nativa (guía en español).md`.
+- **`Successful`, `Saved successfully` y `exit 0` NO son verificación.** Tras escribir cualquier
+  cosa con `resourcetool` o `ProjectTool`, **léela de vuelta** (`resource info`, `options get`,
+  o directamente el `.yy`/`.yyp`). Van ya tres casos medidos en los que la herramienta dice que
+  sí y no hizo nada: `OPTIONS SET` truncando un nombre en el primer espacio, el *included file*
+  que nunca llega al paquete, y `ProjectTool IMPORT YY`, que anuncia «Adding resource… to
+  <proyecto>», copia la carpeta al disco y **jamás la registra en el `.yyp`**. Y ojo con la
+  variante peor: un proyecto que **compila** después de una operación fallida puede estar
+  compilando precisamente *porque* la operación no se hizo.
 - Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. `--errors-only`
   sirve para iterar rápido, pero **antes de dar un juego por terminado, compílalo al menos una
   vez sin ese flag y lee los avisos**: es el único modo que muestra el `WARNING` de un

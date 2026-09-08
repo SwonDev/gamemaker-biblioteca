@@ -1592,7 +1592,7 @@ Cada uno probado con varias variantes antes de darlo por imposible:
 | Lo que querrías | Estado | Rodeo |
 |---|---|---|
 | Un `=` dentro de un `value=` | 🔴 **rompe el parser** en `eval`, `script` y `repl` (9 variantes) | El código de creación de una instancia **no se escribe por CLI**. Ponlo en el evento Create del objeto |
-| Mover un recurso ya creado a otra carpeta | 🔴 8 variantes, ninguna | Sácalo y vuelve a meterlo con `ProjectTool IMPORT YY` (§3 ter) |
+| Mover un recurso ya creado a otra carpeta | 🔴 8 variantes, ninguna | **Ninguno.** `ProjectTool IMPORT YY` tampoco: dice que sí y no registra nada ([§3 ter.1](#3-ter1--import-yy-dice-que-funciona-copia-archivos-y-no-registra-nada)). Decide la carpeta **al crear** el recurso |
 | Anidar una capa dentro de otra | 🔴 `PARENT=` responde «Saved successfully» y la deja en la raíz | — |
 | *Variable Definitions* de un objeto | 🔴 3 variantes | Declara las variables en el evento Create |
 | El `nineSlice` de un sprite | 🔴 3 variantes | El IDE |
@@ -1615,25 +1615,91 @@ binario aparte con capacidades propias que ningún documento —oficial ni de aq
 
 ```bash
 PT="$(find .gmcache/project-tool -name ProjectTool -type f | head -1)"
+"$PT"                                    # sin argumentos: imprime la ayuda completa
+"$PT" JSON FORMAT "INPUT=MiJuego.yyp" "COMMAS=GAMEMAKER"
 ```
 
-| Comando | Para qué | Verificado |
+**Se invoca con los argumentos directos**, como el `ResourceTool` cacheado de la Trampa 2 — no
+con un subcomando `cli`: `"$PT" cli "<comando>"` abre una sesión **interactiva** y se queda
+colgado esperando por *stdin*. Para varios comandos seguidos, `"$PT" SCRIPT "PATH=<archivo>"`.
+
+Versión comprobada: **`ProjectTool - Version 2026.0.174`** (distinta de la del `ResourceTool`,
+que es `2026.0.17`).
+
+| Familia | Qué hace | Estado comprobado el 09-09-2026 |
 |---|---|---|
-| `IMPORT YY` | **Copiar recursos de un proyecto a otro** (con sus dependencias) | ✅ el proyecto destino compila |
-| `EXPORT` | Generar un `.yymps` de Marketplace, o un ZIP | ✅ |
-| `JSON FORMAT` | **Normalizar un `.yy` tocado a mano** (`commas=GAMEMAKER`) | ✅ |
-| `LINKS *` | Inspeccionar los enlaces entre recursos | — |
-| `FILE CHANGEVERSION` · `SIGNING` · `SHOWVERSIONEDTYPES` | Versionado y firma de paquetes | — |
+| `JSON FORMAT` | Normaliza un `.yy`/`.yyp` al formato exacto de GameMaker (`COMMAS=GAMEMAKER`, el valor por defecto, o `STANDARD` para JSON normal) | ✅ útil para reparar un archivo tocado a mano |
+| `PROJECT NEW/OPEN/CLOSE/SAVE` | Crear, abrir, cerrar y guardar un proyecto en memoria | — |
+| `EXPORT` | Genera `.yymps` de Marketplace, prefab, proyecto o ZIP. Con `INCLUDEFOLDERS`/`EXCLUDERESOURCES`, icono, y firma con certificado | — |
+| `SIGNING CREATE/PACKAGE/VERIFY/VALIDATE` | Firmar y validar un paquete de Marketplace con certificado | — |
+| `LINKS GET/APPLY/CHANGE/LIST/LIBS/FREQUENCY/NULL` | **Enlaces de *prefabs*** (no de recursos en general): listarlos, cambiar de versión, anular los rotos | — |
+| `PREFABS RESTORE` | Resolver los prefabs del proyecto — es lo que falla con el `gmpm.dll` desparejado de la Trampa 1 | 🔴 roto de fábrica |
+| `FILE CHANGEVERSION` | Cambiar la versión de un `.yy`/`.yyp` en formato *versioned* | — |
+| `SHOWVERSIONEDTYPES` | Volcar la lista de clases de recurso y versión que conoce esta build | — |
+| **`IMPORT YY`** | Copiar recursos de un proyecto a otro | 🔴 **NO FUNCIONA — ver abajo** |
 
-Dos usos que resuelven límites reales del `ResourceTool`:
+> ⚠️ **`READONLY=TRUE` es el valor por defecto.** Si esperas que guarde y no guarda, empieza por
+> ahí: hay que pasar `READONLY=FALSE` explícitamente.
 
-- **Reorganizar carpetas o mover un recurso**: no hay comando para ello (§3 bis.6), pero sí para
-  exportarlo e importarlo donde toque.
-- **Reparar un `.yyp` editado a mano** en una emergencia (Trampa 14): `JSON FORMAT` lo deja con
-  el formato exacto que espera GameMaker, en vez de un JSON «casi bien» que luego falla raro.
+### 3 ter.1 🔴 `IMPORT YY` dice que funciona, copia archivos y no registra nada
 
-> ⚠️ **`READONLY=TRUE` es el valor por defecto** en varios de sus comandos: si esperas que guarde
-> y no guarda, es eso.
+> ❌ **Corrección del 09-09-2026.** La versión anterior de esta sección presentaba `IMPORT YY`
+> como «copiar recursos entre proyectos ✅ (verificado, el destino compila)» y lo ofrecía como
+> el rodeo para mover un recurso de carpeta. **Ninguna de las dos cosas es cierta.** La
+> afirmación venía de una auditoría que lo dio por bueno porque el proyecto destino compilaba —
+> y compilaba precisamente **porque no se había importado nada**. Es el error que esta misma
+> biblioteca documenta en la Trampa 4, aplicado a sí misma: *compilar limpio no prueba que algo
+> haya pasado; a veces prueba justo lo contrario*.
+
+Lo que hace de verdad, probado con **tres variantes** el 09-09-2026 sobre proyectos recién
+creados:
+
+```console
+$ "$PT" IMPORT YY "SOURCES=…/verif3bis/scripts/scr_util/scr_util.yy" \
+        "DESTINATION=…/destino/destino.yyp" "READONLY=FALSE"
+Found Project - …/verif3bis/verif3bis.yyp - for resource - …/scr_util/scr_util.yy
+..Success
+Core Resources : Debug Info - Adding resource: scr_util to destino
+ProjectTool Successful                      ← dice que sí
+
+$ grep -c scr_util destino/destino.yyp
+0                                           ← no está en el .yyp
+
+$ gm-cli resourcetool eval "resource list type=script"
+ script
+ResourceTool Successful                     ← la lista, vacía
+
+$ ls destino/scripts/
+scr_util                                    ← pero la carpeta SÍ está en disco
+```
+
+**Lo peor no es que falle: es que deja basura silenciosa.** La carpeta del recurso queda en el
+disco del proyecto destino y GameMaker la ignora por completo, porque lo que manda es el `.yyp`.
+Nadie te avisa, y en un proyecto grande esas carpetas huérfanas se acumulan.
+
+Las tres variantes probadas, todas con el mismo resultado (`0` en el `.yyp`):
+
+1. `IMPORT YY` con `DESTINATION=`, invocación directa.
+2. `IMPORT YY` con `DESTINATION=` seguido de `PROJECT SAVE DESTINATION=…` en un `SCRIPT`.
+3. `PROJECT OPEN` → `IMPORT YY` sin `DESTINATION` → `PROJECT SAVE`, en un `SCRIPT`.
+
+Y si el recurso que importas **referencia otro que no existe en el destino** —un objeto con su
+sprite, el caso normal— no es que no registre: **revienta** con
+`Fatal error. System.AccessViolationException: Attempted to read or write protected memory`
+dentro del cargador de archivos. Reintentado tres veces; no es la Trampa 11.
+
+**Qué hacer entonces.** Para llevar recursos de un proyecto a otro, hoy: el IDE
+(*Local Package* → importar), o copiar la carpeta a mano **y** registrar el recurso con
+`resource create` + `resource set` en el destino, que es lo que `IMPORT YY` debería hacer y no
+hace. Para **mover un recurso a otra carpeta del Asset Browser** no hay ninguna vía por CLI:
+lo que decía esta sección era falso, y el límite de
+[§3 bis.6](#3-bis6-los-límites-reales-para-que-no-pierdas-el-tiempo) es real y sin rodeo.
+
+> 🔑 **La lección que deja, y que vale para cualquier comando de esta familia**: `Successful`,
+> `Saved successfully` y un `exit 0` **no son verificación**. Ya lo eran `OPTIONS SET`
+> truncando un nombre en el primer espacio (Trampa 10) y el *included file* que nunca llegaba al
+> paquete (Trampa 8). **Lee siempre el `.yyp` o el `.yy` después de escribir**, o pídeselo de
+> vuelta a `resource info` / `resource list`. Esta sección existe porque no se hizo.
 
 ---
 
