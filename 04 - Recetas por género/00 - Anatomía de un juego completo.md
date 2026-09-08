@@ -215,13 +215,27 @@ de esta carpeta:
   poder volver (Metroidvania lo detalla).
 - **HUD** = vida, monedas, mapa, en el evento **Draw GUI** para que no se mueva con la cámara.
   → [UI Layers y Flexpanels](../02%20-%20Novedades%202026/04%20-%20UI%20Layers%20y%20Flexpanels.md)
-- **Pausa** = `instance_deactivate_all(true)` para congelar el mundo mientras dibujas el menú
-  de pausa encima. Reactivar con `instance_activate_all()`.
+- **Pausa** = congelar el mundo mientras dibujas el menú encima. **Lee el aviso rojo de abajo
+  antes de copiar el código**: la vía corta deja la pantalla en negro detrás del menú, y casi
+  nunca es lo que quieres.
 - **Guardado** = qué zona, posición, inventario, progreso de la historia. En puntos de guardado
   o autoguardado al cambiar de zona. → [`scr_save_load`](../06%20-%20Assets%20y%20Scripts/scr_save_load.gml)
 
+> 🔴 **Antes del código: decide qué quieres ver detrás del menú de pausa.** Lo de abajo es la
+> versión mínima, y **deja la pantalla en negro** — una instancia desactivada, dice el manual,
+> «deja de ser procesada de cualquier manera», y eso incluye dibujarse. Si tu menú va sobre un
+> fondo sólido, sirve tal cual. **Si quieres ver el mundo congelado detrás —lo habitual—,
+> necesitas otra cosa**, y está en
+> [`04 · 41 §3.1.1`](./41%20-%20Transiciones%2C%20carga%20y%20pausa.md): capturar el último
+> fotograma en una superficie **antes** de desactivar.
+>
+> Este aviso está **antes** del código y no después porque así estaba y no funcionaba: un agente
+> copió el bloque, lo dio por bueno y no llegó al recuadro
+> ([`r12-prueba-plataformas.md` §1.7](../_indice/auditorias/r12-prueba-plataformas.md)). Un
+> aviso que llega después de la solución llega tarde.
+
 ```gml
-/// pausa robusta
+/// pausa mínima — congela el mundo y lo deja invisible (ver el aviso de arriba)
 function pausar() {
     if (global.pausado) return;
     global.pausado = true;

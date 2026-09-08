@@ -527,10 +527,26 @@ function load_game_recover(_slot, _validador = undefined) {
 ///          tenga que leer `datos`. Ideal para pintar la pantalla de "elige
 ///          partida" — ver 13 · 05, componente n) Ranura de guardado.
 /// @param   {String} _slot
-/// @returns {Struct|Undefined}  { versión, fecha, meta } o `undefined`. `meta`
+/// @returns {Struct|Undefined}  { version, fecha, meta } o `undefined`. `meta`
 ///                              es `undefined` si el guardado no la trae (por
 ///                              ejemplo, un guardado hecho antes de adoptar
 ///                              este campo, o sin `_meta` en `save_game()`).
+///
+/// ⚠️ DEVUELVE EL SOBRE, NO LOS METADATOS. Lo que guardaste vive UN NIVEL MÁS
+///    ABAJO, en `.meta`. Es el fallo silencioso de esta función: leer
+///    `_ficha.nivel` compila, pasa validar-proyecto.py, y la pantalla de
+///    "elige partida" muestra los mismos valores por defecto en TODAS las
+///    ranuras, siempre. Lo sufrió un agente construyendo un juego real
+///    (_indice/auditorias/r12-prueba-plataformas.md §1.5).
+///
+///    var _ficha = save_get_meta("ranura1");
+///    if (is_struct(_ficha) && is_struct(_ficha.meta)) {
+///        var _m = _ficha.meta;                       // <- AQUI estan tus datos
+///        draw_text(x, y,  _m.zona + "  " + string(_m.porcentaje) + "%");
+///        draw_text(x, y2, "Guardado: " + _ficha.fecha);   // fecha y version
+///    } else {                                             // van en el sobre
+///        draw_text(x, y, "Ranura vacia");
+///    }
 function save_get_meta(_slot) {
     var _sobre = load_game_raw(_slot);
     if (!is_struct(_sobre)) { return undefined; }

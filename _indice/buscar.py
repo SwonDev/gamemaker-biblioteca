@@ -409,6 +409,24 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(2)
     a = sys.argv[1]
+    # `--help` era lo primero que probaba cualquiera y lo peor que podía pasar: se
+    # buscaba como si fuera un símbolo de GML y respondía «"--help" NO existe en el
+    # runtime». La herramienta de entrada de toda la biblioteca no puede contestar eso.
+    if a in ("--help", "-h", "help", "--ayuda"):
+        print(__doc__)
+        sys.exit(0)
+    # Un modo mal escrito («--text», «--codigos») acabaría buscado como símbolo y daría
+    # el mismo desconcierto: mejor decir qué modos hay.
+    if a.startswith("--") and a not in ("--texto", "--manual", "--codigo", "--listar", "--todo"):
+        print(f"No conozco el modo «{a}».")
+        print("Modos: --texto · --manual · --codigo · --listar · --todo · --help")
+        print("Sin modo, el argumento se busca como símbolo: buscar.py draw_sprite_ext")
+        sys.exit(2)
+    # Todos los modos piden un segundo argumento; sin él, `sys.argv[2]` reventaría
+    # con un IndexError crudo en vez de decir qué falta.
+    if a.startswith("--") and len(sys.argv) < 3:
+        print(f"A «{a}» le falta qué buscar.  Ejemplo:  buscar.py {a} \"coyote time\"")
+        sys.exit(2)
     if a == "--texto":
         sys.exit(grep(DOCS, sys.argv[2], [".md", ".gml"]))
     if a == "--manual":

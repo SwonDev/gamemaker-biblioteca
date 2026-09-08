@@ -2199,6 +2199,26 @@ var _meta = {
 guardado_con_indicador("slot1", _datos_de_la_partida, _meta);
 ```
 
+> 🔴 **Al leerlos de vuelta, `save_get_meta()` devuelve el SOBRE, no tus metadatos.** Lo que
+> guardaste vive un nivel más abajo, en `.meta`. Leer `_ficha.zona` directamente **compila,
+> pasa `validar-proyecto.py`, y pinta los mismos valores por defecto en todas las ranuras,
+> siempre** — un fallo que solo se ve mirando la pantalla, y que le pasó a un agente montando
+> justo esta pantalla ([`r12-prueba-plataformas.md` §1.5](../_indice/auditorias/r12-prueba-plataformas.md)).
+>
+> ```gml
+> var _ficha = save_get_meta("slot1");
+> if (is_struct(_ficha) && is_struct(_ficha.meta))
+> {
+>     var _m = _ficha.meta;                                   // ← aquí están tus datos
+>     draw_text(_x, _y,      _m.zona + "   " + string(_m.porcentaje) + " %");
+>     draw_text(_x, _y + 18, "Guardado: " + _ficha.fecha);    // fecha y version van
+> }                                                           // en el sobre, no en meta
+> else
+> {
+>     draw_text(_x, _y, "Ranura vacía");
+> }
+> ```
+
 ```gml
 /// obj_arranque (o donde ya lleves el reloj de partida) · Create
 global.tiempo_jugado_segundos = 0;
