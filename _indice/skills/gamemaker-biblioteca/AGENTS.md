@@ -62,7 +62,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las diez trampas que hacen fracasar a un agente
+## Las once trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -114,6 +114,11 @@ el primer comando; el detalle y las tablas completas están en
     cuelgan del árbol de recursos. Su propio `HELP` además da nombres equivocados
     (`interpolation` y `fullscreen`; los reales son `interpolate_pixels` y `start_fullscreen`).
     Para el resto, el IDE. Detalle en `12/09 §9 quater`.
+11. **`resourcetool` revienta a veces sin motivo.** El mismo comando, sobre el mismo proyecto
+    sano, responde bien unas veces y otras lanza un `AccessViolationException` nativo — 2 de cada
+    5 llamadas idénticas en la medición. **Reintenta antes de buscar la causa en tus datos**: no
+    lo confundas con el `.yy` mal formado de la trampa 5 ni con el `%Name`/`parent` mal fijado al
+    hornear una fuente, que dan la misma excepción pero sí tienen arreglo. Detalle en `12/09`.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**

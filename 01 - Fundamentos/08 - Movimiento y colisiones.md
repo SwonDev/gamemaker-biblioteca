@@ -877,9 +877,60 @@ var _e = instance_place(x, y, obj_enemigo);
 if (_e != noone) { with (_e) { vida -= 10; } }
 ```
 
-### ❌ Olvidar la máscara de colisión
+### ❌ Olvidar la máscara de colisión: un objeto sin sprite es invisible para `place_meeting()`/`instance_position()`
 
-Si una instancia no tiene sprite (o su sprite tiene la máscara en «nothing»), **no se detecta ninguna colisión**, aunque esté dibujando algo.
+Si una instancia no tiene sprite (`sprite_index == -1`) — el caso típico de un objeto que se
+dibuja a mano en su propio evento Draw sin pasar nunca por `sprite_index =` — **no tiene máscara
+de colisión**, y ninguna de las funciones de colisión de instancia la detecta: ni
+`place_meeting()`, ni `instance_place()`/`instance_place_list()`, ni `instance_position()`/
+`instance_position_list()`, ni las `collision_*` de §5. El propio manual oficial lo dice al
+justificar por qué existen las funciones «sin máscara» de §3.5/§5:
+
+> «\[Las funciones de colisión de instancia] dependen de la máscara de colisión definida para la
+> instancia. Sin embargo, hay muchos momentos en los que necesitas comprobar "colisiones" con un
+> punto o un área, **sobre todo cuando tu instancia no tiene un sprite asignado**» — manual
+> oficial, [Colisiones](../09%20-%20Manual%20oficial/manual-lts-2026-es/GameMaker_Language/GML_Reference/Movement_And_Collisions/Collisions/Collisions.md#comprobación-de-colisión-sin-máscara).
+
+Esto no lanza ningún error ni aviso — el síntoma es puramente de comportamiento: el jugador
+«atraviesa» el objeto, la colisión «no funciona» y no hay ningún mensaje que lo señale. Es una
+causa clásica de «mi colisión no funciona y no sé por qué», reproducida en vivo construyendo un
+sokoban completo
+([`_indice/auditorias/r6-regresion.md` §7](../_indice/auditorias/r6-regresion.md#7--hallazgo-nuevo-propio-no-de-la-biblioteca-pero-instructivo--colisión-sin-sprite)):
+una lógica de empuje de cajas usaba `instance_position()` para buscar `obj_caja` delante del
+jugador, y nunca encontraba ninguna caja — `obj_caja` se dibujaba a mano en su evento Draw
+(`draw_rectangle`/`draw_sprite_ext`), sin `sprite_index` asignado.
+
+```gml
+// ❌ obj_caja se dibuja a mano en su evento Draw, sin sprite_index -> sin máscara de colisión
+var _delante = instance_position(_tx, _ty, obj_caja);
+if (_delante != noone) { ... }   // nunca entra aquí, aunque haya una caja justo en (_tx, _ty)
+```
+
+**Dos correcciones, según si el objeto puede tener sprite o no**:
+
+```gml
+// ✅ Opción A — dale un sprite real, aunque sea un placeholder generado por código: en
+// cuanto sprite_index deja de ser -1, la instancia tiene máscara y las funciones de
+// colisión estándar vuelven a encontrarla (ver `12 · 09` §5.2, "Peldaño 1" de la escalera
+// de assets sin artista — sprite_create_from_surface() sí crea máscara).
+sprite_index = spr_caja_placeholder;
+
+// ✅ Opción B — si el objeto de verdad no debe tener sprite, no uses las funciones que
+// dependen de la máscara: compara posición a mano (válido en cualquier juego de grid) o usa
+// las funciones "sin máscara" de §3.5/§5 (point_in_rectangle, rectangle_in_rectangle...).
+function buscar_caja_en(_gx, _gy)
+{
+    with (obj_caja)
+    {
+        if (x == _gx && y == _gy) { return id; }
+    }
+    return noone;
+}
+```
+
+`mask_index` confirma el mismo hecho desde otro ángulo: si no se ha asignado ningún sprite a la
+instancia, `mask_index` devuelve `-1` — no hay ninguna máscara de la que tomar prestada la forma,
+propia o ajena.
 
 ### ❌ Colisiones que «no funcionan» con tilemaps
 
