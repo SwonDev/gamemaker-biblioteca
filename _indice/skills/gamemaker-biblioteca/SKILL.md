@@ -145,6 +145,7 @@ los errores de todo lo que venga después.
 | Cómo lo resuelve código real | `python3 "$BIB/_indice/buscar.py" --codigo "state machine"` |
 | La página oficial completa | `gm-cli manual read "surface_create"` o el archivo `manual (es)` que da la ficha, bajo `$BIB/09 - Manual oficial/manual-lts-2026-es/` |
 | Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` |
+| **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
 | Compilar (desde la carpeta del `.yyp`) | `gm-cli compile` · ejecutar: `gm-cli run` |
 | Crear o editar recursos (objetos, sprites, rooms, eventos) | `gm-cli resourcetool eval "<comando>"` o el MCP `gamemaker-resource-tool` del proyecto |
 | Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "Space Rocks" --ai --toolchain GMS2@2026.0.0.23` |
@@ -162,7 +163,7 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 |---|---|
 | Escribir GML que haga X | `buscar.py` por cada símbolo → `11 - Código descargado/_CATALOGO.md` (¿ya hay librería?) → `05 - Referencia/04 - Convenciones y estilo GML.md` |
 | Un juego completo, de principio a fin | `04 - Recetas por género/00 - Anatomía de un juego completo.md` y después la receta del género |
-| Un juego de género X | `04 - Recetas por género/` — 46 recetas: los 15 géneros clásicos más combate (cuerpo a cuerpo, a distancia, por turnos), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, bullet heaven/autobattler/deckbuilder, y sigilo/horror/granja/idle |
+| Un juego de género X | `04 - Recetas por género/` — **57 recetas**: los géneros clásicos (plataformas, RPG, roguelike, metroidvania, tower defense, puzle, shoot'em up, carreras, gestión, ritmo, sigilo, horror, granja, idle) más beat'em up, aventura gráfica, deportes, lucha, souls-like, colonia, party games y bullet heaven/autobattler/deckbuilder; y los sistemas transversales: combate (cuerpo a cuerpo, a distancia, por turnos, no letal), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, eje Z falso, selección de nivel, metajuego y live-ops |
 | Diseñar: mecánicas, niveles, arte, UI, sonido, historia | `13 - Diseño y producción de videojuegos/` (mapa en `references/mapa-disciplinas.md`) |
 | Estructurar el proyecto para que crezca | `13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md` |
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
@@ -234,10 +235,18 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
 6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala. Recuerda que
    compilar limpio **no** significa que el código sea correcto (trampa 4).
-7. **Antes de decir «terminado»**: compara el resultado, pantalla por pantalla, contra el
-   checklist maestro de `04/00 - Anatomía de un juego completo` (menú, pausa, opciones, guardado,
-   fin de partida, créditos, icono y versión del build) y contra `13/05 §4`. Lo que recortes, se
-   dice; no se omite en silencio.
+7. **Antes de decir «terminado»**, en este orden:
+   a. `python3 "$BIB/_indice/auditar-juego-completo.py" <proyecto>` — mira el `.yyp`, los `.yy`
+      y todo el `.gml`, y te dice qué piezas del envoltorio **no encuentra**: menú, opciones,
+      pausa, guardado, créditos, fin de partida, sonido, mando, si el jugador entra por una
+      portada o directo al nivel, y qué objetos sin sprite están pintando rectángulos. Sale con
+      código 1 mientras falte algo, para que no se pueda pasar por alto.
+   b. Cada ✗ es **una pregunta, no una acusación**: puede ser un falso positivo (un menú que vive
+      dentro de otra sala) o puede faltar de verdad. Compruébalo tú.
+   c. Compara además, pantalla por pantalla, contra el checklist maestro de
+      `04/00 - Anatomía de un juego completo` y contra `13/05 §4` — el script cubre lo que una
+      máquina puede ver; el resto (si el menú se entiende, si la historia se sostiene) no.
+   d. **Lo que recortes, se dice**; no se omite en silencio.
 8. **Antes de publicar**: `13/10 - Testing y QA` → `05/02 - Publicar y exportar` →
    `05/05 - Entregar el juego` (firmar y subir) → `05/06` si va a consola.
 

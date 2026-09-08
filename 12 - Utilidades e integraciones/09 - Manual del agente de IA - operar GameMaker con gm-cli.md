@@ -1027,6 +1027,7 @@ agente sin experiencia se detiene sin saber si puede seguir.
 | 8 | **Ejecutar** | `gm-cli run --toolchain GMS2@2026.0.0.23 --target mac` (o el target de tu plataforma) | Comportamiento real — ver [§4](#4--depurar-sin-ver-la-pantalla) para qué puedes leer de la salida | El juego llega al punto que estás probando sin errores no controlados en el log |
 | 9 | **Limpiar** | Mata el proceso del *runner* por nombre tras cada `run` de depuración (§4) | Que no queden procesos huérfanos | `ps -ef \| grep -i runner` no devuelve nada tuyo |
 | 10 | **Iterar** | Vuelve al paso 3 o 4 según qué falte | — | El sistema de la receta del paso 1 está completo |
+| 11 | **¿Es un juego?** | `python3 "_indice/auditar-juego-completo.py" <ruta>` | Qué piezas del envoltorio NO aparecen: menú, opciones, pausa, guardado, créditos, fin de partida, sonido, mando, arranque por portada, y objetos sin sprite que pintan rectángulos | `exit 0`, o cada ✗ justificado por escrito |
 
 **Nunca dos pasos a la vez.** El error más caro de un agente en este ciclo es escribir GML para
 tres sistemas y compilar una sola vez al final: el primer error de sintaxis oculta los otros
@@ -1756,6 +1757,15 @@ después de cada `compile`, no solo el `exit 0`.
       ningún proceso de *runner* huérfano (§4.3).
 - [ ] Si algo depende de vista, oído, hardware real o certificación de plataforma, lo dijiste
       explícitamente en vez de darlo por bueno (§4.2).
+- [ ] **Si la tarea era «hazme un juego» y no «arréglame esto»**: ejecutaste
+      `python3 "_indice/auditar-juego-completo.py" <ruta>` y, o sale con `exit 0`, o justificaste
+      **por escrito** cada pieza que marca como ausente. Un bucle de juego que compila no es un
+      juego: sin menú, sin pausa, sin guardado y sin cierre, lo que entregas es una demo técnica,
+      y el usuario que pidió un juego no lo va a llamar así. El detector no juzga la calidad —
+      solo impide que la ausencia pase inadvertida.
+- [ ] Ningún objeto con el que el jugador interactúa se quedó **sin sprite, pintando un
+      rectángulo** en su evento Draw. El auditor del punto anterior los lista por nombre; la
+      escalera para salir de ahí está en [§5.2](#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano).
 - [ ] Si reordenaste `project.RoomOrderNodes`, lo hiciste con `resourcetool eval`, una llamada
       por índice — **nunca** con `resourcetool script` (el modo por lotes reporta éxito en cada
       línea pero no persiste el cambio, §9.3 y §10.4) — y, si borraste alguna sala de por medio,

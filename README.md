@@ -29,6 +29,7 @@ falta invocarla a mano. Detalle completo, con fuentes, en
 python3 _indice/buscar.py draw_sprite_ext     # firma exacta, ¿obsoleta?, manual, uso real
 python3 _indice/buscar.py --todo "coyote time" # símbolos + documentación + manual + código
 python3 _indice/validar-proyecto.py ~/MiJuego  # ¿hay funciones inventadas en mi proyecto?
+python3 _indice/auditar-juego-completo.py ~/MiJuego  # ¿es un juego o solo un bucle de juego?
 ```
 
 **Compatibilidad.** Desarrollado y probado a diario en macOS. Los scripts de `_indice/` son
@@ -557,6 +558,7 @@ gm-cli resourcetool eval "<comando>"
 gm-cli resourcetool repl
 gm-cli resourcetool mcp
 python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>   # ¿inventé alguna función? antes de compilar
+python3 "_indice/auditar-juego-completo.py" <ruta>          # ¿falta el menú, la pausa, el guardado?
 ```
 
 Para fijar el runtime de esta biblioteca: `--toolchain GMS2@2026.0.0.23`.

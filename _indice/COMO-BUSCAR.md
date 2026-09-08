@@ -51,6 +51,7 @@ Todos los símbolos vigentes del runtime son localizables, pero no todos por la 
 3. ¿Cómo lo resuelve la gente?  →  python3 "_indice/buscar.py" --codigo "<concepto>"
 4. Convenciones de nombres  →  05 - Referencia/04 - Convenciones y estilo GML.md
 5. Valida el proyecto entero: python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>
+6. ¿Es un juego entero?:     python3 "_indice/auditar-juego-completo.py" <ruta-del-proyecto>
 6. Compila: gm-cli compile
 ```
 
@@ -151,6 +152,7 @@ usan Claude Code y Codex desde otros proyectos.
 | Una herramienta externa | `12 - Utilidades e integraciones/` |
 | Diseñar (mecánicas, niveles, pixel art, animación, UI, arquitectura, procgen, físicas, sonido, testing, producción, narrativa, matemáticas) | `13 - Diseño y producción de videojuegos/` |
 | Validar todo el GML de un proyecto real | `python3 "_indice/validar-proyecto.py" <proyecto>` |
+| Saber si falta el menú, la pausa o el guardado | `python3 "_indice/auditar-juego-completo.py" <proyecto>` |
 | Usar la biblioteca desde otro proyecto (Claude Code / Codex) | la skill `gamemaker-biblioteca` (`_indice/skills/gamemaker-biblioteca/SKILL.md`) |
 | Multijugador | `12 - Utilidades e integraciones/04 - Multijugador y red.md` |
 | Assets gráficos y de audio | `12 - .../06 - itch.io...` y `07 - Ecosistema/09` |
