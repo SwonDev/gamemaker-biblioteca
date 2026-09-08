@@ -25,6 +25,29 @@ Por eso **cada ✗ es una pregunta, no una acusación**. La regla de la bibliote
 que se recorta se dice: si tu juego no lleva créditos a propósito, escríbelo en tu informe
 y sigue. Lo que este script impide es lo otro — que falte y nadie se dé cuenta.
 
+Calibrado contra juegos reales, no solo contra la idea
+------------------------------------------------------
+Un detector de ausencias que marca ausencias falsas es peor que no tenerlo: empuja a
+deshacer lo que estaba bien. Así que se pasó por los 22 proyectos con `.yyp` de
+`11 - Código descargado`, y la separación es limpia:
+
+  · Juegos terminados — Kirby ~ Soft & Wet, SpelunkyClassicHD, nt-recreated,
+    OrbinautFramework → **todas las piezas ✓**.
+  · Juegos a los que de verdad les falta una — ChapterMaster (sin mando: es una
+    estrategia de ratón), FVM-Reborn / Undertale-Engine / tldr-engine / Harmony-Framework
+    (sin créditos) → señalan **exactamente** eso y nada más.
+  · Demos, muestras y librerías — ImGUI-Sample, ExternalLibraryExample, los `pfb-*`,
+    GM3D-Samples → les falta casi todo, que es la verdad: no son juegos.
+
+De ahí salió el único falso positivo sistemático de la primera versión, corregido: los
+juegos reales **no** arrancan en el menú, arrancan en una sala de inicialización
+(`rm_boot`, `rm_Startup`) que salta al menú. Eso es lo correcto, y estaba marcado como
+fallo. Ver el comentario en la comprobación de arranque.
+
+El detector de rectángulos se probó con un control positivo construido a mano: dos
+objetos con `spriteId: null` que dibujan figuras (los caza) y uno con sprite que llama a
+`draw_self()` (lo ignora).
+
 Código de salida
 ----------------
 1 si falta alguna pieza del envoltorio (para que un agente no pueda ignorarlo), 0 si están
@@ -135,7 +158,11 @@ def main():
     proy = cargar_proyecto(ruta)
     if proy is None:
         print("✗ No encuentro ningún .yyp en «%s».\n"
-              "  Pásame la CARPETA del proyecto, la que contiene el .yyp." % ruta)
+              "  Pásame la CARPETA del proyecto: la que contiene el .yyp, no una de dentro.\n"
+              "  Si el proyecto es de GameMaker Studio 1.x (.gmx) o es un volcado de código\n"
+              "  suelto sin proyecto —como varios de `11 - Código descargado`—, este script no\n"
+              "  puede auditarlo: necesita el .yyp para saber qué recursos y qué orden de salas\n"
+              "  tiene el juego." % ruta)
         return 2
 
     nombres = [n for n, _ in proy["recursos"]]
@@ -158,9 +185,22 @@ def main():
             faltan.append(titulo)
 
     # El arranque: la PRIMERA sala del orden es por donde entra el jugador.
+    #
+    # Vale tanto una portada (menú, splash, logo, intro) como una sala de ARRANQUE
+    # —`rm_boot`, `rm_Startup`, `rm_init`— que inicializa y salta al menú. Esa segunda
+    # forma es la que usan los juegos reales, y en la primera versión de este script
+    # salía marcada como fallo: comprobado contra ChapterMaster (`rm_boot`) y
+    # Kirby ~ Soft & Wet (`rm_Startup`) de `11 - Código descargado`, ambos juegos
+    # completos con menú, opciones, pausa, guardado y créditos. Era un falso positivo,
+    # y de los caros: habría empujado a un agente a deshacer la estructura correcta.
+    #
+    # Lo que sigue siendo un fallo es entrar directo al nivel — o quedarse con el
+    # `Room1` que crea la plantilla, que es la huella de no haber montado nada.
     primera = proy["orden_salas"][0] if proy["orden_salas"] else None
-    arranque_ok = bool(primera and re.search(r"menu|men[uú]|titulo|t[ií]tulo|title|splash|logo|intro|inicio",
-                                             primera, re.I))
+    arranque_ok = bool(primera and re.search(
+        r"menu|men[uú]|titulo|t[ií]tulo|title|splash|logo|intro|inicio|portada"
+        r"|boot|startup|start_up|init|arranque|carga|loading|preload",
+        primera, re.I))
     res["arranque"] = arranque_ok
 
     rect = objetos_rectangulo(ruta)
