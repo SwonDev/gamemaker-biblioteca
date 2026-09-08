@@ -2521,6 +2521,54 @@ causa que esta sesión encontró de verdad al reproducir el cuelgue a propósito
 
 ---
 
+### 8.7 Cuando NO puedes ejecutar: las seis preguntas que se responden leyendo
+
+Todo lo anterior —el mini-framework, el guion de humo, §8.6— **se apoya en ejecutar el juego**.
+Un agente muchas veces no puede: `run` está prohibido en su entorno, no hay pantalla, o el
+encargo es una tarea de fondo. Ahí el flujo se queda cojo por diseño y hace falta la otra red.
+
+Esta lista sale de una revisión de código deliberada, sin poder ejecutar, sobre un juego completo
+recién construido ([`r12-prueba-plataformas.md` §1.13](../_indice/auditorias/r12-prueba-plataformas.md)).
+**Las seis cazaron algo real en esa única pasada**, y ninguno de los cuatro fallos que
+encontraron era un símbolo inventado ni un error de sintaxis: `gm-cli compile` y
+`validar-proyecto.py` pasaron por encima de los cuatro sin verlos.
+
+Todos comparten forma: **una guarda mal colocada, o una rama que se olvida de un caso.**
+
+1. **¿Toda global que se lee está inicializada en TODOS los caminos de sala?** No basta con que
+   se inicialice: tiene que hacerlo también cuando se entra al nivel desde «continuar partida»,
+   desde el selector, o volviendo de la pantalla de opciones.
+2. **¿Cada objeto del mundo consulta el interruptor de pausa, y ANTES de cualquier otra cosa de
+   su Step?** *(Fallo real encontrado así: un enemigo pisado seguía contando su temporizador de
+   KO durante la pausa, porque la guarda estaba **después** del bloque de KO.)*
+3. **¿Cada objeto de pantalla corta la entrada mientras hay una transición en curso?** *(Fallo
+   real: el gestor del nivel era el único objeto **sin** esa guarda; durante el fundido de salida
+   se podía abrir la pantalla de opciones, cuyas funciones eran métodos ligados a una instancia
+   que muere al cambiar de sala.)*
+4. **¿Cada `if / else if` sobre un estado cubre el caso «ninguna de las dos»?** *(Fallo real:
+   `if (hay_plataforma && en_suelo) … else if (!en_suelo) …` deja fuera «no hay plataforma
+   debajo Y estoy en el suelo», así que la plataforma móvil seguía arrastrando al jugador de pie
+   sobre la roca.)*
+5. **¿Alguna global guarda un método ligado a una instancia que puede morir antes de que se
+   llame?** Un diálogo abierto, una pantalla de opciones, un callback de confirmación. Compila
+   perfecto y revienta —o peor, no revienta y lee basura— cuando la instancia ya no está.
+6. **¿Algún contador de vida o temporizador está detrás de una guarda que puede quedarse en
+   `false` para siempre?** *(Fallo real: las partículas se congelaban eternamente en la pantalla
+   de derrota, porque su guarda era `if (!global.juego_activo) exit;` y su contador de vida
+   nunca bajaba. Justo en las dos pantallas que más se miran.)*
+
+> 💡 **Cómo se usa.** No es una lectura general del código: es **seis pasadas dirigidas**, una
+> por pregunta, sobre los archivos donde cada una puede aplicar. Buscar una familia concreta de
+> fallo encuentra mucho más que releer buscando «errores», que es la forma de no ver ninguno.
+
+> ⚠️ **Esto no sustituye a ejecutar.** Lo que no se puede saber leyendo —si se ve bien, si se
+> siente bien, si el audio se solapa, si el rendimiento aguanta— sigue sin saberse, y hay que
+> **decirlo explícitamente** al entregar en vez de dar el juego por probado. La lista de qué
+> depende de vista, oído o hardware está en
+> [`12 · 09 §4.2`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md).
+
+---
+
 ## 9 · QA manual: el trabajo que no se automatiza
 
 ### 9.1 El plan de pruebas por sistema
