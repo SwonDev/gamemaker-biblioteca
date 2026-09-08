@@ -69,7 +69,13 @@ PREF_EXT = ("steam_", "admob_", "gpb_", "appleiap_", "gamecenter_", "firebase_",
 
 
 def cargar_simbolos():
-    d = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))
+    ruta = os.path.join(IND, "simbolos.json")
+    if not os.path.exists(ruta):
+        print("✗ No existe _indice/simbolos.json todavía.")
+        print("  Se genera (desde el GmlSpec.xml de tu runtime instalado) con:")
+        print("      python3 _indice/actualizar.py")
+        sys.exit(1)
+    d = json.load(open(ruta, encoding="utf-8"))
     return d["simbolos"], d.get("meta", {})
 
 

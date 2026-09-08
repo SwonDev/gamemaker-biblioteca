@@ -74,7 +74,13 @@ def limpiar(codigo):
 
 
 def cargar_simbolos():
-    d = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))
+    ruta = os.path.join(IND, "simbolos.json")
+    if not os.path.exists(ruta):
+        print("✗ No existe _indice/simbolos.json todavía.")
+        print("  Se genera (desde el GmlSpec.xml de tu runtime instalado) con:")
+        print("      python3 _indice/actualizar.py")
+        sys.exit(1)
+    d = json.load(open(ruta, encoding="utf-8"))
     return d["simbolos"]
 
 
@@ -373,7 +379,7 @@ def main():
     propias = {n: d for n, d in sospechosas.items() if n not in graves and not es_extension(n)}
 
     print(f"runtime: {len(runtime)} símbolos · propias definidas: {len(definidas)} · "
-          f"extensiones/librerías: {len(externas) if corpus_instalado else "sin instalar"}")
+          f"extensiones/librerías: {len(externas) if corpus_instalado else 'sin instalar'}")
     print(f"{len(propias)} funciones propias de ejemplo (informativo) · "
           f"{len(graves)} posibles funciones del runtime INVENTADAS")
 

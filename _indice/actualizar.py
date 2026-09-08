@@ -165,8 +165,15 @@ def revisar_cobertura():
 
     Es la métrica que convierte «alguien tendrá que documentarlo» en «el
     comando dice exactamente qué falta, por su nombre».
+
+    Devuelve (None, None) si _indice/simbolos.json no existe todavía (clon sin
+    runtime de GameMaker instalado): el paso 2 ya lo explica, esto solo evita
+    un traceback en vez de repetir el mensaje.
     """
-    simb = json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))["simbolos"]
+    ruta_simb = os.path.join(IND, "simbolos.json")
+    if not os.path.exists(ruta_simb):
+        return None, None
+    simb = json.load(open(ruta_simb, encoding="utf-8"))["simbolos"]
     mencionados = set()
     base = os.path.join(RAIZ, "09 - Manual oficial", "manual-lts-2026-es")
     for raiz, _d, files in os.walk(base):
@@ -227,9 +234,15 @@ def revisar_cobertura_familias(umbral=8):
     No todo símbolo necesita doc didáctico —los getters sueltos los cubre el
     manual y buscar.py—, pero una FAMILIA grande sin ni un documento propio suele
     ser un sistema entero sin cubrir. Informativo: señala dónde mirar, no falla.
+
+    Devuelve None (no una lista vacía: eso significaría «sin huérfanas») si
+    _indice/simbolos.json no existe todavía (clon sin runtime instalado).
     """
     import json as _json, collections as _c
-    simb = _json.load(open(os.path.join(IND, "simbolos.json"), encoding="utf-8"))["simbolos"]
+    ruta_simb = os.path.join(IND, "simbolos.json")
+    if not os.path.exists(ruta_simb):
+        return None
+    simb = _json.load(open(ruta_simb, encoding="utf-8"))["simbolos"]
     fam = _c.defaultdict(lambda: {"total": 0, "con": 0, "getters": 0, "vars": 0})
     for n, v in simb.items():
         if v.get("obsoleta"):
@@ -329,7 +342,16 @@ def main():
 
     paso(2, "Índices y MAPA.json")
     if correr("construir-indices.py") != 0:
-        problemas.append("MAPA.json tiene entradas que hay que describir a mano")
+        # construir-indices.py devuelve 1 por dos motivos distintos (ver su propio
+        # mensaje arriba): sin runtime de GameMaker y sin un simbolos.json previo
+        # que conservar, o con runtime pero con MAPA.json necesitando una persona.
+        # Se distinguen por si el archivo que genera ese primer caso existe, no
+        # analizando el texto que imprimió (más frágil).
+        if os.path.exists(os.path.join(IND, "simbolos.json")):
+            problemas.append("MAPA.json tiene entradas que hay que describir a mano")
+        else:
+            problemas.append("no hay _indice/simbolos.json: instala GameMaker/gm-cli "
+                              "y repite (ver el mensaje del paso 2 de arriba)")
 
     paso(3, "Coherencia de MAPA.json y del catálogo de código con el disco")
     for a in revisar_rutas_codigo():
@@ -356,14 +378,18 @@ def main():
 
     paso(5, "Cobertura de la API")
     vigentes, invisibles = revisar_cobertura()
-    cubiertos = vigentes - len(invisibles)
-    print(f"{cubiertos} de {vigentes} símbolos vigentes son localizables "
-          f"({100 * cubiertos // vigentes} %).")
-    if invisibles:
-        print(f"  {len(invisibles)} no aparecen en el manual ni en la biblioteca:")
-        print("    " + ", ".join(invisibles[:20])
-              + (" …" if len(invisibles) > 20 else ""))
-        print("  → no es un error: es la lista de lo que queda por documentar.")
+    if vigentes is None:
+        print("⚠ sin _indice/simbolos.json (no hay runtime instalado, ver el paso 2 "
+              "de arriba): no se puede calcular la cobertura.")
+    else:
+        cubiertos = vigentes - len(invisibles)
+        print(f"{cubiertos} de {vigentes} símbolos vigentes son localizables "
+              f"({100 * cubiertos // vigentes} %).")
+        if invisibles:
+            print(f"  {len(invisibles)} no aparecen en el manual ni en la biblioteca:")
+            print("    " + ", ".join(invisibles[:20])
+                  + (" …" if len(invisibles) > 20 else ""))
+            print("  → no es un error: es la lista de lo que queda por documentar.")
 
     paso(6, "Nombres de archivo")
     nombres = revisar_nombres()
@@ -388,7 +414,10 @@ def main():
 
     paso(8, "Cobertura por familias de símbolos (dónde falta doc didáctico)")
     huerf = revisar_cobertura_familias()
-    if huerf:
+    if huerf is None:
+        print("  ⚠ sin _indice/simbolos.json (no hay runtime instalado, ver el paso 2 "
+              "de arriba): no se puede calcular.")
+    elif huerf:
         print(f"  {len(huerf)} familias grandes sin documento propio (informativo, no es error):")
         for total, f in huerf[:8]:
             print(f"    {total:3}  {f}_*")
@@ -403,7 +432,14 @@ def main():
         if "INVENTADAS" in l or "no inventa" in l or l.strip().startswith("✗"):
             print("  " + l.strip())
     if r.returncode != 0:
-        problemas.append("hay código que llama a funciones del runtime que no existen")
+        # Igual que en el paso 2: sin _indice/simbolos.json, validar-codigo-gml.py no
+        # puede comprobar nada y termina con ese mensaje (ya impreso arriba, empieza
+        # por «✗»); el problema real no es código inventado, es runtime sin instalar.
+        if os.path.exists(os.path.join(IND, "simbolos.json")):
+            problemas.append("hay código que llama a funciones del runtime que no existen")
+        else:
+            problemas.append("no se pudo comprobar el código GML: falta "
+                              "_indice/simbolos.json (sin runtime instalado, ver el paso 2)")
 
     paso(10, "Compilación real del GML de los documentos (¿es sintaxis válida?)")
     r = subprocess.run([PY, os.path.join(IND, "validar-compilacion-docs.py")],
