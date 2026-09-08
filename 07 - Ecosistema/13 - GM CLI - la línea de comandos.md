@@ -1258,22 +1258,27 @@ los comandos `PREFAB`, y también poner un filtro de capa (`effectType`) en una 
 
 ### Soluciones, de mejor a peor
 
-1. **Parchea el `gmpm.dll` una sola vez** (necesita el IDE instalado) y usa la plantilla que
-   quieras. Verificado: tras esto, `gm-cli init -t "Platformer"` crea el proyecto y compila con
-   `exit 0`.
+1. **Parchea el `gmpm.dll` con el del IDE.** Ejecutado paso a paso el 09-09-2026: tras esto,
+   `gm-cli init -t "Platformer"` crea el proyecto **y compila** con `exit 0`.
 
    ```bash
    CACHE=~/.gmcli-cache
    IDEDLL="$HOME/Library/Application Support/Steam/steamapps/common/GameMaker Studio 2/GameMaker.app/Contents/MacOS/arm64/gmpm/gmpm.dll"
 
-   gm-cli init --no-interactive -n Tmp -t "Platformer" --cache-dir "$CACHE"   # falla; puebla la caché
+   cp -R <un-proyecto-cualquiera>/.gmcache "$CACHE"        # la caché es POR PROYECTO: cópiala
    cp "$IDEDLL" "$(find "$CACHE" -name gmpm.dll | head -1)"
    gm-cli init --no-interactive -n MiJuego -t "Platformer" --cache-dir "$CACHE"
+   cp "$IDEDLL" "$(find MiJuego/.gmcache -name gmpm.dll | head -1)"    # ← imprescindible
    ```
 
-   El primer `init` **tiene** que fallar: `gm-cli` exige que el directorio destino no exista, así
-   que no hay forma de pre-sembrar el `.gmcache`; lo que sí se puede es reubicarlo con
-   `--cache-dir` y parchearlo ahí para siempre.
+   La caché de herramientas vive en el `.gmcache` de cada proyecto, así que copiarla de uno que
+   ya exista ahorra los ~167 MB de descarga. (Si no tienes ninguno, un `init` con `--cache-dir`
+   que **falle** también la deja poblada.)
+
+   > 🔴 **La última línea es la que falta en todas partes.** El proyecto recién creado se hace su
+   > propia `.gmcache` con el `gmpm.dll` roto: sin parchearla, cualquier comando posterior sin
+   > `--cache-dir` vuelve a dar `PREFABS RESTORE exited with code 1`, y parece que el rodeo no
+   > sirvió. Con ella, `resourcetool` funciona sin ningún flag.
 
 2. **Arrastra la carpeta `.gmcache/prefabs` ya resuelta** desde un proyecto sano. **No necesita
    IDE**, que es lo que la hace la vía buena en CI: los *workflows* que genera `init` ya cachean
