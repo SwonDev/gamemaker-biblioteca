@@ -110,7 +110,7 @@
 
 ---
 
-## 0 · Las trece trampas que hacen fracasar a un agente hoy
+## 0 · Las quince trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -145,17 +145,83 @@ versión instalada y el fallo persiste idéntico.
 | Cover Assault | 🔴 igual | Auditoría r4 |
 | Hero's Trail Base - GML Visual | ⚠️ `Template not found` (ni nombre completo ni parcial) | Auditoría r4 — puede haberse retirado del catálogo |
 
-**Qué hacer**: usa cualquiera de las 9 que funcionan. Si necesitas específicamente una de las 9
-que fallan (por ejemplo, Platformer Template), créala desde el IDE — el mismo `ProjectTool` que
-usa `gm-cli`, pero con la versión empaquetada en la instalación, sí resuelve los *prefabs*.
+**Qué hacer, si te vale cualquier plantilla**: usa una de las 9 que funcionan.
 
 ```bash
-# Bien — cualquiera de estas 9 crea el proyecto sin fallos, verificado hoy mismo:
+# Bien — cualquiera de estas 9 crea el proyecto sin fallos:
 gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --toolchain GMS2@2026.0.0.23
 ```
 
-No hay ninguna solución por CLI para las 9 que fallan: no es un flag que falte, ni una versión
-que instalar. Detalle de diagnóstico y contexto en [`07 · 13` §12](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
+#### ❌ Corrección — «no hay ninguna solución por CLI» era falso
+
+**Esta misma sección afirmaba que las 9 plantillas rotas no tenían arreglo fuera del IDE: «no es
+un flag que falte, ni una versión que instalar».** Lo era. La causa raíz se aisló el 08-09-2026 y
+hay **dos rodeos verificados de punta a punta**, uno de ellos sin IDE.
+
+**La causa raíz no está en las plantillas.** Compilando con `--verbose` aparece la traza completa:
+
+```
+│  EXEC PACKAGE TOOL: find package="io.gamemaker.gm_filter_tintfilter" registry="http://gmpm.gamemaker.io"
+│  PackageTool@2024.14.29
+│  PackageTool failed because of an internal program error:
+│  Parameter count mismatch.
+│     at PackageTool.GmpmBindings.GetAvailablePackages(String registryUrl, …)
+```
+
+`PackageTool@2024.14.29` —la única versión publicada— **no puede consultar el registro de
+paquetes en absoluto**: hay un desfase de firma entre él y el `gmpm.dll` que `gm-cli` descarga,
+que es más nuevo (79 872 bytes frente a los 64 512 del que trae el IDE). Reproducido invocando el
+binario directamente, fuera de `gm-cli`. Por eso falla **cualquier cosa que resuelva un paquete
+del registro**: las 9 plantillas, los comandos `PREFAB`, y —efecto colateral— poner un filtro de
+capa (`effectType`) en una sala.
+
+**Rodeo A — sustituir el `gmpm.dll` por el del IDE.** Se hace una vez y sirve para todos los
+proyectos:
+
+```bash
+CACHE=~/.gmcli-cache
+IDEDLL="$HOME/Library/Application Support/Steam/steamapps/common/GameMaker Studio 2/GameMaker.app/Contents/MacOS/arm64/gmpm/gmpm.dll"
+
+# 1. Deja que gm-cli descargue sus herramientas a una caché tuya. Este init FALLA, y da igual:
+#    lo que interesa es que la caché quede poblada.
+gm-cli init --no-interactive -n Tmp -t "Platformer" --cache-dir "$CACHE"
+
+# 2. Pisa el gmpm.dll roto con el del IDE instalado
+cp "$IDEDLL" "$(find "$CACHE" -name gmpm.dll | head -1)"
+
+# 3. A partir de aquí funcionan las nueve
+gm-cli init --no-interactive -n MiJuego -t "Platformer" --cache-dir "$CACHE"
+```
+
+El proyecto se crea **y compila** (`Compilation finished`, `exit 0`). El paso 1 es obligatorio
+porque `gm-cli init` exige que el directorio destino no exista, así que no se puede pre-sembrar un
+`.gmcache` local; lo que sí se puede es reubicarlo con `--cache-dir` y parchearlo allí.
+
+**Rodeo B — llevarse la carpeta `.gmcache/prefabs` ya resuelta. Sin IDE, pensado para CI.** Una
+vez que un proyecto resolvió sus prefabs, copiar esa carpeta a otro clon hace que cargue aunque
+el `gmpm.dll` siga roto. Los *workflows* que genera `gm-cli init` ya cachean `.gmcache` con
+`actions/cache@v5`, así que en CI basta con poblar la caché una vez desde una máquina sana.
+
+**Y sin `init` en absoluto**: la API de plantillas da la URL de descarga de **las 31**, y el
+`.yymps` es un ZIP normal con el `.yyp` dentro.
+
+```bash
+curl -s https://api.gamemaker.io/api/gamemaker/project-templates \
+  | python3 -c "import json,sys;[print(t['attributes']['info_title'],'|',t['attributes']['gml_code_download_url']) for t in json.load(sys.stdin)['data']]"
+curl -sL "https://api.yoyogames.com/api/2/download?package_id=com.yoyogames.windywoods&version=1.2.2" -o plataformer.yymps
+unzip -q plataformer.yymps -d MiPlat
+```
+
+> ⚠️ **Lo que NO funciona**, para que nadie repita el camino: apuntar `prefabsfolder=` a la
+> carpeta `packages/` del IDE, a `gm-ide-prefabs` o a un prefab concreto; copiar el `.yymps` a
+> mano a `.gmcache/prefabs` o a `<proyecto>/prefabs`; y apuntar `projecttool=` al `ProjectTool`
+> del IDE, solo o combinado con `prefabsfolder=`. Seis variantes, las seis
+> `PREFABS RESTORE exited with code 1`.
+>
+> Y ese mensaje **es genérico**: significa «no se pudo cargar el proyecto», no necesariamente que
+> falten prefabs. El diagnóstico real lo da `gm-cli compile --verbose`.
+
+Contexto y matriz completa de plantillas en [`07 · 13` §12](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
 ### Trampa 2 · `resourcetool eval` y `compile` pueden colgarse bajo el sandbox del Bash tool
 
@@ -224,6 +290,23 @@ gm-cli resourcetool eval "object event list name=<objeto>"
 
 Tabla completa de números (Alarm, Step, Draw, Other) verificada, con el detalle de qué archivo
 te toca en cada caso, en la [§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo).
+
+
+> 🔴 **Cuarto caso de la misma familia: `OBJECT EVENT CHANGE` deja el `.gml` huérfano.**
+> Verificado el 08-09-2026. Cambiar un evento de Step normal a Step End actualiza el `.yy`
+> (`eventNum:2`) y responde `Saved successfully`, pero **el archivo sigue llamándose
+> `Step_0.gml`**:
+>
+> ```console
+> $> OBJECT EVENT CHANGE NAME=obj_test TYPE=step SUBTYPE=step_normal NEWTYPE=step NEWSUBTYPE=step_end
+> Saved successfully
+> $ ls objects/obj_test/
+> Create_0.gml  obj_test.yy  Step_0.gml      ← debería ser Step_2.gml
+> ```
+>
+> `gm-cli compile` termina limpio y no avisa. **El código deja de ejecutarse, en silencio.**
+> Renombra tú el archivo al número nuevo después de cualquier `OBJECT EVENT CHANGE` — es la misma
+> disciplina que ya exige la Trampa 9 tras parchear un `eventNum`.
 
 ### Trampa 4 · El compilador NO detecta una función inventada ni una variable sin declarar
 
@@ -295,6 +378,21 @@ re-generation», pero **ningún comando de `resourcetool` ni de `ProjectTool` ej
 regeneración** (comprobado su `--help` completo: `PROJECT`, `IMPORT YY`, `EXPORT`, `SIGNING`...
 nada de rasterizado). El compilador empaqueta el diccionario vacío tal cual: el *chunk* `FONT`
 del juego compilado pasa de los ~15 KB que hacen falta para un alfabeto legible a **200 bytes**.
+
+> **Tres datos más sobre `FONT SETFILE`, medidos el 08-09-2026**, que hacen la trampa aún más
+> silenciosa de lo que parecía:
+>
+> - **No copia el `.ttf` al proyecto.** Después de `font setfile … path=…/Andale Mono.ttf`, la
+>   carpeta `fonts/fnt_sys/` sigue conteniendo únicamente el `.yy`. La fuente apunta a un archivo
+>   que en otra máquina no existe.
+> - **No actualiza `fontName`.** Sigue valiendo `Arial` aunque le hayas dado otro `.ttf`.
+> - **Compilar no rasteriza.** Se volvió a pedir `FONT GLYPHLIST` después de un `compile` con
+>   `exit 0`: el diccionario seguía vacío. Poner `includeTTF` a `true` tampoco genera glifos.
+>
+> 💡 **Rutas con espacios**: `path="…/Andale Mono.ttf"` con **comilla doble** funciona en `eval` y
+> en modo `script`; con comilla simple falla, y sin comillas el parser corta en el espacio
+> (`Cannot find Source .TTF file file at path '…/Supplemental/Andale'`). Es la regla contraria a
+> la de indexar listas por nombre, que exige comilla **simple** ([§3 bis.1](#3-bis1-las-tres-reglas-del-árbol-de-expresiones)).
 
 **Cómo se detecta**: no por el compilador ni por `validar-proyecto.py` — ninguno de los dos mira
 dentro de un recurso de fuente. Solo capturando la pantalla de verdad y mirándola
@@ -791,6 +889,29 @@ NSIS del instalador — **todo eso hay que pedírselo al humano, que lo ponga de
 Game Options del IDE.** Solo el nombre visible, el icono, la imagen de splash, si arranca a
 pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 
+**Pero esas cinco sí se fijan POR CONFIGURACIÓN, y eso cambia bastante.** Es exactamente como se
+prepara una build de demo o de prensa con otro nombre y otro icono, y no estaba documentado
+(verificado el 08-09-2026):
+
+```console
+$ gm-cli resourcetool eval "config create name=Demo parent=Default"
+Config 'Demo' created successfully based on parent 'Default'.
+$ gm-cli resourcetool eval --config Demo "options set platform=windows property=display_name value=JuegoDemo"
+Set windows.display_name = JuegoDemo
+$ gm-cli resourcetool eval --config Demo    "options get platform=windows property=display_name"
+display_name = JuegoDemo
+$ gm-cli resourcetool eval --config Default "options get platform=windows property=display_name"
+display_name = Pixel Game        ← las dos conviven
+```
+
+El flag va **antes** del comando. Dos avisos:
+
+- **`CONFIG USAGES` no reporta estos *overrides*** (sigue diciendo «no hay filas»): no lo uses
+  como verificación. Lee el valor con `OPTIONS GET --config <nombre>`.
+- **Un `RESOURCE SET` bajo `--config` NO crea un *override***: escribe el valor base. Comprobado
+  leyendo el mismo campo bajo las dos configuraciones — idéntico. El mecanismo de configuración
+  solo alcanza a las opciones de plataforma, no al árbol de recursos.
+
 **Y la plataforma `main` es peor: figura en la lista y no funciona en absoluto.**
 `OPTIONS LIST` la anuncia junto a `windows`, `mac` y las demás — es la pestaña *Main* de Game
 Options, donde viven la velocidad del juego, el color de fondo y el comportamiento ante errores,
@@ -1007,6 +1128,71 @@ por sesión de verificación visual, tal y como dice la mitigación de arriba, e
 ninguno de los dos resultados por defecto. Detalle de la sesión que no la reprodujo en
 [`_indice/auditorias/r8-prueba-ritmo.md` §6.2](../_indice/auditorias/r8-prueba-ritmo.md#62--la-trampa-13-screen_save-invertido-no-se-reprodujo--posible-desfase).
 
+### Trampa 14 · 🔴 `RESOURCE CREATE TYPE=shape` deja el proyecto irrecuperable
+
+**Que un tipo aparezca en `RESOURCE TYPES` no significa que se pueda crear.** `shape` es uno de
+los 17 que anuncia, y crearlo **rompe el proyecto para siempre** por CLI. Verificado el
+08-09-2026, reproducido tres veces sobre un proyecto recién creado: es determinista, no es la
+Trampa 11.
+
+```console
+$> RESOURCE CREATE TYPE=shape NAME=shp_test
+Created resource named 'shp_test' of type 'GMShape'
+System.UnauthorizedAccessException: Access to the path '/Users/…/audit12' is denied.
+    IExecutableCommand: Write binary file /Users/…/audit12
+Project save failed
+```
+
+Intenta escribir un archivo binario **sobre la ruta del directorio del proyecto**, sin nombre de
+archivo. Pero antes de fallar **ya ha registrado el recurso** en el `.yyp` y en el
+`.resource_order`, con la ruta vacía. A partir de ahí no carga nada — ni `resourcetool`, ni
+`compile`, ni `status` — y **no hay comando que lo deshaga**: `resource delete` con tres
+variantes distintas devuelve siempre el mismo error de carga, porque para borrarlo tendría que
+poder abrir el proyecto.
+
+**La única reparación es a mano**, y es justo lo que `AGENTS.md §4` prohíbe salvo emergencia.
+Esto es una emergencia:
+
+```bash
+sed -i '' '/"name":"shp_test"/d' MiJuego.yyp MiJuego.resource_order
+# y normaliza el JSON con la herramienta oficial, para no dejar el formato a medias:
+.gmcache/project-tool/*/ProjectTool json format input=MiJuego.yyp commas=GAMEMAKER
+```
+
+> 🔑 **Y el hallazgo que vale para cualquier proyecto que no cargue**: el mensaje
+> `Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1` **es genérico** —
+> significa «no pude cargar el proyecto», no que falten prefabs. `resourcetool` no sabe decirte
+> más. **Compila** (sin `--errors-only`) y te da archivo, línea y el enlace que no resuelve:
+>
+> ```
+> │  Cannot load project because linking failed with the following errors:
+> │  /Users/…/ImpTest.yyp(31,49): Cannot resolve link 'ImpTest.yyp : shp_1' in user's project.
+> ```
+
+### Trampa 15 · 🔴 `cache clean --project` borra también la caché COMPARTIDA
+
+El flag dice `--project`. Suena acotado al proyecto. **No lo está**: se lleva por delante
+`~/Library/Caches/GameMakerCLI`, donde viven los *runtimes* descargados, y el siguiente `compile`
+tiene que bajarse `runtimes-gms2` entero otra vez.
+
+```console
+$ gm-cli cache clean --project "…/MiJuego.yyp"
+Shared cache
+/Users/…/Library/Caches/GameMakerCLI
+Cleaned                       ← los runtimes, borrados
+
+Local cache
+/Users/…/MiJuego/.gmcache
+Cleaned
+```
+
+Comprobado después: la carpeta había desaparecido de verdad. La única forma de limpiar **solo** lo
+local es `--cache-dir` apuntando a la caché del proyecto, que sí respeta la compartida
+(`Shared cache … Skipped`).
+
+**Para un agente**: no ejecutes `cache clean` para «arreglar» un problema de compilación sin
+avisar al usuario de que le vas a costar una descarga larga. Y si lo haces, usa `--cache-dir`.
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -1037,7 +1223,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -1211,6 +1397,168 @@ encuentra. Un proyecto creado con `gm-cli init` ya trae su `.mcp.json`; uno exis
 arrancó dentro de la carpeta del proyecto, o el servidor se colgó por la Trampa 2), usa
 `gm-cli resourcetool eval "<comando>"` para todo: es el mismo `ResourceTool` por debajo, solo
 cambia el transporte.
+
+---
+
+## 3 bis · Construir el juego entero por CLI: qué se escribe de verdad
+
+La Trampa 7 dice «antes de dar un comando por imposible, prueba `resource info expr=project`».
+Esta sección es el resultado de aplicar esa regla **a todo el árbol**, propiedad por propiedad,
+el 08-09-2026 (`gm-cli` 2.3.0 / `ResourceTool@2026.0.17`). Lo de abajo **devolvió
+`Saved successfully` de verdad**; el informe completo, con los tipos que no caben aquí, está en
+[`_indice/auditorias/r12-cli-exhaustivo.md`](../_indice/auditorias/r12-cli-exhaustivo.md).
+
+### 3 bis.1 Las tres reglas del árbol de expresiones
+
+1. **Una lista se indexa por número con corchete normal, y por nombre con COMILLA SIMPLE.**
+   `rm_test.layers['Background']` funciona; `rm_test.layers["Background"]` **falla**, aunque la
+   propia ayuda del comando anuncie la comilla doble. Es un bug de la ayuda, no tuyo.
+2. **Las listas enteras son de solo lectura.** `rm.layers`, `rm.views`, `obj.eventList`,
+   `path.points` no se asignan de golpe: se escribe **elemento a elemento**.
+3. **`FullName` nunca se escribe.** Para renombrar, `name` (ver §3 bis.5).
+
+### 3 bis.2 La sala entera: tamaño, cámaras, físicas y capas
+
+Nada de esto estaba documentado, y es justo lo que hace falta para montar un nivel sin abrir el
+IDE.
+
+```bash
+R='gm-cli resourcetool eval'
+
+# Tamaño y persistencia
+$R "resource set expr=rm_nivel1.roomSettings.Width value=640"
+$R "resource set expr=rm_nivel1.roomSettings.Height value=360"
+$R "resource set expr=rm_nivel1.roomSettings.persistent value=true"
+
+# Viewports y cámaras: los OCHO, enteros
+$R "resource set expr=rm_nivel1.viewSettings.enableViews value=true"
+$R "resource set expr=rm_nivel1.views[0].visible value=true"
+$R "resource set expr=rm_nivel1.views[0].wview value=320"
+$R "resource set expr=rm_nivel1.views[0].hview value=180"
+$R "resource set expr=rm_nivel1.views[0].wport value=1280"
+$R "resource set expr=rm_nivel1.views[0].hport value=720"
+$R "resource set expr=rm_nivel1.views[0].hborder value=96"    # zona muerta horizontal
+$R "resource set expr=rm_nivel1.views[0].objectId value=obj_jugador"   # a quién sigue
+
+# Mundo de físicas de la sala
+$R "resource set expr=rm_nivel1.physicsSettings.PhysicsWorld value=true"
+$R "resource set expr=rm_nivel1.physicsSettings.PhysicsWorldGravityY value=10"
+$R "resource set expr=rm_nivel1.physicsSettings.PhysicsWorldPixToMetres value=0.1"
+
+# Capas — el TIPO va en MAYÚSCULAS
+$R "room layer create room=rm_nivel1 name=Suelo type=TILE"
+$R 'room layer create room=rm_nivel1 name=Frente type=INSTANCE depth="INDEX 2"'
+$R "resource set expr=rm_nivel1.layers['Frente'].visible value=true"
+
+# El fondo, por nombre de capa (¡comilla simple!)
+$R "resource set expr=rm_nivel1.layers['Background'].colour value=4283782485"
+$R "resource set expr=rm_nivel1.layers['Background'].htiled value=true"
+
+# Instancias, y sus transformaciones
+$R "room instance create room=rm_nivel1 object=obj_jugador name=inst_p1 layer=Instances x=100 y=200"
+$R "resource set expr=inst_p1.scaleX value=2"
+$R "resource set expr=inst_p1.rotation value=45"
+```
+
+> ⚠️ **`ROOM ASSET CREATE` ignora `LAYER=` si la capa no existe** — y no avisa: se inventa una
+> (`layer3`, `layer6`…). Verificado con tres variantes. `ROOM INSTANCE CREATE` sí respeta el
+> nombre. **Crea antes la capa de tipo `ASSET`.**
+>
+> ⚠️ **`effectType` de una capa es escribible y es una bomba.** Poner `_filter_tintfilter` hace
+> que el proyecto exija resolver un paquete del registro, y con el `gmpm.dll` de fábrica eso lo
+> deja ilegible entero (Trampa 1). No lo toques salvo que hayas aplicado el rodeo.
+
+### 3 bis.3 Tilesets y tilemaps — incluido importar un CSV
+
+```bash
+$R "sprite addframe name=spr_tiles path=/ruta/tiles.png"
+$R "tileset create name=ts_mundo sprite=spr_tiles tilewidth=32 tileheight=32"
+```
+
+> ⚠️ **`TILESET CREATE` deja `tile_count` y `out_columns` a 0** aunque le des sprite y medidas.
+> Hay que fijarlos a mano — los dos son escribibles — o el tileset no sirve para nada.
+
+```bash
+$R "resource set expr=ts_mundo.tile_count value=48"
+$R "resource set expr=ts_mundo.out_columns value=8"
+$R "resource set expr=rm_nivel1.layers['Suelo'].tilesetId value=ts_mundo"
+
+$R "room layer tiles resize room=rm_nivel1 layer=Suelo width=20 height=12"
+$R "room layer tiles set room=rm_nivel1 layer=Suelo left=0 top=0 width=3 height=2 data=1,2,3,4,5,6"
+$R "room layer tiles set room=rm_nivel1 layer=Suelo file=/ruta/mapa.csv left=0 top=0"
+$R "room layer tiles get room=rm_nivel1 layer=Suelo"
+```
+
+**`FILE=` acepta un CSV**, que es la vía natural para meter un mapa hecho en Tiled o generado por
+un script. (`ROOM LAYER TILES INFO` no imprime nada; el desglose de bits sale como cabecera de
+`TILES GET`.)
+
+### 3 bis.4 Animación de un sprite
+
+```bash
+$R "resource set expr=spr_jugador.sequence.playbackSpeed value=12"
+$R "resource set expr=spr_jugador.sequence.playbackSpeedType value=FramesPerSecond"
+```
+
+### 3 bis.5 Renombrar un recurso — y sí, actualiza las referencias
+
+```bash
+$R "resource set expr=obj_viejo.name value=obj_nuevo"
+```
+
+Verificado: cambia también quien lo referenciaba (el sprite de un objeto, el objeto de una
+instancia de sala). La biblioteca solo documentaba `RENAME` para tileset, grupo de audio, grupo de
+textura y configuración; para todo lo demás, esta es la vía.
+
+### 3 bis.6 Los límites reales, para que no pierdas el tiempo
+
+Cada uno probado con varias variantes antes de darlo por imposible:
+
+| Lo que querrías | Estado | Rodeo |
+|---|---|---|
+| Un `=` dentro de un `value=` | 🔴 **rompe el parser** en `eval`, `script` y `repl` (9 variantes) | El código de creación de una instancia **no se escribe por CLI**. Ponlo en el evento Create del objeto |
+| Mover un recurso ya creado a otra carpeta | 🔴 8 variantes, ninguna | Sácalo y vuelve a meterlo con `ProjectTool IMPORT YY` (§3 ter) |
+| Anidar una capa dentro de otra | 🔴 `PARENT=` responde «Saved successfully» y la deja en la raíz | — |
+| *Variable Definitions* de un objeto | 🔴 3 variantes | Declara las variables en el evento Create |
+| El `nineSlice` de un sprite | 🔴 3 variantes | El IDE |
+| Crear un recurso `shape` | 🔴 **rompe el proyecto** | Trampa 14. No lo hagas |
+
+> 💡 **Y una corrección**: `12 · 09` §9 bis decía que `projectpath=` «no funciona para
+> `RESOURCE INFO`/`RESOURCE SET` en general». **Es falso.** `PROJECTPATH` figura en la sección
+> *Global Arguments* de `HELP` y funciona en **cualquier** comando — útil para operar sobre un
+> proyecto sin `cd` a su carpeta.
+>
+> Y el auto-relleno de `[0]` **no es exclusivo de `emitters`**: `animcurve.channels[0].name`
+> también crea el elemento al escribirlo. `timeline.momentList`, en cambio, no.
+
+---
+
+## 3 ter · `ProjectTool`: la segunda herramienta que nadie documenta
+
+En el `.gmcache` de **todo** proyecto, junto al `ResourceTool` que usa esta biblioteca, vive un
+binario aparte con capacidades propias que ningún documento —oficial ni de aquí— menciona:
+
+```bash
+PT="$(find .gmcache/project-tool -name ProjectTool -type f | head -1)"
+```
+
+| Comando | Para qué | Verificado |
+|---|---|---|
+| `IMPORT YY` | **Copiar recursos de un proyecto a otro** (con sus dependencias) | ✅ el proyecto destino compila |
+| `EXPORT` | Generar un `.yymps` de Marketplace, o un ZIP | ✅ |
+| `JSON FORMAT` | **Normalizar un `.yy` tocado a mano** (`commas=GAMEMAKER`) | ✅ |
+| `LINKS *` | Inspeccionar los enlaces entre recursos | — |
+| `FILE CHANGEVERSION` · `SIGNING` · `SHOWVERSIONEDTYPES` | Versionado y firma de paquetes | — |
+
+Dos usos que resuelven límites reales del `ResourceTool`:
+
+- **Reorganizar carpetas o mover un recurso**: no hay comando para ello (§3 bis.6), pero sí para
+  exportarlo e importarlo donde toque.
+- **Reparar un `.yyp` editado a mano** en una emergencia (Trampa 14): `JSON FORMAT` lo deja con
+  el formato exacto que espera GameMaker, en vez de un JSON «casi bien» que luego falla raro.
+
+> ⚠️ **`READONLY=TRUE` es el valor por defecto** en varios de sus comandos: si esperas que guarde
+> y no guarda, es eso.
 
 ---
 
@@ -1746,7 +2094,7 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -1774,11 +2122,11 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] Si una llamada de `resourcetool` falló con `System.AccessViolationException` sobre un
       proyecto que ya sabes sano, la reintentaste antes de asumir que el proyecto está corrupto —
       el propio `ResourceTool@2026.0.17` puede fallar así de forma no determinista
-      (Trampa 11 de [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      (Trampa 11 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el juego dibuja texto en español, comprobaste **mirando la captura**, no el código,
       que las tildes y la eñe se ven — nunca dependiendo de `draw_set_font(-1)`/la fuente por
       defecto para texto en español (Trampa 12 de
-      [§0](#0--las-trece-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 
 ---
 
@@ -2213,16 +2561,28 @@ viejo antes de seguir.
 
 ### Nota sobre apuntar a un `.yyp` explícito
 
+Hay **dos** formas, y las dos funcionan.
+
 `gm-cli resourcetool eval "<comando>" <ruta-al-yyp>` acepta la ruta como **segundo argumento
 posicional puro** (`gm-cli resourcetool eval --help` lo confirma: `[project] Path to the project
-.yyp file`) — **no** como `projectpath=<ruta>` pegado al final del comando entre comillas (eso
-sí funciona para el subcomando `CHECK`, que tiene su propio parámetro `PROJECTPATH=`, pero no
-para `RESOURCE INFO`/`RESOURCE SET` en general). Si hay más de un `.yyp` en la carpeta —por
-ejemplo, tras la trampa de arriba— pásalo explícito y sin prefijo:
+.yyp file`). Si hay más de un `.yyp` en la carpeta —por ejemplo, tras la trampa de arriba—
+pásalo explícito y sin prefijo:
 
 ```bash
 gm-cli resourcetool eval "resource info expr=project.name" "$(pwd)/NombreFinal.yyp"
 ```
+
+> ❌ **Corrección del 08-09-2026.** Esta sección decía que `projectpath=` dentro del comando «sí
+> funciona para `CHECK` … pero no para `RESOURCE INFO`/`RESOURCE SET` en general». **Es falso.**
+> `PROJECTPATH` figura en la sección ***Global Arguments*** de `HELP` —junto a `PROJECTTOOL`,
+> `PREFABSFOLDER` y `CONFIG`— y por tanto lo acepta **cualquier** comando, no solo `CHECK`:
+>
+> ```bash
+> gm-cli resourcetool eval "resource info expr=project.name projectpath=$(pwd)/MiJuego.yyp"
+> ```
+>
+> Es útil precisamente cuando no quieres hacer `cd` a la carpeta del proyecto — por ejemplo, al
+> operar sobre varios proyectos desde un mismo script.
 
 ---
 
