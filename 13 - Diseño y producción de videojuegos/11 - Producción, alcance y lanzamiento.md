@@ -451,9 +451,43 @@ constante `GM_version` en tiempo de ejecución, y es también el formato que esp
 
 ```bash
 gm-cli resourcetool eval "options info platform=windows"   # ver las propiedades disponibles
-gm-cli resourcetool eval "options get  platform=windows"   # ver sus valores
-gm-cli resourcetool eval "options set  platform=windows property=version value=1.0.0.42"
+gm-cli resourcetool eval "options get  platform=windows"   # ver sus valores → version = 1.0.0.0
 ```
+
+> 🛑 **La versión NO se puede escribir por CLI. Ábrela en el IDE.** Es la corrección de un
+> ejemplo que este documento daba por bueno y **falla**. Verificado el 08-09-2026 con
+> `gm-cli` 2.3.0 / `ResourceTool@2026.0.17`, tres variantes:
+>
+> ```
+> $ options set platform=windows property=version value=1.0.0.42
+> Property 'version' cannot be set on 'windows' because it is read-only.
+>
+> $ options set platform=main property=version value=1.0.0.42
+> Property 'version' is not available for platform 'main'. Valid properties: …
+>
+> $ options set platform=windows property=option_windows_version value=1.0.0.42
+> Property 'option_windows_version' is not available for platform 'windows'. Valid properties: …
+> ```
+>
+> `version` **se lee** con `options get` y punto. Tampoco la alcanza `resource set`: las
+> opciones no están entre los 17 tipos que devuelve `RESOURCE TYPES` y su nombre no es raíz de
+> expresión válida (Trampa 10 de
+> [`12 · 09`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md)).
+> De las 30 propiedades de Windows **solo cinco son escribibles** —`interpolate_pixels`,
+> `start_fullscreen`, `display_name`, `icon` y `splash_screen`—; la versión, el nombre de
+> producto, el copyright y el nombre del ejecutable **no** están entre ellas.
+>
+> **Qué hacer entonces**, por orden:
+>
+> 1. **Subir de versión es una acción del humano**, en *Game Options → Windows → Version*. Un
+>    agente que prepara un lanzamiento debe **pedirlo**, no intentarlo y fallar.
+> 2. **Para GX.games no hace falta**: `gm-cli gxgames upload` acepta `--version X.Y.Z.B` como
+>    flag y no lee la opción del proyecto (*«Prompts for the version number if --version is not
+>    provided»*, verificado en su `--help`).
+> 3. **Para Steam y las demás tiendas, la versión que ve el jugador es la del canal de la
+>    tienda**, no la del ejecutable: el `build` de Steamworks, el `versionCode` de Play. La
+>    opción del `.yy` solo alimenta `GM_version` dentro del juego y las propiedades del `.exe`
+>    en Windows.
 
 > ⚠️ **Dos nombres para lo mismo, y no son intercambiables.** Verificado el 08-09-2026 con
 > `options info platform=windows`: el comando `resourcetool options set/get` usa los nombres

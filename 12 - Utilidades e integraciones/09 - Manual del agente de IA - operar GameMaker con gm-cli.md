@@ -791,6 +791,36 @@ NSIS del instalador — **todo eso hay que pedírselo al humano, que lo ponga de
 Game Options del IDE.** Solo el nombre visible, el icono, la imagen de splash, si arranca a
 pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 
+**Y la plataforma `main` es peor: figura en la lista y no funciona en absoluto.**
+`OPTIONS LIST` la anuncia junto a `windows`, `mac` y las demás — es la pestaña *Main* de Game
+Options, donde viven la velocidad del juego, el color de fondo y el comportamiento ante errores,
+justo lo que a un agente le interesaría fijar. Pero en `ResourceTool@2026.0.17` está rota de las
+tres formas posibles a la vez (verificado el 08-09-2026):
+
+```bash
+$ gm-cli resourcetool eval "options info platform=main"
+# (no imprime NADA: ni tabla ni error)
+
+$ gm-cli resourcetool eval "options get platform=main"
+There are no table rows to show
+ResourceTool Successful          # ← «éxito» con cero filas
+
+$ gm-cli resourcetool eval "options set platform=main property=speed value=60"
+Property 'speed' is not available for platform 'main'. Valid properties: instance_change,
+error_behaviour, , compatibility, on_write_enabled, colour, speed, , json_parsing, …
+```
+
+Lee esa última salida despacio: **`speed` aparece en la lista de propiedades válidas del propio
+mensaje que la rechaza**. Y la lista viene con huecos vacíos (`, ,`) y `colour` repetido — es una
+tabla de descriptores mal formada, no una lista real. Probado también con `app_id`, `description`
+y `colour`, todos nombres que el mensaje declara válidos: los tres dan el mismo
+`not available for platform`.
+
+> 💡 **El truco que sí sirve de aquí**: cuando `OPTIONS INFO` no imprima nada, **manda a propósito
+> un nombre de propiedad inventado**. El mensaje de error enumera las propiedades que el comando
+> considera válidas para esa plataforma, y es la única forma de verlas cuando `INFO` calla. Que
+> luego las acepte es otra cuestión.
+
 **La regla que deja esta trampa**: el patrón de la Trampa 7/9 («si un subcomando rechaza algo,
 prueba la raíz de expresión genérica») **no es universal** — solo funciona para recursos que
 viven bajo el árbol de `RESOURCE`/`project`. Antes de aplicarlo a ciegas, comprueba con
