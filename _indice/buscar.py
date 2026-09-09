@@ -343,7 +343,11 @@ def grep(subdirs, patron, exts, limite=40):
         print("      Sale con 2 justamente para que no se confunda con un 1.")
         return 2
     if not _grep_disponible():
-        return 1
+        # Sin `grep` no se ha buscado nada, así que **2**, no 1. Devolver 1 —«buscado y
+        # no está»— sobre una búsqueda que nunca ocurrió es el mismo falso «no existe»
+        # que el corpus ausente, entrando por la puerta de Windows: allí `grep` no
+        # viene de serie, y el aviso de arriba se lee y el código de salida no.
+        return 2
     args = ["grep", "-rniI", "--include=*" + exts[0]]
     for e in exts[1:]:
         args.append("--include=*" + e)
@@ -489,6 +493,16 @@ def buscar_todo(patron):
         print()
 
     if not hubo:
+        # Tres de las cuatro fuentes se miran con `grep`. Si no está —en Windows no
+        # viene de serie—, esas tres están CIEGAS, y decir «no aparece en ninguna de
+        # las cuatro fuentes» sería mentira: solo se ha mirado una. Sale con 2.
+        if not _grep_disponible():
+            print(f"✗ No se ha podido buscar «{patron}» en tres de las cuatro fuentes:")
+            print("  la biblioteca, el manual y el código real se recorren con «grep», que")
+            print("  no está en el PATH. Lo único comprobado es si es un símbolo exacto")
+            print("  del runtime, y no lo es.")
+            print("  Esto NO es «no existe»: instala Git for Windows (trae grep) o usa WSL.")
+            return 2
         return _sin_resultados(patron, "ninguna de las cuatro fuentes")
     return 0
 
@@ -590,10 +604,36 @@ def autoprueba():
             f.write("// ahora sí\n")
         revisar("y en cuanto hay un .gml, sí", _tiene_contenido(vacio, [".gml"]))
 
+    # --- Windows sin `grep`: tres de las cuatro fuentes quedan CIEGAS ------------
+    # `grep` viene de serie en macOS y Linux, no en Windows. Sin él, las búsquedas de
+    # texto no pueden mirar nada — y devolvían **1**, que significa «se ha buscado y no
+    # está»: el falso «no existe» otra vez, esta vez entrando por Windows. Se prueba
+    # desde cualquier sistema fingiendo que no está.
+    global _grep_disponible
+    _real = _grep_disponible
+    _grep_disponible = lambda: False          # noqa: E731
+    try:
+        import contextlib
+        import io as _io
+        for _nombre, _f in (
+            ("--texto",  lambda: grep(DOCS, "delta_time", [".md"])),
+            ("--manual", lambda: grep(["09 - Manual oficial"], "AudioBus", [".md"])),
+            ("--codigo", lambda: grep(["11 - Código descargado"], "state machine", [".gml"])),
+            ("--todo",   lambda: buscar_todo("coyote time")),
+        ):
+            with contextlib.redirect_stdout(_io.StringIO()):
+                try:
+                    _c = _f()
+                except SystemExit as _e:
+                    _c = _e.code
+            revisar("sin grep, %s sale con 2 y no con 1" % _nombre, _c == 2, "exit %s" % _c)
+    finally:
+        _grep_disponible = _real
+
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (7 if hay_indice else 5))
+    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (11 if hay_indice else 9))
     return 0
 
 

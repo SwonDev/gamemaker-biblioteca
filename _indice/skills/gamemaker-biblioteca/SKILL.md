@@ -5,8 +5,8 @@ description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego»,
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r18 · 2026-09-09 -->
-`r18 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r19 · 2026-09-09 -->
+`r19 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -290,6 +290,14 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 ```
 
 Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el texto.
+
+> 🖥️ **Y lo que NO está verificado, dicho por delante para que no lo descubras tú.**
+> Todo lo de esta skill se ha ejecutado en **macOS arm64**. En **Windows** no se ha
+> ejecutado nada: sus rutas de código están auditadas y dos fallos corregidos —`os.kill`
+> allí no pregunta, **mata**, y sin `grep` las búsquedas de texto no pueden mirar nada—,
+> pero eso es auditoría, no ejecución. El peldaño de *computer use* está **razonado, nunca
+> medido**. Y de **Kimi y Qwen** solo se ha comprobado que reciben la skill íntegra, no
+> que la activen. Detalle en `_indice/auditorias/r19-cobertura-y-portabilidad.md`.
 
 ## Prohibiciones duras
 

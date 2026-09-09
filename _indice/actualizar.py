@@ -360,6 +360,7 @@ def main():
         # única sin autoprueba. Su contrato 0/1/2 —encontrado, buscado y no está,
         # no se ha podido buscar— es lo que separa «no lo escribas» de «no lo sé».
         ("buscar.py",                "contrato de códigos de salida del buscador"),
+        ("auditar-cobertura.py",     "cobertura de géneros, recursos y herramientas"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
