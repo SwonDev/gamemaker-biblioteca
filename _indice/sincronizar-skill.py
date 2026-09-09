@@ -287,7 +287,10 @@ def estado_enlaces():
     }
     # CLI que este equipo no tiene instalados: su ausencia no dice nada del estado
     # de la skill, así que no se pinta como error.
-    OPCIONALES = {"Gemini CLI", "GitHub Copilot CLI", "Cursor CLI", "Cline"}
+    # `skills-pool` la crea y gestiona el propio Codex (su marketplace): `instalar.sh`
+    # no la toca, así que en una máquina sin Codex configurado sencillamente no está.
+    OPCIONALES = {"Gemini CLI", "GitHub Copilot CLI", "Cursor CLI", "Cline",
+                  "Codex (pool)"}
 
     propio = os.path.join(SKILL, "SKILL.md")
     txt_propio = open(propio, encoding="utf-8").read() if os.path.isfile(propio) else None

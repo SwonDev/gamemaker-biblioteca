@@ -14,7 +14,9 @@ comprobación. Copia las dos líneas tal cual.
 
 ```sh
 BIB="${GM_BIBLIOTECA:-$(cat ~/.config/gamemaker-biblioteca/ruta 2>/dev/null)}"
-[ -f "$BIB/_indice/buscar.py" ] && echo "✓ biblioteca en $BIB" || echo "✗ NO instalada (BIB=«$BIB»): usa gm-cli manual read \"<símbolo>\" para cada duda de API, y NUNCA la memoria."
+if   [ ! -f "$BIB/_indice/buscar.py" ];   then echo "✗ SIN biblioteca (BIB=«$BIB») → usa gm-cli manual read para cada duda de API, y NUNCA la memoria."
+elif [ ! -f "$BIB/_indice/simbolos.json" ]; then echo "⚠ biblioteca en $BIB, pero SIN índice de símbolos → los documentos sirven; para verificar firmas, gm-cli manual read."
+else echo "✓ biblioteca completa en $BIB"; fi
 ```
 
 `$BIB` abre **cada** comando de esta skill: la biblioteca está donde la instalaron, no en una
@@ -25,10 +27,18 @@ pero ya no existe, que es peor— el primer `python3 "$BIB/_indice/buscar.py"` r
 `can't open file '/_indice/buscar.py'`: un error de Python que no dice nada sobre qué hacer, y
 que un agente interpreta como «la herramienta está rota» en vez de «la biblioteca no está aquí».
 
-- Sale `✓` → sigue con todo lo de abajo.
-- Sale `✗` → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de
+- **`✓`** → todo lo de abajo funciona tal cual.
+- **`⚠`** → la biblioteca está, pero le falta el índice de símbolos, que se genera del
+  **runtime instalado** (un clon recién bajado de GitHub sin GameMaker en la máquina está así).
+  Los 268 documentos, las recetas y los validadores funcionan; lo que no funciona es
+  `buscar.py <símbolo>`. Para verificar una firma usa `gm-cli manual read "<símbolo>"`, y si
+  hay GameMaker instalado arréglalo de una vez con `python3 "$BIB/_indice/actualizar.py"`.
+- **`✗`** → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de
   API. **Nunca a la memoria.** Todo lo que esta skill dice sobre trampas del CLI, convenciones y
-  flujo sigue siendo válido; lo único que pierdes es el buscador y los documentos.
+  flujo sigue siendo válido; lo que pierdes es el buscador y los documentos.
+
+La distinción entre `⚠` y `✓` no es cosmética: comprobar solo que existe `buscar.py` daba un
+`✓` sobre un clon donde el comando principal no podía responder.
 
 ## La regla que gobierna todo
 
