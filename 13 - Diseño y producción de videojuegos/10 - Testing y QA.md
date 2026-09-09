@@ -1853,6 +1853,19 @@ fondo, los botones... y ningún texto.
    fuente creada por `resourcetool` (que no rasteriza glifos — Trampa 5) y cada pantalla nueva
    necesita su propia captura mirada, no una inferencia sobre una captura anterior.
 
+> ✅ **La mitad barata de esto ya no necesita ojos: un glifo que la fuente no tiene mide CERO.**
+> Medido dentro del juego contra la fuente por defecto del motor — `a=9`, `á=0`, `ñ=0`, `¿=0` —
+> lo que convierte «¿esta fuente dibuja español?» en una condición de arranque:
+>
+> ```gml
+> debug_exigir_fuente_con_acentos(global.fnt_ui);   // 06 · scr_debug.gml
+> ```
+>
+> **Hazlo primero, siempre**: cuesta microsegundos y caza la fuente muda —el fallo más común de
+> los dos— antes de gastar una captura. Lo que **no** puede decirte es si el glifo dibujado es el
+> correcto: una hoja de glifos con el mapa desordenado mide perfectamente y dibuja letras
+> cambiadas. Para eso, los pasos 1-4 de arriba siguen siendo la única vía.
+
 > ✅ **Dos casos concretos del paso 3, verificados construyendo un juego móvil completo**
 > ([`_indice/auditorias/r7-prueba-movil.md` §2.5-2 y §2.5-3](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva)),
 > ninguno de ellos una función rota: **cómo un agente compone piezas correctas**, algo que ni el

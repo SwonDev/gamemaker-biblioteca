@@ -62,9 +62,11 @@ done
 PIEZAS=(
   "scr_nivel_mapa:$RAIZ/06 - Assets y Scripts/scr_nivel_mapa.gml"
   "scr_pool:$RAIZ/06 - Assets y Scripts/scr_pool.gml"
+  "scr_debug:$RAIZ/06 - Assets y Scripts/scr_debug.gml"
   "scr_pruebas_ayuda:$RAIZ/_indice/pruebas/banco_ayuda.gml"
   "scr_banco_nivel_mapa:$RAIZ/_indice/pruebas/banco_nivel_mapa.gml"
   "scr_banco_desactivadas:$RAIZ/_indice/pruebas/banco_desactivadas.gml"
+  "scr_banco_fuente:$RAIZ/_indice/pruebas/banco_fuente.gml"
 )
 for pieza in "${PIEZAS[@]}"; do
     nombre="${pieza%%:*}"
@@ -92,6 +94,32 @@ cp "$RAIZ/_indice/pruebas/banco_step.gml" "$PROY/objects/obj_test/Step_0.gml" \
 gm-cli resourcetool eval "object event findorcreate name=obj_solido type=create" "$YYP" >/dev/null 2>&1
 cp "$RAIZ/_indice/pruebas/banco_solido_create.gml" "$PROY/objects/obj_solido/Create_0.gml" \
   || { echo "✗ no se pudo copiar el Create de obj_solido"; exit 2; }
+
+# La hoja de glifos de la fuente de sprite (Trampa 12, tercera salida). Un PNG por
+# carácter, importados EN LOTE: `resourcetool script` mete los 89 en poco más de un
+# segundo; por `eval`, uno a uno, serían minutos.
+GLIFOS="$PROY/_glifos"
+if python3 "$RAIZ/_indice/pruebas/generar_glifos.py" "$GLIFOS" >/dev/null 2>&1; then
+    gm-cli resourcetool eval "resource create type=sprite name=spr_glifos" "$YYP" >/dev/null 2>&1
+    LOTE="$PROY/_lote_glifos.txt"
+    : > "$LOTE"
+    for g in "$GLIFOS"/g_*.png; do
+        echo "sprite addframe name=spr_glifos path=$g" >> "$LOTE"
+    done
+    gm-cli resourcetool script "$LOTE" "$YYP" >/dev/null 2>&1
+    # Leer de vuelta: «Saved successfully» no es verificación.
+    N_PNG="$(ls "$GLIFOS"/g_*.png | wc -l | tr -d ' ')"
+    N_YY="$(grep -o '"\$GMSpriteFrame"' "$PROY/sprites/spr_glifos/spr_glifos.yy" 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "$N_PNG" != "$N_YY" ]; then
+        echo "✗ la hoja de glifos no se importó entera: $N_YY de $N_PNG fotogramas"
+        exit 2
+    fi
+    echo "  (hoja de glifos: $N_YY fotogramas importados en lote)"
+else
+    echo "✗ no se pudo generar la hoja de glifos (¿falta Pillow?). El banco de fuente"
+    echo "  NO se puede ejecutar, y eso no es lo mismo que que pase."
+    exit 2
+fi
 
 gm-cli resourcetool eval \
   "room instance create room=room1 object=obj_test name=inst_test layer=Instances x=0 y=0" \

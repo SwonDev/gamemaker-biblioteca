@@ -836,6 +836,23 @@ fsm.update();
 > biblioteca cometieron con banderas sueltas, y por eso `auditar-juego-completo.py` lo comprueba
 > ahora de forma mecánica.
 
+> 🔀 **Y entonces, ¿esto o la pausa de `04 · 41`? Las dos, y no hacen lo mismo.** Un agente vio
+> aquí un estado `transicion` y allí un `pausar_de_verdad()`, y se preguntó cuál usar
+> ([`r15` §3](../_indice/auditorias/r15-prueba-puzles.md)). La respuesta es que resuelven
+> problemas distintos y conviven sin rozarse:
+>
+> | | `transicion` (este estado) | `pausar_de_verdad()` ([`04 · 41 §3.1`](./41%20-%20Transiciones,%20carga%20y%20pausa.md)) |
+> |---|---|---|
+> | **A quién detiene** | solo al jugador | al mundo entero: instancias, física, Time Sources, partículas, Sequences y audio |
+> | **Qué sigue vivo** | todo lo demás: enemigos, partículas, el fundido | nada, salvo quien llamó |
+> | **Para qué** | el jugador cruza una puerta, escucha un diálogo, se recupera de un golpe | el menú de pausa, una pantalla de carga, un fundido entre salas |
+> | **Coste de equivocarse** | pausar el mundo entero para un diálogo congela el fundido que lo tapa | mover al jugador a `transicion` durante la pausa no lo para: sus eventos ya no corren |
+>
+> Regla corta: **si el jugador es el único que no puede actuar, es un estado; si nadie puede
+> actuar, es la pausa.** Y lo que sí es un error de verdad es tener las dos cosas y además una
+> bandera `puede_moverse` por ahí suelta — tres mecanismos para lo mismo, que es de donde salen
+> los estados imposibles.
+
 > 🔎 **Sí, los estados pueden usar `fsm` aunque `fsm` se esté creando en esa misma línea.**
 > Parece un error y no lo es: las funciones de estado no se **ejecutan** durante `fsm_bind()`,
 > solo se guardan; para cuando corre la primera, `fsm` ya existe. Y funcionan sin cualificar

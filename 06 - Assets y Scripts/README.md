@@ -72,7 +72,7 @@ Lo segundo es más limpio.
 | [`scr_pool.gml`](./scr_pool.gml) | Object pooling: reutiliza instancias en vez de crearlas y destruirlas | ninguna | Rendimiento |
 | [`scr_grid_pathfinding.gml`](./scr_grid_pathfinding.gml) | Pathfinding en rejilla: envoltorio de `mp_grid` **y** A* en GML puro con coste por celda | ninguna | Según género |
 | [`scr_input_buffer.gml`](./scr_input_buffer.gml) | Input buffering y coyote time para plataformas | ninguna | Plataformas |
-| [`scr_debug.gml`](./scr_debug.gml) | Panel de depuración: variables en vivo, log, gráfica de FPS y medición de tiempos | ninguna | ⭐ Desarrollo |
+| [`scr_debug.gml`](./scr_debug.gml) | Panel de depuración: variables en vivo, log, gráfica de FPS, medición de tiempos y **el detector de fuente muda** (`debug_exigir_fuente_con_acentos`) | ninguna | ⭐ Desarrollo |
 | [`scr_audio.gml`](./scr_audio.gml) | Gestor de audio: buses y emisores por categoría, mezcla con ducking, banco de tomas con round robin, cupo de voces con fundido, anillo de emisores posicionales y crossfade de música/ambiente | ninguna | ⭐ Esencial |
 | [`scr_tiempo.gml`](./scr_tiempo.gml) | `Cooldown` para habilidades, `Temporizador` independiente del framerate y un reloj de juego con escala de tiempo | ninguna | ⭐ Esencial |
 | [`scr_ui_confirmar.gml`](./scr_ui_confirmar.gml) | Diálogo de confirmación (Sí/No) genérico, con «No» siempre por defecto — sin `show_question()` | ninguna | ⭐ Esencial |
