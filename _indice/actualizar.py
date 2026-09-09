@@ -386,10 +386,24 @@ def main():
         print(f"{cubiertos} de {vigentes} símbolos vigentes son localizables "
               f"({100 * cubiertos // vigentes} %).")
         if invisibles:
+            # El espejo del manual NO se publica (es obra de YoYo Games), así que un
+            # clon recién hecho no lo tiene. Sin este matiz, el mensaje de abajo decía
+            # «852 símbolos sin documentar» a alguien que acababa de clonar — y era
+            # falso: están documentados, lo que falta es el espejo. Un mensaje cierto
+            # en una máquina y falso en otra es exactamente lo que este proyecto caza.
+            hay_espejo = os.path.isdir(os.path.join(RAIZ, "09 - Manual oficial"))
             print(f"  {len(invisibles)} no aparecen en el manual ni en la biblioteca:")
             print("    " + ", ".join(invisibles[:20])
                   + (" …" if len(invisibles) > 20 else ""))
-            print("  → no es un error: es la lista de lo que queda por documentar.")
+            if hay_espejo:
+                print("  → no es un error: es la lista de lo que queda por documentar.")
+            else:
+                print("  ⚠ PERO ESTE CLON NO TIENE EL ESPEJO DEL MANUAL (`09 - Manual oficial/`),")
+                print("    que no se publica porque es obra de YoYo Games. Así que esa cifra")
+                print("    NO es «lo que falta por documentar»: es sobre todo lo que estaría")
+                print("    en el manual. Genéralo en tu máquina y vuelve a mirar:")
+                print("        ./reconstruir.sh manual")
+                print("    Con el espejo puesto, la cobertura de esta biblioteca es del 100 %.")
 
     paso(6, "Nombres de archivo")
     nombres = revisar_nombres()

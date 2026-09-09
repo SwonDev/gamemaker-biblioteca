@@ -27,6 +27,22 @@ Tres avisos que puede darte, y qué significan:
 | `⚠ SOLO LECTURA` | Puedes leer la variable, pero **asignarle un valor no hace nada** (`fps`, `view_hspeed`…) |
 | `No es una función, constante ni variable del runtime, pero SÍ aparece documentado` | Es un prefijo o una directiva (`gmcallback_`, `#macro`), no un símbolo. Sigue las rutas que te da |
 
+### El código de salida, si encadenas comandos
+
+Hay tres, y la diferencia entre el 1 y el 2 es la que importa:
+
+| Sale con | Significa | Qué hacer |
+|---|---|---|
+| **0** | Lo he buscado y **está** | Usa la ficha que te da |
+| **1** | Lo he buscado y **no está** | No lo escribas: no existe en este runtime |
+| **2** | **No he podido buscar** | Ni existe ni deja de existir: no lo sabes. Arregla lo que dice el mensaje (falta `_indice/simbolos.json`, falta `grep` en el `PATH`) y vuelve a preguntar |
+
+**Tratar un 2 como un 1 es el peor error posible aquí**: es leer «no existe» donde pone «no lo
+sé», y de ahí sale una función inventada con la conciencia tranquila. Es la misma disciplina que
+`verificar-enlaces.py` aprendió a la fuerza —un cero puede ser «nada mal» o «nada mirado»— y por
+la que `gm-cli compile --errors-only` merece que le rompas el código una vez
+([`12 · 09 §7.7`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md)).
+
 > 💡 **Si `buscar.py` dice que algo no existe, no existe.** El buscador se re-deriva del
 > `GmlSpec.xml` del runtime instalado en cada regeneración, y comprueba también el manual
 > antes de dar ese veredicto.
