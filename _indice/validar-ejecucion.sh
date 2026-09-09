@@ -224,6 +224,11 @@ echo "$SALIDA" | grep -E "FALLA ·" || true
 
 if echo "$LINEA" | grep -q ", 0 fallidas"; then
     echo "✓ $LINEA — el código se ejecutó de verdad, no solo compiló."
+    # Se deja constancia del número real para que la skill no lo lleve a mano:
+    # decía «162 comprobaciones» cuando ya eran 189, y una cifra que envejece sola
+    # enseña que las cifras de la skill son aproximadas.
+    echo "$LINEA" | grep -oE "^RESULTADO: [0-9]+" | grep -oE "[0-9]+" \
+        > "$RAIZ/_indice/pruebas/ultimo-resultado.txt"
     exit 0
 else
     echo "✗ $LINEA"

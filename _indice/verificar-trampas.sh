@@ -108,6 +108,25 @@ else
     decir cambió "Trampa 10 bis (version es de solo lectura)" "ya deja escribirla"
 fi
 
+# ── Trampa 7 · `resource info expr=project` es una raíz válida con 18 miembros ─
+N_MIEMBROS="$(R 'resource info expr=project KEYS' | grep -cE "^│ [A-Za-z]")"
+N_MIEMBROS=$((N_MIEMBROS - 1))          # la primera fila es la cabecera «Field»
+if [ "$N_MIEMBROS" -eq 18 ]; then
+    decir sigue "Trampa 7 (expr=project sigue teniendo 18 miembros)"
+else
+    decir cambió "Trampa 7 (expr=project sigue teniendo 18 miembros)" "ahora son $N_MIEMBROS"
+fi
+
+# ── Trampa 10 ter · el HELP de OPTIONS da nombres de propiedad equivocados ────
+AYUDA="$(R 'help options')"
+if echo "$AYUDA" | grep -q "interpolation, fullscreen" \
+   && ! R "options set platform=windows property=interpolation value=true" | grep -qi "Set windows"; then
+    decir sigue "Trampa 10 ter (el HELP dice «interpolation/fullscreen», que no existen)"
+else
+    decir cambió "Trampa 10 ter (el HELP dice «interpolation/fullscreen», que no existen)" \
+        "el HELP ya da los nombres buenos, o «interpolation» ya se acepta"
+fi
+
 # ── ProjectTool IMPORT YY · dice que importa y no registra nada (§3 ter.1) ───
 # No es una trampa numerada, pero es la misma familia y la más cara: anuncia
 # «Adding resource… Successful», copia la carpeta al disco y jamás la mete en el
@@ -135,7 +154,7 @@ fi
 
 echo
 if [ "$FALLOS" -eq 0 ]; then
-    echo "✓ Las 7 trampas comprobables siguen siendo ciertas con el CLI instalado hoy."
+    echo "✓ Las 9 trampas comprobables siguen siendo ciertas con el CLI instalado hoy."
     exit 0
 else
     echo "⚠ $FALLOS comprobación(es) han cambiado. Es una BUENA noticia —el CLI ha mejorado—,"
