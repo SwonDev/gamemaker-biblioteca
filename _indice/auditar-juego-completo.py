@@ -324,6 +324,90 @@ def sprites_planos(ruta):
     return planos
 
 
+# Un `draw_text` con el texto escrito a pelo no se puede traducir, y `04 · 00` lo
+# pide explícitamente: «todo el texto por `txt(clave)`». Es la clase de cosa que se
+# arregla en diez minutos al empezar y en dos días cuando ya hay cien pantallas.
+TEXTO_LITERAL = re.compile(
+    r'\bdraw_text\w*\s*\([^)]*?,\s*("[^"]{4,}"|\'[^\']{4,}\')', re.S)
+# Un literal que NO es texto de interfaz: formatos, separadores y depuración.
+LITERAL_TECNICO = re.compile(r"^[\s\-_=|/\\.,:;#*+~<>%0-9]*$|^(fps|debug|test|todo)", re.I)
+
+
+def textos_sin_traducir(ruta):
+    """Llamadas a draw_text con la cadena escrita a pelo. [(archivo, texto)]"""
+    hallados = []
+    for fp in gml_del_proyecto(ruta):
+        nombre = os.path.basename(os.path.dirname(fp))
+        if nombre in SCRIPTS_BIBLIOTECA:
+            continue                      # nuestros scripts traen sus propios rótulos
+        for m in TEXTO_LITERAL.finditer(leer(fp)):
+            crudo = m.group(1)[1:-1]
+            if LITERAL_TECNICO.match(crudo):
+                continue
+            hallados.append((os.path.relpath(fp, ruta), crudo[:40]))
+    return hallados
+
+
+def hay_draw_gui(ruta):
+    """¿Algún objeto dibuja en Draw GUI? El HUD y los menús viven ahí (13 · 05 §3.1)."""
+    dir_obj = os.path.join(ruta, "objects")
+    if not os.path.isdir(dir_obj):
+        return False
+    for base, _dirs, files in os.walk(dir_obj):
+        for f in files:
+            if f in ("Draw_64.gml", "Draw_65.gml", "Draw_72.gml", "Draw_73.gml"):
+                return True
+    return False
+
+
+# Pantallas por las que el jugador PASA y que tiene que poder saltarse. Una intro
+# que no se salta es lo primero que odia quien vuelve a jugar — y `04 · 00` la pide
+# saltable dos veces, para el splash y para el prólogo.
+PASO_OBLIGADO = re.compile(r"^obj_(splash|intro|prologo|prólogo|logo|cinematica|cinemática)\w*$", re.I)
+
+
+def pantallas_no_saltables(ruta):
+    """Objetos de splash/intro cuyo código no consulta ninguna entrada.
+
+    Ojo con la laxitud al revés, que es el error que cometió la primera versión:
+    buscaba una LLAMADA (`entrada_pulsado()`), y un proyecto real que hacía lo
+    correcto —consultar `global.entrada.cualquiera`, un campo de un struct de
+    entrada centralizado— salía marcado como «no se puede saltar» sin serlo. Un
+    aviso falso sobre algo que está bien hecho es de lo peor que puede tener un
+    auditor: enseña a ignorarlo. Se aceptan las tres formas que se usan de verdad:
+    la llamada cruda al runtime, un envoltorio propio del proyecto, y el acceso a
+    un struct o global de entrada.
+    """
+    dir_obj = os.path.join(ruta, "objects")
+    if not os.path.isdir(dir_obj):
+        return []
+    envoltorios = envoltorios_de_entrada(ruta)
+    pat_envoltorio = (re.compile(r"\b(?:%s)\b" % "|".join(re.escape(n) for n in envoltorios))
+                      if envoltorios else None)
+    # Las formas reales de consultar la entrada centralizada, y hubo que ampliarla
+    # DOS veces contra proyectos que la usaban bien: primero `global.entrada.campo`,
+    # y luego `var _e = global.entrada;` seguido de `_e.aceptar` — donde el nombre
+    # ya no aparece junto al campo. Basta con que se nombre el struct de entrada.
+    pat_struct = re.compile(
+        r"\bglobal\.(?:entrada|input|controles|mando)\b"
+        r"|\b(?:entrada|input|controles|mando)\.\w+", re.I)
+
+    sin_salida = []
+    for nombre in sorted(os.listdir(dir_obj)):
+        carpeta = os.path.join(dir_obj, nombre)
+        if not os.path.isdir(carpeta) or not PASO_OBLIGADO.match(nombre):
+            continue
+        texto = ""
+        for f in sorted(os.listdir(carpeta)):
+            if f.endswith(".gml"):
+                texto += leer(os.path.join(carpeta, f))
+        if ENTRADA_CRUDA.search(texto):           continue
+        if pat_struct.search(texto):              continue
+        if pat_envoltorio and pat_envoltorio.search(texto): continue
+        sin_salida.append(nombre)
+    return sin_salida
+
+
 def objetos_rectangulo(ruta):
     """Objetos SIN sprite cuyo evento Draw pinta figuras a mano.
 
@@ -554,6 +638,9 @@ def main():
     reinv = reinventos(ruta)
     sin_mascara = objetos_sin_mascara(ruta)
     planos = sprites_planos(ruta)
+    literales = textos_sin_traducir(ruta)
+    draw_gui = hay_draw_gui(ruta)
+    no_saltables = pantallas_no_saltables(ruta)
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
@@ -568,7 +655,10 @@ def main():
                           "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv],
                           "objetos_sin_mascara_contra_los_que_se_colisiona": sin_mascara,
                           "sprites_de_personaje_de_color_plano":
-                              None if planos is None else [n for n, _c, _t in planos]},
+                              None if planos is None else [n for n, _c, _t in planos],
+                          "textos_sin_txt": [t for _f, t in literales],
+                          "hay_draw_gui": draw_gui,
+                          "pantallas_que_no_se_pueden_saltar": no_saltables},
                          ensure_ascii=False, indent=2))
     else:
         print("Proyecto: %s" % proy["yyp"])
@@ -634,6 +724,20 @@ def main():
             print("    motivos— pero que sea una decisión, no un descuido (11 · _CATALOGO.md):")
             for nombre, sugerencia in reinv:
                 print("      %-22s ya existe: %s" % (nombre, sugerencia))
+        print("  %s Alguien dibuja en Draw GUI (donde viven el HUD y los menús)"
+              % ("✓" if draw_gui else "✗"))
+        if literales:
+            print("  ⚠ %d texto(s) escritos a pelo en un `draw_text`: no se pueden traducir"
+                  % len(literales))
+            print("    (04/00 pide todo el texto por `txt(clave)` — 04 · 21):")
+            for f, t in literales[:6]:
+                print("      %-34s «%s»" % (f, t))
+            if len(literales) > 6:
+                print("      … y %d más" % (len(literales) - 6))
+        if no_saltables:
+            print("  ⚠ %d pantalla(s) de paso obligado sin forma de saltarlas: %s"
+                  % (len(no_saltables), ", ".join(no_saltables)))
+            print("    Su código no lee ninguna entrada. `04/00` las pide saltables.")
         print()
         print("Las listas que 04/00 enlaza y casi nadie abre:")
         if sin_guarda and con_guarda:
@@ -774,6 +878,39 @@ def autoprueba():
         revisar("una traza suelta se cuenta", sueltas == 1, sueltas)
         revisar("el registrador y los scripts de la biblioteca no", infra == 2, infra)
 
+        # 7 quater · Texto a pelo, Draw GUI y pantallas que no se pueden saltar.
+        p7d = _proyecto_falso(os.path.join(tmp, "p7d"), objetos={
+            "obj_hud":    {"eventos": {"Draw_64": 'draw_text(8, 8, "Vidas restantes");'}},
+            "obj_bien":   {"eventos": {"Draw_0":  'draw_text(8, 8, txt("vidas"));'}},
+            "obj_splash": {"eventos": {"Step_0":  "temporizador--;"}},
+            "obj_intro":  {"eventos": {"Step_0":  "if (keyboard_check_pressed(vk_space)) saltar();"}},
+        })
+        _lit = [t for _f, t in textos_sin_traducir(p7d)]
+        revisar("un draw_text con el texto a pelo se señala", "Vidas restantes" in _lit, _lit)
+        revisar("y uno con txt() no", len(_lit) == 1, _lit)
+        revisar("detecta que hay Draw GUI", hay_draw_gui(p7d))
+        _ns = pantallas_no_saltables(p7d)
+        revisar("un splash que no lee entrada se señala", "obj_splash" in _ns, _ns)
+        revisar("y una intro que sí la lee, no", "obj_intro" not in _ns, _ns)
+
+        # La forma que se me escapó en la primera versión: un struct de entrada
+        # centralizado, sin paréntesis. Un proyecto real que lo hacía bien salía
+        # marcado como si estuviera mal.
+        p7e = _proyecto_falso(os.path.join(tmp, "p7e"), objetos={
+            "obj_splash": {"eventos": {"Step_0":
+                "if (temporizador > 160 || global.entrada.cualquiera) ir_a_escena(rm_menu);"}},
+        })
+        revisar("un splash que consulta `global.entrada.cualquiera` NO se señala",
+                pantallas_no_saltables(p7e) == [], pantallas_no_saltables(p7e))
+
+        # Y la segunda forma que se me escapó: guardar el struct en una local.
+        p7f = _proyecto_falso(os.path.join(tmp, "p7f"), objetos={
+            "obj_intro": {"eventos": {"Step_0":
+                "var _e = global.entrada;\nif (_e.aceptar || _e.salto_pulsado) avanzar();"}},
+        })
+        revisar("una intro que guarda `global.entrada` en una local tampoco",
+                pantallas_no_saltables(p7f) == [], pantallas_no_saltables(p7f))
+
         # 7 ter · Un sprite de personaje que es un cuadrado de color.
         try:
             from PIL import Image as _Im
@@ -825,7 +962,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 14 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 21 comprobaciones de la autoprueba pasan.")
     return 0
 
 
