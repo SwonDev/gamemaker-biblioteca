@@ -344,11 +344,17 @@ def main():
         ("verificar-enlaces.py",      "enlaces y anclas"),
         ("validar-codigo-gml.py",     "cadenas sin cerrar"),
         ("auditar-juego-completo.py", "auditor de juego completo"),
+        ("validar-proyecto.py",       "validador del proyecto de un agente"),
+        ("puerta-pixel-art.py",       "puerta antes de reparar pixel art"),
     ]
     for _script, _que in _autopruebas:
         _r = subprocess.run([PY, os.path.join(IND, _script), "--autoprueba"],
                             capture_output=True, text=True)
-        if _r.returncode != 0:
+        if _r.returncode == 2 and "Pillow" in _r.stdout:
+            # Sin Pillow no se puede ejecutar esa autoprueba. Decirlo, y no
+            # confundirlo con «falla»: son cosas distintas.
+            print(f"  · {_script}: sin Pillow, autoprueba no ejecutada (no es un fallo)")
+        elif _r.returncode != 0:
             for _l in _r.stdout.splitlines():
                 if _l.strip().startswith("✗"):
                     print("  " + _l.strip())

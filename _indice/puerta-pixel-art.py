@@ -174,5 +174,74 @@ def main():
     return 0
 
 
+def autoprueba():
+    """Las dos direcciones, que es lo único que hace útil a una puerta.
+
+    Una puerta que nunca deja pasar nada es tan inútil como una que deja pasar
+    todo: la primera manda reparar arte que está bien —y `pixel-art-fixer` lo
+    destruye—, la segunda deja entrar en el juego un PNG emborronado. Aquí se
+    fabrican los dos casos y se comprueban los dos.
+    """
+    import tempfile, random
+    Image = _pillow()
+    if Image is None:
+        return 2
+
+    fallos = []
+
+    def revisar(nombre, condicion, detalle=""):
+        if condicion:
+            print("  ✓ " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  ✗ %s  ->  %s" % (nombre, detalle))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        random.seed(7)
+        paleta = [(20, 20, 40, 255), (200, 60, 60, 255), (240, 220, 180, 255), (0, 0, 0, 0)]
+        original = Image.new("RGBA", (16, 16))
+        original.putdata([random.choice(paleta) for _ in range(256)])
+
+        p_1a1 = os.path.join(tmp, "dibujado_1a1.png")
+        original.save(p_1a1)
+        p_nitido = os.path.join(tmp, "ampliado_nitido.png")
+        original.resize((64, 64), Image.NEAREST).save(p_nitido)
+        p_borroso = os.path.join(tmp, "ampliado_borroso.png")
+        original.resize((64, 64), Image.BICUBIC).save(p_borroso)
+
+        d1 = diagnosticar(p_1a1, Image)
+        revisar("el arte dibujado a 1:1 mide escala 1", d1["escala"] == 1, d1["escala"])
+        revisar("y no pide reparación", motivos_para_reparar(d1) == [], motivos_para_reparar(d1))
+
+        d2 = diagnosticar(p_nitido, Image)
+        revisar("un aumento exacto ×4 se detecta como escala 4", d2["escala"] == 4, d2["escala"])
+        revisar("pero con la paleta intacta NO se repara (reducir cambia el tamaño del sprite)",
+                motivos_para_reparar(d2) == [], motivos_para_reparar(d2))
+
+        d3 = diagnosticar(p_borroso, Image)
+        revisar("un aumento con interpolación suave rompe la paleta",
+                d3["colores"] > UMBRAL_COLORES, d3["colores"])
+        revisar("y SÍ pide reparación", motivos_para_reparar(d3) != [], motivos_para_reparar(d3))
+
+        # Una sombra: alfa parcial a propósito, paleta pequeña. NO puede repararse:
+        # con la disyunción en vez de la conjunción, este archivo real se destruía.
+        sombra = Image.new("RGBA", (16, 16), (0, 0, 0, 90))
+        p_sombra = os.path.join(tmp, "sombra.png")
+        sombra.save(p_sombra)
+        d4 = diagnosticar(p_sombra, Image)
+        revisar("una sombra es 100 % alfa intermedio…", d4["alfa_pct"] > UMBRAL_ALFA_PCT,
+                d4["alfa_pct"])
+        revisar("…y aun así NO se repara, porque la paleta está sana",
+                motivos_para_reparar(d4) == [], motivos_para_reparar(d4))
+
+    if fallos:
+        print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n✓ Las 8 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())
