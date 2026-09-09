@@ -243,7 +243,7 @@ unzip -q plataformer.yymps -d MiPlat
 > Y ese mensaje **es genérico**: significa «no se pudo cargar el proyecto», no necesariamente que
 > falten prefabs. El diagnóstico real lo da `gm-cli compile --verbose`.
 
-Contexto y matriz completa de plantillas en [`07 · 13` §12](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
+Contexto y matriz completa de plantillas en [`07 · 13` §12](../07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bis-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
 ### Trampa 2 · `resourcetool eval` y `compile` pueden colgarse bajo el sandbox del Bash tool
 
@@ -1753,29 +1753,6 @@ el 08-09-2026 (`gm-cli` 2.3.0 / `ResourceTool@2026.0.17`). Lo de abajo **devolvi
    `path.points` no se asignan de golpe: se escribe **elemento a elemento**.
 3. **`FullName` nunca se escribe.** Para renombrar, `name` (ver §3 bis.5).
 
-### 3 bis.1 ter · Darle su sprite a un objeto — y por qué no es cosmético
-
-**No existe `OBJECT SET sprite=`.** Se hace con `RESOURCE SET` sobre la propiedad, y hay que
-saberlo porque `help object` no lo menciona:
-
-```bash
-gm-cli resourcetool eval "resource set expr=obj_muro.spriteId value=spr_celda"
-```
-
-Verificado el 09-09-2026 leyendo el `.yy` de vuelta: escribe la referencia completa
-(`{"name":"spr_celda","path":"sprites/spr_celda/spr_celda.yy"}`), no solo el nombre.
-
-> 🔴 **Y esto NO es decoración: un objeto sin sprite no tiene máscara de colisión.** Sin máscara,
-> **ni `place_meeting()` ni `instance_position()` lo encuentran nunca**. Un `obj_muro` creado con
-> `resource create` y sin sprite es invisible *y además atravesable*, y no da un solo error: el
-> jugador cruza las paredes y no hay nada que depurar. Es la misma familia que las Trampas 5 y 6
-> —compila, corre y miente— y le pasa exactamente a un agente que monte los objetos por CLI y
-> deje el arte para después.
->
-> Si de verdad quieres un volumen invisible que sí colisione, dale un sprite y pon
-> `visible = false`; o usa una máscara aparte con `maskSpriteId`. Lo que no funciona es no tener
-> ninguna.
-
 ### 3 bis.2 La sala entera: tamaño, cámaras, físicas y capas
 
 Nada de esto estaba documentado, y es justo lo que hace falta para montar un nivel sin abrir el
@@ -1931,6 +1908,29 @@ Cada uno probado con varias variantes antes de darlo por imposible:
 > también crea el elemento al escribirlo. `timeline.momentList`, en cambio, no.
 
 ---
+
+### 3 bis.7 · Darle su sprite a un objeto — y por qué no es cosmético
+
+**No existe `OBJECT SET sprite=`.** Se hace con `RESOURCE SET` sobre la propiedad, y hay que
+saberlo porque `help object` no lo menciona:
+
+```bash
+gm-cli resourcetool eval "resource set expr=obj_muro.spriteId value=spr_celda"
+```
+
+Verificado el 09-09-2026 leyendo el `.yy` de vuelta: escribe la referencia completa
+(`{"name":"spr_celda","path":"sprites/spr_celda/spr_celda.yy"}`), no solo el nombre.
+
+> 🔴 **Y esto NO es decoración: un objeto sin sprite no tiene máscara de colisión.** Sin máscara,
+> **ni `place_meeting()` ni `instance_position()` lo encuentran nunca**. Un `obj_muro` creado con
+> `resource create` y sin sprite es invisible *y además atravesable*, y no da un solo error: el
+> jugador cruza las paredes y no hay nada que depurar. Es la misma familia que las Trampas 5 y 6
+> —compila, corre y miente— y le pasa exactamente a un agente que monte los objetos por CLI y
+> deje el arte para después.
+>
+> Si de verdad quieres un volumen invisible que sí colisione, dale un sprite y pon
+> `visible = false`; o usa una máscara aparte con `maskSpriteId`. Lo que no funciona es no tener
+> ninguna.
 
 ## 3 ter · `ProjectTool`: la segunda herramienta que nadie documenta
 
@@ -3253,7 +3253,7 @@ sesión las verificó desde cero, en vivo, el 8 de septiembre de 2026, en un pro
 bajo `~` (`gm-cli init -t "Blank Pixel Game"`, borrado al terminar), `gm-cli` 2.3.0 /
 `ResourceTool@2026.0.17`.
 
-### 1 · Presets de partículas — se puede configurar un emitter completo por CLI, pero no enlazarlo a un preset real, y solo cabe uno por sistema
+### 9 quater.1 · Presets de partículas — se puede configurar un emitter completo por CLI, pero no enlazarlo a un preset real, y solo cabe uno por sistema
 
 El asset **Particle System** no tiene ningún comando dedicado en absoluto (no hay `PARTICLE` ni
 `EMITTER` entre los 30 comandos de `resourcetool` — [§0 Trampa 7](#trampa-7--antes-de-dar-un-comando-por-imposible-prueba-resource-info-exprproject-y-help-comando)
@@ -3316,7 +3316,7 @@ idéntico al preset, aunque `GMPresetName` no quede enlazado. Ruta verificada en
 (la del `.app` descrito arriba puede variar de instalación a instalación; confírmala con
 `find "<ruta de GameMaker.app>" -iname "*particle-presets*"`).
 
-### 2 · Capas de UI del editor de rooms — limitación real, confirmada, sin campo crudo que la esquive
+### 9 quater.2 · Capas de UI del editor de rooms — limitación real, confirmada, sin campo crudo que la esquive
 
 `ROOM LAYER CREATE TYPE=` solo admite `INSTANCE | ASSET | BACKGROUND | PATH | TILE | EFFECTS`
 ([§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo) documenta los 6). Pedir `TYPE=UI` —la
@@ -3350,7 +3350,7 @@ Es código, no un recurso `.yy`, así que sí es alcanzable para un agente sin e
 sustituye a «crear la capa de UI que pide la tarea» si lo que hace falta es justo el recurso de
 diseño.
 
-### 3 · Troceado de sprites — `SPRITE ADDFRAME` no trocea, pero trocear antes y añadir cada trozo sí funciona
+### 9 quater.3 · Troceado de sprites — `SPRITE ADDFRAME` no trocea, pero trocear antes y añadir cada trozo sí funciona
 
 El editor de sprites del IDE detecta el sufijo `_stripN` en el nombre de archivo y divide la
 imagen en `N` fotogramas automáticamente al importarla
@@ -3391,7 +3391,7 @@ de sprites puede trocear cualquier hoja de sprites con una herramienta de imagen
 la animación fotograma a fotograma; el troceado en sí no es una operación de `resourcetool`,
 pero el resultado sí se consigue enteramente por CLI/MCP.
 
-### 4 · GMRT — sí es accesible desde `gm-cli`, sin el IDE; lo que falló en esta sesión fue un requisito de máquina, no una limitación de la herramienta
+### 9 quater.4 · GMRT — sí es accesible desde `gm-cli`, sin el IDE; lo que falló en esta sesión fue un requisito de máquina, no una limitación de la herramienta
 
 GMRT (el nuevo runtime, [`02 · 03`](../02%20-%20Novedades%202026/03%20-%20GMRT%20-%20El%20nuevo%20runtime.md))
 tiene su propia sección de **Preferences** en el IDE (`Path to GMRT`, generador de CMake, tipo de
@@ -3426,7 +3426,7 @@ siendo exclusivo del IDE son las *preferencias* de GMRT (rutas de herramientas d
 generador de CMake…), que un agente normal no necesita tocar salvo que el proyecto exija una
 toolchain de compilación personalizada.
 
-### 5 · «Página de Textura Separada» de un sprite — no hay campo booleano, pero un grupo de textura dedicado consigue el mismo efecto
+### 9 quater.5 · «Página de Textura Separada» de un sprite — no hay campo booleano, pero un grupo de textura dedicado consigue el mismo efecto
 
 Verificado en vivo el 8 de septiembre de 2026, construyendo un juego 3D
 (`_indice/auditorias/r8-prueba-3d.md`). `04 · 29 §3` exige que un sprite que se dibuja con

@@ -353,7 +353,7 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       §1.12). El script cubre lo que una máquina puede ver; el resto —si el menú se entiende, si
       la historia se sostiene— no lo cubre nadie más que tú.
    d. **Si no puedes ejecutar el juego** (sin `run`, sin pantalla, tarea de fondo): la red que
-      queda son las **seis preguntas de `13/10 §8.7`**, que se responden leyendo y cazan la clase
+      queda son las **seis preguntas de `13/10 §8.8`**, que se responden leyendo y cazan la clase
       de fallo que el compilador y `validar-proyecto.py` no ven — guardas de pausa mal colocadas,
       ramas que olvidan un caso, métodos ligados a instancias que mueren. Y di explícitamente qué
       quedó sin comprobar por no poder ejecutar.

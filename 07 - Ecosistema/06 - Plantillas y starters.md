@@ -179,7 +179,7 @@ Command failed:
 Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1
 ```
 
-**Diagnóstico:** las plantillas que usan **prefabs** (como Platformer Template) dependen de la herramienta `PREFABS RESTORE`, que falla. ⚠️ **No es un problema de versión del CLI**: se probó primero en 2.2.0 y **se reverificó en 2.3.0 el 02-09-2026 — sigue fallando igual**. Detalle completo y matriz de pruebas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
+**Diagnóstico:** las plantillas que usan **prefabs** (como Platformer Template) dependen de la herramienta `PREFABS RESTORE`, que falla. ⚠️ **No es un problema de versión del CLI**: se probó primero en 2.2.0 y **se reverificó en 2.3.0 el 02-09-2026 — sigue fallando igual**. Detalle completo y matriz de pruebas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bis-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
 ⚠️ **No es solo Platformer Template.** De las 18 plantillas de juego de §1.1, **9 fallan y 9
 funcionan** — siete más de las que fallan sin ningún aviso previo aquí. La tabla completa con

@@ -112,10 +112,28 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
         _c, _o = _correr(_a, ["extra"])
         _revisar("un argumento de más NO sale con 0", _c != 0, "exit %d" % _c)
 
+        # g · Dos secciones con el mismo número: una cita «§N» ahí es ambigua.
+        _g = os.path.join(_tmp, "dup"); os.makedirs(_g)
+        open(os.path.join(_g, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\n## 8.7 · Una cosa\n\nVer [dos](./dos.md).\n\n## 8.7 · Otra cosa\n")
+        open(os.path.join(_g, "dos.md"), "w", encoding="utf-8").write("# Dos\n")
+        _c, _o = _correr(_g)
+        _revisar("dos secciones con el mismo número NO salen con 0", _c != 0, "exit %d" % _c)
+
+        # h · Y la convención de la casa (`bis`, `ter`) NO se confunde con un duplicado.
+        _h = os.path.join(_tmp, "bis"); os.makedirs(_h)
+        open(os.path.join(_h, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\n## 5 · Una\n\nVer [dos](./dos.md).\n\n## 5 bis · Otra\n\n"
+            "### 5 bis.1 · Detalle\n\n### 2.5D · Ni esto\n")
+        open(os.path.join(_h, "dos.md"), "w", encoding="utf-8").write("# Dos\n")
+        _c, _o = _correr(_h)
+        _revisar("`5 bis` y `2.5D` NO cuentan como duplicado de `5`", _c == 0,
+                 "exit %d · %s" % (_c, _o.strip()[-100:]))
+
     if _fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(_fallos))
         sys.exit(1)
-    print("\n✓ Las 7 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 9 comprobaciones de la autoprueba pasan.")
     sys.exit(0)
 
 DEST = sys.argv[1] if len(sys.argv) > 1 else RAIZ
@@ -370,4 +388,64 @@ print(f"\n{anclas_ok} anclas correctas · {len(anclas_rotas)} rotas")
 for doc, destino, frag in anclas_rotas:
     print(f"  ✗ {doc}\n      → {destino}#{frag}")
 
-sys.exit(1 if (rotos or anclas_rotas) else 0)
+
+# ─── Números de sección repetidos dentro de un mismo documento ───────────────
+# «§8.7» en dos sitios del mismo documento hace ambigua cualquier cita por número,
+# y de eso vive media biblioteca: la skill decía «las seis preguntas de 13/10 §8.7»
+# cuando §8.7 era también el guion de humo. Se detectó a mano el 09-09-2026, se
+# arreglaron los cuatro casos que había, y se deja vigilado para que no vuelva.
+#
+# La convención de la casa —`5 bis`, `3 ter`, `9 quater.2`— es legítima y se
+# reconoce entera; lo que no vale es repetir la MISMA etiqueta.
+PAT_SECCION = re.compile(
+    r"^#{2,6}\s+(?>(\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies)(?:\.\d+)*)?))"
+    r"(?=\s*(?:·|\.|—|:|-|\s)\s*\S)", re.I)
+
+
+def secciones_repetidas(ruta_md):
+    """Etiquetas de sección que aparecen más de una vez en el documento."""
+    import collections
+    vistos = collections.Counter()
+    en_bloque = False
+    try:
+        txt = open(ruta_md, encoding="utf-8", errors="replace").read()
+    except OSError:
+        return {}
+    for linea in txt.splitlines():
+        if PAT_FENCE.match(linea.strip()):
+            en_bloque = not en_bloque
+            continue
+        if en_bloque:
+            continue
+        m = PAT_SECCION.match(linea)
+        if m:
+            vistos[" ".join(m.group(1).lower().split())] += 1
+    return {k: v for k, v in vistos.items() if v > 1}
+
+
+duplicadas = []
+revisados = 0
+for _raiz, _dirs, _files in os.walk(DEST):
+    _dirs[:] = [d for d in _dirs if d not in {".git", "node_modules", "11 - Código descargado",
+                                              "09 - Manual oficial", ".ruff_cache",
+                                              "Lumbre", "GameMaker_Fuentes", "auditorias"}]
+    for _f in sorted(_files):
+        if not _f.endswith(".md"):
+            continue
+        _ruta = os.path.join(_raiz, _f)
+        revisados += 1
+        rep = secciones_repetidas(_ruta)
+        if rep:
+            duplicadas.append((_ruta, rep))
+
+if duplicadas:
+    print(f"\n✗ {len(duplicadas)} documento(s) repiten un número de sección "
+          f"(una cita «§N» ahí es ambigua):")
+    for ruta, rep in duplicadas:
+        etiquetas = ", ".join(f"§{k} ×{v}" for k, v in sorted(rep.items()))
+        print(f"  {os.path.relpath(ruta, RAIZ)}: {etiquetas}")
+    print("  → renumera con la convención de la casa: `5 bis`, `3 ter`, `9 quater.2`.")
+else:
+    print(f"\n{revisados} documentos sin números de sección repetidos.")
+
+sys.exit(1 if (rotos or anclas_rotas or duplicadas) else 0)

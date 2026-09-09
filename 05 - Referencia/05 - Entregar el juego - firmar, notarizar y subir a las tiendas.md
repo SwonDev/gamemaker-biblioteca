@@ -875,7 +875,7 @@ Todas consultadas el **7 de septiembre de 2026**, salvo que se indique otra fech
 **GitHub Docs (documentación oficial)**
 - Installing an Apple certificate on macOS runners for Xcode development — <https://docs.github.com/en/actions/use-cases-and-examples/deploying/installing-an-apple-certificate-on-macos-runners-for-xcode-development>
 
-**Manual oficial de GameMaker (espejo local, fuente primaria según `AGENTS.md` §1.bis)**
+**Manual oficial de GameMaker (espejo local, fuente primaria según `AGENTS.md` §1 bis)**
 - `09 - Manual oficial/manual-lts-2026-es/Setting_Up_And_Version_Information/Platform_Preferences/Android.md` — creación del KeyStore, advertencia sobre perder el archivo
 - `09 - Manual oficial/manual-lts-2026-es/Settings/Game_Options/macOS.md` — Team Identifier, Signing Identifier, «Build for Mac App Store»
 - `09 - Manual oficial/manual-lts-2026-es/Settings/Game_Options/iOS.md` — Team Identifier de iOS
