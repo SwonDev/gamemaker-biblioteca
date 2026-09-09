@@ -51,6 +51,73 @@ if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help", "help"):
     print("\nSin argumentos revisa la raíz de la biblioteca. Con uno, esa carpeta.")
     sys.exit(0)
 
+# Autoprueba: se lanza a sí mismo contra proyectos de mentira y comprueba los
+# CÓDIGOS DE SALIDA, que es donde vivía el falso verde. Va antes de todo lo demás
+# porque no necesita leer un solo archivo de la biblioteca.
+if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
+    import subprocess, tempfile
+    _yo = os.path.abspath(__file__)
+    _fallos = []
+
+    def _correr(carpeta, extra=None):
+        _cmd = [sys.executable, _yo, carpeta] + (extra or [])
+        _r = subprocess.run(_cmd, capture_output=True, text=True)
+        return _r.returncode, _r.stdout
+
+    def _revisar(nombre, condicion, detalle=""):
+        if condicion:
+            print("  ✓ " + nombre)
+        else:
+            _fallos.append(nombre)
+            print("  ✗ %s  ->  %s" % (nombre, detalle))
+
+    with tempfile.TemporaryDirectory() as _tmp:
+        # a · Todo correcto: un enlace que existe y un ancla que existe.
+        _a = os.path.join(_tmp, "bien"); os.makedirs(_a)
+        open(os.path.join(_a, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\n## Sección buena\n\nVer [dos](./dos.md) y [el ancla](#sección-buena).\n")
+        open(os.path.join(_a, "dos.md"), "w", encoding="utf-8").write("# Dos\n")
+        _c, _o = _correr(_a)
+        _revisar("un árbol correcto sale con 0", _c == 0, "exit %d · %s" % (_c, _o.strip()[:80]))
+
+        # b · Enlace roto: tiene que fallar.
+        _b = os.path.join(_tmp, "roto"); os.makedirs(_b)
+        open(os.path.join(_b, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\nVer [tres](./tres.md).\n")
+        _c, _o = _correr(_b)
+        _revisar("un enlace roto NO sale con 0", _c != 0, "exit %d" % _c)
+
+        # c · Ancla rota: también.
+        _d = os.path.join(_tmp, "ancla"); os.makedirs(_d)
+        open(os.path.join(_d, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\n## Sección real\n\nVer [el ancla](#seccion-que-no-existe).\n")
+        _c, _o = _correr(_d)
+        _revisar("un ancla rota NO sale con 0", _c != 0, "exit %d" % _c)
+
+        # d · Cero enlaces: NO es «todo bien», es «no he mirado nada».
+        _e = os.path.join(_tmp, "vacio"); os.makedirs(_e)
+        open(os.path.join(_e, "uno.md"), "w", encoding="utf-8").write("# Uno\n\nSin enlaces.\n")
+        _c, _o = _correr(_e)
+        _revisar("una carpeta sin un solo enlace NO sale con 0", _c != 0, "exit %d" % _c)
+
+        # e · El falso verde original: un flag inventado se tomaba por carpeta.
+        _cmd = [sys.executable, _yo, "--loquesea"]
+        _r = subprocess.run(_cmd, capture_output=True, text=True)
+        _revisar("un argumento inventado NO sale con 0", _r.returncode != 0,
+                 "exit %d" % _r.returncode)
+        _revisar("y no dice «0 rotas» habiendo mirado nada",
+                 "0 rotas" not in _r.stdout, _r.stdout.strip()[:90])
+
+        # f · Sobran argumentos.
+        _c, _o = _correr(_a, ["extra"])
+        _revisar("un argumento de más NO sale con 0", _c != 0, "exit %d" % _c)
+
+    if _fallos:
+        print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(_fallos))
+        sys.exit(1)
+    print("\n✓ Las 7 comprobaciones de la autoprueba pasan.")
+    sys.exit(0)
+
 DEST = sys.argv[1] if len(sys.argv) > 1 else RAIZ
 
 if len(sys.argv) > 2:

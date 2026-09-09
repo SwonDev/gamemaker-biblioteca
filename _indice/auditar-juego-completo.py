@@ -566,5 +566,120 @@ def main():
     return 1 if (faltan or not arranque_ok) else 0
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Autoprueba
+#
+# Este script ya ha tenido cuatro calibraciones contra proyectos reales, y cada
+# una podía haber roto una anterior sin que nadie se enterara: un detector que
+# deja de detectar no falla, simplemente calla — y un aviso que no salta se lee
+# igual que «está todo bien». Los casos de abajo son los que han mordido de
+# verdad, montados como proyectos de mentira en un directorio temporal.
+#
+#   python3 _indice/auditar-juego-completo.py --autoprueba
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _proyecto_falso(base, objetos=None, scripts=None):
+    """Monta el esqueleto mínimo que este script sabe leer."""
+    os.makedirs(base, exist_ok=True)
+    with open(os.path.join(base, "falso.yyp"), "w", encoding="utf-8") as f:
+        f.write('{"resources":[],"RoomOrderNodes":[]}')
+    for nombre, datos in (objetos or {}).items():
+        d = os.path.join(base, "objects", nombre)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, nombre + ".yy"), "w", encoding="utf-8") as f:
+            f.write('{"spriteId":null,"name":"%s"}' % nombre if datos.get("sin_sprite", True)
+                    else '{"spriteId":{"name":"spr_x"},"name":"%s"}' % nombre)
+        for evento, codigo in datos.get("eventos", {}).items():
+            with open(os.path.join(d, evento + ".gml"), "w", encoding="utf-8") as f:
+                f.write(codigo)
+    for nombre, codigo in (scripts or {}).items():
+        d = os.path.join(base, "scripts", nombre)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, nombre + ".gml"), "w", encoding="utf-8") as f:
+            f.write(codigo)
+    return base
+
+
+def autoprueba():
+    import tempfile
+    fallos = []
+
+    def revisar(nombre, condicion, detalle=""):
+        if condicion:
+            print("  ✓ " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  ✗ %s  ->  %s" % (nombre, detalle))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # 1 · El rectángulo de color como personaje SÍ se señala…
+        p1 = _proyecto_falso(os.path.join(tmp, "p1"), objetos={
+            "obj_jugador": {"eventos": {"Draw_0": "draw_rectangle(x, y, x+16, y+16, false);"}},
+        })
+        rect, rect_ui = objetos_rectangulo(p1)
+        revisar("un objeto de juego sin sprite que pinta figuras se señala",
+                "obj_jugador" in rect, rect)
+
+        # 2 · …y una pantalla de interfaz NO. Es la calibración de r15 §2.12.
+        p2 = _proyecto_falso(os.path.join(tmp, "p2"), objetos={
+            "obj_seleccion": {"eventos": {"Draw_0": "draw_rectangle(0, 0, 100, 20, false);"}},
+            "obj_menu":      {"eventos": {"Draw_0": "draw_rectangle(0, 0, 100, 20, false);"}},
+        })
+        rect2, rect_ui2 = objetos_rectangulo(p2)
+        revisar("una pantalla de interfaz NO se cuenta como rectángulo prohibido",
+                rect2 == [] and "obj_seleccion" in rect_ui2 and "obj_menu" in rect_ui2,
+                "sospechosos=%s interfaz=%s" % (rect2, rect_ui2))
+
+        # 3 · Entrada sin guarda: se señala.
+        p3 = _proyecto_falso(os.path.join(tmp, "p3"), objetos={
+            "obj_jugador": {"eventos": {"Step_0": "if (keyboard_check_pressed(vk_space)) saltar();"}},
+        })
+        sin, con = objetos_sin_guarda(p3)
+        revisar("un objeto que lee entrada sin guarda se señala", "obj_jugador" in sin, sin)
+
+        # 4 · Con guarda de pausa: NO se señala.
+        p4 = _proyecto_falso(os.path.join(tmp, "p4"), objetos={
+            "obj_jugador": {"eventos": {"Step_0":
+                "if (!global.pausa && keyboard_check_pressed(vk_space)) saltar();"}},
+        })
+        sin4, _ = objetos_sin_guarda(p4)
+        revisar("con guarda de pausa NO se señala", sin4 == [], sin4)
+
+        # 5 · La laxitud que hubo que quitar: `entrada_confirmar()` NO es una guarda.
+        p5 = _proyecto_falso(os.path.join(tmp, "p5"), objetos={
+            "obj_jugador": {"eventos": {"Step_0":
+                "if (entrada_confirmar()) aceptar();"}},
+        }, scripts={"scr_entrada": "function entrada_confirmar() { return keyboard_check_pressed(vk_enter); }"})
+        sin5, _ = objetos_sin_guarda(p5)
+        revisar("una función de ENTRADA no cuela como guarda", "obj_jugador" in sin5, sin5)
+
+        # 6 · Trazas sueltas frente a canal de error (r15 §2.12).
+        p6 = _proyecto_falso(os.path.join(tmp, "p6"), scripts={
+            "scr_juego":    'function paso() { show_debug_message("aqui llego"); }',
+            "scr_registro": 'function registrar(_t) { show_debug_message(_t); }',
+            "scr_save_load": 'function save_game() { show_debug_message("error"); }',
+        })
+        sueltas, infra = contar_trazas(p6)
+        revisar("una traza suelta se cuenta", sueltas == 1, sueltas)
+        revisar("el registrador y los scripts de la biblioteca no", infra == 2, infra)
+
+        # 7 · Sistemas que ya existen hechos (r15 §4).
+        p7 = _proyecto_falso(os.path.join(tmp, "p7"), scripts={
+            "scr_input":  "function input_x() { return 0; }",
+            "scr_propio": "function algo_mio() { return 1; }",
+        })
+        rein = [n for n, _ in reinventos(p7)]
+        revisar("avisa de que `Input` ya existe", "scr_input" in rein, rein)
+        revisar("y no se inventa avisos para lo demás", "scr_propio" not in rein, rein)
+
+    if fallos:
+        print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n✓ Las 9 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())

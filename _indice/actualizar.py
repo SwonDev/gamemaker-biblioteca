@@ -335,6 +335,28 @@ def revisar_mapa():
 def main():
     problemas = []
 
+    paso(0, "Las herramientas, antes de fiarse de lo que digan")
+    # Un validador que deja de validar no falla: calla. Y un aviso que no salta se
+    # lee igual que «está todo bien». Cada uno de los tres se autocomprueba con los
+    # casos que ya le han mordido de verdad, y eso va PRIMERO: si el metro está mal,
+    # da igual lo que mida.
+    _autopruebas = [
+        ("verificar-enlaces.py",      "enlaces y anclas"),
+        ("validar-codigo-gml.py",     "cadenas sin cerrar"),
+        ("auditar-juego-completo.py", "auditor de juego completo"),
+    ]
+    for _script, _que in _autopruebas:
+        _r = subprocess.run([PY, os.path.join(IND, _script), "--autoprueba"],
+                            capture_output=True, text=True)
+        if _r.returncode != 0:
+            for _l in _r.stdout.splitlines():
+                if _l.strip().startswith("✗"):
+                    print("  " + _l.strip())
+            problemas.append(f"la autoprueba de {_script} falla ({_que})")
+        else:
+            _ultima = [l for l in _r.stdout.splitlines() if l.strip().startswith("✓")]
+            print("  " + (_ultima[-1].strip() if _ultima else f"{_script}: correcta"))
+
     paso(1, "Enlaces internos")
     if correr("verificar-enlaces.py") != 0:
         print("→ hay enlaces rotos: corrígelos antes de seguir.")
@@ -440,21 +462,8 @@ def main():
         print("  Todas las familias grandes de símbolos tienen algún documento propio.")
 
     paso(9, "Código GML (¿inventa alguna función del runtime?)")
-    # Antes de usar el detector de cadenas rotas, comprobar que el detector funciona.
-    # Tuvo tres falsos positivos que descartaban el análisis de archivos enteros
-    # (r15 §2.3), y un falso positivo aquí es más caro que no mirar: enseña a
-    # desconfiar de la salida justo donde hay un fallo real.
-    r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py"), "--autoprueba"],
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        for l in r.stdout.splitlines():
-            if l.strip().startswith("✗"):
-                print("  " + l.strip())
-        problemas.append("el detector de cadenas sin cerrar falla sus propios casos "
-                         "(python3 _indice/validar-codigo-gml.py --autoprueba)")
-    else:
-        print("  Autoprueba del detector de cadenas: 11/11.")
-
+    # La autoprueba del detector de cadenas ya corrió en el paso 0, con las de las
+    # otras dos herramientas: si el metro está mal, da igual lo que mida.
     r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py")],
                        capture_output=True, text=True)
     for l in r.stdout.splitlines():
