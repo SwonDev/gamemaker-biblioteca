@@ -240,6 +240,19 @@ def _sin_resultados(patron, ambito="la biblioteca"):
     está redactado así. Para ayudar a la siguiente consulta se buscan las
     palabras por separado y se dice cuáles sí aparecen.
     """
+    # En Windows sin `grep` (ni Git Bash ni WSL) las búsquedas de texto no se
+    # ejecutan siquiera, y sin esta comprobación el mensaje de abajo diría «no lo
+    # encuentro» dando a entender que se buscó y no había nada. La causa real es
+    # otra y hay que decirla, o el usuario concluirá que el tema no está cubierto.
+    if not shutil.which("grep"):
+        print(f"✗ No se pudo BUSCAR «{patron}»: falta el comando «grep» en el PATH.")
+        print("  Esto NO significa que no haya resultados: significa que no se ha buscado.")
+        print("  En Windows, instala Git for Windows (trae grep) o usa WSL. En macOS y")
+        print("  Linux viene de serie, así que si ves esto ahí es que el PATH está roto.")
+        print("  Mientras tanto, la ficha de un símbolo concreto SÍ funciona:")
+        print(f"      python3 _indice/buscar.py <nombre_de_la_funcion>")
+        return 2
+
     print(f"Sin resultados para «{patron}» en {ambito}.")
     print()
     print("⚠️  «No lo encuentro» NO es «no existe». Una frase falla en cuanto una")
