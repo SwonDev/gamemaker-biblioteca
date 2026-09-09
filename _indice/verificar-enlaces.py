@@ -39,7 +39,29 @@ for _flujo in (sys.stdout, sys.stderr):
 
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# El único argumento posicional es la carpeta a revisar. Comprobarlo NO es celo:
+# sin esta guarda, `verificar-enlaces.py --loquesea` tomaba «--loquesea» como
+# carpeta, no encontraba ni un archivo, e imprimía «0 rutas correctas · 0 rotas»
+# con exit 0. Un verde perfecto habiendo verificado NADA — la peor salida posible
+# para un script cuyo trabajo es dar garantías. Cualquier ruta mal escrita en un
+# CI o un flag inventado por un agente lo disparaba.
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help", "help"):
+    print(__doc__ or "verificar-enlaces.py [carpeta]")
+    print("\nSin argumentos revisa la raíz de la biblioteca. Con uno, esa carpeta.")
+    sys.exit(0)
+
 DEST = sys.argv[1] if len(sys.argv) > 1 else RAIZ
+
+if len(sys.argv) > 2:
+    print(f"✗ Sobran argumentos: {' '.join(sys.argv[2:])}")
+    print("  Uso: verificar-enlaces.py [carpeta]")
+    sys.exit(2)
+
+if not os.path.isdir(DEST):
+    print(f"✗ «{DEST}» no es una carpeta.")
+    print("  Uso: verificar-enlaces.py [carpeta]   (sin argumentos revisa la biblioteca entera)")
+    sys.exit(2)
 
 # Dos formas válidas de enlace en Markdown, y hay que comprobar las dos:
 #   [texto](ruta-sin-espacios.md)
@@ -251,6 +273,11 @@ for raiz, dirs, files in os.walk(DEST):
                 anclas_rotas.append((os.path.relpath(fp, RAIZ),
                                       os.path.relpath(ruta_destino, RAIZ),
                                       frag_decodificado))
+
+if ok == 0 and not rotos:
+    print(f"✗ No he encontrado ni un enlace en «{DEST}».")
+    print("  Cero comprobaciones no es lo mismo que cero problemas: revisa la ruta.")
+    sys.exit(2)
 
 print(f"{ok} rutas correctas · {len(rotos)} rotas")
 for doc, d in rotos:

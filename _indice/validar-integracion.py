@@ -1100,11 +1100,38 @@ def reportar_capas_1_2():
     else:
         print("\n✓ Sin duplicaciones graves (mismo nombre, distinta aridad, o macro/enum repetido).")
 
+    # Un patrón pedagógico legítimo: el MISMO documento enseña una versión y luego la
+    # sustituye por otra mejor, diciéndolo en el texto. No es una colisión entre recetas
+    # —nadie va a copiar las dos— y marcarlo como problema entrena a ignorar la lista,
+    # que es justo lo que no queremos (r12-prueba-plataformas.md §1.1). Se separa, no se
+    # silencia: sigue saliendo, pero en su propio apartado y sin ruido.
+    RELEVOS = ("reemplaza", "sustituye", "versión ampliada", "version ampliada",
+               "no lo declares dos veces", "en vez de la de", "sustituto de")
+
+    def _es_relevo(ocs):
+        docs_ = {o["doc"] for o in ocs}
+        if len(docs_) != 1:
+            return False          # en documentos distintos NO es un relevo: es una colisión
+        try:
+            texto = open(os.path.join(RAIZ, list(docs_)[0]), encoding="utf-8").read().lower()
+        except OSError:
+            return False
+        return any(r in texto for r in RELEVOS)
+
+    relevos = [m for m in medios if _es_relevo(m[2])]
+    medios = [m for m in medios if m not in relevos]
+
     if medios:
         print(f"\n🟠 {len(medios)} duplicación(es) MEDIA(S) (misma aridad, cuerpo distinto — una gana en silencio):")
         for tipo, nombre, ocs in medios:
             print(f"  ⚠ {tipo} `{nombre}`")
             _imprimir_ocurrencias(ocs)
+
+    if relevos:
+        print(f"\n· {len(relevos)} relevo(s) dentro de un mismo documento (una versión sustituye "
+              f"a otra y el texto lo dice):")
+        for tipo, nombre, ocs in relevos:
+            print(f"    {tipo} `{nombre}` — {list({o['doc'] for o in ocs})[0]}")
 
     if menores:
         print(f"\n🟡 {len(menores)} duplicación(es) menor(es) (firma y cuerpo idénticos, sin excepción documentada):")
