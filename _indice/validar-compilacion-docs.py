@@ -724,9 +724,30 @@ def main():
         for b in envueltos_bucle:
             print(f"      {b.ruta}:{b.linea}")
 
+    # Cero bloques compilables en una biblioteca con miles NO es «nada que hacer»:
+    # es «no he mirado». Devolver 0 aquí era un falso verde perfecto — si el
+    # extractor se rompiera (un cambio de regex, una carpeta renombrada), este
+    # script diría que todo compila sin haber compilado una línea. Es exactamente
+    # lo que le pasaba a `verificar-enlaces.py` con un argumento inventado.
     if not compilables:
-        print("\nNada que compilar.")
-        return 0
+        print("\n✗ CERO bloques compilables. En esta biblioteca eso NO es «nada que")
+        print("  compilar»: es que la extracción no ha encontrado nada. Revisa que las")
+        print("  carpetas de CARPETAS existan y que los bloques sigan marcados ```gml.")
+        return 2
+
+    # Y una caída fuerte respecto a la última vez también merece un aviso: un
+    # extractor medio roto encuentra algo, y ese «algo» pasa por bueno.
+    marca = os.path.join(RAIZ, "_indice", "pruebas", "ultimo-recuento-bloques.txt")
+    try:
+        anterior = int(open(marca, encoding="utf-8").read().strip())
+    except (OSError, ValueError):
+        anterior = 0
+    if anterior and len(compilables) < anterior * 0.8:
+        print(f"\n⚠ La última vez había {anterior} bloques compilables y ahora hay "
+              f"{len(compilables)}: una caída del "
+              f"{100 - int(100 * len(compilables) / anterior)} %.")
+        print("  Si has borrado documentos, es normal. Si no, la extracción está fallando")
+        print("  y lo que compile a partir de aquí demuestra menos de lo que parece.")
 
     print(f"\nAgrupando en recursos de {args.grupo} bloques cada uno…")
     comandos, escrituras, indice = agrupar_y_escribir(compilables, args.grupo)
@@ -842,6 +863,12 @@ def main():
 
     print(f"\n{'='*70}")
     if compilo_bien and not errores_atribuidos and not errores_sueltos:
+        try:
+            os.makedirs(os.path.dirname(marca), exist_ok=True)
+            with open(marca, "w", encoding="utf-8") as f:
+                f.write(str(len(compilables)))
+        except OSError:
+            pass
         print(f"✓ Los {len(compilables)} bloques compilables de los documentos "
               f"compilan sin errores de sintaxis.")
     else:
