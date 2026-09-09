@@ -54,6 +54,14 @@ ETIQUETAS_MANUAL = {"manual (es)"}
 ETIQUETAS_CODIGO = {"CÓDIGO real", "juegos_y_motores", "extensiones_oficiales",
                      "herramientas", "librerias", "plantillas_y_ejemplos"}
 
+# El índice de símbolos se genera del GmlSpec.xml del runtime INSTALADO: en un clon
+# recién bajado de GitHub, sin GameMaker en la máquina, no existe. Sin él `buscar.py`
+# no puede dar la ficha de ninguna función, y diez de estas tareas fallaban con un
+# «10 de 55 tareas sin resolver» que se lee como «la biblioteca está rota» cuando la
+# verdad es «falta instalar GameMaker». Es el mismo perdón que ya se hace con el
+# manual y el código descargado, que también son fuentes opcionales.
+SIMBOLOS_INSTALADOS = os.path.isfile(os.path.join(RAIZ, "_indice", "simbolos.json"))
+
 
 # Cada caso: (descripción de la tarea, argumentos de buscar.py, textos que DEBEN aparecer)
 CASOS = [
@@ -292,7 +300,15 @@ CASOS = [
 
 def main():
     fallos = 0
+    sin_runtime = 0
     for desc, args, esperados in CASOS:
+        # Una tarea que consulta un SÍMBOLO (sin modo, o con --todo) no puede
+        # resolverse sin el índice: no es un fallo de la biblioteca, es una fuente
+        # opcional que no está instalada.
+        if not SIMBOLOS_INSTALADOS and (not args[0].startswith("--") or args[0] == "--todo"):
+            sin_runtime += 1
+            print(f"· {desc}  (necesita el índice de símbolos: instala GameMaker)")
+            continue
         out = salida(*args)
         faltan = []
         for e in esperados:
@@ -313,9 +329,16 @@ def main():
             print(f"✓ {desc}")
 
     print()
+    if sin_runtime:
+        print(f"· {sin_runtime} tarea(s) omitidas: necesitan _indice/simbolos.json, que sale")
+        print("  del runtime instalado. Instala GameMaker y repite para probarlas.")
     if fallos:
         print(f"\033[1m{fallos} de {len(CASOS)} tareas sin resolver.\033[0m")
         return 1
+    if sin_runtime:
+        print(f"\033[1mLas {len(CASOS) - sin_runtime} tareas comprobables se resuelven.\033[0m "
+              "Las demás esperan al runtime.")
+        return 0
     print(f"\033[1mLas {len(CASOS)} tareas se resuelven.\033[0m "
           "Un LLM encuentra lo que necesita con las herramientas del proyecto.")
     return 0
