@@ -61,6 +61,12 @@ familia espacial/empuje es la que desarrolla la Parte de ingeniería de este doc
 porque es la más fácil de representar como estado y resolver por búsqueda — pero el método de
 §2 (enseñar sin enunciar, medir la dificultad, graduar pistas) vale para las siete.
 
+> 🔧 **La otra mitad de un puzle de sala —placas, puertas, llaves y «reiniciar el nivel»— está en
+> [`04 · 59`](../04%20-%20Recetas%20por%20género/59%20-%20Puertas,%20llaves%20y%20placas%20de%20presión%20-%20el%20puzle%20de%20sala.md).**
+> §3 de aquí resuelve el empuje y la búsqueda; eso resuelve lo que rodea al empuje, que es
+> justo lo que un agente tuvo que inventarse sobre la marcha
+> ([`r15` §2.9](../_indice/auditorias/r15-prueba-puzles.md)).
+
 ### 1.3 El momento «ajá»: anatomía y qué lo mata
 
 Jonathan Blow es explícito sobre lo que destruye la epifanía: sobre-tutorializar «mata la

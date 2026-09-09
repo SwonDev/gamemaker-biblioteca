@@ -2519,6 +2519,33 @@ la escalera de esa sección (dibujo por código, assets libres, IA) evita este e
 Si sospechas que un build no se actualizó, compara la fecha de `game.zip` contra la hora actual
 después de cada `compile`, no solo el `exit 0`.
 
+> ⚠️ **Y hay un tercer silencio, el más difícil de leer: `--errors-only` no distingue «compiló
+> bien» de «no miró nada».** Sobre un proyecto con 2 000 líneas de GML nuevo, la primera
+> compilación devolvió esto:
+>
+> ```console
+> $ gm-cli compile --errors-only ; echo "EXIT=$?"
+> EXIT=0
+> ```
+>
+> Ni una línea, siete segundos. Es la salida correcta —y es exactamente la misma que daría una
+> herramienta que no hubiera abierto un solo archivo—. **La forma de saberlo es rompiendo el
+> código a propósito una vez**, al empezar, y comprobando que se queja:
+>
+> ```console
+> $ printf 'function prueba() { var _x = ; }\n' >> scripts/scr_ui/scr_ui.gml
+> $ gm-cli compile --errors-only
+> Command failed:
+> gml_GlobalScript_scr_ui(279) : unexpected symbol ";" in expression
+> GMAssetCompiler.dll exited with non-zero status (1)
+> ```
+>
+> Confirmado: el compilador sí ve tu código, y el silencio anterior era silencio de éxito. Cuesta
+> veinte segundos y convierte un `exit 0` mudo en una prueba. Es la misma disciplina que
+> `verificar-enlaces.py` aprendió a la fuerza —**un cero puede significar «nada mal» o «nada
+> mirado», y hay que poder distinguirlo**— y la que `buscar.py` aplica cuando no encuentra
+> `grep`. ([`r15` §2.11](../_indice/auditorias/r15-prueba-puzles.md))
+
 ---
 
 ## 8 · Checklist final antes de dar una tarea por terminada
@@ -2526,7 +2553,9 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] Cada símbolo de GML que escribiste está verificado con `buscar.py` (no «creo que existe»).
 - [ ] Cada evento que creaste con `resourcetool` se comprobó con `object event list name=<obj>`
       — no te fiaste del nombre del subtipo a ciegas (§2.5).
-- [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida**.
+- [ ] `gm-cli compile --errors-only` da `exit 0` y **sin salida** — y al menos una vez en la
+      sesión rompiste el código a propósito para comprobar que ese silencio es de éxito y no de
+      «no he mirado nada» (§7.7).
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
       *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
