@@ -14,17 +14,37 @@
 Es, con diferencia, **el recurso escrito en español más importante que existe**. También el
 más incomprendido, porque casi nadie sabe que está ahí.
 
-| Dato medido sobre el espejo | Valor |
+> ⚠️ **Ojo con qué se está midiendo.** Estas cifras describen el **manual oficial tal y como lo
+> publica YoYo**, no el espejo de esta biblioteca. La tabla decía «dato medido sobre el espejo» y
+> era inexacto: el espejo de aquí **ya está completo** (ver la segunda tabla). Corregido el
+> 09-09-2026.
+
+| El manual oficial en español, cuando se midió | Valor |
 |---|---|
 | Páginas totales | **3 033** |
 | Traducidas al español | **2 602** (86 %) |
 | Todavía en inglés | **431** (14 %) |
 | Antigüedad típica del texto traducido | **2021-2022** (según el aviso de copyright de cada página) |
 
-**Lo que hay que saber:** las 431 páginas sin traducir son exactamente **las funciones nuevas**
-(UI Layers, Flexpanels, control de GPU, buses de audio, partículas nuevas). Y en muchas
-páginas traducidas, **las tablas de argumentos siguen en inglés** aunque el texto explicativo
-esté en castellano.
+Las 431 páginas sin traducir eran exactamente **las funciones nuevas** (UI Layers, Flexpanels,
+control de GPU, buses de audio, partículas nuevas). Y en muchas páginas traducidas, **las tablas
+de argumentos seguían en inglés** aunque el texto explicativo estuviera en castellano.
+
+| El espejo de esta biblioteca, hoy | Valor |
+|---|---|
+| Páginas en `09 - Manual oficial/manual-lts-2026-es/` | **3 142** |
+| Con prosa todavía en inglés | **0** |
+| Comprobación automática | `_indice/verificar-espejo.py`, paso 13 de `actualizar.py`: *«3 119 páginas comparadas · 0 ausentes · 0 incompletas · 0 con literales traducidos»* |
+
+**Esa es la razón de ser del espejo**: no es una copia del manual oficial en español, es el
+manual oficial en español **con sus huecos rellenados** y contrastado página a página contra el
+inglés en cada ejecución. El repositorio fuente oficial
+(<https://github.com/YoYoGames/GameMaker-Manual-ES>, última subida 28-07-2026) sigue siendo la
+fuente de la que parte, y sigue estando incompleto.
+
+> 🔎 **«0 con literales traducidos» no es una obviedad, es la comprobación que más cuesta.**
+> Un manual traducido a máquina traduce también los nombres de las funciones y los valores de los
+> ejemplos, y eso convierte la documentación en código que no compila. El paso 13 lo vigila.
 
 Detalle completo en [`09 - Manual oficial/README.md`](../09%20-%20Manual%20oficial/README.md).
 
