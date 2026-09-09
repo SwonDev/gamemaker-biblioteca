@@ -1354,6 +1354,74 @@ avisar al usuario de que le vas a costar una descarga larga. Y si lo haces, usa 
 
 ---
 
+## 0 bis · Qué vía usar para cada cosa: CLI → MCP → computer use → humano
+
+**Antes del ciclo de trabajo, la decisión de arquitectura.** Un agente tiene cuatro vías para
+tocar un proyecto de GameMaker, y elegir mal cuesta horas. El orden no es negociable, y el
+motivo de cada peldaño importa más que el peldaño.
+
+### 1º · El CLI oficial, siempre que llegue
+
+`gm-cli` y su `resourcetool` son la vía por defecto: oficial, determinista, guionizable, sin
+proceso aparte, y **es lo que esta biblioteca tiene verificado comando a comando**
+([§3 bis](#3-bis--construir-el-juego-entero-por-cli-qué-se-escribe-de-verdad)). Con él se
+construye un juego entero: recursos, eventos, salas, capas, cámaras, viewports, físicas de sala,
+tilesets, tilemaps desde CSV, orígenes de sprite, renombrados, compilación y empaquetado.
+
+### 2º · El MCP oficial — que NO es un escalón por encima, es el mismo motor
+
+> 🔑 **El error de arquitectura más común: creer que el MCP puede más que el CLI.** El MCP
+> `gamemaker-resource-tool` **es el mismo ResourceTool**, expuesto como herramientas en vez de
+> como línea de comandos. No desbloquea nada nuevo — y de hecho tiene **menos**: le faltan cinco
+> operaciones que `eval` sí tiene ([§3.1](#31-lo-que-el-mcp-no-tiene-y-resourcetool-eval-sí)).
+>
+> Se usa por **comodidad**, no por capacidad: llamadas tipadas en vez de construir cadenas. Si
+> algo no se puede por CLI, tampoco se puede por el MCP oficial. Buscar ahí la solución es
+> perder el tiempo.
+
+Los MCP de **terceros** sí hacen más que el CLI, pero al precio de escribir directamente sobre
+los `.yy` en vez de pasar por el ResourceTool — con lo que eso implica
+([`07 · 14`](../07%20-%20Ecosistema/14%20-%20IA%20y%20GameMaker.md)).
+
+### 3º · Computer use, para lo que es exclusivo del IDE
+
+Aquí está el cambio de fondo: **hay una lista corta y concreta de operaciones que el CLI no hace
+y que hasta ahora terminaban en «pídeselo al humano».** No son un misterio ni una limitación
+difusa — están medidas, una por una, en este mismo documento:
+
+| Operación | Por qué el CLI no llega | Dónde está medido |
+|---|---|---|
+| **Rasterizar los glifos de una fuente** | Es trabajo del editor; el `.yy` se queda con `"glyphs":{}` pase lo que pase | Trampa 5 |
+| **Versión del ejecutable, nombre de producto, copyright, NSIS…** | 25 de las 30 propiedades de plataforma son de solo lectura | Trampa 10 |
+| **Variable Definitions de un objeto** | 3 variantes probadas, ninguna | [§3 bis.6](#3-bis6-los-límites-reales-para-que-no-pierdas-el-tiempo) |
+| **`nineSlice` de un sprite** | 3 variantes | §3 bis.6 |
+| **Mover un recurso a otra carpeta del Asset Browser** | 8 variantes, y `ProjectTool IMPORT YY` tampoco | §3 bis.6 · §3 ter.1 |
+| **Anidar una capa de sala dentro de otra** | `PARENT=` dice «Saved successfully» y la deja en la raíz | §3 bis.6 |
+| **Código de creación de una instancia** | Un `=` dentro de `value=` rompe el parser | §3 bis.6 |
+| **Crear un asset de Extensión** | `Resource type 'extension' is not creatable` | Prohibiciones de la skill |
+| **Flex Panels / UI Layers complejos** | Es un editor visual | §10 de este documento |
+
+**Todas esas son operaciones de interfaz gráfica.** Un agente con control del escritorio —en este
+equipo, *Codex Computer Use*— puede abrir el IDE y hacerlas: son clics en diálogos, no juicios
+humanos. Eso convierte «pídeselo al humano» en «hazlo tú, con más cuidado».
+
+> ⚠️ **Y con más cuidado de verdad.** Computer use no tiene las garantías del CLI: no hay código
+> de salida que leer, la interfaz cambia entre versiones, y un clic mal puesto en el IDE toca el
+> proyecto sin dejar rastro. Antes de usarlo: **haz copia del proyecto**, y después **verifica el
+> resultado por CLI** —`options get`, `resource info`, `font glyphlist`— en vez de fiarte de lo
+> que se vio en pantalla. La regla de leer siempre de vuelta vale aquí el doble.
+
+### 4º · El humano, solo para lo que depende de sus sentidos o de su cuenta
+
+Lo que queda tras los tres peldaños anteriores es corto y no lo resuelve ninguna herramienta:
+**si se ve bien, si se oye bien, si se siente bien**, el rendimiento en hardware real, y todo lo
+que exija una cuenta o una firma suya (tiendas, certificación, claves). La tabla está en
+[§4.2](#42-lo-que-un-agente-no-puede-comprobar-por-sí-solo--pídeselo-al-humano) — y conviene
+releerla sabiendo que ahora es **más corta de lo que era**: lo que es «abrir un diálogo y
+rellenar un campo» ya no pertenece a esa lista.
+
+---
+
 ## 1 · El ciclo completo del agente
 
 `AGENTS.md §5` ya documenta la secuencia y es correcta; esta tabla añade, para cada paso, **qué
