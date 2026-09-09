@@ -732,6 +732,13 @@ def main():
     comandos, escrituras, indice = agrupar_y_escribir(compilables, args.grupo)
     print(f"  {len(comandos)} recursos de script.")
 
+    # `gm-cli init` descarga la plantilla de api.gamemaker.io en CADA ejecución, y esa API
+    # limita por tasa: con varias pasadas seguidas devuelve 429 y el CLI responde
+    # «Failed to fetch templates:» — sin nada detrás. Ese mensaje se lee como un fallo de
+    # este script, y no lo es. Por eso se guarda una SEMILLA del proyecto vacío: si el init
+    # falla, se restaura de ahí y la validación sigue sin depender de la red.
+    SEMILLA = os.path.join(HOME, ".gm_prueba_docs_semilla")
+
     shutil.rmtree(PROY, ignore_errors=True)   # por si quedó de una ejecución anterior interrumpida
 
     try:
@@ -741,8 +748,38 @@ def main():
              "--template", "blank", "--no-ai", "--no-actions",
              "--toolchain", "GMS2@2026.0.0.23"],
             cwd=HOME, capture_output=True, text=True)
+
+        if not os.path.isfile(YYP) and os.path.isdir(SEMILLA):
+            salida = (r.stdout or "") + (r.stderr or "")
+            motivo = ("la API de plantillas limitó por tasa (429)"
+                      if "fetch templates" in salida else "el init falló")
+            print(f"  ⚠ {motivo}; reutilizo la semilla de {SEMILLA}.")
+            shutil.copytree(SEMILLA, PROY)
+            # La semilla puede traer scripts de una pasada anterior: se vacían.
+            dir_scripts = os.path.join(PROY, "scripts")
+            if os.path.isdir(dir_scripts):
+                shutil.rmtree(dir_scripts, ignore_errors=True)
+
+        # Un init bueno es la ocasión de guardar la semilla: el proyecto se borra al
+        # terminar, así que si no se copia AHORA no queda nada de lo que tirar mañana.
+        if os.path.isfile(YYP) and not os.path.isdir(SEMILLA):
+            try:
+                shutil.copytree(PROY, SEMILLA)
+                print(f"  (semilla guardada en {SEMILLA}: las próximas pasadas no dependerán de la red)")
+            except OSError:
+                pass                          # no poder guardarla no debe romper la validación
+
         if not os.path.isfile(YYP):
             print("✗ no se pudo crear el proyecto de prueba:")
+            salida = (r.stdout or "") + (r.stderr or "")
+            if "fetch templates" in salida:
+                print("  Causa: `gm-cli init` no pudo descargar la plantilla.")
+                print("  Si api.gamemaker.io responde 429, es LÍMITE DE TASA por haber creado")
+                print("  muchos proyectos seguidos — no un fallo de esta biblioteca. Espera unos")
+                print("  minutos y repite; a partir de la primera pasada buena queda una semilla")
+                print(f"  en {SEMILLA} y este script deja de depender de la red.")
+                print("  Compruébalo con:  curl -s -o /dev/null -w '%{http_code}' \\")
+                print("      https://api.gamemaker.io/api/gamemaker/project-templates")
             print(r.stdout[-2000:])
             print(r.stderr[-2000:])
             return 2

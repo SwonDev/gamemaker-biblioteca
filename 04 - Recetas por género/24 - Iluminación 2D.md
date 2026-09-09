@@ -625,6 +625,122 @@ void main()
 
 ---
 
+## 5 bis · Iluminación global: cuando la luz tiene que rebotar
+
+Todo lo anterior es **luz directa**: una fuente ilumina lo que ve, y lo que queda a la sombra
+queda negro. En la realidad la luz rebota — una pared roja tiñe de rojo el suelo que tiene
+delante, y una habitación con una sola ventana no está a oscuras en los rincones. Eso es
+**iluminación global**, y hasta hace poco no existía en 2D a tiempo real.
+
+Existe desde 2024, se llama **cascadas de radiancia** (*radiance cascades*), y hay una
+implementación de referencia en GameMaker. Esta sección explica cuándo vale la pena y cómo está
+construida — **no reescribe los shaders**: son unos mil quinientos caracteres de GLSL muy
+afinado y copiarlos aquí solo serviría para que se desactualicen.
+
+### 5 bis.1 Qué problema resuelve, y qué cuesta
+
+| | Luz directa (§1-§4) | Cascadas de radiancia |
+|---|---|---|
+| Rincón sin línea de visión a ninguna luz | Negro | Iluminado por rebote |
+| Pared de color junto a un suelo neutro | No lo afecta | Lo tiñe (*color bleeding*) |
+| Añadir una luz | Una superficie más | Ninguna: la escena entera es la fuente |
+| Coste | Lineal en número de luces | Fijo, según resolución y número de cascadas |
+| Complejidad de montaje | Media | **Alta** |
+
+**La propiedad que lo cambia todo**: el coste **no depende del número de luces**. Con el sistema
+de §1, cien antorchas son cien superficies; con cascadas, cien antorchas cuestan lo mismo que
+una, porque lo que se ilumina es la escena, no cada foco. A cambio, el coste base es alto y
+constante aunque no haya ni una luz encendida.
+
+> 🔺 **No lo uses porque suene bien.** Si tu juego tiene pocas luces, sombras duras y estética de
+> píxel, el sistema de §1 con las sombras de §4 se ve mejor y cuesta una fracción. Las cascadas
+> ganan cuando hay **muchas** fuentes, geometría que ocluye, y quieres que el color rebote.
+
+### 5 bis.2 Cómo está construida la implementación de referencia
+
+La de Yaazarai —el autor del boletín *GM Shaders*— está en
+`11 - Código descargado/librerias/iluminacion/GMShaders-Radiance-Cascades/`, bajo
+[Unlicense](https://unlicense.org) (dominio público: se puede usar sin condiciones). Trae dos
+variantes, `RadianceCascades` y `RadianceCascades-Optimized`; la segunda agrupa los rayos por
+dirección en vez de por posición de sonda.
+
+La tubería son **cinco pasadas por fotograma**, y este es el orden real que ejecuta su
+`Draw End`:
+
+1. **Pintar la escena** a una superficie de «mundo»: lo que emite luz y lo que la bloquea.
+2. **Semilla del *jump flood*** (`Shd_SeedJumpFlood`).
+3. **Jump flood** (`Shd_JumpFlood`), en pasadas de distancia decreciente.
+4. **Campo de distancia** (`Shd_DistanceField`): de ahí sale un SDF de la escena, que es lo que
+   permite avanzar los rayos a saltos grandes en vez de píxel a píxel.
+5. **Las cascadas** (`Shd_RadianceCascades`), recorridas **en orden inverso** y fusionando cada
+   una en la anterior, y una pasada final que compone el resultado.
+
+El número de cascadas no se elige a ojo: sale de la diagonal de la pantalla.
+
+```gml
+// Del Create de Obj_RadianceCascades — la fórmula que decide cuántas cascadas hacen falta
+// para que el intervalo más largo cubra la pantalla entera.
+// Verificado: point_distance, logn, ceil
+render_width  = 1920;
+render_height = 1080;
+radiance_cascades = ceil(logn(4, point_distance(0, 0, render_width, render_height)));
+```
+
+**La calidad NO se sube añadiendo rayos.** Es el error de intuición de esta técnica: con
+*pre-averaging* activado —y en esa implementación no se puede desactivar—, la cascada 0 se queda
+fija en **4 rayos por sonda**, y lo que se ajusta es el **espaciado lineal entre sondas**:
+
+```gml
+// Potencias de 2, enteras o fraccionarias: 0.25, 0.5, 1.0, 2.0…
+// MENOS espaciado = más calidad y más coste. Más espaciado = más rápido y más basto.
+render_linear   = 1.0;
+render_interval = point_distance(0, 0, render_linear, render_linear) * 0.5;
+```
+
+### 5 bis.3 El artefacto que tendrás que elegir cómo pagar
+
+Las cascadas interpolan entre sondas, y esa interpolación produce artefactos donde hay
+oclusión. **No hay una solución gratis**: la implementación trae cuatro shaders distintos porque
+cada arreglo cambia un problema por otro, y elegir es parte del trabajo.
+
+| Variante | Qué hace | Qué te cobra |
+|---|---|---|
+| `Shd_RadianceCascades_BilinearFix` | Lanza 4 rayos, uno reproyectado a cada sonda bilineal de la cascada siguiente | 4× rayos: es la cara |
+| `Shd_RadianceCascades_NearestFix` | Solo reproyecta a la sonda más cercana | Pixelación en grupos de 2×2 sondas |
+| `Shd_RadianceCascades_InterlacedFix` | Como la anterior, pero entrelazando qué sonda es «la más cercana» | Tramado visible, con aspecto de *dithering* |
+| `Shd_RadianceCascades_FPFixed` | Variante de punto fijo | — |
+
+> 💡 **El tramado de la variante entrelazada puede ser una virtud.** En un juego de píxel el
+> *dithering* es parte del lenguaje visual, así que el arreglo más barato puede ser también el
+> que mejor encaje. Míralo antes de pagar los 4× rayos del bilineal.
+
+### 5 bis.4 El resto de la familia, por si te quedas corto
+
+Todo del mismo autor, todo en `librerias/iluminacion/`:
+
+| Repositorio | Para qué | Licencia |
+|---|---|---|
+| `RadianceCascades` | La versión desnuda, más fácil de leer para entender el paper | Sin licencia declarada — **léela, no la copies** |
+| `Global-Irradiance` | El paso previo: irradiancia global por rejilla, más simple y más barata | Unlicense |
+| `2D-QuickRayTracing-GLSL` | Trazado de rayos 2D en dos pasadas: la base de todo lo anterior | LGPL-2.1 |
+| `Volumetric-HRC` | Volumétricos por píxel en tiempo constante (julio de 2026, lo más nuevo) | Unlicense |
+| `PathTraced-Volumetrics` | Volumétricos por trazado de caminos: lento y correcto, sirve de referencia contra la que comparar | Unlicense |
+| `prettylight` | En el extremo opuesto: iluminación 2D mínima, sin sombras. Buen punto de partida | MIT |
+
+> ⚠️ **`RadianceCascades` (el repositorio, no el artículo) no declara licencia.** Sin licencia
+> explícita, el código es «todos los derechos reservados» por defecto: sirve para estudiarlo,
+> **no para copiarlo a tu juego**. La versión de `GMShaders-Radiance-Cascades` sí es Unlicense y
+> hace lo mismo. Es la misma regla que la biblioteca aplica a los juegos comerciales del corpus.
+
+### 5 bis.5 Antes de empezar, lee el artículo
+
+La técnica es de **Alexander Sannikov** (Path of Exile) y su documento original explica el porqué
+de las cascadas mucho mejor que ningún resumen. La implementación de GameMaker está explicada
+paso a paso en el boletín *GM Shaders* — el enlace está en el `README.md` del repositorio
+descargado. Sin esa lectura, el código de arriba es una caja negra que no vas a poder afinar.
+
+---
+
 ## 6 · Ciclo día/noche con rampa de color
 
 `04 · 09 §5.5` monta un ciclo día/noche con una capa plana de `c_navy` y alfa variable: oscurece
