@@ -197,15 +197,34 @@ audio_play_sound(abierta ? snd_puerta_abre : snd_puerta_cierra, 1, false);
 Y la colisión, que es donde se cuela el fallo:
 
 ```gml
-// obj_jugador · el movimiento consulta la puerta, no la destruye
+// El movimiento consulta la puerta, no la destruye. Y pregunta por la CASILLA,
+// no por «¿chocaría yo aquí?»: ver el aviso de debajo.
 function celda_bloqueada(_gx, _gy)
 {
-    var _inst = instance_position(_gx * CELDA + CELDA / 2,
-                                  _gy * CELDA + CELDA / 2, obj_puerta);
-    if (_inst != noone && !_inst.abierta) return true;
-    return place_meeting(_gx * CELDA, _gy * CELDA, obj_muro);
+    var _px = _gx * CELDA + CELDA / 2;
+    var _py = _gy * CELDA + CELDA / 2;
+
+    var _puerta = instance_position(_px, _py, obj_puerta);
+    if (_puerta != noone && !_puerta.abierta) return true;
+
+    return (instance_position(_px, _py, obj_muro) != noone);
 }
 ```
+
+> 🔴 **`place_meeting()` NO sirve aquí, aunque sea lo primero que sale.**
+> `place_meeting(x, y, obj_muro)` no pregunta «¿hay un muro en esa casilla?»: pregunta
+> «¿chocaría **yo** si me pusiera ahí?», y la respuesta depende de **la máscara de quien
+> llama**. Eso rompe la función de dos maneras:
+>
+> - **Llamada desde algo sin máscara —un gestor, un objeto de control— devuelve siempre
+>   `false`.** Sin error: el jugador atraviesa los muros y no hay nada que depurar.
+>   Se descubrió ejecutando esta misma receta: `celda_bloqueada(0, 0)` decía «libre» con un
+>   muro delante (`bash _indice/validar-ejecucion.sh`).
+> - Y aun con máscara, un personaje de 12 px en una rejilla de 16 da respuestas que no
+>   coinciden con la casilla que creías estar preguntando.
+>
+> `instance_position()` mira **un punto** —el centro de la casilla— y no depende de quién
+> pregunte. En una rejilla es lo que quieres siempre.
 
 > 🔴 **No destruyas la puerta al abrirla.** Es lo cómodo —`instance_destroy()` y ya no
 > colisiona— y cierra tres caminos a la vez: no se puede **volver a cerrar** cuando la caja

@@ -235,6 +235,46 @@ def reinventos(ruta):
     return avisos
 
 
+# Las funciones que preguntan «¿hay un X aquí?». Todas dependen de que X tenga
+# máscara de colisión: sin sprite ni maskSpriteId, NINGUNA lo encuentra jamás.
+COLISION_CONTRA = re.compile(
+    r"\b(?:place_meeting|position_meeting|instance_place|instance_position|instance_nearest|"
+    r"collision_point|collision_rectangle|collision_circle|collision_line|"
+    r"place_free|place_empty)\s*\([^)]*?\b(obj_\w+)", re.S)
+
+
+def objetos_sin_mascara(ruta):
+    """Objetos contra los que el código colisiona y que no tienen máscara.
+
+    Un objeto sin sprite y sin `maskSpriteId` no tiene máscara de colisión, así que
+    `place_meeting()` e `instance_position()` **no lo encuentran nunca**. Un
+    `obj_muro` creado por CLI y sin sprite es invisible Y atravesable, sin un solo
+    error: el jugador cruza las paredes y no hay nada que depurar. Le pasa justo a
+    quien monta los objetos por CLI y deja el arte para después — es decir, a un
+    agente. Detalle en `12 · 09 §3 bis.1 ter`.
+    """
+    dir_obj = os.path.join(ruta, "objects")
+    if not os.path.isdir(dir_obj):
+        return []
+
+    # 1 · Contra quién colisiona el código.
+    objetivos = set()
+    for fp in gml_del_proyecto(ruta):
+        for m in COLISION_CONTRA.finditer(leer(fp)):
+            objetivos.add(m.group(1))
+
+    # 2 · De esos, cuáles no tienen máscara.
+    sin_mascara = []
+    for nombre in sorted(objetivos):
+        yy = os.path.join(dir_obj, nombre, nombre + ".yy")
+        if not os.path.isfile(yy):
+            continue                       # no es un objeto de este proyecto
+        crudo = leer(yy).replace(" ", "").replace("\n", "")
+        if '"spriteId":null' in crudo and '"maskSpriteId":null' in crudo:
+            sin_mascara.append(nombre)
+    return sin_mascara
+
+
 def objetos_rectangulo(ruta):
     """Objetos SIN sprite cuyo evento Draw pinta figuras a mano.
 
@@ -463,6 +503,7 @@ def main():
     audio_pausa = audio_en_pausa(gml)
     icono, version = icono_y_version(ruta)
     reinv = reinventos(ruta)
+    sin_mascara = objetos_sin_mascara(ruta)
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
@@ -474,7 +515,8 @@ def main():
                           "objetos_con_guarda": con_guarda,
                           "pausa_toca_el_audio": audio_pausa,
                           "icono_propio": icono, "version": version,
-                          "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv]},
+                          "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv],
+                          "objetos_sin_mascara_contra_los_que_se_colisiona": sin_mascara},
                          ensure_ascii=False, indent=2))
     else:
         print("Proyecto: %s" % proy["yyp"])
@@ -517,6 +559,13 @@ def main():
             print("  · %d más están dentro del registrador o de los scripts de la biblioteca:"
                   % debug_infra)
             print("    son el canal de log, no trazas olvidadas. No las cuento.")
+        if sin_mascara:
+            print("  ⚠ %d objeto(s) contra los que colisiona tu código NO tienen máscara"
+                  % len(sin_mascara))
+            print("    (ni sprite ni maskSpriteId): " + ", ".join(sin_mascara))
+            print("    `place_meeting()` e `instance_position()` NO los encuentran nunca. Son")
+            print("    invisibles y además atravesables, sin un solo error. Dales un sprite")
+            print("    (y `visible = false` si tienen que seguir sin verse) — 12/09 §3 bis.1 ter.")
         if reinv:
             print("  · %d sistema(s) que ya existían hechos. No es un fallo —puedes tener"
                   % len(reinv))
@@ -663,6 +712,21 @@ def autoprueba():
         revisar("una traza suelta se cuenta", sueltas == 1, sueltas)
         revisar("el registrador y los scripts de la biblioteca no", infra == 2, infra)
 
+        # 7 bis · Un objeto sin máscara contra el que se colisiona.
+        p7b = os.path.join(tmp, "p7b")
+        _proyecto_falso(p7b, objetos={"obj_muro": {}}, scripts={
+            "scr_mover": "function choca() { return place_meeting(x, y, obj_muro); }"})
+        # `_proyecto_falso` escribe spriteId null; hace falta también maskSpriteId.
+        _yy = os.path.join(p7b, "objects", "obj_muro", "obj_muro.yy")
+        open(_yy, "w", encoding="utf-8").write('{"spriteId":null,"maskSpriteId":null,"name":"obj_muro"}')
+        revisar("un objeto sin máscara contra el que se colisiona se señala",
+                "obj_muro" in objetos_sin_mascara(p7b), objetos_sin_mascara(p7b))
+        # Y con sprite, no.
+        open(_yy, "w", encoding="utf-8").write(
+            '{"spriteId":{"name":"spr_x"},"maskSpriteId":null,"name":"obj_muro"}')
+        revisar("y con sprite NO se señala", objetos_sin_mascara(p7b) == [],
+                objetos_sin_mascara(p7b))
+
         # 7 · Sistemas que ya existen hechos (r15 §4).
         p7 = _proyecto_falso(os.path.join(tmp, "p7"), scripts={
             "scr_input":  "function input_x() { return 0; }",
@@ -675,7 +739,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 9 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 11 comprobaciones de la autoprueba pasan.")
     return 0
 
 

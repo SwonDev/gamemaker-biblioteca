@@ -333,7 +333,10 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       y todo el `.gml`, y te dice qué piezas del envoltorio **no encuentra**: menú, opciones,
       pausa, guardado, créditos, fin de partida, sonido, mando, si el jugador entra por una
       portada o directo al nivel, y qué objetos sin sprite están pintando rectángulos. Sale con
-      código 1 mientras falte algo, para que no se pueda pasar por alto.
+      código 1 mientras falte algo, para que no se pueda pasar por alto. También avisa de
+      **objetos contra los que colisiona tu código y que no tienen máscara** —sin sprite ni
+      `maskSpriteId`, `place_meeting()` no los encuentra nunca: son invisibles Y atravesables,
+      sin un solo error.
       **También te dice qué sistemas has escrito que ya existían hechos** —entrada, texto,
       diálogo, serialización, guardado, tweens, pathfinding, idiomas—: tres agentes seguidos
       escribieron su propio sistema de entrada teniendo `Input` en el catálogo, así que el paso

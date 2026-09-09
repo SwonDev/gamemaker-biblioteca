@@ -10,3 +10,5 @@ banco_grid();
 banco_tiempo();
 banco_guardado();
 banco_input();
+banco_circuitos();
+banco_circuitos_mundo();
