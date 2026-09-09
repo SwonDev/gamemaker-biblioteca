@@ -2067,6 +2067,41 @@ Kenney, itch.io/game-assets/tag-gamemaker y OpenGameArt responden y sirven conte
 repite el catálogo aquí — sí el criterio: **un pack CC0 de Kenney bien elegido siempre gana a un
 placeholder propio**, y cubre §4 de coherencia entre packs si mezclas más de uno.
 
+#### Peldaño 2 bis — REPARAR lo generado, antes de meterlo en el juego
+
+**Este peldaño no crea nada: arregla.** Y hace falta siempre que la imagen venga de un
+generador, de un upscaler o de un JPEG — que es el caso del peldaño 3 de abajo.
+
+El problema es concreto: lo que sale de un modelo *parece* pixel art y no lo es. Los píxeles
+quedan **fuera de rejilla**, los bordes emborronados, la escala no es entera y el archivo pesa
+diez veces su resolución real. Metido así en un sprite, el juego se ve sucio y no sabrás por qué.
+
+```bash
+# pixel-art-fixer — convierte pixel art FALSO en real. Sin modelo, sin clave, sin cuenta:
+#   «Image processing only, no model required» (su propio README)
+# En 11 - Código descargado/herramientas/pixel-art-ia/pixel-art-fixer/
+
+# pixeldetector — repara arte dañado por reescalado o compresión y lo devuelve a su
+# resolución verdadera. Solo pide Pillow, Numpy y Scipy.
+python3 pixeldetector.py <entrada.png>
+```
+
+| Si tienes… | Usa |
+|---|---|
+| Una imagen generada que «parece» pixel art | `pixel-art-fixer` |
+| Pixel art que alguien reescaló o guardó en JPEG | `pixeldetector` |
+| Que reducir de escala sin destrozar los bordes | `K-Centroid-Aseprite` (k-medias) |
+| Que aplicar tramado con tu paleta, desde Python | `hitherdither` (trabaja en PIL, encaja con §5.2 peldaño 1) |
+| Partir una hoja de sprites sin rejilla fija | `spritesplitter` |
+| Un mapa normal para la iluminación de `04 · 24 §3` | `Material-Map-Generator` |
+
+Las siete son **MIT o Apache-2.0 y se ejecutan en local**. Catálogo y contexto en
+[`07 · 23 §1 bis`](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md).
+
+> 🔑 **Regla: nada que salga de un generador entra en el juego sin pasar por aquí.** Es un
+> comando, no cuesta nada, y es la diferencia entre un sprite que se ve nítido a tamaño real y
+> uno que se ve emborronado sin causa aparente.
+
 #### Peldaño 3 — Generación por IA
 
 `codex exec` con el modelo `gpt-image-2` está disponible y verificado en esta máquina —

@@ -1,10 +1,10 @@
 # Catálogo del código descargado
 
 > Espejo local del código fuente del ecosistema de GameMaker.
-> **616 repositorios** clonados con `git clone --depth 1` (base del **1 de septiembre de 2026**;
+> **632 repositorios** clonados con `git clone --depth 1` (base del **1 de septiembre de 2026**;
 > ampliado el **2 de septiembre** con la organización completa de tutoriales de DragoniteSpam y una
 > auditoría de novedades 2025-2026, incluida la suite de YellowAfterlife y el barrido completo de GameMakerDiscord y las 44 extensiones oficiales GMEXT-*).
-> **El recuento exacto y siempre al día es [`_RUTAS.json`](./_RUTAS.json)** (616 claves); la tabla
+> **El recuento exacto y siempre al día es [`_RUTAS.json`](./_RUTAS.json)** (632 claves); la tabla
 > de abajo es el desglose orientativo por categoría.
 
 ## Qué es esto y qué no es
@@ -257,6 +257,33 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | `PathTraced-Volumetrics` [↗](https://github.com/Yaazarai/PathTraced-Volumetrics) | Volumétricos por trazado de caminos: la versión de referencia, lenta y correcta, con la que se contrasta la rápida. | 34 | Unlicense | 2026-02-17 | 7 |
 | `2D-QuickRayTracing-GLSL` [↗](https://github.com/Yaazarai/2D-QuickRayTracing-GLSL) | Trazado de rayos 2D en dos pasadas con GLSL ES. Base de las técnicas de arriba. | 82 | LGPL-2.1 | 2026-05-08 | 0 |
 | `prettylight` [↗](https://github.com/niksudan/prettylight) | Iluminación 2D sencilla y directa, sin sombras proyectadas. Útil como punto de partida mínimo. | 86 | MIT | 2018-10-08 | 19 |
+
+<a id="pixel-art-ia"></a>
+
+### Pixel art asistido por IA: generación, reparación y pipeline
+
+> Casi todo **MIT y ejecutable en local**. La generación de Retro Diffusion es de pago por
+> créditos, pero la mitad útil para un agente —**reparar** y **convertir a pixel art real**—
+> es procesado de imagen puro: sin modelo, sin clave, sin cuenta. Ver `07 · 23 §1 bis`.
+
+| Repositorio | Qué es | ★ | Licencia | Último cambio | archivos |
+|---|---|---:|---|---|---:|
+| `pixel-art-fixer` [↗](https://github.com/Retro-Diffusion/pixel-art-fixer) | **Convierte pixel art falso en pixel art real**: rejilla alineada, escala entera, colores recuperados. *Solo procesado de imagen, sin modelo* — local y gratis. | 383 | MIT | 2026-07-15 | 22 |
+| `pixeldetector` [↗](https://github.com/Astropulse/pixeldetector) | **Repara pixel art dañado** por reescalado o compresión JPEG, y lo devuelve a su resolución real. Solo pide Pillow, Numpy y Scipy. | 357 | MIT | 2024-04-04 | 3 |
+| `sd-palettize` [↗](https://github.com/Astropulse/sd-palettize) | Reduce a paleta las imágenes generadas. Extensión de Automatic1111. | 206 | Sin licencia | 2024-04-18 | 4 |
+| `mixamotoopenpose` [↗](https://github.com/Astropulse/mixamotoopenpose) | Convierte animaciones de Mixamo en secuencias OpenPose: poses exactas para guiar la generación con ControlNet. | 114 | MIT | 2024-11-10 | 7 |
+| `api-examples` [↗](https://github.com/Retro-Diffusion/api-examples) | Ejemplos de uso de la API de Retro Diffusion. | 147 | Sin licencia | 2026-09-02 | 23 |
+| `pixel-bench` [↗](https://github.com/Retro-Diffusion/pixel-bench) | Banco de pruebas abierto para reconstrucción de pixel art: mide cuánto se parece un resultado al original. | 35 | MIT | 2026-07-16 | 37 |
+| `retro-diffusion-mcp` [↗](https://github.com/Retro-Diffusion/retro-diffusion-mcp) | Servidor MCP para pedir sprites desde Claude, Cursor o cualquier cliente MCP. | 3 | MIT | 2026-09-02 | 13 |
+| `stable-diffusion-aseprite` [↗](https://github.com/Astropulse/stable-diffusion-aseprite) | Stable Diffusion dentro de Aseprite. | 57 | Sin licencia | 2026-08-28 | 91 |
+| `hexmap` [↗](https://github.com/Astropulse/hexmap) | Genera mapas de mundo con baldosas hexagonales. | 56 | MIT | 2026-01-07 | 3 |
+| `K-Centroid-Aseprite` [↗](https://github.com/Astropulse/K-Centroid-Aseprite) | Algoritmo de reducción de escala por k-medias: conserva bordes duros donde un remuestreo normal los destroza. | 28 | MIT | 2023-04-25 | 6 |
+| `tilesetbuilder` [↗](https://github.com/Astropulse/tilesetbuilder) | Construye tilesets a partir de dos texturas. | 22 | MIT | 2025-04-07 | 6 |
+| `expression-generator` [↗](https://github.com/Astropulse/expression-generator) | Genera expresiones faciales de un personaje ya dibujado. | 20 | MIT | 2025-07-17 | 4 |
+| `shadow-projector` [↗](https://github.com/Astropulse/shadow-projector) | Proyecta sombras desde sprites con fondo transparente. | 15 | MIT | 2025-08-14 | 3 |
+| `spritesplitter` [↗](https://github.com/Astropulse/spritesplitter) | Parte una hoja de sprites en imágenes sueltas por relleno por difusión, sin rejilla fija. | 10 | MIT | 2026-01-21 | 3 |
+| `hitherdither` [↗](https://github.com/Astropulse/hitherdither) | Algoritmos de tramado (*dithering*) para paletas arbitrarias, en PIL. Encaja directo con el generador de placeholders de 12/09 §5.2. | 4 | MIT | 2023-08-29 | 22 |
+| `Material-Map-Generator` [↗](https://github.com/Astropulse/Material-Map-Generator) | Genera mapas normales y de desplazamiento a partir de una textura. Alimenta el normal map 2D de 04/24 §3. | 4 | Apache-2.0 | 2022-10-16 | 7 |
 
 <a id="integraciones"></a>
 

@@ -30,45 +30,68 @@ resultado no necesita ser el asset final?». Ahí es donde funciona:
 | **Retratos puntuales sin animar** | Una sola imagen por personaje, sin necesidad de que cuadre con otras 40 | Un busto de diálogo en una visual novel, si el juego declara su uso (§4) |
 | **Fondos muy lejanos, siempre desenfocados** | Nunca se ven a tamaño real ni de cerca — ya cubierto en 13 · 03 §7.2 | La capa de parallax más al fondo de todas |
 
-### 1 bis · Los modelos entrenados SOLO para pixel art son otra cosa
+### 1 bis · Pixel art por IA de verdad: Retro Diffusion y el pipeline de Astropulse
 
-Todo lo de arriba habla de modelos **generales** (Stable Diffusion, Midjourney y compañía) y su
-conclusión —que no hacen pixel art de verdad— sigue siendo cierta para ellos. Pero existe una
-familia aparte que este documento no mencionaba: **modelos entrenados exclusivamente en pixel
-art**, que no «dibujan bonito y luego reducen», sino que generan directamente en rejilla y con
-paleta corta.
+> ❌ **Corrección del 09-09-2026, en el mismo día.** La primera versión de esta sección despachó
+> todo esto como «de pago y alojado, por debajo de la escalera de placeholders». **Es falso para
+> más de la mitad.** La *generación* se paga por créditos, sí; pero las herramientas de
+> **reparación y conversión** —que son las que más falta le hacen a un agente— son **MIT, de
+> procesado de imagen puro, sin modelo, sin clave y sin cuenta**. Lo mismo el tramado, los mapas
+> normales y el troceado de hojas de sprites.
 
-El más conocido es **Retro Diffusion** (Astropulse). Lo que cambia respecto a un modelo general:
+Todo lo de §1 habla de modelos **generales** (Stable Diffusion, Midjourney) y su conclusión sigue
+en pie para ellos. Pero existe una familia entrenada **solo en pixel art** —**Retro Diffusion**,
+de Astropulse— y, alrededor, un pipeline abierto que resuelve problemas que esta biblioteca ya
+documentaba sin dar solución.
 
-- **La rejilla es el espacio de trabajo, no un posprocesado.** Un modelo general produce una
-  imagen ilustrada que luego alguien pixeliza, y de ahí salen los bordes sucios y las paletas de
-  200 colores. Uno especializado emite ya píxeles discretos.
-- **Sabe qué es una hoja de sprites.** Genera vistas por dirección y ciclos de animación como
-  formato de salida, no como una cuadrícula que tú tienes que recortar a ojo.
+#### Lo que puedes usar HOY sin cuenta ni clave
 
-**Qué NO cambia**, y por eso el resto del documento sigue en pie:
+| Herramienta | Qué resuelve | Requisitos |
+|---|---|---|
+| **`pixel-art-fixer`** (383 ★, MIT) | Convierte pixel art **falso** —el que sale de un generador o de un upscaler: píxeles fuera de rejilla, bordes emborronados, escala no entera, archivo a 10× de su resolución real— en pixel art **real y alineado**. Su propio README lo dice: *«Image processing only, no model required»* | Ninguno externo |
+| **`pixeldetector`** (357 ★, MIT) | **Repara** pixel art dañado por reescalado o por haberse guardado en JPEG, y lo devuelve a su resolución verdadera | Pillow, Numpy, Scipy |
+| **`K-Centroid-Aseprite`** (28 ★, MIT) | Reducción de escala por k-medias: conserva los bordes duros donde un remuestreo normal los destroza | — |
+| **`hitherdither`** (MIT) | Tramado para paletas arbitrarias, **en PIL** | Pillow |
+| **`spritesplitter`** (10 ★, MIT) | Parte una hoja de sprites en imágenes sueltas por relleno por difusión, sin rejilla fija | Pillow |
+| **`shadow-projector`** (15 ★, MIT) | Proyecta la sombra de un sprite con fondo transparente | — |
+| **`Material-Map-Generator`** (Apache-2.0) | Genera **mapas normales** y de desplazamiento desde una textura | — |
+| **`mixamotoopenpose`** (114 ★, MIT) | Convierte animaciones de Mixamo en secuencias OpenPose: poses exactas para guiar la generación con ControlNet | — |
 
-- **La consistencia entre generaciones sigue sin estar resuelta** (§3). Dos peticiones del mismo
-  personaje siguen sin ser el mismo personaje.
-- **El estado legal es el mismo** (§4): que el modelo sea específico no altera ni la posición de
-  la U.S. Copyright Office ni la obligación de declararlo en Steam e itch.io.
-- **Sigue necesitando revisión a tamaño real.** Vale como punto de partida, no como asset final.
+Todas en `11 - Código descargado/herramientas/pixel-art-ia/`.
 
-> ⚠️ **Y son de pago y alojados.** No hay pesos que te descargues: se llaman por API, con un
-> sistema de créditos. Para esta biblioteca eso los deja **por debajo** de la escalera de
-> [`12 · 09 §5.2`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano):
-> un agente puede dibujar una silueta digna con Pillow sin cuenta, sin clave y sin coste, y eso
-> se intenta primero.
+> 🔑 **`pixel-art-fixer` cierra un agujero que esta biblioteca tenía abierto.** El flujo de assets
+> de un agente —generar la imagen con el modelo que sea y meterla en el juego— produce
+> justamente eso: algo que *parece* pixel art y no lo es, con la rejilla corrida. `13 · 03 §7`
+> avisaba del problema y no daba salida; ahora la hay, y es local. **Pásale por él cualquier
+> imagen generada antes de convertirla en sprite.**
+
+#### Lo que sí es de pago: la generación
+
+El modelo de **Retro Diffusion** se llama por API con créditos. Lo que aporta frente a un modelo
+general:
+
+- **La rejilla es el espacio de trabajo, no un posprocesado.** Emite píxeles discretos en vez de
+  ilustrar y pixelar después, que es de donde salen los bordes sucios y las paletas de 200
+  colores.
+- **Sabe qué es una hoja de sprites**: genera vistas por dirección y ciclos de animación como
+  formato de salida.
+- Alrededor hay utilidades del mismo autor que la usan: `tilesetbuilder` (tilesets desde dos
+  texturas), `expression-generator` (expresiones de un personaje ya dibujado) y
+  `stable-diffusion-aseprite` (dentro de Aseprite).
+
+**Qué NO cambia**, y por eso el resto del documento sigue en pie: la **consistencia entre
+generaciones** sigue sin resolverse (§3), y el **estado legal es idéntico** (§4) — que el modelo
+sea específico no altera la posición de la U.S. Copyright Office ni la obligación de declararlo
+en Steam e itch.io.
+
+> 🔎 **Hay un servidor MCP oficial** (`retro-diffusion-mcp`, MIT): permite pedir sprites desde
+> Claude, Cursor o cualquier cliente MCP, que es exactamente cómo lo usaría un agente. Medido el
+> 09-09-2026: es del **02-09-2026 y tiene 3 estrellas**. Existe y es la vía natural; no está
+> rodado. Pruébalo antes de depender de él.
 >
-> 🔎 **Existe un servidor MCP oficial** (`Retro-Diffusion/retro-diffusion-mcp`, MIT), que permite
-> pedir sprites desde Claude, Cursor o cualquier cliente MCP. Comprobado el 09-09-2026: es de
-> **02-09-2026 y tiene 3 estrellas** — o sea, una semana de vida y sin rodaje. Anotado porque es
-> exactamente la forma en que un agente lo usaría, no porque esté probado. Pruébalo tú antes de
-> depender de él.
->
-> Y hay servicios web construidos encima —**SpriteBrew** es el más visible, con 21 estilos y
-> exportación a GameMaker— que son de pago por créditos. Útiles para un humano con prisa;
-> irrelevantes para un agente que debe poder trabajar sin cuentas.
+> 💡 Y hay un **banco de pruebas abierto** —`pixel-bench`, MIT— para medir cuánto se parece una
+> reconstrucción al original. Si vas a comparar herramientas en vez de fiarte del ojo, empieza
+> ahí.
 
 **El upscaler es el caso que más se malinterpreta.** Un upscaler de imagen general
 (Real-ESRGAN, Gigapixel) funciona razonablemente bien sobre **ilustración** —líneas suaves,
