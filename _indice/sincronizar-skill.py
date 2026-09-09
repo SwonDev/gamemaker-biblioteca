@@ -401,8 +401,14 @@ def cifras_desfasadas(n_documentos):
 
 def main():
     if not os.path.isfile(os.path.join(SKILL, "SKILL.md")):
-        print(f"No hay skill en {SKILL}: nada que sincronizar.")
-        return 0
+        # Que no haya skill NO es «nada que hacer»: la skill es el entregable de
+        # este proyecto, y si desapareciera este paso lo daría por bueno. Mismo
+        # falso verde que tenían `verificar-enlaces.py`, `validar-proyecto.py` y
+        # `validar-compilacion-docs.py`.
+        print(f"✗ No hay SKILL.md en {SKILL}.")
+        print("  La skill es el entregable de esta biblioteca: que falte no es")
+        print("  «nada que sincronizar», es que algo se ha borrado o movido.")
+        return 2
     n = generar_indice()
     print(f"references/indice-documentos.md regenerado: {n} documentos.")
     desfasadas = cifras_desfasadas(n)

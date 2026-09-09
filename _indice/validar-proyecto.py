@@ -162,6 +162,18 @@ def main():
     familias_ext_declaradas = {p for p in PREF_EXT if any(n.startswith(p) for n in externas)}
 
     archivos = list(gml_del_proyecto(proyecto))
+
+    # Cero archivos .gml no es «tu código está limpio»: es que no se ha analizado
+    # nada. Devolver 0 aquí era un falso verde con la peor consecuencia posible —
+    # este script es el que un agente ejecuta sobre SU juego, y una ruta mal
+    # escrita le habría contestado «✓ Ninguna llamada a una función que no exista»
+    # sin haber abierto un solo archivo. Es el mismo fallo que ya tenían
+    # `verificar-enlaces.py` y `validar-compilacion-docs.py`.
+    if not archivos:
+        print(f"✗ No hay ni un archivo .gml en {proyecto}.")
+        print("  Esto NO significa que el código esté bien: significa que no se ha")
+        print("  analizado nada. Comprueba la ruta —¿es la carpeta del `.yyp`?— y repite.")
+        return 2
     definidas = set()
     codigos = []
     crudos = {}          # fuente SIN limpiar, para el contraste de §desconocidas
@@ -384,6 +396,16 @@ def autoprueba():
         r = subprocess.run([sys.executable, yo], capture_output=True, text=True)
         revisar("sin argumentos NO sale con 0", r.returncode != 0, "exit %d" % r.returncode)
 
+        # 6 bis · Una carpeta SIN un solo .gml no puede salir con 0.
+        vacia = os.path.join(tmp, "sin_gml")
+        os.makedirs(vacia, exist_ok=True)
+        r = subprocess.run([sys.executable, yo, vacia], capture_output=True, text=True)
+        revisar("una carpeta sin ningún .gml NO sale con 0", r.returncode != 0,
+                "exit %d" % r.returncode)
+        revisar("y no dice que no haya funciones inventadas",
+                "Ninguna llamada a una función del runtime que no exista" not in r.stdout,
+                r.stdout.strip()[:90])
+
         # 7 · Una carpeta que no existe tampoco.
         r = subprocess.run([sys.executable, yo, os.path.join(tmp, "no_existe")],
                            capture_output=True, text=True)
@@ -392,7 +414,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 8 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 10 comprobaciones de la autoprueba pasan.")
     return 0
 
 
