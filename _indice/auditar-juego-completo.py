@@ -123,6 +123,118 @@ def gml_del_proyecto(ruta):
     return out
 
 
+# Scripts que reparte esta biblioteca: sus `show_debug_message` son rutas de error
+# suyas, no trazas que el juego se haya dejado puestas.
+SCRIPTS_BIBLIOTECA = {
+    "scr_audio", "scr_camera", "scr_debug", "scr_grid_pathfinding", "scr_input_buffer",
+    "scr_math_util", "scr_nivel_mapa", "scr_pool", "scr_save_load", "scr_state_machine",
+    "scr_tiempo", "scr_tween", "scr_ui_confirmar",
+}
+# Una función que se llama así ES el registro: sus llamadas son el canal, no el ruido.
+REGISTRADOR = re.compile(r"\b(?:registrar|registro|log|logger|trace|traza|depurar|debug)\w*\b",
+                         re.I)
+
+
+def contar_trazas(ruta):
+    """Separa las trazas que sobran de las que son infraestructura.
+
+    Contar ocurrencias de `show_debug_message` a secas da un número que no dice nada:
+    mezcla el `show_debug_message("aqui llego")` que hay que quitar antes de publicar
+    con el canal de error de un guardado y con el propio registrador por niveles que
+    recomienda `13 · 10 §7.2` — que está hecho, precisamente, de llamadas a
+    `show_debug_message`. Un agente que lo hizo todo bien seguía viendo «11 llamadas»
+    (r15 §2.12), y un aviso que salta cuando no toca se aprende a ignorar.
+
+    Devuelve (sueltas, infraestructura).
+    """
+    sueltas = infra = 0
+    for fp in gml_del_proyecto(ruta):
+        nombre = os.path.splitext(os.path.basename(fp))[0]
+        texto = leer(fp)
+        de_la_biblioteca = nombre in SCRIPTS_BIBLIOTECA
+        # Se atribuye cada llamada a la última `function` declarada por encima.
+        funcion_actual = ""
+        for linea in texto.split("\n"):
+            m = re.search(r"\bfunction\s+(\w+)\s*\(", linea)
+            if m:
+                funcion_actual = m.group(1)
+            n = len(re.findall(r"\bshow_debug_message\s*\(", linea))
+            if not n:
+                continue
+            if de_la_biblioteca or REGISTRADOR.search(funcion_actual):
+                infra += n
+            else:
+                sueltas += n
+    return sueltas, infra
+
+
+# Raíz de la biblioteca, para poder comparar un script del proyecto con el nuestro.
+BIBLIOTECA = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Lo que la gente reescribe, y lo que ya existe. No es una lista de prohibiciones:
+# es el paso «antes de escribir un sistema, mira 11 · _CATALOGO.md» convertido en
+# comprobación, porque en prosa se lo han saltado dos agentes seguidos
+# (r15 §4: «no consulté el catálogo antes de escribir scr_input, scr_idioma y scr_ui»).
+YA_EXISTE = [
+    (re.compile(r"^(scr_|obj_)?(input|entrada|controles?|mando|gamepad)\w*$", re.I),
+     "`Input` (offalynne, MIT) — el estándar de facto: teclado, ratón, mando, "
+     "multijugador local, remapeo, buffers y detección de dispositivo"),
+    (re.compile(r"^(scr_|obj_)?(texto|text|tipograf\w*|fuente|font)\w*$", re.I),
+     "`Scribble` (JujuAdams, MIT) — formato enriquecido, efectos por carácter, "
+     "ajuste de línea y máquina de escribir"),
+    (re.compile(r"^(scr_|obj_)?(dialog\w*|conversacion|charla)\w*$", re.I),
+     "`Chatterbox` (JujuAdams, MIT) — intérprete de Yarn: diálogo ramificado sin parser"),
+    (re.compile(r"^(scr_|obj_)?(json|serial\w*|csv|xml)\w*$", re.I),
+     "`SNAP` (JujuAdams, MIT) — JSON, CSV, XML, YAML, TOML y binario"),
+    (re.compile(r"^(scr_|obj_)?(astar|a_estrella|pathfind\w*|camino)\w*$", re.I),
+     "`06 · scr_grid_pathfinding.gml` de esta biblioteca — `mp_grid` y A* con coste por celda"),
+    (re.compile(r"^(scr_|obj_)?(fsm|estado(s)?|state_?machine)\w*$", re.I),
+     "`06 · scr_state_machine.gml` de esta biblioteca — FSM con structs, sin objetos"),
+    (re.compile(r"^(scr_|obj_)?(tween|interpolac\w*|easing)\w*$", re.I),
+     "`06 · scr_tween.gml` de esta biblioteca — tweens por delta time con callbacks"),
+    (re.compile(r"^(scr_|obj_)?(guardar|save|savegame|partida)\w*$", re.I),
+     "`06 · scr_save_load.gml` de esta biblioteca — structs + JSON, escritura segura y migración"),
+    (re.compile(r"^(scr_|obj_)?(idioma|locale|i18n|traducc\w*|lang\w*)$", re.I),
+     "`04 · 21 — Localización e idiomas` de esta biblioteca — la receta completa, con el "
+     "flujo de traducción por IA"),
+]
+
+
+def _es_nuestro(nombre, texto):
+    """¿Este script del proyecto es una copia del que reparte la biblioteca?"""
+    if nombre not in SCRIPTS_BIBLIOTECA:
+        return False
+    nuestro = os.path.join(BIBLIOTECA, "06 - Assets y Scripts", nombre + ".gml")
+    if not os.path.isfile(nuestro):
+        return False
+    return leer(nuestro)[:200].strip() == texto[:200].strip()
+
+
+def reinventos(ruta):
+    """Sistemas del proyecto que ya existen hechos, probados y con licencia MIT.
+
+    Se reporta como informativo, nunca como fallo: un juego puede tener razones para
+    escribir el suyo. Lo que no puede es no haberse enterado.
+    """
+    avisos = []
+    vistos = set()
+    for fp in gml_del_proyecto(ruta):
+        nombre = os.path.splitext(os.path.basename(fp))[0]
+        # Los eventos de un objeto se llaman Create_0, Step_0…: el nombre útil es la carpeta.
+        if re.match(r"^(Create|Step|Draw|Alarm|Other|Collision|Key|Mouse|Clean)", nombre):
+            nombre = os.path.basename(os.path.dirname(fp))
+        if nombre in vistos:
+            continue
+        for patron, sugerencia in YA_EXISTE:
+            if patron.match(nombre):
+                if _es_nuestro(nombre, leer(fp)):
+                    break            # es el nuestro, copiado tal cual: eso es lo que se pedía
+                vistos.add(nombre)
+                avisos.append((nombre, sugerencia))
+                break
+    return avisos
+
+
 def objetos_rectangulo(ruta):
     """Objetos SIN sprite cuyo evento Draw pinta figuras a mano.
 
@@ -141,7 +253,14 @@ def objetos_rectangulo(ruta):
     interfaz = re.compile(
         r"^obj_(menu|splash|titulo|hud|ui|gui|credito|creditos|intro|prologo|epilogo|final|"
         r"fundido|transicion|pausa|opciones|ajustes|nivel|gestor|control|camara|director|"
-        r"debug|dialogo|minimapa|inventario|tienda|cargando|selector)\w*$", re.I)
+        r"debug|dialogo|minimapa|inventario|tienda|cargando|selector|"
+        # Añadidas tras r15 §2.12: la pantalla de selección de nivel se llamaba
+        # `obj_seleccion` y caía en la lista de sospechosos junto a los personajes
+        # sin arte, que es justo lo que convierte el aviso en ruido. El resto son de
+        # la misma familia —pantallas, paneles y adornos de HUD— y estaban por el
+        # mismo motivo a un carácter de distancia.
+        r"selec|pantalla|panel|boton|barra|marcador|contador|reloj|cursor|puntero|mira|"
+        r"mensaje|aviso|tutorial|pista|ayuda|logro|galeria|galería)\w*$", re.I)
     sospechosos = []
     for nom in sorted(os.listdir(dir_obj)):
         carpeta = os.path.join(dir_obj, nom)
@@ -339,20 +458,23 @@ def main():
 
     rect, rect_ui = objetos_rectangulo(ruta)
     n_sprites = len(tipos.get("sprites", []))
-    debug = len(re.findall(r"\bshow_debug_message\s*\(", gml))
+    debug, debug_infra = contar_trazas(ruta)
     sin_guarda, con_guarda = objetos_sin_guarda(ruta)
     audio_pausa = audio_en_pausa(gml)
     icono, version = icono_y_version(ruta)
+    reinv = reinventos(ruta)
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
                           "objetos_sin_sprite_que_dibujan_figuras": rect,
                           "objetos_de_interfaz_que_dibujan_figuras": rect_ui,
                           "sprites": n_sprites, "show_debug_message": debug,
+                          "show_debug_message_infraestructura": debug_infra,
                           "objetos_que_leen_entrada_sin_guarda": sin_guarda,
                           "objetos_con_guarda": con_guarda,
                           "pausa_toca_el_audio": audio_pausa,
-                          "icono_propio": icono, "version": version},
+                          "icono_propio": icono, "version": version,
+                          "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv]},
                          ensure_ascii=False, indent=2))
     else:
         print("Proyecto: %s" % proy["yyp"])
@@ -385,8 +507,22 @@ def main():
             print("      " + ", ".join(rect_ui))
         print()
         if debug:
-            print("  ⚠ %d llamada(s) a show_debug_message: quítalas del build final (13/10 §7.2)"
+            print("  ⚠ %d llamada(s) sueltas a show_debug_message. Míralas una a una: una"
                   % debug)
+            print("    traza de depuración («aqui llego») sobra en el build final, pero una")
+            print("    ruta de error («no se pudo guardar») hace falta — y entonces lo que")
+            print("    toca no es quitarla, sino meterla por el registrador de 13/10 §7.2,")
+            print("    que la apaga sola en release.")
+        if debug_infra:
+            print("  · %d más están dentro del registrador o de los scripts de la biblioteca:"
+                  % debug_infra)
+            print("    son el canal de log, no trazas olvidadas. No las cuento.")
+        if reinv:
+            print("  · %d sistema(s) que ya existían hechos. No es un fallo —puedes tener"
+                  % len(reinv))
+            print("    motivos— pero que sea una decisión, no un descuido (11 · _CATALOGO.md):")
+            for nombre, sugerencia in reinv:
+                print("      %-22s ya existe: %s" % (nombre, sugerencia))
         print()
         print("Las listas que 04/00 enlaza y casi nadie abre:")
         if sin_guarda and con_guarda:

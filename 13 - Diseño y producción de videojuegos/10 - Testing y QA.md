@@ -1872,6 +1872,48 @@ fondo, los botones... y ningún texto.
 > Los dos compilaron limpio, dos veces, sin ningún aviso. Solo se vieron aplicando este mismo
 > procedimiento — mirando la captura, no el código.
 
+#### Procedimiento 1 bis · Si no puedes ejecutar: recomponer la pantalla fuera del motor
+
+El Procedimiento 1 empieza con «dispara la captura». **¿Y si no puedes ejecutar el juego?** Pasa
+más de lo que parece: un agente al que se le prohíbe `gm-cli run`, un entorno sin pantalla, una
+plataforma que no compila aquí. Entre «compila» y «se ve bien» quedaba entonces un vacío, y
+`§8.7` —las seis preguntas— no lo llena, porque es una lectura del código.
+
+**La salida es componer la pantalla en Python con los mismos assets**: los mismos PNG, la misma
+rejilla, el mismo `image_index` de autotile, el mismo orden de dibujo, la misma fuente de sprite
+y el mismo encaje de cámara que hace tu objeto de nivel. Unas 150 líneas con Pillow.
+
+Un agente lo hizo en un juego de puzles y **cazó dos fallos que ni el compilador, ni
+`validar-proyecto.py`, ni las seis preguntas vieron**
+([`r15` §2.10](../_indice/auditorias/r15-prueba-puzles.md)):
+
+- **El nivel no quedaba centrado.** En la función de encaje de cámara, el término que descuenta
+  la franja del HUD **sumaba** donde tenía que restar. Un signo. Leyendo el código pasa
+  desapercibido; en la maqueta se ve la banda vacía de 45 px al instante.
+- **La pista se salía de la pantalla por los dos lados.** El panel se dibujaba a
+  `string_width(texto) + 14` sin acotar contra los 320 px de ancho de la sala.
+
+Ninguno de los dos es un símbolo inventado ni un error de sintaxis, que es justo lo que las seis
+preguntas de §8.7 sí cazan. Son errores de **composición**, y solo se ven mirando.
+
+> 🔴 **Y la regla que hace que esto no se convierta en una mentira: di que es una maqueta.**
+> Una imagen compuesta en Python **no es una captura del juego** y no comparte una sola línea de
+> GML con él: puede coincidir con lo que se verá y puede no coincidir, porque reproduce tu
+> lectura del código, no el código. Escríbelo en la cabecera del script y escríbelo al informar.
+> Vale para lo que vale —geometría, encaje, solapes, texto que se sale, contraste— y **no** vale
+> para dar por verificada la Trampa 5 (una fuente muda se dibuja perfecta en la maqueta, porque
+> la maqueta usa la fuente del PNG, no la del `.yy`) ni para el tacto del movimiento.
+
+| Lo que quieres saber | Procedimiento |
+|---|---|
+| ¿Compila? | `gm-cli compile` sin `--errors-only` |
+| ¿Los símbolos existen? | `validar-proyecto.py --todo` |
+| ¿Falta alguna pieza del envoltorio? | `auditar-juego-completo.py` |
+| ¿Está bien compuesta la pantalla? | **este procedimiento**, si no puedes ejecutar |
+| ¿Se ve de verdad lo que el código dice? | Procedimiento 1 — hace falta ejecutar |
+| ¿El guardado sobrevive al cierre? | Procedimiento 2 — hace falta ejecutar |
+| ¿Se siente bien? | Una persona |
+
 #### Procedimiento 2 · Verificar el guardado tras cerrar y reabrir el proceso
 
 `save_game()` devolviendo `true` en el mismo `run` **no demuestra que el guardado sobreviva**:

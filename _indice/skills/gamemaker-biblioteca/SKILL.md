@@ -236,7 +236,7 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 |---|---|
 | Escribir GML que haga X | `buscar.py` por cada símbolo → `11 - Código descargado/_CATALOGO.md` (¿ya hay librería?) → `05 - Referencia/04 - Convenciones y estilo GML.md` |
 | Un juego completo, de principio a fin | `04 - Recetas por género/00 - Anatomía de un juego completo.md` y después la receta del género |
-| Un juego de género X | `04 - Recetas por género/` — **58 recetas**: los géneros clásicos (plataformas, RPG, roguelike, metroidvania, tower defense, puzle, shoot'em up, carreras, gestión, ritmo, sigilo, horror, granja, idle) más beat'em up, aventura gráfica, deportes, lucha, souls-like, colonia, party games y bullet heaven/autobattler/deckbuilder; y los sistemas transversales: **el nivel como mapa de texto** (la única vía de montar un nivel sin abrir el editor de salas), combate (cuerpo a cuerpo, a distancia, por turnos, no letal), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, eje Z falso, selección de nivel, metajuego y live-ops |
+| Un juego de género X | `04 - Recetas por género/` — **59 recetas**: los géneros clásicos (plataformas, RPG, roguelike, metroidvania, tower defense, puzle, shoot'em up, carreras, gestión, ritmo, sigilo, horror, granja, idle) más beat'em up, aventura gráfica, deportes, lucha, souls-like, colonia, party games y bullet heaven/autobattler/deckbuilder; y los sistemas transversales: **el nivel como mapa de texto** (la única vía de montar un nivel sin abrir el editor de salas), **puertas, llaves y placas de presión** (el puzle de sala), combate (cuerpo a cuerpo, a distancia, por turnos, no letal), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, eje Z falso, selección de nivel, metajuego y live-ops |
 | Diseñar: mecánicas, niveles, arte, UI, sonido, historia | `13 - Diseño y producción de videojuegos/` (mapa en `references/mapa-disciplinas.md`) |
 | Estructurar el proyecto para que crezca | `13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md` |
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
@@ -332,6 +332,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       pausa, guardado, créditos, fin de partida, sonido, mando, si el jugador entra por una
       portada o directo al nivel, y qué objetos sin sprite están pintando rectángulos. Sale con
       código 1 mientras falte algo, para que no se pueda pasar por alto.
+      **También te dice qué sistemas has escrito que ya existían hechos** —entrada, texto,
+      diálogo, serialización, guardado, tweens, pathfinding, idiomas—: tres agentes seguidos
+      escribieron su propio sistema de entrada teniendo `Input` en el catálogo, así que el paso
+      «mira `11 · _CATALOGO.md` antes de escribir un sistema» dejó de ser una frase y pasó a
+      ser una comprobación.
    b. Cada ✗ es **una pregunta, no una acusación**: puede ser un falso positivo (un menú que vive
       dentro de otra sala) o puede faltar de verdad. Compruébalo tú.
    c. Compara además, pantalla por pantalla, contra el checklist maestro de

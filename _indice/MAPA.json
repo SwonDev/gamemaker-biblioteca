@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 255 documentos con su título",
+    "_indice/documentos.json": "los 256 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -687,11 +687,15 @@
           "titulo": "58 · El nivel como mapa de texto — construir sin abrir el editor de salas"
         },
         {
+          "ruta": "04 - Recetas por género/59 - Puertas, llaves y placas de presión - el puzle de sala.md",
+          "titulo": "59 · Puertas, llaves y placas de presión — el puzle de sala"
+        },
+        {
           "ruta": "04 - Recetas por género/_INDICE-RECETAS.md",
           "titulo": "Recetas por género — GameMaker LTS 2026.0 (IDE 16 / Runtime 23)"
         }
       ],
-      "n_documentos": 60
+      "n_documentos": 61
     },
     {
       "titulo": "Referencia rápida",
@@ -1420,7 +1424,7 @@
       "no_usar_para": []
     }
   },
-  "total_documentos": 255,
+  "total_documentos": 256,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [
