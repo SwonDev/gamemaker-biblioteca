@@ -12,8 +12,8 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r20 · 2026-09-09 -->
-`r20 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r21 · 2026-09-09 -->
+`r21 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -104,7 +104,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las dieciocho trampas que hacen fracasar a un agente
+## Las diecinueve trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -203,6 +203,14 @@ el primer comando; el detalle y las tablas completas están en
     ejerce su propio juego para probarlo —que es cómo se pasa de «compila» a «se navega»—:
     con `ESC`, que suele ser pausa **y** atrás, la primera abre la pausa y la segunda la cierra,
     y la captura sale con el juego corriendo. Pulsa y no sueltes, o deja pasar un fotograma.
+19. **Desde un Mac se COMPILA para Windows, pero no se EMPAQUETA.** `compile --target windows`
+    funciona; `package --target windows` escupe treinta líneas de traza de C# porque el último
+    paso sella la versión dentro del `.exe` con `BeginUpdateResource`, una función de la API
+    de Windows que en macOS no existe. **No es que la exportación esté rota**: el `.exe` y el
+    `data.win` ya están hechos en `.gmcache/build-gms2-windows-VM/output/` y se ejecutan. Para
+    un `.zip` distribuible hace falta Windows o un *runner* de CI. Y ojo: bajo Wine,
+    `screen_save()` devuelve un PNG **negro** aunque el juego se vea corriendo en el log — si
+    verificas por captura y sale negra, comprueba por otra vía antes de creértelo.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**
@@ -306,8 +314,10 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 > pregunta, **mata**; un proceso muerto parece vivo si solo miras `OpenProcess`; sin `grep`
 > las búsquedas decían «no existe» en vez de «no he mirado»; y seis herramientas reventaban
 > al imprimir un `✓`—, todos corregidos.
-> **Lo que sigue sin ejecutarse en Windows es GameMaker mismo**: `gm-cli`, el runtime y el
-> IDE. El peldaño de *computer use* está **razonado, nunca medido**. Y de **Kimi y Qwen**
+> **En Windows también se ha ejecutado el JUEGO**: compilado con `--target windows` desde
+> el Mac y corrido bajo Wine — DirectX11 por hardware, menús navegados y partida guardada
+> con su checksum correcto. Lo que sigue sin probarse ahí es el **IDE** y el empaquetado
+> final (`package --target windows` necesita Windows de verdad, Trampa 19). El peldaño de *computer use* está **razonado, nunca medido**. Y de **Kimi y Qwen**
 > solo está comprobado que reciben la skill íntegra, no que la activen — Qwen, además,
 > declara `~/.claude/skills` y no `~/.qwen/skills` en su `settings.json`.
 > Detalle en `_indice/auditorias/r19-cobertura-y-portabilidad.md`.

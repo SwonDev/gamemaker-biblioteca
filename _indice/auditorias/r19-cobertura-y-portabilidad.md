@@ -162,6 +162,15 @@ sus credenciales, y se dice así.
   herramientas pasan sus autopruebas; las otras 2 salen con 2 por falta de Pillow, que es la
   respuesta correcta. Cuatro fallos encontrados y corregidos por el camino, dos de ellos
   invisibles a la lectura del código.
-- **Sin verificar, y así seguirá hasta que haya máquina o cuenta**: **GameMaker en Windows**
-  —`gm-cli`, runtime e IDE, que es otra cosa que las herramientas de Python— · el peldaño de
-  *computer use* (razonado, nunca medido) · Kimi y Qwen activando la skill.
+- **Verificado ejecutando el JUEGO en Windows**: «Enjambre» compilado desde el Mac con
+  `gm-cli compile --target windows` y ejecutado bajo Wine — `GameMaker v2026.0.0.23`,
+  `DirectX11: Using hardware device`, audio inicializado, menús navegados con teclas
+  simuladas, y **partida guardada con su versión de esquema y su checksum**, recalculado
+  fuera del juego para comprobarlo. Por el camino, la [Trampa 18](../../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md): desde macOS se **compila** para Windows pero
+  no se **empaqueta**, y el error no lo dice.
+- **Sin verificar, y así seguirá hasta que haya máquina o cuenta**: el **IDE de GameMaker en
+  Windows** y el empaquetado final (`package --target windows` necesita la API de Windows) ·
+  si `screen_save()` devuelve negro **también en Windows de verdad** o es cosa de la
+  traducción de DirectX de Wine · el peldaño de *computer use* (razonado, nunca medido; el
+  bloqueo está medido: los permisos de accesibilidad de este Mac no están concedidos y
+  `System Events` solo ve tres procesos) · Kimi y Qwen activando la skill.
