@@ -103,9 +103,14 @@ def cargar(avisar=True):
     ruta = os.path.join(IDX, "simbolos.json")
     if not os.path.exists(ruta):
         print("✗ No existe _indice/simbolos.json todavía.")
+        print("  Esto NO significa que el símbolo no exista: significa que no se ha buscado.")
         print("  Se genera (desde el GmlSpec.xml de tu runtime instalado) con:")
         print("      python3 _indice/actualizar.py")
-        sys.exit(1)
+        # Sale con 2, no con 1. El 1 es «he buscado y no está»; el 2 es «no he podido
+        # buscar», que es lo mismo que dice la falta de `grep`. Salir con 1 aquí haría
+        # que un agente encadenando comandos leyera «no existe» donde pone «no lo sé»,
+        # y ese es exactamente el peor fallo que este proyecto persigue.
+        sys.exit(2)
     with open(ruta, encoding="utf-8") as f:
         d = json.load(f)
     if avisar:
@@ -213,9 +218,20 @@ def ficha(nombre):
         print("  ⚠ SOLO ESCRITURA: se le asigna, pero leerla no devuelve lo que esperas.")
     if s.get("modulo") and s["modulo"] != "Base":
         print(f"  módulo:    {s['modulo']}")
+    hay_manual = False
     for k, et in (("manual_es", "manual (es)"), ("manual_en", "manual (en)")):
         if s.get(k):
             print(f"  {et}: {s[k]}")
+            hay_manual = True
+    if not hay_manual and not os.path.isdir(os.path.join(RAIZ, "09 - Manual oficial")):
+        # Un clon recién hecho no trae el espejo del manual: es obra de YoYo Games y
+        # no se publica (ver PUBLICAR.md). Callarse aquí haría creer que el símbolo no
+        # tiene página, cuando lo que pasa es que no está instalada — el mismo error
+        # que «0 enlaces rotos» cuando no se ha mirado ninguno.
+        print("  manual:    este clon no tiene el espejo (`09 - Manual oficial/`), que no se")
+        print("             publica por derechos. NO es que el símbolo no tenga página.")
+        print(f"             Léela ya:   gm-cli manual read \"{nombre}\"")
+        print("             O instálalo:  ./reconstruir.sh manual")
     if s.get("docs_es"):
         print("  explicada en la biblioteca:")
         for r in s["docs_es"]:
@@ -392,6 +408,16 @@ def buscar_todo(patron):
             print("    ⚠ SOLO LECTURA: asignarle un valor no hace nada.")
         if s.get("manual_es"):
             print(f"    manual (es): {s['manual_es']}")
+        elif not os.path.isdir(os.path.join(RAIZ, "09 - Manual oficial")):
+            # Un clon recién hecho no trae el espejo del manual: es obra de YoYo
+            # Games y no se publica. Callarse aquí haría creer que el símbolo no
+            # tiene página, cuando lo que pasa es que no está instalada.
+            print("    manual (es): este clon no tiene el espejo del manual "
+                  "(`09 - Manual oficial/`).")
+            print("                 No es que el símbolo no tenga página: es que no está aquí.")
+            print("                 Genérala con  ./reconstruir.sh manual  — o pregunta al "
+                  "manual instalado:")
+            print(f"                 gm-cli manual read \"{patron}\"")
         # los documentos que lo explican vienen del cruce docs_es, no de un grep:
         # así «pi» encuentra la página que lo documenta aunque el texto «pi»
         # aparezca en miles de sitios.
