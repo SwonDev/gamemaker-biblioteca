@@ -332,6 +332,14 @@ CASOS = [
     ("¿Cómo compruebo que un sonido se importó de verdad, sin oírlo?",
      ["--texto", "audio_sound_length"],
      ["scr_debug.gml"]),
+
+    ("Tengo un dibujo del personaje y necesito su hoja de sprites animada",
+     ["--texto", "sprite-gen"],
+     ["Manual del agente de IA"]),
+
+    ("Tengo un atlas con su manifest.json: ¿cómo lo meto en GameMaker?",
+     ["--texto", "atlas-a-gamemaker"],
+     ["Manual del agente de IA"]),
 ]
 
 

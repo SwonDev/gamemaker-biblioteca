@@ -611,6 +611,7 @@
   "shadow-projector": "herramientas/pixel-art-ia/shadow-projector",
   "small_pp_localization_tool": "librerias/localizacion/small_pp_localization_tool",
   "snake-body-nodes": "librerias/utilidades/snake-body-nodes",
+  "sprite-gen": "herramientas/pixel-art-ia/sprite-gen",
   "spritesplitter": "herramientas/pixel-art-ia/spritesplitter",
   "stable-diffusion-aseprite": "herramientas/pixel-art-ia/stable-diffusion-aseprite",
   "steamworks.gml": "librerias/integraciones/steamworks.gml",

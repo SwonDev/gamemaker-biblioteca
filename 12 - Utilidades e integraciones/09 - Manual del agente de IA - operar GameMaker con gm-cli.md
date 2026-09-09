@@ -2364,6 +2364,55 @@ Las siete son **MIT o Apache-2.0 y se ejecutan en local**. Catálogo y contexto 
 > Ahí la licencia va antes que la calidad: la herramienta abierta más famosa tiene los pesos
 > en CC-BY-NC y **no se puede usar en un juego que vendas**.
 
+#### Peldaño 2 ter — `sprite-gen`: de UN dibujo a una hoja que GameMaker sí puede tragar
+
+Pídele una «hoja de sprites» a un modelo de imagen y ya sabes lo que sale: una cara distinta en
+cada fotograma, un fondo que no se recorta, poses que se pisan y se salen de rejilla, y un PNG
+que el motor no puede consumir. Demo bonita, asset inútil. **Es literalmente el problema que
+abre el README de [`sprite-gen`](https://github.com/aldegad/sprite-gen)** (817 ★, Apache-2.0,
+tocado el 09-09-2026), y por eso está aquí: es la tubería que lo cierra, y es **a la vez skill de
+Codex/Claude y CLI de Python**, o sea justo lo que un agente puede conducir.
+
+De **un solo dibujo base** saca:
+
+- `sprite-sheet-alpha.png` — alfa de verdad, sin fleco de croma;
+- `manifest.json.frame_layout` — los **rectángulos absolutos** de cada fotograma, por estado,
+  con `fps` y `loop`. Tu juego lee rectángulos; no adivina una rejilla;
+- rejilla honesta: su «Backbone Lattice» mide una sola rejilla para todo el personaje y mantiene
+  cada corte en ella — que es exactamente el desalineado que mide
+  [`puerta-pixel-art.py`](#peldaño-2-bis--reparar-lo-generado-antes-de-meterlo-en-el-juego).
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate && pip install -e .   # Pillow + NumPy
+sprite-gen prepare     --out-dir <run> --character-id heroe --base-image base.png
+sprite-gen gen-set     --run-dir <run> --provider codex      # usa tu Codex, sin clave aparte
+sprite-gen extract     --run-dir <run>                       # croma → fotogramas transparentes
+sprite-gen compose-atlas --run-dir <run>                     # hoja + manifest.json
+```
+
+> 🔧 **Y aquí va el paso que `sprite-gen` NO trae: exporta a Aseprite, Phaser y Flame, pero no a
+> GameMaker.** Lo cierra un script de esta biblioteca:
+>
+> ```bash
+> python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta> --prefijo spr_heroe
+> gm-cli resourcetool script <carpeta>/lote-resourcetool.txt <proyecto.yyp>
+> ```
+>
+> Recorta cada rectángulo del manifiesto a un PNG suelto —porque `SPRITE ADDFRAME` añade **un
+> fotograma por archivo**, no trocea hojas— y escribe el lote que los importa de una sola
+> llamada. Además pasa los nombres de estado a ASCII (`ataque_básico` → `ataque_basico`: los
+> identificadores de GML no admiten tildes) y deja en `animacion.gml` los `fps` y el bucle de
+> cada estado, traducidos a `image_speed = fps / game_get_speed(gamespeed_fps)`.
+>
+> **Verificado de punta a punta el 09-09-2026**: 6 fotogramas → 2 sprites de 3, importados en
+> 3,4 s, leídos de vuelta del `.yy` (3 `$GMSpriteFrame` cada uno, 16×16) y compilando con
+> `exit 0`. Diez casos en `python3 "$BIB/_indice/atlas-a-gamemaker.py" --autoprueba`, incluido
+> el que de verdad importa: que recorta el rectángulo correcto y no el de al lado.
+
+> 💡 **Y sus utilidades sirven aunque no generes nada con IA**: `sprite-gen cutout` quita un
+> fondo blanco o croma, `slice-sheet` trocea una hoja ajena con detección por contorno, y
+> `unpack-atlas` desmonta un atlas ya hecho. Ninguna necesita modelo ni cuenta.
+
 #### Peldaño 3 — Generación por IA
 
 `codex exec` con el modelo `gpt-image-2` está disponible y verificado en esta máquina —

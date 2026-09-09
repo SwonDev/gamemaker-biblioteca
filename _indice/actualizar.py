@@ -347,6 +347,7 @@ def main():
         ("validar-proyecto.py",       "validador del proyecto de un agente"),
         ("puerta-pixel-art.py",       "puerta antes de reparar pixel art"),
         ("validar-integracion.py",    "extractor de declaraciones entre documentos"),
+        ("atlas-a-gamemaker.py",      "puente de atlas de sprite-gen a GameMaker"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 

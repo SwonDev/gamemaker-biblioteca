@@ -125,6 +125,23 @@ tamaño real**, no confiar a ciegas. Hoy no sustituyen redibujar a mano.
 
 ---
 
+### 1 bis.2 · `sprite-gen`: la tubería que un agente puede conducir entera
+
+[`sprite-gen`](https://github.com/aldegad/sprite-gen) (817 ★, **Apache-2.0**, tocado el
+09-09-2026) es a la vez **skill de Codex/Claude y CLI de Python**, y de un solo dibujo base
+produce una hoja con alfa real y un `manifest.json` con los **rectángulos absolutos** de cada
+fotograma, por estado, con `fps` y `loop`.
+
+Frente a lo de arriba: Retro Diffusion (§1 bis) **genera píxeles**; `sprite-gen` **construye el
+asset** — filas por estado, identidad del personaje bloqueada entre fotogramas, croma a alfa de
+verdad, rejilla mantenida, y un manifiesto que el motor consume sin adivinar. Se complementan:
+puedes generar con lo uno y montar con lo otro.
+
+Lo que **no** trae es la salida a GameMaker —exporta a Aseprite, Phaser y Flame—, y eso lo cierra
+`_indice/atlas-a-gamemaker.py`, verificado importando en un proyecto real. Los comandos y la
+comprobación completa, en
+[`12 · 09 §5.2`, peldaño 2 ter](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md).
+
 ### 1 ter · `SpriteBrew`: la tubería más pulida, y por qué aquí sirve solo a medias
 
 [`SpriteBrew`](https://github.com/GAlbanese09/spritebrew) (52 ★, AGPL-3.0, activo a julio de
