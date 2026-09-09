@@ -536,7 +536,18 @@ def main():
                        capture_output=True, text=True)
     print("\n".join("  " + l for l in r.stdout.splitlines()))
     if r.returncode != 0:
-        problemas.append("la skill cita rutas que ya no existen (actualiza references/mapa-disciplinas.md)")
+        # `sincronizar-skill.py` falla por tres motivos distintos y decirlos todos
+        # como «rutas que no existen» es un diagnóstico engañoso — que es justo lo
+        # que este proyecto persigue en las herramientas ajenas.
+        if "no hay SKILL.md" in r.stdout.lower() or "No hay SKILL.md" in r.stdout:
+            problemas.append("falta SKILL.md: la skill es el entregable y no está donde debería")
+        elif "cifra desfasada" in r.stdout:
+            desfasadas = [l.strip() for l in r.stdout.splitlines() if "cifra desfasada" in l]
+            problemas.append("la skill o el README afirman cifras que ya no cuadran — "
+                              + "; ".join(d.split("cifra desfasada:")[-1].strip() for d in desfasadas))
+        else:
+            problemas.append("la skill cita rutas que ya no existen "
+                              "(actualiza references/mapa-disciplinas.md)")
 
     paso(13, "Espejo español del manual (¿va a la par del inglés?)")
     r = subprocess.run([PY, os.path.join(IND, "verificar-espejo.py"), "--resumen"],
