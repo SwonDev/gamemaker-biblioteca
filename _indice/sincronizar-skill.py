@@ -263,6 +263,25 @@ def rutas_rotas():
     return rotas
 
 
+VERSION_SKILL = re.compile(r"<!--\s*SKILL-VERSION:\s*(.+?)\s*-->")
+
+
+def _version_de(ruta_skill_md):
+    """La etiqueta `<!-- SKILL-VERSION: … -->` de un SKILL.md, o None."""
+    try:
+        with open(ruta_skill_md, encoding="utf-8", errors="replace") as f:
+            for _ in range(40):                       # va en la cabecera, no al final
+                linea = f.readline()
+                if not linea:
+                    break
+                m = VERSION_SKILL.search(linea)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return None
+
+
 def estado_enlaces():
     """¿Qué CLI ven esta skill ahora mismo? Solo informa (ver instalar.sh para la instalación)."""
     sitios = {
@@ -340,7 +359,20 @@ def estado_enlaces():
             modo = "enlace →" if es_symlink else "copia al día,"
             lineas.append(f"  ✓ {nombre}: {ruta} ({modo} esta carpeta)")
         else:
-            lineas.append(f"  ⚠ {nombre}: {ruta} no coincide con esta carpeta (reinstala con ./instalar.sh)")
+            # No basta con decir «no coincide»: eso no dice si la copia va una coma por
+            # detrás o seis meses. La etiqueta de versión sí lo dice, y es lo que decide
+            # si reinstalar corre prisa. Una skill instalada responde igual de convencida
+            # esté al día o no — por eso la comparación tiene que ser explícita.
+            _suya = _version_de(skill_md)
+            _mia = _version_de(os.path.join(SKILL, "SKILL.md"))
+            if _suya and _mia and _suya != _mia:
+                detalle = f"tiene {_suya} y esta carpeta va por {_mia}"
+            elif _suya and _mia:
+                detalle = f"misma versión ({_mia}) pero el contenido difiere: alguien la editó"
+            else:
+                detalle = "sin etiqueta de versión legible"
+            lineas.append(f"  ⚠ {nombre}: {ruta} no coincide — {detalle} "
+                          f"(reinstala con ./instalar.sh)")
     return lineas
 
 
@@ -458,8 +490,66 @@ import os as _os_arg, sys as _sys_arg
 _sys_arg.path.insert(0, _os_arg.path.dirname(_os_arg.path.abspath(__file__)))
 from argumentos import exigir_sin_rutas  # noqa: E402
 
+def autoprueba():
+    """La lectura de la etiqueta de versión, que es lo que decide si una copia
+    instalada se avisa como atrasada o pasa por buena.
+
+    Se prueba sobre archivos de verdad, no sobre cadenas: el fallo realista no es
+    que la expresión regular esté mal, es que la etiqueta se caiga del archivo en
+    una reescritura y `_version_de` devuelva None sin que nadie lo note — y una
+    copia sin etiqueta no se puede comparar con nada.
+    """
+    import tempfile
+    fallos = []
+
+    def revisar(nombre, ok, detalle=""):
+        if ok:
+            print("  \u2713 " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  \u2717 %s  ->  %s" % (nombre, detalle))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        def escribir(nombre, texto):
+            ruta = os.path.join(tmp, nombre)
+            with open(ruta, "w", encoding="utf-8") as f:
+                f.write(texto)
+            return ruta
+
+        r = escribir("a.md", "# T\n\n<!-- SKILL-VERSION: r17 · 2026-09-09 -->\n\ncuerpo\n")
+        revisar("lee la etiqueta de versión", _version_de(r) == "r17 · 2026-09-09", str(_version_de(r)))
+
+        r = escribir("b.md", "# T\n\nsin etiqueta ninguna\n")
+        revisar("sin etiqueta devuelve None", _version_de(r) is None, str(_version_de(r)))
+
+        # La etiqueta va en la cabecera. Si aparece en la línea 200, NO se lee: así
+        # una mención de la etiqueta dentro del texto no se confunde con la etiqueta.
+        r = escribir("c.md", "# T\n" + ("relleno\n" * 60) +
+                     "<!-- SKILL-VERSION: r1 · 2020-01-01 -->\n")
+        revisar("una etiqueta enterrada en el cuerpo no cuenta", _version_de(r) is None,
+                str(_version_de(r)))
+
+        revisar("un archivo que no existe devuelve None sin reventar",
+                _version_de(os.path.join(tmp, "no-existe.md")) is None)
+
+        # Y la de verdad: la skill de este repositorio TIENE etiqueta. Si alguien la
+        # borra en una reescritura, esta autoprueba lo dice antes de publicar.
+        propia = _version_de(os.path.join(SKILL, "SKILL.md"))
+        revisar("la SKILL.md de este repositorio lleva su etiqueta",
+                bool(propia), "devolvió %r" % propia)
+
+    if fallos:
+        print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n\u2713 Las 5 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
 if __name__ == "__main__":
-    _sobra = exigir_sin_rutas('La skill canónica vive en `_indice/skills/`; `./instalar.sh` la copia a los CLIs.', ())
+    _sobra = exigir_sin_rutas('La skill canónica vive en `_indice/skills/`; `./instalar.sh` la copia a los CLIs.',
+                              ("--autoprueba",))
     if _sobra:
         sys.exit(_sobra)
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())

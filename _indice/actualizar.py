@@ -355,6 +355,7 @@ def main():
         ("cerrojo.py",                "cerrojo de las carpetas de trabajo"),
         ("verificar-espejo.py",       "espejo español del manual"),
         ("argumentos.py",             "guardián de argumentos de sobra"),
+        ("sincronizar-skill.py",      "etiqueta de versión de la skill"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 

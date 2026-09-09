@@ -104,6 +104,32 @@ generaciones** sigue sin resolverse (§3), y el **estado legal es idéntico** (�
 sea específico no altera la posición de la U.S. Copyright Office ni la obligación de declararlo
 en Steam e itch.io.
 
+##### La alternativa que sí conoce GameMaker: MagicPixel
+
+Medido el **2026-09-09** en el registro de npm y en su propia web, no de oído:
+
+| Qué | Dato |
+|---|---|
+| CLI | [`@magicpixelart/cli`](https://www.npmjs.com/package/@magicpixelart/cli) v0.5.20 (2026-08-27), **MIT**, ~101 descargas/semana |
+| Servicio | <https://magicpixel.art> — generador de pixel art por IA con editor en el navegador |
+| Precio | **De pago.** El editor es gratis; generar cuesta créditos: 10 $/mes (200), 20 $/mes (450), 50 $/mes (1200), o 20 $ sueltos por 400. Prueba de **1 día** con 32 créditos |
+| Propiedad de lo generado | Sus términos (`magicpixel.art/tos`, §5, leídos el 2026-09-09): «*You retain full ownership of all content you upload, import, create, or generate using the Service, including AI-generated outputs. MagicPixel does not claim ownership*» |
+| Debajo | **Google AI** — sus términos dicen que también te obligan los de ese tercero |
+
+**Lo que aporta y nadie más de esta sección tiene**: su CLI **detecta el proyecto por el
+`*.yyp`** —GameMaker está en su lista junto a Unity, Godot y proyectos JS— y sincroniza los
+assets a disco como PNG aplanados. Y expone un **servidor MCP**, así que el agente puede pedirle
+el sprite él mismo en vez de que lo hagas tú a mano.
+
+> ⚠️ **Tres cosas que hay que decir antes de que alguien pague.** (1) Sincronizar PNG a la
+> carpeta **no** los convierte en sprites del proyecto: hay que registrarlos con
+> `resourcetool`, que es justo lo que hace `_indice/atlas-a-gamemaker.py`. (2) Su repositorio
+> del CLI tiene **0 estrellas** — es un canal de distribución de un producto, no un proyecto con
+> comunidad detrás; si mañana cierra el servicio, el CLI no sirve de nada. (3) Que ellos no
+> reclamen la propiedad **no resuelve el §4** de este documento: la posición de la U.S.
+> Copyright Office sobre lo generado por IA y la obligación de declararlo en Steam e itch.io son
+> las mismas.
+
 > 🔎 **Hay un servidor MCP oficial** (`retro-diffusion-mcp`, MIT): permite pedir sprites desde
 > Claude, Cursor o cualquier cliente MCP, que es exactamente cómo lo usaría un agente. Medido el
 > 09-09-2026: es del **02-09-2026 y tiene 3 estrellas**. Existe y es la vía natural; no está
