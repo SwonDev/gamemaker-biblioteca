@@ -112,9 +112,18 @@ compañía te ha aprobado como desarrollador:
 |---|---|
 | Microsoft Xbox One / Series | <https://github.com/GameMakerEnterprise/GMS2-Runner-Xbox/wiki> |
 | Nintendo Switch | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch/wiki/> |
-| **Nintendo Switch 2** | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch2/wiki> | ⚠️ Devuelve **404 sin acceso**: el repositorio es privado y solo se ve con la aprobación de la plataforma (NDA). No está roto — está cerrado.
+| **Nintendo Switch 2** | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch2/wiki> |
 | Sony PlayStation 4 | <https://github.com/GameMakerEnterprise/GMS2-Runner-PS4/wiki/> |
 | Sony PlayStation 5 | <https://github.com/GameMakerEnterprise/GMS2-Runner-PS5/wiki/> |
+
+> ⚠️ **Las cinco devuelven 404 si las abres sin acceso, y eso es lo esperado, no un enlace
+> roto.** Son repositorios privados de la organización
+> [GameMaker Enterprise](https://github.com/GameMakerEnterprise) —que sí responde 200 y no
+> publica ni un repositorio— y solo se ven cuando el fabricante te ha aprobado y YoYo te ha
+> añadido a la organización. Desde fuera, un repositorio privado y uno que nunca existió
+> devuelven exactamente el mismo 404: no hay forma de distinguirlos sin la invitación.
+> Comprobado el 2026-09-09. Si un día te aprueban y sigue dando 404, escribe a YoYo: es
+> entonces cuando el 404 significa algo.
 
 Proceso de solicitud: <https://gamemaker.io/en/help/articles/application-process-for-console-access>
 

@@ -554,15 +554,22 @@ Auditoría del 2 de septiembre de 2026: se han **descargado** a `11 - Código de
 estos proyectos recientes (2025-2026), para poder estudiarlos sin conexión. **Todo esto es de
 terceros**: revisa su licencia y su compatibilidad con tu runtime antes de usarlo.
 
-| Proyecto | Ruta local | Qué hace | Licencia |
-|---|---|---|---|
-| **`gamemaker-mcp`** (yearningss) ⚠️ *homónimo del de Petah, pero distinto* | `librerias/ia-y-mcp/gamemaker-mcp` | Servidor MCP **project-aware con **225 tools** (eran ~190 en la auditoría del 2 de septiembre; su autor sigue añadiendo)**: análisis estático de GML, refactor y builds automáticos. Va mucho más allá que el de docs de Petah | MIT |
-| **`GameMaker-MCP-Server`** (darkw3bb) | `librerias/ia-y-mcp/GameMaker-MCP-Server` | Servidor MCP pensado para **Cursor**: construir proyectos GameMaker asistidos por IA | NOASSERTION (revisa LICENSE) |
-| **`gm-forge-mcp`** (nicklesimba) | `librerias/ia-y-mcp/gm-forge-mcp` | Servidor MCP para **crear y editar** proyectos GameMaker | MIT |
-| **`gamemaker-skills`** (leihaht) | `librerias/ia-y-mcp/gamemaker-skills` | **Skills de Claude Code** para GMS2/GML (objetos, shaders, red, optimización). Ejemplo de cómo empaquetar conocimiento GML para un agente | MIT |
-| **`gamemaker-typescript`** (OleksandrDemian) | `librerias/herramientas-externas/gamemaker-typescript` | Extensión que **transpila TypeScript → GML**: escribir con tipos y tooling de TS | MIT |
-| **`GML-formatter`** (GanjaViruss) | `librerias/herramientas-externas/GML-formatter` | Formateador de GML offline (estilos Allman/K&R), cero dependencias | MIT |
-| **`gml_lsp`** (Okerew) ⚠️ *archivado* | `librerias/herramientas-externas/gml_lsp` | Servidor **LSP** para GML (autocompletado/diagnóstico en editores). Repo archivado: referencia, no producción | MIT |
+| Proyecto | Ruta local | Qué hace | Licencia | Último cambio |
+|---|---|---|---|---|
+| **`gamemaker-mcp`** (yearningss) ⚠️ *homónimo del de Petah, pero distinto* | `librerias/ia-y-mcp/gamemaker-mcp` | Servidor MCP **project-aware con 225 tools** (eran ~190 en la auditoría del 2 de septiembre; su autor sigue añadiendo): análisis estático de GML, refactor y builds automáticos. Va mucho más allá que el de docs de Petah | MIT | **2026-09-09** (hoy) |
+| **`gamemaker-typescript`** (OleksandrDemian) | `librerias/herramientas-externas/gamemaker-typescript` | Extensión que **transpila TypeScript → GML**: escribir con tipos y tooling de TS | MIT | 2026-04-18 |
+| **`GML-formatter`** (GanjaViruss) | `librerias/herramientas-externas/GML-formatter` | Formateador de GML offline (estilos Allman/K&R), cero dependencias | MIT | 2026-06-25 |
+| **`gm-forge-mcp`** (nicklesimba) | `librerias/ia-y-mcp/gm-forge-mcp` | Servidor MCP para **crear y editar** proyectos GameMaker | MIT | 2026-07-20 |
+| **`gml_lsp`** (Okerew) 🗄️ *archivado* | `librerias/herramientas-externas/gml_lsp` | Servidor **LSP** para GML (autocompletado/diagnóstico en editores). Repo archivado: referencia, no producción — la fecha es la del archivado | MIT | 2026-07-23 |
+| **`GameMaker-MCP-Server`** (darkw3bb) | `librerias/ia-y-mcp/GameMaker-MCP-Server` | Servidor MCP pensado para **Cursor**: construir proyectos GameMaker asistidos por IA | NOASSERTION (revisa LICENSE) | ⏳ 2025-10-28 |
+| **`gamemaker-skills`** (leihaht) | `librerias/ia-y-mcp/gamemaker-skills` | **Skills de Claude Code** para GMS2/GML (objetos, shaders, red, optimización). Ejemplo de cómo empaquetar conocimiento GML para un agente | MIT | ⏳ 2025-11-06 |
+
+> ⏳ **Las dos últimas filas llevan diez meses sin tocarse**, medido el 2026-09-09 con el
+> `pushed_at` de GitHub. Son de antes de la LTS 2026, así que **no** las tomes como referencia
+> de API: lo que digan sobre funciones o rutas puede haber cambiado bajo sus pies. Siguen aquí
+> por lo que enseñan —cómo se conecta un MCP a Cursor, cómo se empaqueta una skill de
+> GameMaker—, no por lo que afirman. Para trabajo real, la fila de arriba (`gamemaker-mcp`,
+> tocada hoy) o el `gamemaker-resource-tool` oficial.
 
 > 🔎 **Distinción clave de nombres:** hay **dos** proyectos llamados `gamemaker-mcp`. El de
 > **Petah** (arriba, en la tabla de la sección 6 bis) solo sirve **documentación** de la API. El de
