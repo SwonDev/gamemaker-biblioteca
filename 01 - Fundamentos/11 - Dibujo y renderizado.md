@@ -555,6 +555,33 @@ display_set_gui_maximise(true);     // ocupar toda la pantalla (incluidas barras
 
 > ⚠️ Con **Aspect Ratio Correction** activado, la GUI **no** se dibuja sobre las barras negras. `display_set_gui_maximise()` cambia eso.
 
+> 🔴 **`visible = false` apaga también el Draw GUI, y con él tu interfaz entera.** Draw GUI **es
+> un evento de dibujo**, y el manual no deja resquicio: marcar la instancia como invisible hace
+> que GameMaker *«omita los eventos de dibujo para esta instancia, por lo que… ningún código
+> colocado en ninguno de los eventos de dibujo se ejecutará»*.
+>
+> Parece obvio dicho así, y no lo es en la práctica: un gestor de menú o de HUD al que le pones
+> `visible = false` para «ocultarlo un momento» **deja la pantalla entera en negro**, compila sin
+> una queja y no hay error en ningún log. Le pasó a un agente montando un RPG con esta biblioteca
+> ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md)).
+>
+> **Para ocultar lo que dibuja un objeto sin apagar su interfaz, la salida es un `Draw` vacío** —
+> o una guarda dentro del propio evento— no `visible`:
+>
+> ```gml
+> // Draw (normal) del gestor: vacío a propósito, para no dibujar nada en el mundo…
+> // …y el Draw GUI sigue ejecutándose y pintando el HUD.
+> ```
+>
+> Y un segundo matiz del manual que tampoco es evidente: **durante los eventos de dibujo,
+> `visible` pasa a ser de solo lectura, y escribirla lanza un error fatal.** No la uses como
+> interruptor desde un `Draw`.
+
+> 💡 **La capa manda por encima de la instancia.** Si la capa a la que pertenece está marcada
+> como invisible (`layer_set_visible`), poner `visible = true` en la instancia **no tiene ningún
+> efecto** hasta que la capa vuelva a ser visible. Cuando algo no se dibuja y la instancia
+> parece correcta, mira la capa.
+
 ---
 
 ## 11. Rendimiento: batching, texture pages, draw calls

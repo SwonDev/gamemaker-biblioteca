@@ -344,7 +344,13 @@ silencio. Es el mismo criterio que ya usa `13 · 14 §1.5` para las secciones va
 ### Envoltura
 
 - [ ] Splash saltable
-- [ ] Menú principal con Jugar / Continuar (condicionado) / Opciones / Créditos / Salir
+- [ ] Menú principal con Jugar / Continuar / Opciones / Créditos / Salir. **«Continuar»
+      condiciona su ESTADO, no su presencia**: sin partida guardada se ve **gris y dice por
+      qué** («No hay partidas guardadas»), no desaparece — así lo pide
+      [`13 · 05 §4`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/05%20-%20UI%20y%20UX%20de%20juego.md#4--checklist-de-ui-antes-de-publicar),
+      y un menú que cambia de número de opciones entre partidas desorienta. Esta aclaración
+      existe porque las dos listas se contradecían y un agente tuvo que decidir a ojo
+      ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md) F-9)
 - [ ] Selección de nivel o capítulo, si el juego tiene niveles discretos —
       [57 · Selección de nivel y capítulo](./57%20-%20Selección%20de%20nivel%20y%20capítulo.md)
       (marca «no aplica» si es lineal o un mundo interconectado, no lo omitas)

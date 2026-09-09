@@ -330,6 +330,28 @@ te toca en cada caso, en la [§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-arc
 > Renombra tú el archivo al número nuevo después de cualquier `OBJECT EVENT CHANGE` — es la misma
 > disciplina que ya exige la Trampa 9 tras parchear un `eventNum`.
 
+> 🔴 **Y el quinto caso: `OBJECT EVENT DELETE` deja el `.gml` en el disco.** Verificado el
+> 09-09-2026:
+>
+> ```console
+> $ ls objects/obj_t/
+> obj_t.yy  Step_0.gml
+> $> OBJECT EVENT DELETE NAME=obj_t TYPE=step SUBTYPE=step_normal
+> Saved successfully
+> $ grep -c eventNum objects/obj_t/obj_t.yy
+> 0                       ← el evento SÍ desapareció del .yy
+> $ ls objects/obj_t/
+> obj_t.yy  Step_0.gml    ← el archivo sigue ahí
+> ```
+>
+> Aquí el riesgo es el contrario al de `CHANGE`: no es que el código deje de ejecutarse, es que
+> **queda un archivo huérfano que parece código vivo**. Quien lo lea después —tú mismo dentro de
+> una hora, o el siguiente agente— creerá que ese Step existe. Bórralo a mano.
+>
+> **La regla que unifica los cinco casos de esta familia**: `resourcetool` mantiene el `.yy` y
+> **nunca** los archivos `.gml`. Cada vez que un comando cambie qué eventos tiene un objeto,
+> mira la carpeta con `ls` y cuadra los archivos con lo que dice `object event list`.
+
 ### Trampa 4 · El compilador NO detecta una función inventada ni una variable sin declarar
 
 `gm-cli compile` compila **limpio, con exit 0**, código que llama a una función que no existe.
@@ -1150,6 +1172,41 @@ verdad): compiló sin ningún `WARNING`, el `.ttf` entró en el paquete compilad
 «¡Añádeme más peón!» dibujado «Ademe ms pen!» a las tildes y la eñe completas — capturas de
 antes y después comparadas píxel a píxel en la misma sesión que verificó esta trampa.
 
+#### La tercera salida, y para un agente suele ser la mejor: `font_add_sprite_ext()`
+
+Las dos vías anteriores tienen peaje: la fuente del proyecto arrastra la **Trampa 5** (los glifos
+no se rasterizan por CLI) y el `.ttf` por *Included File* arrastra la **Trampa 8** *y* te obliga a
+conseguir una tipografía con licencia redistribuible, que esta biblioteca no te da. Hay una
+tercera que evita las dos cosas y que ningún documento presentaba como respuesta a esta trampa:
+
+```gml
+/// Create — la hoja de glifos es un sprite normal, así que no hay Trampa 5 ni Trampa 8
+/// Verificado: font_add_sprite_ext(spr, string_map, prop, sep)
+global.fnt_ui = font_add_sprite_ext(
+    spr_glifos,
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~áéíóúüñÁÉÍÓÚÜÑ¿¡",
+    true,   // prop: ancho proporcional; false = todos los glifos igual de anchos
+    1       // sep: píxeles de separación entre caracteres
+);
+```
+
+`string_map` es **la cadena que dice, en orden, qué carácter es cada sub-imagen del sprite**. Por
+eso `font_add_sprite_ext` es mejor que `font_add_sprite(spr, first, prop, sep)` para español:
+aquel exige que los caracteres sean **consecutivos** desde un código, y las tildes y la eñe no lo
+son — están dispersas por Latin-1. Con `_ext` los pones donde quieras.
+
+**Por qué encaja tan bien con un agente**: la hoja de glifos la puedes **dibujar tú** con Pillow,
+igual que el resto de los *placeholders* de [§5.2](#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano)
+— un carácter por sub-imagen, mismo alto, y ya tienes tipografía propia con tildes, sin licencia
+ajena, sin `.ttf`, sin *Included File* y sin abrir el IDE. Un agente que construyó un RPG con
+esta biblioteca acabó ahí después de más de una hora peleando con las otras dos vías, y anotó que
+nadie se lo había dicho ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md)).
+
+> ⚠️ **Ojo con las comillas dentro del `string_map`.** La cadena lleva `"` y `\`, y los dos hay
+> que escaparlos. Es exactamente el literal que rompe el análisis si se te escapa uno —
+> [§3 bis del nivel como mapa de texto](../04%20-%20Recetas%20por%20género/58%20-%20El%20nivel%20como%20mapa%20de%20texto%20-%20construir%20sin%20abrir%20el%20editor%20de%20salas.md).
+> Si te resulta más cómodo, deja fuera del mapa la comilla y la barra.
+
 **Severidad**: alta, y de la familia silenciosa de las Trampas 5, 6 y 8 — con el agravante de que
 la vía que parece más segura (no tocar `resourcetool`, fiarse de la fuente por defecto) es
 precisamente la que lo dispara. Cross-referencias con la explicación completa y el aviso para
@@ -1557,6 +1614,19 @@ $R "resource set expr=inst_p1.scaleX value=2"
 $R "resource set expr=inst_p1.rotation value=45"
 ```
 
+> 💡 **Qué es `INDEX n`, que el `HELP` no explica.** El argumento acepta `FRONT`, `BACK` o
+> `INDEX n`, y ese `n` **no es el `depth` de GameMaker: es la posición en la lista de capas**.
+> GameMaker asigna el `depth` él solo después, en saltos de 100 siguiendo ese orden. Verificado
+> creando tres capas con `INDEX 0`, `1` y `2` sobre una sala nueva y leyendo el `.yy`:
+>
+> ```
+> Capa0 → depth 0     Capa1 → depth 100    Capa2 → depth 200
+> Instances → 300     Background → 400
+> ```
+>
+> Es decir: **las capas nuevas se colocan delante** (menos `depth` = se dibuja encima), y las que
+> traía la plantilla se van hacia atrás. Para una capa detrás de todo, `BACK`.
+
 > ⚠️ **`ROOM ASSET CREATE` ignora `LAYER=` si la capa no existe** — y no avisa: se inventa una
 > (`layer3`, `layer6`…). Verificado con tres variantes. `ROOM INSTANCE CREATE` sí respeta el
 > nombre. **Crea antes la capa de tipo `ASSET`.**
@@ -1590,12 +1660,39 @@ $R "room layer tiles get room=rm_nivel1 layer=Suelo"
 un script. (`ROOM LAYER TILES INFO` no imprime nada; el desglose de bits sale como cabecera de
 `TILES GET`.)
 
-### 3 bis.4 Animación de un sprite
+### 3 bis.4 Origen y animación de un sprite
 
 ```bash
+# Animación
 $R "resource set expr=spr_jugador.sequence.playbackSpeed value=12"
 $R "resource set expr=spr_jugador.sequence.playbackSpeedType value=FramesPerSecond"
+
+# Origen — en PÍXELES, no el desplegable
+$R "resource set expr=spr_jugador.sequence.xorigin value=16"
+$R "resource set expr=spr_jugador.sequence.yorigin value=47"
+$R "resource set expr=spr_jugador.origin value=9"      # 9 = «Custom» en el IDE, cosmético
 ```
+
+> 🔴 **`origin` NO mueve el origen: es el desplegable del IDE, y escribirlo solo no hace nada.**
+> Verificado el 09-09-2026 sobre un sprite de 32×48 recién creado:
+>
+> ```console
+> $ resource set expr=spr_i.origin value=4     # 4 = «Middle Centre»
+> Saved successfully
+> $ grep origin sprites/spr_i/spr_i.yy
+> "origin":4  "xorigin":0  "yorigin":0         ← el centro sería 16,24
+> ```
+>
+> El preset se guarda y **las coordenadas reales se quedan donde estaban**: solo el IDE las
+> recalcula al elegir en el desplegable. Lo que lee el runtime es `sequence.xorigin` /
+> `sequence.yorigin`, en píxeles. Escribe **esos dos**, y deja `origin` en `9` («Custom») para
+> que el IDE no te lo pise si alguien abre el proyecto.
+>
+> **No es un detalle cosmético.** En un cenital, el origen a los pies es el sistema de
+> profundidad entero (`depth = -y`); en un plataformas, decide dónde aterriza el personaje y
+> dónde cae su sombra. Un origen en `0,0` con «Saved successfully» de por medio es de los fallos
+> que más tardan en atribuirse a su causa. Otro caso de la regla:
+> **léelo de vuelta del `.yy`.**
 
 ### 3 bis.5 Renombrar un recurso — y sí, actualiza las referencias
 

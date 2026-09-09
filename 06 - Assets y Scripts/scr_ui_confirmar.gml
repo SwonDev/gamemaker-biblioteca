@@ -52,6 +52,12 @@ global.confirmar = {
     foco       : 0,             // 0 = "No", 1 = "Sí" — "No" empieza SIEMPRE con el foco
     accion_si  : undefined,
     accion_no  : undefined,
+    // Se pone a true en el fotograma EXACTO en que el diálogo se cierra, y vuelve a
+    // false al principio del siguiente. Sin él, la pantalla de debajo lee la MISMA
+    // pulsación que acaba de cerrar el diálogo y lo reabre: responder «No» a
+    // «¿salir?» reabría el diálogo indefinidamente. Fallo real encontrado al usar
+    // este script en un juego (_indice/auditorias/r13-prueba-rpg.md, F-8).
+    recien_cerrado : false,
 };
 
 /// @function confirmar_configurar_textos(_texto_si, _texto_no)
@@ -89,7 +95,9 @@ function confirmar_abrir(_texto, _accion_si, _accion_no = undefined) {
 ///          (el mismo criterio que ya usa la pausa con sus propios sub-estados, 04/41 §3.4.1).
 /// @returns {Bool}
 function confirmar_activo() {
-    return global.confirmar.activo;
+    // Incluye el fotograma de cierre a propósito: durante él, la tecla de aceptar sigue
+    // devolviendo true en keyboard_check_pressed() y la pantalla de debajo la releería.
+    return global.confirmar.activo || global.confirmar.recien_cerrado;
 }
 
 /// @function confirmar_step()
@@ -98,6 +106,10 @@ function confirmar_activo() {
 ///          hace nada si no hay ningún diálogo abierto.
 /// @returns {Undefined}
 function confirmar_step() {
+    // Lo primero, siempre: la marca pertenecía al fotograma anterior. Va ANTES del
+    // early return, porque también hay que limpiarla cuando ya no hay diálogo abierto.
+    global.confirmar.recien_cerrado = false;
+
     if (!global.confirmar.activo) { return; }
 
     var _hay_mando = gamepad_is_connected(0);
@@ -120,6 +132,7 @@ function confirmar_step() {
         var _si = global.confirmar.accion_si;
         var _no = global.confirmar.accion_no;
         global.confirmar.activo = false;    // cerrar ANTES de llamar: la acción puede abrir otro
+        global.confirmar.recien_cerrado = true;
         if (_elegido_si) { if (is_callable(_si)) { _si(); } }
         else              { if (is_callable(_no)) { _no(); } }
         return;
@@ -128,6 +141,7 @@ function confirmar_step() {
     if (_cancelar) {
         var _no2 = global.confirmar.accion_no;
         global.confirmar.activo = false;
+        global.confirmar.recien_cerrado = true;
         if (is_callable(_no2)) { _no2(); }
     }
 }
