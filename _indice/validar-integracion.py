@@ -1332,6 +1332,19 @@ def main():
     args = ap.parse_args()
 
     print("\033[1mvalidar-integracion.py\033[0m — capas 1 y 2 (nombres duplicados · global.X sin escribir)")
+
+    # Cero documentos leídos no es «no hay duplicaciones»: es que no se ha mirado
+    # nada. Sin esta guarda, un `DIRS_INCLUIDAS` mal escrito o un clon a medias
+    # daban un verde perfecto — el mismo falso verde que ya tenían
+    # `verificar-enlaces.py`, `validar-proyecto.py` y `validar-compilacion-docs.py`.
+    n_docs = len(documentos())
+    if n_docs == 0:
+        print("\n✗ CERO documentos leídos. No es que no haya duplicaciones: es que no")
+        print("  se ha leído nada. Comprueba que existan las carpetas que analiza este")
+        print("  script (%s)." % ", ".join(sorted(DIRS_INCLUIDAS)))
+        return 2
+    print(f"  {n_docs} documentos con código reutilizable.")
+
     graves = reportar_capas_1_2()
 
     print("\n\033[1mCapa 4\033[0m — función declarada en el evento de un objeto, llamada "
@@ -1419,10 +1432,22 @@ def autoprueba():
     revisar("en un .gml suelto no hacen falta vallas",
             [d["nombre"] for d in f] == ["de_un_gml"], f)
 
+    # Y la guarda del falso verde: cero documentos no puede salir con 0.
+    import subprocess, tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        vacio = os.path.join(tmp, "_indice")
+        os.makedirs(vacio)
+        import shutil as _sh
+        _sh.copy(os.path.abspath(__file__), os.path.join(vacio, os.path.basename(__file__)))
+        r = subprocess.run([sys.executable, os.path.join(vacio, os.path.basename(__file__))],
+                           capture_output=True, text=True, cwd=tmp)
+        revisar("un árbol sin documentos NO sale con 0", r.returncode != 0,
+                "exit %d" % r.returncode)
+
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n\u2713 Las 10 comprobaciones de la autoprueba pasan.")
+    print("\n\u2713 Las 11 comprobaciones de la autoprueba pasan.")
     return 0
 
 
