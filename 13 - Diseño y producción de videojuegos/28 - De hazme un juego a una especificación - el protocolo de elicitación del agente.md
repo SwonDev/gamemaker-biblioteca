@@ -197,8 +197,31 @@ biblioteca, se saltó el paso 0 por este motivo exacto, y lo dejó anotado en ve
    había forma de preguntar» es una frase que el usuario necesita leer. El silencio convierte
    una suposición razonable en un error tuyo.
 
+### El tercer caso: hay canal, pero te han vetado planificar
+
+Entre «puedo preguntar» y «no puedo preguntar» hay un tercer supuesto, y es más frecuente de lo
+que parece: **el usuario está ahí y te ha dicho explícitamente que no quiere un plan** — «no me
+preguntes, hazlo», «nada de planificar, al lío», «no quiero un documento, quiero el juego». Un
+agente que aplique el caso anterior aquí se estará escudando en él para saltarse el paso 0; y uno
+que insista en preguntar estará desobedeciendo una instrucción clara.
+
+La salida no es ninguna de las dos:
+
+1. **No preguntes, y no lo discutas.** Te han dado una instrucción sobre el método, no sobre el
+   alcance. Se respeta.
+2. **Escribe la especificación igual, y no la enseñes.** Deja de ser una puerta y pasa a ser tu
+   propia herramienta: es lo que te impide improvisar el alcance en el minuto cuarenta. Escribirla
+   cuesta dos minutos y no gasta ni un turno del usuario.
+3. **Entrégala con el juego**, como en el caso anterior, marcando lo asumido con `[DEFAULT]`.
+4. **En el mensaje final, tres líneas**: qué asumiste, y cuál de esas suposiciones cambiaría más
+   el resultado si te equivocaste. No es planificar: es decir de qué pie cojea lo que entregas.
+
+Lo que **no** vale es tomar el veto a planificar como permiso para no decidir. Las ocho preguntas
+siguen teniendo respuesta —la des tú o la dé el valor por defecto—; lo único que cambia es que no
+se la preguntas a nadie.
+
 > ⚠️ **No lo uses como atajo.** Si tienes canal —una conversación, un turno de vuelta, cualquier
-> forma de que la respuesta te llegue— **pregunta**. Este apartado es para cuando el canal no
+> forma de que la respuesta te llegue— y **nadie te ha vetado preguntar**, **pregunta**. Este apartado es para cuando el canal no
 > existe, no para cuando preguntar da pereza o parece que ralentiza. Confundir las dos cosas es
 > volver a «hazme un juego» → programar sin especificación, que es justo lo que este documento
 > existe para evitar.

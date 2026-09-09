@@ -979,6 +979,11 @@ pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 > Encontrado por un agente que construyó un juego entero usando solo esta biblioteca
 > ([`r12-prueba-plataformas.md` §1.2](../_indice/auditorias/r12-prueba-plataformas.md)).
 
+> ⚠️ **La columna se titula «Option» y el argumento se llama `PROPERTY=`.** `OPTIONS INFO`
+> imprime la tabla con la cabecera `Option`, así que el reflejo es escribir
+> `options set … option=version`, que no existe. El argumento correcto es **`PROPERTY=`**, y el
+> error de un nombre equivocado **vuelca la ayuda entera** en vez de decir cuál era.
+
 > 💡 **`options info` no cabe en la salida de un agente.** `options info platform=mac` devuelve
 > **82 KB** de tabla con bordes Unicode, que desborda la salida del Bash de Claude Code y de
 > cualquier herramienta con tope. Pide solo los nombres:

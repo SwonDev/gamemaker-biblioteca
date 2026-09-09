@@ -227,6 +227,48 @@ def ficha(nombre):
     return 0
 
 
+def _sin_resultados(patron, ambito="la biblioteca"):
+    """Qué decir cuando una búsqueda de TEXTO no encuentra nada.
+
+    Existe porque el silencio era peligroso. Una frase sin coincidencias imprimía
+    la cabecera y salía con 0, y un agente lo leía como «ya lo he buscado, no
+    existe» — la conclusión más cara que puede sacar quien usa esta biblioteca,
+    y justo la que su regla número uno intenta evitar en el otro sentido
+    (_indice/auditorias/r13-prueba-rpg.md, hueco 10).
+
+    No encontrar una FRASE no significa que el tema no esté: significa que no
+    está redactado así. Para ayudar a la siguiente consulta se buscan las
+    palabras por separado y se dice cuáles sí aparecen.
+    """
+    print(f"Sin resultados para «{patron}» en {ambito}.")
+    print()
+    print("⚠️  «No lo encuentro» NO es «no existe». Una frase falla en cuanto una")
+    print("    palabra está escrita de otra forma. Para un SÍMBOLO de GML el")
+    print("    buscador sí es concluyente; para un concepto, no.")
+
+    palabras = [p for p in re.split(r"[^0-9A-Za-zÁÉÍÓÚÜÑáéíóúüñ_]+", patron) if len(p) > 3]
+    if len(palabras) > 1:
+        sueltas = []
+        for p in palabras:
+            total, _ = _buscar_en(DOCS, p, [".md", ".gml"])
+            if total:
+                sueltas.append((total, p))
+        if sueltas:
+            sueltas.sort(reverse=True)
+            print()
+            print("    Por separado sí aparecen:")
+            for total, p in sueltas[:6]:
+                print(f"      «{p}» → {total} documento(s)")
+            print("    Prueba con una sola de ellas, o con dos palabras en vez de la frase.")
+        else:
+            print()
+            print("    Ninguna de sus palabras aparece suelta tampoco.")
+    print()
+    print("    Siguiente paso: `--todo` si usaste `--texto`, el índice de la carpeta")
+    print("    que te suene (`_INDICE-*.md`), o `_indice/COMO-BUSCAR.md`.")
+    return 1
+
+
 def grep(subdirs, patron, exts, limite=40):
     # acepta tanto carpetas como archivos sueltos (README.md, RUTA.md…)
     existentes = [os.path.join(RAIZ, d) for d in subdirs
@@ -268,7 +310,7 @@ def grep(subdirs, patron, exts, limite=40):
             print(f"… (recortado en {limite} resultados)")
             break
     if n == 0:
-        print("Sin resultados.")
+        return _sin_resultados(patron)
     return 0
 
 
@@ -323,6 +365,7 @@ def buscar_todo(patron):
     respuesta por autoridad: símbolo exacto → biblioteca → manual → código real.
     """
     print(f"═══ «{patron}» en toda la biblioteca ═══\n")
+    hubo = False
 
     # 1 · ¿es un símbolo exacto del runtime?
     d = cargar(avisar=False)
@@ -330,6 +373,7 @@ def buscar_todo(patron):
     if es_simbolo:
         s = d["simbolos"][patron]
         obs = " ⚠️OBSOLETA" if s.get("obsoleta") else ""
+        hubo = True
         print(f"● SÍMBOLO del runtime: {s.get('firma') or patron}{obs}")
         if s.get("solo_lectura"):
             print("    ⚠ SOLO LECTURA: asignarle un valor no hace nada.")
@@ -347,6 +391,7 @@ def buscar_todo(patron):
     #     cruce docs_es de arriba ya dio la respuesta buena: se omite.
     n, m = (0, []) if (es_simbolo and len(patron) <= 3) else _buscar_en(DOCS, patron, [".md", ".gml"])
     if n:
+        hubo = True
         print(f"● BIBLIOTECA en español · {n} documento(s):")
         for r in m: print(f"    {r}")
         if n > len(m): print(f"    … y {n - len(m)} más (--texto para verlos todos)")
@@ -358,6 +403,7 @@ def buscar_todo(patron):
     n, m = (0, []) if (es_simbolo and len(patron) <= 3) else \
         _buscar_en(["09 - Manual oficial/manual-lts-2026-es"], patron, [".md"])
     if n:
+        hubo = True
         print(f"● MANUAL oficial (es) · {n} página(s):")
         for r in m: print(f"    {r}")
         if n > len(m): print(f"    … y {n - len(m)} más (--manual para verlas todas)")
@@ -366,6 +412,7 @@ def buscar_todo(patron):
     # 4 · código real descargado (324 repos: 21 juegos, 28 librerías…)
     n, m, todas = _buscar_en3(["11 - Código descargado"], patron, [".gml"])
     if n:
+        hubo = True
         # categoría de alto nivel (juegos_y_motores, librerias…), para orientar
         cats = sorted({r.split(os.sep)[1] for r in todas if len(r.split(os.sep)) > 1})
         print(f"● CÓDIGO real · {n} archivo(s) en: {', '.join(cats)}")
@@ -373,6 +420,8 @@ def buscar_todo(patron):
         if n > len(m): print(f"    … y {n - len(m)} más (--codigo para verlos todos)")
         print()
 
+    if not hubo:
+        return _sin_resultados(patron, "ninguna de las cuatro fuentes")
     return 0
 
 
