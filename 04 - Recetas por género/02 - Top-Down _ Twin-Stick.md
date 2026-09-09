@@ -760,6 +760,96 @@ depth = -bbox_bottom;
 
 ---
 
+## 5.9 La máquina de estados del jugador en mundo abierto
+
+> **El hueco que cierra esta sección.** La biblioteca tenía dos cosas llamadas «estado» y
+> ninguna era esta: `BattleState` (de `04 · 35`) es el turno de un combate, y el
+> `PlayerStateTopDown` de la §6 de abajo son **datos persistentes** —vida, dinero, llaves—, no
+> estados de comportamiento. Un agente que montó un RPG de mundo abierto se quedó sin plantilla
+> para lo más básico: qué puede hacer el jugador **ahora mismo**
+> ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md)).
+
+Un jugador de mundo abierto no está siempre «jugando»: habla, mira el inventario, cruza una
+puerta, recibe un golpe. Sin una máquina de estados eso acaba siendo una maraña de banderas
+—`hablando`, `en_menu`, `invulnerable`— que se contradicen entre sí, y de ahí salen los fallos
+que ni el compilador ni `validar-proyecto.py` ven (`13 · 10 §8.7`).
+
+Se apoya en [`06 · scr_state_machine.gml`](../06%20-%20Assets%20y%20Scripts/scr_state_machine.gml)
+sin tocarlo:
+
+```gml
+/// Create de obj_jugador
+/// Verificado: fsm_bind, instance_exists, keyboard_check_pressed
+
+fsm = fsm_bind(id, {
+
+    libre: {
+        update: function() {
+            jugador_mover();                       // §5.2
+            var _obj = interactuar_objetivo(14);   // 04 · 04 §5.2 bis
+            if (_obj != noone && entrada_usar_pulsado())
+            {
+                objetivo_actual = _obj;
+                fsm.set("hablando");
+            }
+            if (entrada_menu_pulsado()) fsm.set("menu");
+        }
+    },
+
+    hablando: {
+        // `enter` y `exit` existen para que la entrada y la salida de un estado
+        // NO estén repartidas por el update de los demás: es lo que evita que
+        // alguien se olvide de reactivar el movimiento al cerrar el diálogo.
+        enter:  function() { velocidad_x = 0; velocidad_y = 0; dialogo_abrir(objetivo_actual); },
+        update: function() { if (!dialogo_activo()) fsm.set("libre"); }
+    },
+
+    menu: {
+        enter:  function() { inventario_abrir(); },
+        exit:   function() { inventario_cerrar(); },
+        update: function() { if (!inventario_activo()) fsm.set("libre"); }
+    },
+
+    golpeado: {
+        // tiempo_en_estado lo lleva la propia máquina: no hace falta un alarm.
+        enter:  function() { retroceso_aplicar(); },
+        update: function() { if (fsm.tiempo_en_estado > 18) fsm.set("libre"); }
+    },
+
+    transicion: {
+        // Un estado propio para el cambio de sala evita el fallo de 04 · 41 §4:
+        // durante el fundido, el jugador NO acepta entrada de ningún tipo.
+        update: function() { /* espera: la transición decide cuándo devolver el control */ }
+    }
+
+}, "libre");
+```
+
+```gml
+/// Step de obj_jugador — una sola línea
+fsm.update();
+```
+
+> 💡 **Por qué `transicion` es un estado y no una bandera.** Con una bandera hay que acordarse de
+> consultarla en cada rama; con un estado, el jugador **simplemente no ejecuta** el `update` de
+> `libre`, y no hay nada que olvidar. Es el mismo fallo que las dos pruebas a ciegas de esta
+> biblioteca cometieron con banderas sueltas, y por eso `auditar-juego-completo.py` lo comprueba
+> ahora de forma mecánica.
+
+> 🔎 **Sí, los estados pueden usar `fsm` aunque `fsm` se esté creando en esa misma línea.**
+> Parece un error y no lo es: las funciones de estado no se **ejecutan** durante `fsm_bind()`,
+> solo se guardan; para cuando corre la primera, `fsm` ya existe. Y funcionan sin cualificar
+> nada —`velocidad_x = 0`, `fsm.set(...)`, `objetivo_actual`— porque `fsm_bind()` reenlaza cada
+> una con `method(_dueno, _fn)`, así que dentro de un estado `self` es la instancia dueña. Es
+> justo el azúcar por el que existe `fsm_bind` en vez de `new StateMachine`.
+
+> ⚠️ **`fsm.set()` dentro de un `update` no corta el resto del `update`.** Cambia de estado y
+> sigue ejecutando las líneas que vengan después, con el estado ya cambiado. Si eso te importa,
+> pon un `return` justo detrás — el error clásico es llamar a `set("hablando")` y seguir leyendo
+> la entrada de movimiento en las tres líneas siguientes.
+
+---
+
 ## 6. Gestión del estado del jugador
 
 ```gml

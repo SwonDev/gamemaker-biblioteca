@@ -159,6 +159,127 @@ def objetos_rectangulo(ruta):
             [s for s in sospechosos if interfaz.match(s)])
 
 
+ENTRADA_CRUDA = re.compile(r"\b(keyboard_check_pressed|gamepad_button_check_pressed|"
+                     r"mouse_check_button_pressed|keyboard_check|device_mouse_check_button_pressed)\s*\(")
+# Cómo se llama, en la práctica, «ahora no aceptes entrada»: una pausa, una transición
+# en curso, un diálogo abierto, una confirmación encima.
+#
+# Ojo con la laxitud. La primera versión aceptaba cualquier palabra con «confirmar»
+# dentro, y una función de ENTRADA llamada `entrada_confirmar()` la satisfacía: el
+# detector daba por bueno justo el objeto que no tenía guarda. Por eso ahora se exige
+# (a) una forma de nombre que solo tiene una guarda —terminada en _activo/_activa/
+# _abierto/_en_curso/_cambiando, o una global de pausa— y (b) que aparezca en una
+# línea con `if`, que es donde vive una guarda y no una acción.
+GUARDA = re.compile(
+    # Raíces que solo aparecen en algo que BLOQUEA, nunca en una función de entrada.
+    # `confirmar` y `menu` quedan fuera a propósito: chocaban con `entrada_confirmar()`
+    # y `menu_elegir()`, que son acciones, y hacían pasar por bueno el objeto sin guarda.
+    r"\b\w*(?:paus|transicion|transición|fundido|dialog|diálog|congel|bloquea|"
+    r"cambiando|escena_)\w*"
+    # …más los nombres concretos que sí son guardas aunque no lleven esas raíces.
+    r"|\bconfirmar_activ[oa]\b|\bis_paused\b|\binstance_deactivate_all\b"
+    r"|\binstance_exists\s*\(\s*obj_(?:pausa|transicion|dialogo)",
+    re.I)
+
+
+def tiene_guarda(texto):
+    """Una guarda vive en una línea con `if`; una acción, no."""
+    for linea in texto.split("\n"):
+        if "if" in linea and GUARDA.search(linea):
+            return True
+    return False
+
+
+def envoltorios_de_entrada(ruta):
+    """Nombres de las funciones PROPIAS del proyecto que leen la entrada.
+
+    Un juego bien hecho no llama a `keyboard_check_pressed` desde cada objeto: lo
+    centraliza en un script (`entrada_pulsado()`, `input_check()`…). La primera
+    versión de este detector solo buscaba las llamadas crudas y por eso daba CERO
+    sobre un proyecto real que hacía justamente lo correcto. Se recogen aquí para
+    que contar como «lee entrada» funcione con los dos estilos.
+    """
+    nombres = set()
+    dir_scr = os.path.join(ruta, "scripts")
+    if not os.path.isdir(dir_scr):
+        return nombres
+    for base, _, files in os.walk(dir_scr):
+        for fi in files:
+            if not fi.endswith(".gml"):
+                continue
+            texto = leer(os.path.join(base, fi))
+            # Cada `function nombre(` y el trozo de cuerpo que le sigue hasta la
+            # siguiente declaración: si ahí dentro hay entrada cruda, es un envoltorio.
+            trozos = re.split(r"\bfunction\s+(\w+)\s*\(", texto)
+            for i in range(1, len(trozos) - 1, 2):
+                if ENTRADA_CRUDA.search(trozos[i + 1][:4000]):
+                    nombres.add(trozos[i])
+    return nombres
+
+
+def objetos_sin_guarda(ruta):
+    """Objetos que leen entrada y NO mencionan ninguna guarda de pausa/transición.
+
+    Es el fallo que las dos pruebas a ciegas cometieron, y el mismo las dos veces: un
+    único objeto de pantalla se quedó sin la guarda que sí tenían los otros cinco, y
+    durante el fundido de salida seguía aceptando entrada — abriendo pantallas cuyos
+    métodos morían con la instancia. Compila limpio, no hay error en ningún log, y el
+    checklist que lo habría cazado está enlazado desde una casilla que se puede marcar
+    sin abrirlo (`04/00` → `04/41 §4`).
+
+    La comprobación es COMPARATIVA a propósito: solo se avisa si el proyecto YA usa
+    guardas en algún sitio. Un juego que no tiene ninguna no está incumpliendo nada
+    —quizá no tiene pausa—; lo sospechoso es tenerlas en cinco objetos y no en el sexto.
+    """
+    dir_obj = os.path.join(ruta, "objects")
+    if not os.path.isdir(dir_obj):
+        return [], 0
+
+    envoltorios = envoltorios_de_entrada(ruta)
+    if envoltorios:
+        lee = re.compile(ENTRADA_CRUDA.pattern + "|\\b(" +
+                         "|".join(re.escape(x) for x in sorted(envoltorios)) + r")\s*\(")
+    else:
+        lee = ENTRADA_CRUDA
+
+    con_entrada, con_guarda = [], 0
+    for nom in sorted(os.listdir(dir_obj)):
+        carpeta = os.path.join(dir_obj, nom)
+        if not os.path.isdir(carpeta):
+            continue
+        texto = "".join(leer(os.path.join(carpeta, e))
+                        for e in sorted(os.listdir(carpeta)) if e.endswith(".gml"))
+        if not lee.search(texto):
+            continue
+        if tiene_guarda(texto):
+            con_guarda += 1
+        else:
+            con_entrada.append(nom)
+    return con_entrada, con_guarda
+
+
+def audio_en_pausa(gml):
+    """¿La pausa hace algo con el audio? Punto 3 del checklist de 04/41 §4."""
+    return bool(re.search(r"\baudio_(pause_all|resume_all|pause_sound|group_set_gain|"
+                          r"sound_gain|master_gain)\s*\(", gml))
+
+
+def icono_y_version(ruta):
+    """Icono puesto y versión distinta de la de fábrica (05/02 §4.4)."""
+    dir_opt = os.path.join(ruta, "options")
+    icono, version = False, None
+    if os.path.isdir(dir_opt):
+        for base, _, files in os.walk(dir_opt):
+            if os.path.basename(base) in ("icons", "splash") and files:
+                icono = True
+            for fi in files:
+                if fi.endswith(".yy"):
+                    m = re.search(r'"option_\w+_version"\s*:\s*"([^"]+)"', leer(os.path.join(base, fi)))
+                    if m and version is None:
+                        version = m.group(1)
+    return icono, version
+
+
 def main():
     ap = argparse.ArgumentParser(description="Audita el envoltorio de un juego GameMaker.")
     ap.add_argument("proyecto")
@@ -219,12 +340,19 @@ def main():
     rect, rect_ui = objetos_rectangulo(ruta)
     n_sprites = len(tipos.get("sprites", []))
     debug = len(re.findall(r"\bshow_debug_message\s*\(", gml))
+    sin_guarda, con_guarda = objetos_sin_guarda(ruta)
+    audio_pausa = audio_en_pausa(gml)
+    icono, version = icono_y_version(ruta)
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
                           "objetos_sin_sprite_que_dibujan_figuras": rect,
                           "objetos_de_interfaz_que_dibujan_figuras": rect_ui,
-                          "sprites": n_sprites, "show_debug_message": debug},
+                          "sprites": n_sprites, "show_debug_message": debug,
+                          "objetos_que_leen_entrada_sin_guarda": sin_guarda,
+                          "objetos_con_guarda": con_guarda,
+                          "pausa_toca_el_audio": audio_pausa,
+                          "icono_propio": icono, "version": version},
                          ensure_ascii=False, indent=2))
     else:
         print("Proyecto: %s" % proy["yyp"])
@@ -259,6 +387,28 @@ def main():
         if debug:
             print("  ⚠ %d llamada(s) a show_debug_message: quítalas del build final (13/10 §7.2)"
                   % debug)
+        print()
+        print("Las listas que 04/00 enlaza y casi nadie abre:")
+        if sin_guarda and con_guarda:
+            print("  ⚠ %d objeto(s) leen entrada SIN ninguna guarda de pausa/transición,"
+                  % len(sin_guarda))
+            print("    mientras que otros %d sí la tienen:" % con_guarda)
+            print("      " + ", ".join(sin_guarda[:8]))
+            print("    Es el fallo exacto que 04/41 §4 pide comprobar: durante un fundido")
+            print("    de salida, un objeto sin guarda sigue aceptando entrada y puede abrir")
+            print("    una pantalla cuyos métodos mueren al cambiar de sala.")
+        elif con_guarda:
+            print("  ✓ Todos los objetos que leen entrada consultan alguna guarda")
+        else:
+            print("  · Ningún objeto usa guardas de pausa/transición (¿el juego tiene pausa?)")
+        print("  %s La pausa hace algo con el audio (04/41 §4)"
+              % ("✓" if audio_pausa else "✗"))
+        print("  %s Icono o splash propios en options/ (05/02 §4.4)"
+              % ("✓" if icono else "✗"))
+        if version:
+            print("  %s Versión del ejecutable: %s%s"
+                  % ("✓" if version != "1.0.0.0" else "⚠", version,
+                     "  ← la de fábrica; súbela antes de publicar" if version == "1.0.0.0" else ""))
         print()
         if faltan or not arranque_ok:
             print("Faltan piezas del envoltorio: %s%s"

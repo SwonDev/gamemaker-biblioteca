@@ -23,6 +23,64 @@
 
 ---
 
+## Secuencias de escape de una cadena
+
+**Están en el manual oficial y no estaban en esta referencia**, que es donde se buscan. Un agente
+que generaba GML desde un script se comió una hora por esto, y de rebote dejó un literal sin
+cerrar que descuadró el análisis de un archivo entero
+([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md)). Tabla literal del manual
+(`GML_Reference/Strings/Strings.md` §Caracteres de escape):
+
+| Secuencia | Qué inserta |
+|---|---|
+| `\n` | Nueva línea |
+| `\"` | Una comilla doble dentro de la cadena |
+| `\\` | La propia barra invertida (0x5c) |
+| `\r` | Retorno de carro (0x0d) |
+| `\t` | Tabulador horizontal (0x09) |
+| `\v` | Tabulador vertical (0x0b) |
+| `\b` | Retroceso (0x08) |
+| `\f` | Avance de página (0x0c) |
+| `\a` | Alerta (0x07) |
+| `\u<hex>` | Carácter Unicode |
+| `\x<hex>` | Carácter por su código hexadecimal |
+| `\<octal>` | Carácter por su código octal |
+
+```gml
+var _s = "Dijo \"hola\" y se fue.\nY no volvió.";
+var _ruta = "carpeta\\subcarpeta";      // una sola barra en el resultado
+```
+
+> ⚠️ **El manual avisa de algo que no es evidente**: la cadena *admite* el tabulador vertical, el
+> avance de página y compañía, pero **el dibujado puede ignorarlos**. `\n` y `\t` sí se
+> respetan al dibujar; no cuentes con el resto para maquetar texto en pantalla.
+
+### La cadena literal `@"…"`: sin escapes, y multilínea
+
+```gml
+var _crudo = @"C:\ruta\sin\escapar
+y esta es la segunda línea";
+```
+
+Con `@` delante, **la barra invertida deja de ser un carácter de escape** y la cadena puede
+ocupar varias líneas del código. También vale `@'…'` con comillas simples. El precio: **no hay
+forma de meter la comilla de cierre dentro**, así que hay que partir la cadena — el propio manual
+da el apaño:
+
+```gml
+var _test = @"Hola " + "\"" + @"Mundo" + "\"";
+```
+
+> 🔴 **Si generas `.gml` desde un script (Python, Node…), esto es lo que más se rompe.** Escribir
+> un `"` sin escapar dentro de un literal cierra la cadena antes de tiempo: el compilador falla,
+> y los analizadores dan una lista de errores desconcertante porque a partir de ahí leen como
+> texto lo que es código. `validar-proyecto.py` lo detecta y te da archivo y línea
+> (`comillas_descuadradas()`), pero es más barato no crearlo: si un carácter va a viajar dentro
+> de un literal —el símbolo de una baldosa en un mapa de texto, un mapa de glifos—, **elige uno
+> que no sea `"` ni `\`**.
+
+---
+
 ## Ajustes globales de texto
 
 Todas las funciones `draw_text*` usan cuatro ajustes globales. Configúralos antes de dibujar:
