@@ -222,6 +222,7 @@ Tutoriales oficiales catalogados, publicación y exportación, glosario A-Z y co
 - `06 - Assets y Scripts/scr_grid_pathfinding.gml` — scr_grid_pathfinding — Pathfinding en rejilla. Dos implementaciones
 - `06 - Assets y Scripts/scr_input_buffer.gml` — scr_input_buffer — Input buffering y coyote time para juegos de plataformas
 - `06 - Assets y Scripts/scr_math_util.gml` — scr_math_util — Utilidades matemáticas y funciones de easing para GameMaker LTS 2026
+- `06 - Assets y Scripts/scr_nivel_mapa.gml` — scr_nivel_mapa — El nivel como mapa de texto: validar, construir y autotile
 - `06 - Assets y Scripts/scr_pool.gml` — scr_pool — Object pooling: reutiliza instancias en vez de crearlas y destruirlas
 - `06 - Assets y Scripts/scr_save_load.gml` — scr_save_load — Guardado y carga de partidas con structs + JSON, escritura segura
 - `06 - Assets y Scripts/scr_state_machine.gml` — scr_state_machine — Máquina de estados finitos (FSM) implementada con structs, SIN objetos

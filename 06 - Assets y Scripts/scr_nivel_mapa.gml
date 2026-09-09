@@ -136,6 +136,12 @@ function nivel_mapa_opciones(_personal = undefined)
         // crear esa casilla. Es donde se filtran los coleccionables ya recogidos.
         omitir: undefined,
 
+        // function(_instancia, _caracter, _col, _fila) -> void. Se llama justo
+        // DESPUÉS de crear cada instancia, con su Create ya ejecutado. Es la vía
+        // para un objeto que tiene que recolocarse a sí mismo: ver la nota sobre
+        // el Create más abajo.
+        al_crear: undefined,
+
         // function(_texto, _problemas) -> void. Qué hacer cuando el mapa está mal.
         // Por defecto: escribirlo en el log y abrir el diálogo de `show_error()`.
         // Dale el tuyo para llevarlo a tu propia pantalla de error — o para poder
@@ -507,10 +513,21 @@ function nivel_mapa_construir(_filas, _leyenda, _opciones = undefined)
             if (_objeto != noone && !is_undefined(_objeto))
             {
                 var _capa = struct_exists(_entrada, "capa") ? _entrada.capa : _op.capa;
-                _inst = instance_create_layer(_px, _py, _capa, _objeto);
 
-                // Todo lo que una instancia necesita saber de su casilla, y que
-                // si no se lo das aquí acaba recalculándose mal en otra parte.
+                // Las variables de casilla van en el QUINTO argumento, no después:
+                // `instance_create_layer()` ejecuta el Create de la instancia ANTES
+                // de devolver, y un objeto de rejilla que deduzca su posición de su
+                // casilla necesita el dato ya puesto. Escribirlas después lo dejaba
+                // en 0,0 para siempre.
+                _inst = instance_create_layer(_px, _py, _capa, _objeto, {
+                    nivel_col   : _x,
+                    nivel_fila  : _y,
+                    nivel_clave : _clave,
+                    nivel_char  : _c
+                });
+
+                // Y se vuelven a poner por si el Create del objeto las pisó con sus
+                // propios valores por defecto: el dato de la casilla manda.
                 _inst.nivel_col   = _x;
                 _inst.nivel_fila  = _y;
                 _inst.nivel_clave = _clave;
@@ -518,6 +535,10 @@ function nivel_mapa_construir(_filas, _leyenda, _opciones = undefined)
 
                 if (_op.autotile && nivel_mapa_es_solido(_filas, _leyenda, _x, _y, _op))
                     _inst.image_index = nivel_mapa_bitmask(_filas, _leyenda, _x, _y, _op);
+
+                // Último recurso para un objeto que ya corrió su Create y necesita
+                // recolocarse con el dato de la casilla en la mano.
+                if (is_callable(_op.al_crear)) _op.al_crear(_inst, _c, _x, _y);
 
                 _res.creadas++;
             }

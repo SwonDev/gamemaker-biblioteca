@@ -2708,6 +2708,13 @@ function bitmask_4_vecinos(_grid, _ancho, _alto, _cx, _cy, _terreno)
 }
 ```
 
+> 🔀 **Aquí fuera del mapa cuenta como VACÍO; en [`04 · 58 §6`](../04%20-%20Recetas%20por%20género/58%20-%20El%20nivel%20como%20mapa%20de%20texto%20-%20construir%20sin%20abrir%20el%20editor%20de%20salas.md)
+> cuenta como SÓLIDO.** Las dos son correctas y resuelven preguntas distintas: con «vacío» el
+> borde del mapa **se remata** —lo que quieres en un mapa que se ve entero, como una isla—; con
+> «sólido» **no se remata**, que es lo que quieres cuando el terreno continúa fuera de cámara.
+> Elegir mal no da error: da un contorno de más o de menos, y nadie sabe de dónde sale.
+> `06 · scr_nivel_mapa.gml` lo tiene como opción (`fuera_es_solido`) precisamente por esto.
+
 **El truco que evita cualquier tabla de traducción**: numera tus 16 baldosas en el tile set
 **en ese mismo orden** —índice 0 = pieza aislada (sin ningún vecino), índice 15 = pieza
 rodeada por los cuatro lados, y los 14 casos intermedios siguiendo la misma suma de bits—, y

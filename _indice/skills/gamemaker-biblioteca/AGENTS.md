@@ -225,8 +225,10 @@ arreglo** —la causa es un `gmpm.dll` desparejado, no la plantilla—: receta e
    ejecutable, las *Variable Definitions* de un objeto, el `nineSlice`, mover un recurso de
    carpeta, anidar capas, el código de creación de una instancia, crear una Extensión y los Flex
    Panels. **Todas son clics en diálogos, no juicios humanos**: un agente con control del
-   escritorio puede hacerlas. Antes: copia del proyecto. Después: **verifica por CLI**
+   escritorio debería poder hacerlas. Antes: copia del proyecto. Después: **verifica por CLI**
    (`options get`, `resource info`, `font glyphlist`), nunca por lo que se vio en pantalla.
+   ⚠️ **Razonado, no medido**: nadie ha ejecutado aún ninguna de las nueve conduciendo el IDE.
+   Trátalo como vía plausible y sin rodar (`12/09 §0 bis`).
 4. **El humano, solo para sus sentidos y sus cuentas.** Si se ve bien, si se oye bien, si se
    siente bien, el rendimiento en hardware real, y lo que exija su firma o su cuenta de tienda.
    Esa lista es **más corta de lo que parece**: rellenar un campo en un diálogo ya no está en ella.
@@ -291,6 +293,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   <proyecto>», copia la carpeta al disco y **jamás la registra en el `.yyp`**. Y ojo con la
   variante peor: un proyecto que **compila** después de una operación fallida puede estar
   compilando precisamente *porque* la operación no se hizo.
+  ⚠️ **Que mienta no significa que no se pueda**: el truncado del primer espacio se resuelve
+  entrecomillando el valor —`value="Cripta de las Placas"`, verificado leyendo el `.yy`— y la
+  comilla simple o la barra invertida NO valen (dejan `'Cripta` y `Con\`). Un agente lo leyó
+  aquí como «imposible» y renunció al nombre del juego; la salida estaba en `12/09` Trampa 10 y
+  esta línea no la mencionaba.
 - Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. `--errors-only`
   sirve para iterar rápido, pero **antes de dar un juego por terminado, compílalo al menos una
   vez sin ese flag y lee los avisos**: es el único modo que muestra el `WARNING` de un

@@ -85,6 +85,45 @@ var _dir = point_direction(x, y, mouse_x, mouse_y);
 var vel = 4;
 ```
 
+### 2 bis. Una función global y una variable de instancia NO pueden llamarse igual
+
+Y no da error. Es la trampa de nombres más silenciosa de GML, porque las tres cosas que
+comprobarías dicen que todo va bien:
+
+```gml
+// Un script global:
+function nivel_clave(_nombre, _col, _fila) { return _nombre + "_x" + string(_col); }
+
+// Y una variable de instancia con el mismo nombre:
+_inst.nivel_clave = "n1_x2_y1";        // ✅ la asignación funciona
+variable_instance_exists(_inst, "nivel_clave")   // ✅ true: la variable está ahí
+variable_instance_get(_inst, "nivel_clave")      // ✅ "n1_x2_y1": el valor está ahí
+_inst.nivel_clave                                // ✅ "n1_x2_y1" DESDE FUERA, con punto
+
+// Pero dentro de la propia instancia, leyendo el nombre desnudo:
+with (_inst) {
+    if (nivel_clave == "n1_x2_y1") { … }         // ❌ NUNCA entra
+}
+// `nivel_clave` ahí devuelve LA FUNCIÓN, no el valor. La comparación es siempre falsa.
+```
+
+**Está medido**, no deducido del manual: sale de ejecutar el banco de pruebas de
+[`06 · scr_nivel_mapa.gml`](../06%20-%20Assets%20y%20Scripts/scr_nivel_mapa.gml) dentro de un juego
+real (`bash _indice/validar-ejecucion.sh`). El script **compilaba sin un solo aviso** y Feather
+no dijo nada: por eso la comprobación vive en una prueba que se ejecuta, no en una regla escrita.
+
+**La regla que se sigue de ahí**, y que ese script cumple: si un sistema tuyo reparte variables a
+las instancias que crea, dale a las funciones un prefijo **más largo** que a las variables, para
+que ningún nombre aparezca en las dos listas.
+
+| | Prefijo | Ejemplo |
+|---|---|---|
+| Funciones del sistema | `nivel_mapa_…` | `nivel_mapa_construir()`, `nivel_mapa_clave()` |
+| Variables que pone en cada instancia | `nivel_…` | `nivel_col`, `nivel_fila`, `nivel_clave` |
+
+Es el mismo razonamiento de §1 —el prefijo **es** tu espacio de nombres— aplicado a un choque
+que §1 no cubría: no entre dos recursos, sino entre una función y una variable.
+
 ---
 
 ## 3. Nombres reservados — NO los uses

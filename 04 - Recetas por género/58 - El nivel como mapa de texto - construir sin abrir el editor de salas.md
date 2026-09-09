@@ -9,6 +9,18 @@
 > estructural más grande del juego, y la tomé sin apoyo»
 > ([`r12-prueba-plataformas.md` §1.8](../_indice/auditorias/r12-prueba-plataformas.md)).
 
+> ✅ **Esto ya está escrito, compilado y EJECUTADO: no lo reimplementes.**
+> [`06 · scr_nivel_mapa.gml`](../06%20-%20Assets%20y%20Scripts/scr_nivel_mapa.gml) es todo lo de
+> aquí abajo generalizado —la leyenda decide qué es sólido, los papeles son un campo y no dos
+> caracteres fijos, y `nivel_mapa_construir()` valida antes de crear nada—. Pasa un banco de 46
+> comprobaciones dentro de un juego real (`bash _indice/validar-ejecucion.sh`).
+> **Lee esta receta para entender las decisiones; usa el script para no repetirlas.**
+>
+> Los nombres son distintos a propósito —el script usa `nivel_mapa_…` y esta receta `nivel_…`—
+> para que puedas tener las dos cosas delante sin que una pise a la otra. Si usas el script,
+> **no copies además el código de abajo**: harías dos versiones de lo mismo, y la que no está
+> probada ganaría la mitad de las veces.
+
 ---
 
 ## 1 · Por qué no se colocan las instancias en la sala
@@ -145,6 +157,16 @@ if (array_length(_problemas) > 0)
 }
 ```
 
+> ⚠️ **No te apoyes en que `show_error()` pare el juego.** El manual de LTS 2026 dice de su
+> segundo argumento: *«only exists for backwards compatibility … and will have no effect»*, y de
+> la función entera: *«for debug use only»*. Es decir, el `true` de ahí arriba no promete nada.
+> Lo que sí garantiza que no arranque un nivel a medias es **no construir**: por eso
+> `nivel_mapa_construir()` de [`06 · scr_nivel_mapa.gml`](../06%20-%20Assets%20y%20Scripts/scr_nivel_mapa.gml)
+> valida primero y, si hay un problema, **vuelve sin crear una sola instancia** — pase lo que
+> pase con el diálogo. Y acepta un `al_fallar` para llevar el aviso a tu propia pantalla de
+> error, que además es lo único que hace el fallo *comprobable*: con un diálogo modal delante,
+> una prueba automática se queda colgada.
+
 ---
 
 ## 4 · Construir, saltándose lo que nadie va a ver
@@ -219,6 +241,29 @@ function nivel_enterrada(_filas, _x, _y)
     return true;
 }
 ```
+
+> 🔴 **Si el objeto deduce su posición de su casilla, las variables van en el QUINTO argumento.**
+> `instance_create_layer()` ejecuta el `Create` de la instancia **antes de devolver**, así que
+> esto llega tarde:
+>
+> ```gml
+> var _inst = instance_create_layer(_px, _py, _capa, obj_bloque);
+> _inst.gx = _x;  _inst.gy = _y;      // ❌ el Create ya corrió con gx = 0
+> ```
+>
+> El bloque se coloca en 0,0 y ahí se queda, encima del muro, sin un solo error. Le costó media
+> hora a un agente ([`r15` §2.5](../_indice/auditorias/r15-prueba-puzles.md)). La vía buena es el
+> quinto argumento, `[var_struct]`, que se aplica **antes** del `Create`:
+>
+> ```gml
+> var _inst = instance_create_layer(_px, _py, _capa, obj_bloque, { gx: _x, gy: _y });
+> ```
+>
+> **Y ojo con la segunda mitad de la trampa**: si el propio `Create` escribe `gx = 0` como valor
+> por defecto, lo pisa igual. Por eso `nivel_mapa_construir()` hace las dos cosas —lo pasa en el
+> struct *y* lo vuelve a poner después— y ofrece un gancho `al_crear(_inst, _c, _col, _fila)`
+> para el objeto que necesite recolocarse a sí mismo con el dato ya en la mano. Que el quinto
+> argumento llega antes del `Create` está **medido** en `validar-ejecucion.sh`, no supuesto.
 
 **Cuánto ahorra**, medido en los tres niveles de un juego real construido con esta receta:
 
@@ -302,6 +347,19 @@ function nivel_bitmask(_filas, _x, _y)
 
 Ordena las 16 sub-imágenes del sprite en ese mismo orden y asigna `image_index = _m` al crear
 el bloque. No hace falta nada más.
+
+> 🔀 **Aquí fuera del mapa cuenta como SÓLIDO; en [`13 · 07 §5 bis`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/07%20-%20Generación%20procedural%20avanzada.md#5-bis--autotiling-clásico-bitmask-de-vecinos--índice-de-tile)
+> cuenta como VACÍO.** No es una contradicción: son dos preguntas distintas y las dos respuestas
+> son correctas en su sitio.
+>
+> | Fuera del mapa… | Qué pasa en el borde | Cuándo lo quieres |
+> |---|---|---|
+> | **sólido** (esta receta) | la roca del borde **no** se remata con contorno | el nivel continúa fuera de cámara: rematarlo delataría dónde se acaba |
+> | **vacío** (`13 · 07`) | el borde **sí** se remata | el mapa se ve entero, como una isla o un tablero |
+>
+> Elegir mal no da error: da un contorno de más o de menos que nadie sabe de dónde sale. En
+> `scr_nivel_mapa.gml` es la opción `fuera_es_solido`, y hay una prueba de las dos direcciones —
+> la misma esquina da bitmask **15** con una y **6** con la otra.
 
 ---
 

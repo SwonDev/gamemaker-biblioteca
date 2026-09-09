@@ -158,6 +158,36 @@ dibujándose, esa técnica de rendimiento no ahorraría ninguna llamada de dibuj
 > `instance_deactivate_all`.** No es un bug de GameMaker: es que le has pedido exactamente eso.
 > La solución está en §3.1.8 (capturar el frame antes de desactivar).
 
+> 🔴 **Y esto es lo que muerde de verdad: `instance_exists()` devuelve `false` sobre una
+> instancia desactivada.** También `instance_number()` deja de contarla. Así que **cualquier
+> acción del menú de pausa que empiece con una guarda `instance_exists` es un no-op
+> silencioso**: se pulsa el botón, suena, el menú se cierra y no pasa nada. Sin error, sin
+> aviso. Lo sufrió un agente con un «Reiniciar nivel» que parecía obviamente correcto
+> ([`r15` §2.4](../_indice/auditorias/r15-prueba-puzles.md)), y la superficie es mayor de lo que
+> parece: cualquier función tuya de rejilla, de búsqueda o de colisión que use `instance_exists`
+> por dentro devolverá un mundo vacío si se la llama desde la pausa.
+>
+> ```gml
+> // MAL — durante la pausa esto no hace nada:
+> if (instance_exists(global.nivel)) reiniciar_nivel(global.nivel);
+> pausa_cerrar();
+>
+> // BIEN — reactivar primero, comprobar después:
+> pausa_cerrar();                                    // hace el instance_activate_all()
+> if (instance_exists(global.nivel)) reiniciar_nivel(global.nivel);
+> ```
+>
+> **Ojo con lo que dice el manual, porque contesta a otra pregunta.**
+> `instance_deactivate_object` avisa de que «la desactivación no es instantánea: la instancia no
+> se considera inactiva hasta el final del evento». Es cierto —*sigue procesando eventos* ese
+> frame— pero **no vale para `instance_exists()`**, que responde `false` ya en el mismo evento
+> en que se desactiva. Medido, no deducido: `bash _indice/validar-ejecucion.sh` lo comprueba en
+> un juego real en cada ejecución.
+>
+> Esto mismo se llevó por delante dos funciones de [`06 · scr_pool.gml`](../06%20-%20Assets%20y%20Scripts/scr_pool.gml),
+> que guarda sus instancias libres desactivadas: recorrerlas filtrando por `instance_exists()`
+> **vaciaba la lista entera**. Se arregla activando antes de preguntar.
+
 #### 3.1.2 Lo que NO toca: Time Sources, partículas, Sequences y física
 
 Ninguno de estos cuatro sistemas es una instancia, así que `instance_deactivate_all` los deja
@@ -1016,6 +1046,7 @@ if (global.opciones_origen == "pausa") {
 - [ ] «Salir» confirma con «No» por defecto, sin usar `show_question()`
 - [ ] El foco vuelve donde estaba al salir de Opciones (ley 5 de 13/05 §2.2)
 - [ ] Está decidido dónde NO se puede pausar (transición en curso, multijugador, Game Over)
+- [ ] **Ninguna acción del menú de pausa empieza con una guarda `instance_exists`** — durante la pausa devuelve `false` sobre todo lo desactivado y la acción se convierte en un no-op silencioso (§3.1.1)
 - [ ] Todas las Time Sources de gameplay cuelgan de `global.ts_raiz_pausable`, no de `time_source_game` directamente
 
 ---
