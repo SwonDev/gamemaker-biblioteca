@@ -211,6 +211,26 @@ defecto usa *Space Rocks* o *Blank Pixel Game*. **Si necesitas una de las que fa
 arreglo** —la causa es un `gmpm.dll` desparejado, no la plantilla—: receta en la Trampa 1 de
 `12/09`. El manual `monthly` está discontinuado; la rama vigente es **LTS 2026.0**.
 
+## Qué vía usar: CLI → MCP → computer use → humano
+
+1. **El CLI oficial, siempre que llegue.** `gm-cli` + `resourcetool` construyen un juego entero:
+   recursos, eventos, salas, capas, cámaras, viewports, físicas, tilesets, tilemaps desde CSV,
+   orígenes de sprite, renombrados, compilación y empaquetado (`12/09 §3 bis`).
+2. **El MCP oficial NO puede más que el CLI: es el mismo motor.** `gamemaker-resource-tool` es el
+   mismo ResourceTool expuesto como herramientas, y de hecho le **faltan cinco** operaciones que
+   `eval` sí tiene. Se usa por comodidad, nunca por capacidad. **Si algo no se puede por CLI,
+   tampoco por el MCP oficial** — buscarlo ahí es perder el tiempo.
+3. **Computer use, para lo que es exclusivo del IDE.** Hay una lista corta y medida de cosas que
+   el CLI no hace: rasterizar los glifos de una fuente, la versión y el nombre de producto del
+   ejecutable, las *Variable Definitions* de un objeto, el `nineSlice`, mover un recurso de
+   carpeta, anidar capas, el código de creación de una instancia, crear una Extensión y los Flex
+   Panels. **Todas son clics en diálogos, no juicios humanos**: un agente con control del
+   escritorio puede hacerlas. Antes: copia del proyecto. Después: **verifica por CLI**
+   (`options get`, `resource info`, `font glyphlist`), nunca por lo que se vio en pantalla.
+4. **El humano, solo para sus sentidos y sus cuentas.** Si se ve bien, si se oye bien, si se
+   siente bien, el rendimiento en hardware real, y lo que exija su firma o su cuenta de tienda.
+   Esa lista es **más corta de lo que parece**: rellenar un campo en un diálogo ya no está en ella.
+
 ## Qué leer según la tarea
 
 El detalle por disciplina, en orden de lectura, está en
