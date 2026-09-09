@@ -324,6 +324,14 @@ CASOS = [
     ("¿Puedo fiarme de que el código de la biblioteca hace lo que dice?",
      ["--texto", "validar-ejecucion"],
      ["Assets y Scripts"]),
+
+    ("Necesito música y no tengo compositor: ¿puedo generarla con IA y venderla?",
+     ["--texto", "CC-BY-NC"],
+     ["Diseño de sonido y mezcla"]),
+
+    ("¿Cómo compruebo que un sonido se importó de verdad, sin oírlo?",
+     ["--texto", "audio_sound_length"],
+     ["scr_debug.gml"]),
 ]
 
 

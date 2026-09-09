@@ -2358,6 +2358,12 @@ Las siete son **MIT o Apache-2.0 y se ejecutan en local**. Catálogo y contexto 
 > en sus tres sitios. **La API sí funciona** — `from pixelfixer import detect` y
 > `from pixelfixer.reconstruct import reconstruct`. Verificado en `r15` §2.2.
 
+> 🔊 **¿Y el audio?** Esta escalera es de gráficos. La de sonido —síntesis en runtime, jsfxr, y
+> desde hoy también **generación por IA con su tabla de licencias**— está en
+> [`13 · 09 §8 bis` y `§8 quater`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/09%20-%20Diseño%20de%20sonido%20y%20mezcla.md).
+> Ahí la licencia va antes que la calidad: la herramienta abierta más famosa tiene los pesos
+> en CC-BY-NC y **no se puede usar en un juego que vendas**.
+
 #### Peldaño 3 — Generación por IA
 
 `codex exec` con el modelo `gpt-image-2` está disponible y verificado en esta máquina —
