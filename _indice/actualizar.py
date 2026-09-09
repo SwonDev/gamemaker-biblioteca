@@ -510,7 +510,12 @@ def main():
         if (l.strip().startswith(("✗", "✓")) or "bloques se van a compilar" in l
                 or l.strip().startswith("Tiempo total")):
             print("  " + l.strip())
-    if r.returncode != 0:
+    if r.returncode == 2:
+        # 2 es «no he podido compilar», no «no compila»: el extractor no encontró
+        # bloques, o falló el montaje del proyecto. Distinguirlo importa.
+        problemas.append("no se pudo comprobar la compilación de los bloques ```gml "
+                          "(python3 _indice/validar-compilacion-docs.py para ver por qué)")
+    elif r.returncode != 0:
         problemas.append("hay bloques ```gml de la documentación que no compilan "
                           "(python3 _indice/validar-compilacion-docs.py para el detalle)")
 
