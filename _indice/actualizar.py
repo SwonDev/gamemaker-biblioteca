@@ -426,6 +426,21 @@ def main():
         print("  Todas las familias grandes de símbolos tienen algún documento propio.")
 
     paso(9, "Código GML (¿inventa alguna función del runtime?)")
+    # Antes de usar el detector de cadenas rotas, comprobar que el detector funciona.
+    # Tuvo tres falsos positivos que descartaban el análisis de archivos enteros
+    # (r15 §2.3), y un falso positivo aquí es más caro que no mirar: enseña a
+    # desconfiar de la salida justo donde hay un fallo real.
+    r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py"), "--autoprueba"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        for l in r.stdout.splitlines():
+            if l.strip().startswith("✗"):
+                print("  " + l.strip())
+        problemas.append("el detector de cadenas sin cerrar falla sus propios casos "
+                         "(python3 _indice/validar-codigo-gml.py --autoprueba)")
+    else:
+        print("  Autoprueba del detector de cadenas: 11/11.")
+
     r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py")],
                        capture_output=True, text=True)
     for l in r.stdout.splitlines():

@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# validar-ejecucion.sh — EJECUTA el código reutilizable de la biblioteca.
+#
+# `validar-codigo-gml.py` comprueba que las funciones existen.
+# `validar-compilacion.sh` comprueba que el código compila.
+# Esto va un paso más allá: crea un proyecto de GameMaker real, mete el script
+# y los bancos de pruebas, y LO CORRE. Sale con 0 solo si todas las comprobaciones
+# pasan dentro del juego.
+#
+#   bash _indice/validar-ejecucion.sh
+#
+# POR QUÉ HACE FALTA, con un caso real: `scr_nivel_mapa.gml` compilaba sin un
+# solo aviso y tenía un fallo que ninguna de las otras dos herramientas podía
+# ver — una variable de instancia se llamaba igual que una función global, así
+# que leer su nombre devolvía la función en vez del valor. Apareció en la
+# primera ejecución del banco. Compilar no es ejecutar.
+#
+# ⚠️ ABRE UNA VENTANA de juego durante uno o dos segundos: el banco termina con
+# `game_end()`. No hay modo sin cabeza en `gm-cli run`.
+set -u
+
+if ! command -v gm-cli >/dev/null 2>&1; then
+  echo "✗ No encuentro el comando «gm-cli» en el PATH."
+  exit 2
+fi
+
+RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
+PROY="$HOME/gm_prueba_ejecucion"
+YYP="$PROY/gm_prueba_ejecucion.yyp"
+
+limpiar() { rm -rf "$PROY"; }
+trap limpiar EXIT
+rm -rf "$PROY"
+
+echo "Creando proyecto de prueba en ${PROY}…"
+crear_proyecto() {
+    rm -rf "$PROY"
+    ( cd "$HOME" && gm-cli init --no-interactive --name "gm_prueba_ejecucion" --template "blank" \
+        --no-ai --no-actions --toolchain "GMS2@2026.0.0.23" 2>&1 )
+}
+INIT_SALIDA="$(crear_proyecto)"
+if [ ! -f "$YYP" ]; then
+    # `gm-cli init` baja la plantilla de api.gamemaker.io y ese servidor devuelve
+    # 429 cuando se le pega mucho seguido. Un reintento resuelve casi siempre.
+    echo "  el primer intento falló; reintentando en 20 s…"
+    sleep 20
+    INIT_SALIDA="$(crear_proyecto)"
+fi
+if [ ! -f "$YYP" ]; then
+    echo "✗ no se pudo crear el proyecto. Lo que dijo gm-cli:"
+    echo "$INIT_SALIDA" | tail -5
+    exit 2
+fi
+
+echo "Montando el banco de pruebas…"
+for obj in obj_solido obj_moneda obj_salida obj_bala obj_test; do
+    gm-cli resourcetool eval "resource create type=object name=$obj" "$YYP" >/dev/null 2>&1
+done
+
+# Scripts de la biblioteca que se ponen a prueba, y los bancos que los prueban.
+# La pareja es <nombre del script en el proyecto>:<ruta del .gml de origen>.
+PIEZAS=(
+  "scr_nivel_mapa:$RAIZ/06 - Assets y Scripts/scr_nivel_mapa.gml"
+  "scr_pool:$RAIZ/06 - Assets y Scripts/scr_pool.gml"
+  "scr_pruebas_ayuda:$RAIZ/_indice/pruebas/banco_ayuda.gml"
+  "scr_banco_nivel_mapa:$RAIZ/_indice/pruebas/banco_nivel_mapa.gml"
+  "scr_banco_desactivadas:$RAIZ/_indice/pruebas/banco_desactivadas.gml"
+)
+for pieza in "${PIEZAS[@]}"; do
+    nombre="${pieza%%:*}"
+    origen="${pieza#*:}"
+    gm-cli resourcetool eval "resource create type=script name=$nombre" "$YYP" >/dev/null 2>&1
+    cp "$origen" "$PROY/scripts/$nombre/$nombre.gml" \
+      || { echo "✗ no se pudo copiar $nombre (¿se creó el recurso?)"; exit 2; }
+done
+
+for ev in create:Create_0 step:Step_0; do
+    tipo="${ev%%:*}"
+    if [ "$tipo" = "create" ]; then
+        gm-cli resourcetool eval "object event findorcreate name=obj_test type=create" "$YYP" >/dev/null 2>&1
+    else
+        gm-cli resourcetool eval "object event findorcreate name=obj_test type=step subtype=step_normal" "$YYP" >/dev/null 2>&1
+    fi
+done
+cp "$RAIZ/_indice/pruebas/banco_create.gml" "$PROY/objects/obj_test/Create_0.gml" \
+  || { echo "✗ no se pudo copiar el evento Create"; exit 2; }
+cp "$RAIZ/_indice/pruebas/banco_step.gml" "$PROY/objects/obj_test/Step_0.gml" \
+  || { echo "✗ no se pudo copiar el evento Step"; exit 2; }
+
+gm-cli resourcetool eval \
+  "room instance create room=room1 object=obj_test name=inst_test layer=Instances x=0 y=0" \
+  "$YYP" >/dev/null 2>&1
+
+# Leer de vuelta: «Success» no es verificación.
+grep -q "inst_test" "$PROY/rooms/room1/room1.yy" \
+  || { echo "✗ la instancia de prueba no llegó a la sala"; exit 2; }
+
+echo "Ejecutando…"
+SALIDA="$(cd "$PROY" && gm-cli run --toolchain "GMS2@2026.0.0.23" 2>&1)"
+LINEA="$(echo "$SALIDA" | grep -o "RESULTADO: [0-9]* correctas, [0-9]* fallidas" | tail -1)"
+
+if [ -z "$LINEA" ]; then
+    echo "✗ el banco no llegó a terminar. Últimas líneas:"
+    echo "$SALIDA" | grep -iE "error|FALLA" | tail -10
+    exit 1
+fi
+
+echo "$SALIDA" | grep -E "MEDIDO ·" | sed "s/^[^M]*/  /" || true
+echo "$SALIDA" | grep -E "FALLA ·" || true
+
+if echo "$LINEA" | grep -q ", 0 fallidas"; then
+    echo "✓ $LINEA — el código se ejecutó de verdad, no solo compiló."
+    exit 0
+else
+    echo "✗ $LINEA"
+    exit 1
+fi

@@ -16,10 +16,25 @@
 //     - sigue existiendo en memoria.
 //   Al activarla recuperas una instancia limpia y lista.
 //
-//   ⚠️ Segun el manual, la desactivacion NO es instantanea: no surte efecto
-//   hasta el final del evento en que se llama. Por eso el pool activa y ya
-//   puede escribir variables en la misma llamada, pero si compruebas
-//   `instance_exists()` en el mismo evento todavia dira true.
+//   ⚠️ CUIDADO, y esto está MEDIDO (no deducido del manual): sobre una
+//   instancia desactivada, **`instance_exists()` devuelve false**, y ya en el
+//   mismo evento en que se desactiva. `instance_number()` tampoco la cuenta.
+//
+//   El manual dice que «la desactivación no es instantánea: la instancia no se
+//   considera inactiva hasta el final del evento» — y es verdad, pero habla de
+//   que SIGUE PROCESANDO EVENTOS ese frame, no de `instance_exists()`. Este
+//   archivo afirmaba lo contrario («en el mismo evento todavía dirá true») y
+//   era falso; se comprobó ejecutando, con
+//   `bash _indice/validar-ejecucion.sh`, no leyendo.
+//
+//   La consecuencia práctica es grande y muerde en dos sitios de este mismo
+//   script: cualquier bucle que recorra la lista de LIBRES —que están
+//   desactivadas— y las filtre con `instance_exists()` **las borra todas**.
+//   Por eso `destroy()` y `pool_cleanup_orphans()` activan ANTES de preguntar.
+//   Fuera de aquí muerde igual: un menú de pausa que llame a
+//   `instance_deactivate_all()` convierte cualquier
+//   `if (instance_exists(...))` posterior en un no-op silencioso
+//   (`04 · 41 §3.1.1`).
 //
 // Funciones nativas usadas (verificadas con gm-cli manual read):
 //   instance_create_layer, instance_destroy, instance_exists,
@@ -218,11 +233,15 @@ function Pool(_obj, _tamano, _layer = "Instances", _crecer_auto = true) construc
         var _i;
 
         // Hay que ACTIVAR antes de destruir: una instancia desactivada no se
-        // puede destruir con fiabilidad en todos los targets.
+        // puede destruir con fiabilidad en todos los targets. Y el orden importa
+        // MÁS de lo que parece: preguntar `instance_exists()` primero devuelve
+        // false sobre una desactivada, así que la versión anterior de este bucle
+        // no destruía NUNCA una sola instancia libre — las dejaba desactivadas
+        // en la sala para siempre.
         for (_i = 0; _i < array_length(libres); _i++) {
             var _l = libres[_i];
+            instance_activate_object(_l);
             if (instance_exists(_l)) {
-                instance_activate_object(_l);
                 instance_destroy(_l);
             }
         }
@@ -260,10 +279,17 @@ function pool_cleanup_orphans(_pool) {
             _limpiadas++;
         }
     }
+    // Las LIBRES están desactivadas, y `instance_exists()` dice false sobre una
+    // instancia desactivada: preguntar sin activar antes vaciaba la lista entera.
+    // Medido: con un pool de 5, `libres=0 · limpiadas=5`.
     for (_i = array_length(_pool.libres) - 1; _i >= 0; _i--) {
-        if (!instance_exists(_pool.libres[_i])) {
+        var _l = _pool.libres[_i];
+        instance_activate_object(_l);
+        if (!instance_exists(_l)) {
             array_delete(_pool.libres, _i, 1);
             _limpiadas++;
+        } else {
+            instance_deactivate_object(_l);   // vuelve a su sitio: sigue libre
         }
     }
 
