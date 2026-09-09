@@ -275,6 +275,55 @@ def objetos_sin_mascara(ruta):
     return sin_mascara
 
 
+# Un sprite de personaje que es un color plano ES el rectángulo de color prohibido,
+# solo que guardado como PNG en vez de dibujado con `draw_rectangle`. El detector de
+# `objetos_rectangulo()` no lo ve, porque el objeto SÍ tiene sprite.
+ACTOR = re.compile(
+    r"^spr_(?:jugador|player|pj|heroe|héroe|protagonista|enemigo|enemy|monstruo|"
+    r"npc|aliado|jefe|boss|mob|bicho|criatura|personaje)\w*$", re.I)
+# Y estos son planos por buenas razones: no son arte, son herramientas.
+PLANO_LEGITIMO = re.compile(
+    r"(mascara|máscara|mask|sombra|shadow|fuente|font|glifo|particula|partícula|"
+    r"dano|daño|damage|flash|hit|silueta|silhouette|contorno|outline|blanco|white|"
+    r"solido|sólido|relleno|fill|pixel|punto|dot|barra|bar|degradado|gradient)", re.I)
+
+
+def sprites_planos(ruta):
+    """Sprites de PERSONAJE que son un color plano: el rectángulo, en PNG.
+
+    No se marca cualquier sprite de pocos colores: medido sobre tres juegos reales,
+    los planos legítimos son fuentes de sprite, sombras, máscaras de colisión,
+    partículas y destellos de daño — herramientas, no arte. Lo que sí es el fallo
+    que persigue la skill es `spr_jugador` siendo un cuadrado de un solo color.
+    Devuelve [] si Pillow no está: no poder mirar NO es «está todo bien», y por eso
+    `main()` lo dice en vez de callarse.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    dir_spr = os.path.join(ruta, "sprites")
+    if not os.path.isdir(dir_spr):
+        return []
+    planos = []
+    for nombre in sorted(os.listdir(dir_spr)):
+        if not ACTOR.match(nombre) or PLANO_LEGITIMO.search(nombre):
+            continue
+        pngs = sorted(f for f in os.listdir(os.path.join(dir_spr, nombre))
+                      if f.lower().endswith(".png"))
+        if not pngs:
+            continue
+        try:
+            im = Image.open(os.path.join(dir_spr, nombre, pngs[0])).convert("RGBA")
+        except Exception:
+            continue
+        crudo = im.tobytes()
+        visibles = {crudo[i:i + 4] for i in range(0, len(crudo), 4) if crudo[i + 3] > 0}
+        if len(visibles) <= 2:
+            planos.append((nombre, len(visibles), im.size))
+    return planos
+
+
 def objetos_rectangulo(ruta):
     """Objetos SIN sprite cuyo evento Draw pinta figuras a mano.
 
@@ -504,6 +553,7 @@ def main():
     icono, version = icono_y_version(ruta)
     reinv = reinventos(ruta)
     sin_mascara = objetos_sin_mascara(ruta)
+    planos = sprites_planos(ruta)
 
     if a.json:
         print(json.dumps({"proyecto": proy["yyp"], "piezas": res, "primera_sala": primera,
@@ -516,7 +566,9 @@ def main():
                           "pausa_toca_el_audio": audio_pausa,
                           "icono_propio": icono, "version": version,
                           "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv],
-                          "objetos_sin_mascara_contra_los_que_se_colisiona": sin_mascara},
+                          "objetos_sin_mascara_contra_los_que_se_colisiona": sin_mascara,
+                          "sprites_de_personaje_de_color_plano":
+                              None if planos is None else [n for n, _c, _t in planos]},
                          ensure_ascii=False, indent=2))
     else:
         print("Proyecto: %s" % proy["yyp"])
@@ -559,6 +611,16 @@ def main():
             print("  · %d más están dentro del registrador o de los scripts de la biblioteca:"
                   % debug_infra)
             print("    son el canal de log, no trazas olvidadas. No las cuento.")
+        if planos is None:
+            print("  · sprites: no se ha podido mirar el color (falta Pillow). NO es que estén")
+            print("    bien: es que no se ha comprobado. `python3 -m pip install --user Pillow`")
+        elif planos:
+            print("  ⚠ %d sprite(s) de PERSONAJE son un color plano — es el rectángulo"
+                  % len(planos))
+            print("    prohibido, guardado como PNG en vez de dibujado:")
+            for n, c, t in planos:
+                print("      %-28s %d color(es), %dx%d" % (n, c, t[0], t[1]))
+            print("    La escalera para salir de ahí está en 12/09 §5.2.")
         if sin_mascara:
             print("  ⚠ %d objeto(s) contra los que colisiona tu código NO tienen máscara"
                   % len(sin_mascara))
@@ -712,6 +774,30 @@ def autoprueba():
         revisar("una traza suelta se cuenta", sueltas == 1, sueltas)
         revisar("el registrador y los scripts de la biblioteca no", infra == 2, infra)
 
+        # 7 ter · Un sprite de personaje que es un cuadrado de color.
+        try:
+            from PIL import Image as _Im
+            p7c = os.path.join(tmp, "p7c")
+            _proyecto_falso(p7c)
+            for _n, _col in (("spr_jugador", (200, 40, 40, 255)),
+                             ("spr_sombra", (0, 0, 0, 120)),
+                             ("spr_enemigo", None)):
+                _d = os.path.join(p7c, "sprites", _n)
+                os.makedirs(_d, exist_ok=True)
+                if _col is None:
+                    # Un sprite con arte de verdad: varios colores.
+                    _im = _Im.new("RGBA", (8, 8))
+                    _im.putdata([(i * 7 % 255, i * 13 % 255, i * 29 % 255, 255) for i in range(64)])
+                else:
+                    _im = _Im.new("RGBA", (8, 8), _col)
+                _im.save(os.path.join(_d, _n + ".png"))
+            _pl = [n for n, _c, _t in sprites_planos(p7c)]
+            revisar("un spr_jugador de color plano se señala", "spr_jugador" in _pl, _pl)
+            revisar("una sombra plana NO se señala", "spr_sombra" not in _pl, _pl)
+            revisar("y un sprite con arte de verdad tampoco", "spr_enemigo" not in _pl, _pl)
+        except ImportError:
+            print("  · (sin Pillow: los 3 casos de sprites planos no se han ejecutado)")
+
         # 7 bis · Un objeto sin máscara contra el que se colisiona.
         p7b = os.path.join(tmp, "p7b")
         _proyecto_falso(p7b, objetos={"obj_muro": {}}, scripts={
@@ -739,7 +825,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 11 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 14 comprobaciones de la autoprueba pasan.")
     return 0
 
 

@@ -344,7 +344,9 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       código 1 mientras falte algo, para que no se pueda pasar por alto. También avisa de
       **objetos contra los que colisiona tu código y que no tienen máscara** —sin sprite ni
       `maskSpriteId`, `place_meeting()` no los encuentra nunca: son invisibles Y atravesables,
-      sin un solo error.
+      sin un solo error. Y de **sprites de personaje que son un color plano**, que son el
+      rectángulo prohibido guardado como PNG en vez de dibujado — el detector de rectángulos no
+      los ve porque el objeto sí tiene sprite.
       **También te dice qué sistemas has escrito que ya existían hechos** —entrada, texto,
       diálogo, serialización, guardado, tweens, pathfinding, idiomas—: tres agentes seguidos
       escribieron su propio sistema de entrada teniendo `Input` en el catálogo, así que el paso
