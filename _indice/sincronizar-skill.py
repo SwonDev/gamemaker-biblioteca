@@ -371,6 +371,28 @@ def cifras_desfasadas(n_documentos):
     d06 = os.path.join(RAIZ, "06 - Assets y Scripts")
     scripts = len([f for f in os.listdir(d06) if f.endswith(".gml")]) if os.path.isdir(d06) else 0
 
+    # El número de comprobaciones que la skill promete sale de la última ejecución
+    # real de `validar-ejecucion.sh`, no de la memoria de nadie.
+    marca = os.path.join(RAIZ, "_indice", "pruebas", "ultimo-resultado.txt")
+    if os.path.isfile(marca):
+        try:
+            _mirar(r"\*\*(\d+) comprobaciones\*\* sobre los",
+                   int(open(marca, encoding="utf-8").read().strip()), "comprobaciones")
+        except ValueError:
+            pass
+
+    # Las funciones obsoletas salen del índice del runtime instalado: cambian con
+    # cada versión de GameMaker, así que la cifra de la skill no puede ir a mano.
+    simbolos = os.path.join(RAIZ, "_indice", "simbolos.json")
+    if os.path.isfile(simbolos):
+        try:
+            d = json.load(open(simbolos, encoding="utf-8"))
+            n_obs = sum(1 for v in d["simbolos"].values()
+                        if v.get("obsoleta") and v.get("tipo") == "función")
+            _mirar(r"funciones obsoletas \(hay (\d+)\)", n_obs, "funciones obsoletas")
+        except (ValueError, KeyError):
+            pass
+
     _mirar(r"Los (\d+) documentos", n_documentos, "documentos")
     _mirar(r"\*\*(\d+) recetas\*\*", recetas, "recetas")
     _mirar(r"(\d+) scripts de `06`", scripts, "scripts de 06")
