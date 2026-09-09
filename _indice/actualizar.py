@@ -353,6 +353,8 @@ def main():
         # no protege de nada. El paso 0 bis comprueba ahora que no falte ninguna.
         ("validar-enlaces-externos.py", "recorte de URLs y 404 esperados"),
         ("cerrojo.py",                "cerrojo de las carpetas de trabajo"),
+        ("verificar-espejo.py",       "espejo español del manual"),
+        ("argumentos.py",             "guardián de argumentos de sobra"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
@@ -582,10 +584,15 @@ def main():
     paso(13, "Espejo español del manual (¿va a la par del inglés?)")
     r = subprocess.run([PY, os.path.join(IND, "verificar-espejo.py"), "--resumen"],
                        capture_output=True, text=True)
-    print("  " + r.stdout.strip())
-    if r.returncode != 0:
+    print("  " + r.stdout.strip().replace("\n", "\n  "))
+    if r.returncode == 1:
         problemas.append("el espejo español del manual tiene páginas ausentes, incompletas o con "
                           "literales traducidos (python3 _indice/verificar-espejo.py para el detalle)")
+    elif r.returncode != 0:
+        # 2 = no se ha podido comparar. En un clon de GitHub es lo normal: el manual
+        # no viaja en el repositorio, se reconstruye. No es deuda, pero tampoco es una
+        # comprobación superada, y decir «0 ausentes» ahí sería un falso verde.
+        print("  (el paso 13 no ha comprobado nada; `./reconstruir.sh` trae el manual)")
 
     print()
     if problemas:

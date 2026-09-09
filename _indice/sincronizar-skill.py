@@ -454,5 +454,12 @@ def main():
     return 1 if (rotas or desfasadas) else 0
 
 
+import os as _os_arg, sys as _sys_arg
+_sys_arg.path.insert(0, _os_arg.path.dirname(_os_arg.path.abspath(__file__)))
+from argumentos import exigir_sin_rutas  # noqa: E402
+
 if __name__ == "__main__":
+    _sobra = exigir_sin_rutas('La skill canónica vive en `_indice/skills/`; `./instalar.sh` la copia a los CLIs.', ())
+    if _sobra:
+        sys.exit(_sobra)
     sys.exit(main())

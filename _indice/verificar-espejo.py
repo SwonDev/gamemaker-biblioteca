@@ -253,6 +253,29 @@ def comparar():
 def informe(resumen_solo=False):
     comparadas, ausentes, incompletas, con_literales = comparar()
 
+    # Cero páginas comparadas NO es «todo bien»: es «no he mirado nada». Pasa en un
+    # clon recién sacado de GitHub, donde «09 - Manual oficial» no viaja (se
+    # reconstruye con `reconstruir.sh`). Decir «0 ausentes» en esa situación es un
+    # falso verde de manual: el espejo podría estar entero, medio o vacío y la
+    # respuesta sería la misma. Sale con 2 —«no se ha podido comprobar»—, que es
+    # distinto de 0 y de 1, y explica cuál de los dos casos es.
+    if comparadas == 0 and not ausentes:
+        hay_en = os.path.isdir(EN)
+        hay_es = os.path.isdir(ES)
+        print("· No se ha comparado ni una página.")
+        if not hay_en and not hay_es:
+            print("  El manual no está en este clon: «09 - Manual oficial» no se publica en")
+            print("  GitHub, se reconstruye con `./reconstruir.sh`. No es un fallo del espejo,")
+            print("  pero tampoco es una comprobación: no se ha mirado nada.")
+        elif not hay_es:
+            print(f"  Está el manual en inglés pero NO el espejo español ({ES}).")
+        elif not hay_en:
+            print(f"  Está el espejo español pero NO el manual en inglés ({EN}).")
+        else:
+            print("  Las dos carpetas existen pero no hay ni un .md que comparar: revisa")
+            print("  si el volcado del manual quedó a medias.")
+        return 2
+
     print(f"{comparadas} páginas comparadas · {len(ausentes)} ausentes · "
           f"{len(incompletas)} incompletas · {len(con_literales)} con literales traducidos\n")
 
@@ -290,5 +313,88 @@ def informe(resumen_solo=False):
     return 1 if (ausentes or incompletas or con_literales) else 0
 
 
+def autoprueba():
+    """Las tres salidas posibles, cada una provocada de verdad.
+
+    El caso que motiva esta autoprueba es el tercero: durante mucho tiempo, un
+    árbol sin manual devolvía «0 páginas comparadas · 0 ausentes» y **exit 0**.
+    Leído deprisa, eso dice «el espejo está perfecto». Decía «no he mirado nada».
+    """
+    global EN, ES
+    import shutil
+    import tempfile
+
+    guardar = (EN, ES)
+    fallos = []
+
+    def revisar(nombre, ok, detalle=""):
+        if ok:
+            print("  \u2713 " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  \u2717 %s  ->  %s" % (nombre, detalle))
+
+    def escribir(ruta, texto):
+        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(texto)
+
+    # Una página con la misma estructura en los dos idiomas: encabezados, un
+    # bloque de código y una tabla. Los literales de código NO se traducen.
+    PAG_EN = ("# Title\n\n## Section\n\n```gml\nvar _x = draw_sprite(spr_a, 0, 0, 0);\n```\n\n"
+              "| A | B |\n|---|---|\n| 1 | 2 |\n\nSee [link](https://ejemplo.com).\n")
+    PAG_ES = ("# Título\n\n## Sección\n\n```gml\nvar _x = draw_sprite(spr_a, 0, 0, 0);\n```\n\n"
+              "| A | B |\n|---|---|\n| 1 | 2 |\n\nVer [enlace](https://ejemplo.com).\n")
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            # a · Ni una carpeta: «no se ha podido comprobar», nunca «todo bien».
+            EN = os.path.join(tmp, "no-existe-en")
+            ES = os.path.join(tmp, "no-existe-es")
+            revisar("sin manual devuelve 2, no 0", informe(resumen_solo=True) == 2)
+
+            # b · Espejo completo: 0.
+            EN = os.path.join(tmp, "en")
+            ES = os.path.join(tmp, "es")
+            escribir(os.path.join(EN, "a.md"), PAG_EN)
+            escribir(os.path.join(ES, "a.md"), PAG_ES)
+            revisar("un espejo completo devuelve 0", informe(resumen_solo=True) == 0)
+
+            # c · Falta una página en español: 1.
+            escribir(os.path.join(EN, "b.md"), PAG_EN)
+            revisar("una página ausente devuelve 1", informe(resumen_solo=True) == 1)
+
+            # d · Existe pero recortada a la mitad: también 1.
+            shutil.rmtree(ES)
+            escribir(os.path.join(ES, "a.md"), PAG_ES)
+            escribir(os.path.join(ES, "b.md"), "# Título\n")
+            revisar("una página incompleta devuelve 1", informe(resumen_solo=True) == 1)
+
+            # e · Las dos carpetas existen pero están vacías: sigue siendo 2, y con
+            #     un motivo distinto al de (a). Un árbol a medio volcar no es un
+            #     espejo perfecto.
+            shutil.rmtree(EN); shutil.rmtree(ES)
+            os.makedirs(EN); os.makedirs(ES)
+            revisar("dos carpetas vacías devuelven 2", informe(resumen_solo=True) == 2)
+    finally:
+        EN, ES = guardar
+
+    if fallos:
+        print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n\u2713 Las 5 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
+import os as _os_arg, sys as _sys_arg
+_sys_arg.path.insert(0, _os_arg.path.dirname(_os_arg.path.abspath(__file__)))
+from argumentos import exigir_sin_rutas  # noqa: E402
+
 if __name__ == "__main__":
+    _sobra = exigir_sin_rutas('Compara el manual de esta biblioteca. Para el detalle, sin `--resumen`.',
+                             ("--resumen", "--autoprueba"))
+    if _sobra:
+        sys.exit(_sobra)
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(informe(resumen_solo="--resumen" in sys.argv))

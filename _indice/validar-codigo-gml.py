@@ -598,11 +598,38 @@ def autoprueba():
     if fallos:
         print(f"\n✗ {fallos} de {len(CASOS_COMILLAS)} casos de comillas_descuadradas() fallan.")
         return 1
-    print(f"\n✓ Los {len(CASOS_COMILLAS)} casos de comillas_descuadradas() pasan.")
+    # El argumento que se tragaba en silencio: comprobado ejecutando el script de
+    # verdad, no razonando sobre él.
+    import subprocess
+    _r = subprocess.run([sys.executable, os.path.abspath(__file__), "/ruta/que/no/existe"],
+                        capture_output=True, text=True)
+    if _r.returncode == 2 and "no acepta esa clase de argumento" in _r.stdout:
+        print("  ✓ un argumento de más NO sale con 0 ni analiza otra cosa en silencio")
+    else:
+        fallos += 1
+        print("  ✗ un argumento de más NO sale con 0  ->  exit %d" % _r.returncode)
+
+    if fallos:
+        print(f"\n✗ {fallos} de {len(CASOS_COMILLAS) + 1} comprobaciones fallan.")
+        return 1
+    print(f"\n✓ Los {len(CASOS_COMILLAS) + 1} casos de comillas_descuadradas() pasan.")
     return 0
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from argumentos import exigir_sin_rutas  # noqa: E402
+
 if __name__ == "__main__":
+    # Este script analiza SIEMPRE el código de la biblioteca. Tragarse una ruta en
+    # silencio sería una trampa fina: `validar-codigo-gml.py ~/MiJuego` devolvería un
+    # verde… del código de aquí, y quien lo lanzó se quedaría tranquilo con SU
+    # proyecto sin mirar.
+    _c = exigir_sin_rutas(
+        "Para validar el GML de TU proyecto: "
+        "python3 _indice/validar-proyecto.py <carpeta del .yyp>",
+        ("--autoprueba",))
+    if _c:
+        sys.exit(_c)
     if "--autoprueba" in sys.argv:
         sys.exit(autoprueba())
     sys.exit(main())
