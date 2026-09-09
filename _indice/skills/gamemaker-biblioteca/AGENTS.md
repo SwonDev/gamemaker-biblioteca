@@ -12,8 +12,8 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r17 · 2026-09-09 -->
-`r17 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r18 · 2026-09-09 -->
+`r18 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -104,7 +104,7 @@ python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto --todo
 del runtime (`draw_`, `audio_`, `ds_`…). Una función de dominio inventada —`calcular_ruta()`,
 `aplicar_dano()`— cae en «desconocida» y **no hace fallar el comando**.
 
-## Las dieciséis trampas que hacen fracasar a un agente
+## Las dieciocho trampas que hacen fracasar a un agente
 
 Verificadas en vivo contra `gm-cli` 2.3.0 y el runtime 2026.0.0.23. Léelas **antes** de ejecutar
 el primer comando; el detalle y las tablas completas están en
@@ -191,6 +191,18 @@ el primer comando; el detalle y las tablas completas están en
     lo que sugiere el nombre del flag. El siguiente `compile` se descarga `runtimes-gms2` entero.
     Si solo quieres limpiar un proyecto, `--cache-dir`. Y no lo ejecutes para «probar algo» sin
     avisar al usuario del coste.
+17. **Tres subcomandos que se adivinan mal, y uno miente.** `sound set`/`sound import` **no
+    existen** —es `sound setfile`— y aun así la salida contiene «Success» (del guardado del
+    proyecto), así que un script que busque esa palabra da por importados sonidos que dejaron
+    la carpeta vacía. Los eventos **sin subtipo** (Create, CleanUp, Destroy) se piden **sin el
+    argumento**: `type=create subtype=create` no crea nada y no da error legible. Y `options
+    set` usa `property=`, no `name=`. Ante la duda, **pásale un valor inventado**: el comando
+    imprime la lista exacta de lo que acepta (`Expected draw_normal | draw_begin | …`).
+18. **`keyboard_key_release()` genera un SEGUNDO borde de `keyboard_check_pressed`.** Medido en
+    el runner de Mac: pulsar y soltar cuenta como dos pulsaciones. Importa cuando un agente
+    ejerce su propio juego para probarlo —que es cómo se pasa de «compila» a «se navega»—:
+    con `ESC`, que suele ser pausa **y** atrás, la primera abre la pausa y la segunda la cierra,
+    y la captura sale con el juego corriendo. Pulsa y no sueltes, o deja pasar un fotograma.
 
 **Y cuatro trampas del propio GML**, que no están en el manual y solo aparecen al compilar:
 `1e10` (notación científica) **no compila** · el ternario anidado **necesita paréntesis**

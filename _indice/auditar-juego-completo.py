@@ -435,6 +435,7 @@ def objetos_rectangulo(ruta):
         r"selec|pantalla|panel|boton|barra|marcador|contador|reloj|cursor|puntero|mira|"
         r"mensaje|aviso|tutorial|pista|ayuda|logro|galeria|galería)\w*$", re.I)
     sospechosos = []
+    solo_gui = set()
     for nom in sorted(os.listdir(dir_obj)):
         carpeta = os.path.join(dir_obj, nom)
         yy = os.path.join(carpeta, nom + ".yy")
@@ -442,13 +443,33 @@ def objetos_rectangulo(ruta):
             continue
         if '"spriteId":null' not in leer(yy).replace(" ", ""):
             continue                      # tiene sprite: no es el caso
-        for ev in ("Draw_0.gml", DRAW_GUI):
-            p = os.path.join(carpeta, ev)
-            if os.path.isfile(p) and figuras.search(leer(p)):
-                sospechosos.append(nom)
-                break
-    return ([s for s in sospechosos if not interfaz.match(s)],
-            [s for s in sospechosos if interfaz.match(s)])
+        en_mundo, en_gui = False, False
+        for ev, marca in (("Draw_0.gml", "mundo"), (DRAW_GUI, "gui")):
+            q = os.path.join(carpeta, ev)
+            if os.path.isfile(q) and figuras.search(leer(q)):
+                if marca == "mundo":
+                    en_mundo = True
+                else:
+                    en_gui = True
+        if en_mundo or en_gui:
+            sospechosos.append(nom)
+            if en_gui and not en_mundo:
+                solo_gui.add(nom)
+    # Dos criterios, y el estructural manda sobre el del nombre.
+    #
+    # **Draw GUI es espacio de PANTALLA, no de mundo**: lo que se dibuja ahí no se
+    # mueve con la cámara, así que no puede ser un personaje, un enemigo ni un objeto
+    # con el que se choca — es HUD, panel, cartela o fundido, siempre. Un objeto que
+    # solo pinta figuras ahí es interfaz por construcción, se llame como se llame.
+    #
+    # Antes solo existía la lista de nombres de abajo, que crece sin fin: cayó
+    # `obj_seleccion` en r15, y `obj_juego` —el director de partida, un nombre de lo
+    # más común— en la prueba del juego «Enjambre». Cada palabra que se añade tapa un
+    # caso y deja fuera el siguiente. La regla estructural los cubre todos de golpe.
+    def es_interfaz(nombre):
+        return nombre in solo_gui or bool(interfaz.match(nombre))
+    return ([s for s in sospechosos if not es_interfaz(s)],
+            [s for s in sospechosos if es_interfaz(s)])
 
 
 ENTRADA_CRUDA = re.compile(r"\b(keyboard_check_pressed|gamepad_button_check_pressed|"
@@ -1042,6 +1063,23 @@ def autoprueba():
         revisar("avisa de que `Input` ya existe", "scr_input" in rein, rein)
         revisar("y no se inventa avisos para lo demás", "scr_propio" not in rein, rein)
 
+        # --- Draw GUI es interfaz, se llame como se llame ---------------------------
+        # El caso real: `obj_juego`, el director de partida del juego «Enjambre», pintaba
+        # su HUD en Draw GUI y salía en la lista de sospechosos de «rectángulo de color
+        # como personaje». Un nombre más en la lista habría tapado ese caso y dejado
+        # fuera el siguiente; la regla estructural los cubre todos.
+        _b = _proyecto_falso(os.path.join(tmp, "gui"), objetos={
+            "obj_zzdirector": {"sin_sprite": True, "eventos": {
+                "Draw_64": "draw_rectangle(0, 0, 100, 20, false);"}},
+            "obj_bicho": {"sin_sprite": True, "eventos": {
+                "Draw_0": "draw_circle(x, y, 8, false);"}},
+        })
+        _malos, _ui = objetos_rectangulo(_b)
+        revisar("un objeto que solo pinta en Draw GUI cuenta como interfaz",
+                "obj_zzdirector" in _ui and "obj_zzdirector" not in _malos, str((_malos, _ui)))
+        revisar("y uno que pinta en el Draw del MUNDO sigue siendo sospechoso",
+                "obj_bicho" in _malos, str((_malos, _ui)))
+
     # --- recursos creados y nunca liberados -------------------------------------
     # La comprobación se calibra por los dos lados: tiene que saltar con la fuga
     # y CALLARSE en cuanto el destructor aparece en cualquier parte del proyecto.
@@ -1088,7 +1126,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 29 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 31 comprobaciones de la autoprueba pasan.")
     return 0
 
 
