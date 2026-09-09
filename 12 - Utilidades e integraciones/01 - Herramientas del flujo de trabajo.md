@@ -35,10 +35,59 @@ tareas sobre el `.yyp`.
 📁 Descargado: `11 - Código descargado/librerias/herramientas-externas/stitch/`
 🔗 Extensión: <https://marketplace.visualstudio.com/items?itemName=bscotch.bscotch-stitch-vscode>
 
-### vim-gml · MIT · [repo](https://github.com/JafarDakhan/vim-gml)
+### vim-gml · MIT · repo original borrado, la copia de aquí es la buena
 
 Resaltado de sintaxis de GML para Vim y Neovim.
 📁 `11 - Código descargado/librerias/herramientas-externas/vim-gml/`
+
+> ⚰️ **El repositorio de origen ya no existe.** `github.com/JafarDakhan/vim-gml` devuelve 404, y
+> también la **cuenta entera** de su autor: no es un repositorio movido de sitio, es una cuenta
+> borrada. Comprobado el 2026-09-09.
+>
+> **No se pierde nada, y esto importa:** el clon completo está en la ruta de arriba, con su
+> `LICENSE` MIT (© 2022 JafarDakhan) intacta, que es justo lo que permite conservarlo y
+> redistribuirlo mientras se mantenga ese aviso de copyright. No lo borres del repositorio:
+> ahora mismo esta copia **es** la fuente.
+>
+> **Y resulta ser la mejor de las tres**, no un premio de consolación. Lo medido el 2026-09-09
+> sobre el `syntax/gml.vim` de cada una:
+>
+> | Plugin | Último cambio | ¿Sintaxis de GML 2.3+? |
+> |---|---|---|
+> | **`vim-gml`** (esta copia) | 2022-10-04 | ✅ `constructor`, `new`, `delete`, `function`, `variable_struct_*` |
+> | [`Syrekt/gml.vim`](https://github.com/Syrekt/gml.vim) | 2021-07-10 | ❌ cero apariciones de `constructor` |
+> | [`nessss/vim-gml`](https://github.com/nessss/vim-gml) | 2016-09-02 | ❌ es de la época de GM:Studio **1** |
+>
+> Es decir: las alternativas que siguen vivas en GitHub son **más antiguas** que la muerta, y
+> ninguna conoce los structs, que en GML son el pan de cada día desde 2.3. Si escribes GML en
+> Vim, instala esta copia:
+>
+> ```bash
+> cp -r "11 - Código descargado/librerias/herramientas-externas/vim-gml/"{syntax,ftdetect,ftplugin,indent} ~/.vim/
+> ```
+>
+> Para Neovim, el mismo contenido en `~/.config/nvim/`.
+
+### Qué usar en cada editor — medido el 2026-09-09
+
+La pregunta «¿puedo escribir GML fuera del IDE?» se contesta distinto según el editor, y la
+respuesta ha cambiado: **dos de los tres proyectos dedicados están archivados por sus propios
+autores**. Esto es el estado real, comprobado con la API de GitHub el mismo día, no lo que
+dicen los tutoriales antiguos:
+
+| Editor | Qué usar hoy | Estado medido |
+|---|---|---|
+| **VS Code** | [**Stitch for VSCode**](https://github.com/bscotch/stitch) | ✅ Vivo (158 ★, 2026-06-15). Es también **a quien te manda la alternativa**: el README de `gml-support`, la extensión dedicada de GML, empieza con «*The project has stopped maintenance, please use Stitch for VSCode instead*». |
+| ~~VS Code~~ | ~~`gml-support`~~ | 🗄️ **Archivado** (48 ★, último cambio 2023-03-10). Lo dice su autor, no nosotros. No lo instales. |
+| **Vim / Neovim** | La copia de `vim-gml` de esta biblioteca (arriba) | ⚰️ Origen borrado, copia MIT íntegra aquí. Es el único de los tres plugins de Vim que conoce los structs de GML 2.3+. |
+| **Sublime Text** | [`Sublime-GameMaker-Studio-Language-Bundle`](https://github.com/uduse/Sublime-GameMaker-Studio-Language-Bundle) | ⏳ 32 ★, **2018-01-09**: es de la época de GM:Studio **1**. Sirve para colorear, no esperes que entienda `function`, `constructor` ni structs. |
+| **GMEdit** | [GMEdit](https://github.com/YellowAfterlife/GMEdit) | ✅ Vivo (369 ★, 2026-07-22). Sigue siendo el editor externo más completo. |
+| **El propio IDE** | **Code Editor 2** | ✅ Lo que trae la LTS 2026. Empieza por aquí: ver [`02 · 09`](../02%20-%20Novedades%202026/09%20-%20Code%20Editor%202%20y%20Feather.md). |
+
+> 🧭 **La conclusión práctica, para no perder una tarde:** el editor externo con soporte vivo y
+> completo es **GMEdit**; en VS Code, **Stitch**; y si escribes en Vim, la copia de aquí. Todo lo
+> demás que encuentres buscando «GML syntax highlighting» está parado desde 2018-2023, y en dos
+> casos su propio autor lo ha dicho por escrito.
 
 ---
 

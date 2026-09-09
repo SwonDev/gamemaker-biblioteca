@@ -15,6 +15,7 @@
 | **GMLinear** | El repo original (`dicksonlaw583/gmlinear`) está **archivado** (2019, GameMaker Studio 1.x). El sucesor es **`gmlinear2`** (último push 2025-07-29). |
 | **YYToolkit** | **No es una librería GML**. Es una herramienta externa de *modding* de juegos ya compilados. No te sirve para desarrollar tu juego. |
 | **Ugg** (3D primitives) | Prácticamente **estancado**: 3 ★, último push 2025-11-13. |
+| **The Jujuverse** (pack «todo en uno») | **Archivado** (64 ★, último cambio 2025-01-18). Era un *starter pack* que empaquetaba Scribble, Vinyl, Bulb y compañía con versiones fijadas. Su propia portada dice ahora: «*This repo has been archived. Please see individual repos for up-to-date library versions*». **No lo uses como punto de partida**: instalarías versiones congeladas de enero de 2025. Coge cada librería de su repositorio, que es lo que documentan las secciones de abajo. |
 
 ---
 

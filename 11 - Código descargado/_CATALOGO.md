@@ -237,7 +237,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | `stitch` [↗](https://github.com/bscotch/stitch) | Suite de herramientas de Bscotch: **CLI de pipeline** y **extensión de VSCode** para editar proyectos de GameMaker. | 158 | propia | 2026-06-15 | 47 |
 | `Rubber` [↗](https://github.com/GameMakerDiscord/Rubber) | Compilación de proyectos desde línea de comandos, en JavaScript. ⚠️ Anterior al CLI oficial y sin cambios desde 2021; se conserva porque explica bien cómo funciona **Igor**. | 33 | MIT | 2021-02-20 | 0 |
 | `GMLC` [↗](https://github.com/tinkerer-red/GMLC) | VM y compilador de GML escritos **en GML**, con la meta de compilar cualquier carpeta de proyecto. | 18 | sin licencia | 2026-06-11 | 572 |
-| `vim-gml` [↗](https://github.com/JafarDakhan/vim-gml) | Resaltado de sintaxis de GML de calidad para **Vim** y Neovim. | 13 | MIT | 2022-10-04 | 6 |
+| `vim-gml` ⚰️ *(origen borrado)* | Resaltado de sintaxis de GML de calidad para **Vim** y Neovim. **El repositorio de origen y la cuenta de su autor ya no existen** (404 el 2026-09-09): esta copia es la fuente. Aun así es el único de los tres plugins de Vim que conoce `constructor` y los structs de GML 2.3+ — [el detalle, en `12 · 01 §1`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md#vim-gml--mit--repo-original-borrado-la-copia-de-aquí-es-la-buena). | 13 | MIT | 2022-10-04 | 6 |
 | `GMLVM` [↗](https://github.com/erkan612/GMLVM) | Intérprete completo de GML para ejecutar código en tiempo de ejecución. | 5 | MIT | 2026-05-21 | 9 |
 | `sfgml` [↗](https://github.com/YellowAfterlife/sfgml) | Compilador de **Haxe a GML**: escribe en Haxe y genera un proyecto de GameMaker. 🆕 | 32 | LGPL-3.0 | 2026-06-01 | 1 |
 | `AseSync23` [↗](https://github.com/YAL-GameMaker-Tools/AseSync23) | Sincroniza automáticamente los sprites del proyecto cuando cambia el archivo de **Aseprite** en disco. 🆕 | 30 | — | 2026-07-22 | 0 |
@@ -696,9 +696,30 @@ resultado para que nadie lo repita**:
 | [`bridge-gamemaker`](https://github.com/Playgama/bridge-gamemaker) | Integraciones con servicios | **El hueco de verdad**: la biblioteca cubría itch.io y no los **portales HTML5** (Poki, CrazyGames, Yandex…), que es donde se juega y se monetiza un juego de navegador. Peor: `07 · 06` apuntaba a una plantilla de la comunidad con 0 ★ y sin licencia en vez de al SDK oficial MIT. Documentado en [`01 · 16`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) |
 | [`G3M`](https://github.com/y114git/G3M) | Herramientas del ecosistema | Gestor de mods del lado del jugador; referencia para `04 · 43` |
 
+3. **Tercer eje, el mismo día por la tarde**: seis *topics* (`gamemaker`, `gamemaker-studio`,
+   `gamemaker-studio-2`, `gml`, `gamemaker-language`, `gms2`), cada uno ordenado **por estrellas
+   y por fecha** — 377 repositorios únicos, cruzados contra las 522 URLs de GitHub que cita la
+   biblioteca entera. Este eje encuentra lo que los dos anteriores no pueden: repositorios
+   **antiguos pero relevantes** (el filtro `pushed:>2026-01-01` los excluía) y repositorios cuyo
+   *topic* es `gamemaker-studio` y no `gamemaker`. Buena parte del ruido es que **`gml` también
+   significa *Geography Markup Language***: MapServer, deegree e IndoorGML no tienen nada que ver
+   con GameMaker. De los que sí:
+
+| Repo | Veredicto | Por qué |
+|---|---|---|
+| [`gml-support`](https://github.com/gml-support/gml-support) | **Entra como aviso, no como recurso** | 48 ★ pero **archivado**; su propio README manda usar Stitch for VSCode. Documentado en [`12 · 01 §1`](../12%20-%20Utilidades%20e%20integraciones/01%20-%20Herramientas%20del%20flujo%20de%20trabajo.md#qué-usar-en-cada-editor--medido-el-2026-09-09), donde ahora está el mapa de editores externos |
+| [`TheJujuverse`](https://github.com/JujuAdams/TheJujuverse) | **Entra como aviso** | 64 ★ y **archivado**: era el *starter pack* de Juju con versiones fijadas. Avisado en [`07 · 02`](../07%20-%20Ecosistema/02%20-%20Librerías%20esenciales%20de%20la%20comunidad.md) para que nadie parta de ahí |
+| [`uduse/Sublime-…-Bundle`](https://github.com/uduse/Sublime-GameMaker-Studio-Language-Bundle) | **Entra como aviso** | 32 ★, 2018: única opción para Sublime y hay que decir que es de la era GM:Studio 1 |
+| [`ninstar/UniMaker`](https://github.com/ninstar/UniMaker) | **No entra** | 101 ★ y BSD-3, pero **no es una herramienta para GameMaker: es un juego hecho con GameMaker** (un creador de niveles estilo *Mario Maker*, publicado en itch.io). Su código exige GM:S 1.4 o 2.2 y se distribuye en `.7z`. Como referencia de arquitectura, `MegamixEngine` ya cubre el hueco y está más cerca del GameMaker de hoy |
+| [`maiple/opengml`](https://github.com/maiple/opengml) | **No entra** | Tercer intérprete de GML (61 ★, MIT) además de Butterscotch y OpenGM, y el más parado de los tres: **2023-04-24**. No aporta nada que los otros dos no den mejor |
+| `HelloMarioEngine`, `Super-Mega-Engine`, `SonicTimeTwisted`, `GeometryDash`, `deltaport` | **No entran** | Fangames de propiedad ajena — el mismo motivo del eje 1 |
+
 **Conclusión honesta: el catálogo estaba bien.** 632 → 634. Lo que faltaba no era un repositorio
 sino una **sección de documentación** —los portales HTML5— y eso no lo encuentra un barrido de
-repositorios: lo encontró preguntarse para qué sirve cada repo que aparece.
+repositorios: lo encontró preguntarse para qué sirve cada repo que aparece. El tercer eje lo
+confirma desde el otro lado: sus tres hallazgos **no son código que descargar, sino tres avisos
+de «esto está archivado, no lo uses»**. En una biblioteca que existe para que un modelo no se
+invente cosas, saber qué está muerto vale tanto como saber qué existe.
 
 ---
 
@@ -709,49 +730,49 @@ El detalle de las herramientas de IA está en [`07 · IA y GameMaker §6 bis.2`]
 
 **IA / MCP / agentes** (`librerias/ia-y-mcp/`):
 
-| Repo | Qué es | Licencia |
-|---|---|---|
-| [`gamemaker-mcp`](https://github.com/yearningss/gamemaker-mcp) | Servidor MCP project-aware (**225 tools** a 09-09-2026): análisis GML, refactor, builds | MIT |
-| [`GameMaker-MCP-Server`](https://github.com/darkw3bb/GameMaker-MCP-Server) | Servidor MCP para Cursor | NOASSERTION |
-| [`gm-forge-mcp`](https://github.com/nicklesimba/gm-forge-mcp) | Servidor MCP para crear/editar proyectos | MIT |
-| [`gamemaker-skills`](https://github.com/leihaht/gamemaker-skills) | Skills de Claude Code para GMS2/GML | MIT |
+| Repo | Qué es | ★ | Licencia | Último cambio |
+|---|---|---:|---|---|
+| [`gamemaker-mcp`](https://github.com/yearningss/gamemaker-mcp) | Servidor MCP project-aware (**225 tools** a 09-09-2026): análisis GML, refactor, builds. **El más vivo de los cuatro** y el primero que mirar. | 15 | MIT | 2026-09-09 |
+| [`gm-forge-mcp`](https://github.com/nicklesimba/gm-forge-mcp) | Servidor MCP para crear/editar proyectos | 2 | MIT | 2026-07-20 |
+| [`GameMaker-MCP-Server`](https://github.com/darkw3bb/GameMaker-MCP-Server) | Servidor MCP para Cursor. ⏳ **10 meses sin tocar** y con una alternativa viva que hace lo mismo y más (`gamemaker-mcp`, fila 1): úsalo solo si necesitas específicamente su integración con Cursor. | 10 | NOASSERTION | 2025-10-28 |
+| [`gamemaker-skills`](https://github.com/leihaht/gamemaker-skills) | Skills de Claude Code para GMS2/GML. ⏳ **10 meses sin tocar**, anterior a la LTS 2026: vale como ejemplo de cómo se empaqueta una skill de GameMaker, no como referencia de API. | 6 | MIT | 2025-11-06 |
 
 **Tooling / editor / build** (`librerias/herramientas-externas/`):
 
-| Repo | Qué es | Licencia |
-|---|---|---|
-| [`gamemaker-typescript`](https://github.com/OleksandrDemian/gamemaker-typescript) | Transpila TypeScript → GML | MIT |
-| [`GML-formatter`](https://github.com/GanjaViruss/GML-formatter) | Formateador de GML offline | MIT |
-| [`gml_lsp`](https://github.com/Okerew/gml_lsp) | Servidor LSP para GML *(archivado)* | MIT |
-| [`GMEdit-Constructor`](https://github.com/thennothinghappened/GMEdit-Constructor) | Plugin de GMEdit que compila con Igor | MIT |
-| [`GMSync`](https://github.com/Atennebris/GMSync) | Live-edit de GMS2 desde VS Code | NOASSERTION |
-| [`gms2-ios-builder`](https://github.com/yearningss/gms2-ios-builder) | CLI GMS2 → Xcode → `.ipa` vía GitHub Actions | MIT |
-| [`GameMakerCompanion`](https://github.com/Mtax-Development/GameMakerCompanion) | App companion + Discord Rich Presence | NOASSERTION |
-| [`GM2Godot`](https://github.com/Infiland/GM2Godot) | Convierte proyectos GameMaker → Godot | Apache-2.0 |
-| [`awesome-gamemaker`](https://github.com/bytecauldron/awesome-gamemaker) | Lista curada de referencia (501★) | CC0-1.0 |
+| Repo | Qué es | ★ | Licencia | Último cambio |
+|---|---|---:|---|---|
+| [`awesome-gamemaker`](https://github.com/bytecauldron/awesome-gamemaker) | Lista curada de referencia. La puerta de entrada al ecosistema. | 504 | CC0-1.0 | 2026-08-23 |
+| [`GM2Godot`](https://github.com/Infiland/GM2Godot) | Convierte proyectos GameMaker → Godot | 30 | Apache-2.0 | 2026-09-06 |
+| [`GMEdit-Constructor`](https://github.com/thennothinghappened/GMEdit-Constructor) | Plugin de GMEdit que compila con Igor | 28 | MIT | 2026-08-22 |
+| [`gamemaker-typescript`](https://github.com/OleksandrDemian/gamemaker-typescript) | Transpila TypeScript → GML | 10 | MIT | 2026-04-18 |
+| [`GML-formatter`](https://github.com/GanjaViruss/GML-formatter) | Formateador de GML offline | 4 | MIT | 2026-06-25 |
+| [`gml_lsp`](https://github.com/Okerew/gml_lsp) | Servidor LSP para GML. 🗄️ **Archivado por su autor**: la fecha de abajo es la del archivado, no la de un cambio real. Se conserva como referencia de cómo se implementa un LSP para GML. | 3 | MIT | 2026-07-23 |
+| [`gms2-ios-builder`](https://github.com/yearningss/gms2-ios-builder) | CLI GMS2 → Xcode → `.ipa` vía GitHub Actions | 1 | MIT | 2026-08-01 |
+| [`GMSync`](https://github.com/Atennebris/GMSync) | Live-edit de GMS2 desde VS Code | 14 | NOASSERTION | 2026-03-29 |
+| [`GameMakerCompanion`](https://github.com/Mtax-Development/GameMakerCompanion) | App companion + Discord Rich Presence. ⏳ **11 meses sin tocar**; lo que hace (presencia de Discord) no depende de la versión del IDE, así que sigue sirviendo. | 11 | NOASSERTION | 2025-10-07 |
 
 **Frameworks y utilidades GML** (`librerias/utilidades/`):
 
-| Repo | Qué es | Licencia |
-|---|---|---|
-| [`gml-raptor`](https://github.com/Grisgram/gml-raptor) | Framework integral de juego (61★) | NOASSERTION |
-| [`gm-community-toolbox`](https://github.com/Alphish/gm-community-toolbox) | Utilidades comunitarias GML (60★) | MIT |
-| [`GML-Extended`](https://github.com/DAndrewBox/GML-Extended) | Complementa las funciones nativas | MIT |
-| [`MiniToolkit-GM`](https://github.com/mneet/MiniToolkit-GM) | Event System + Tween + UI Builder | MIT |
+| Repo | Qué es | ★ | Licencia | Último cambio |
+|---|---|---:|---|---|
+| [`gm-community-toolbox`](https://github.com/Alphish/gm-community-toolbox) | Utilidades comunitarias GML | 60 | MIT | 2026-05-24 |
+| [`GML-Extended`](https://github.com/DAndrewBox/GML-Extended) | Complementa las funciones nativas | 38 | MIT | 2026-09-06 |
+| [`MiniToolkit-GM`](https://github.com/mneet/MiniToolkit-GM) | Event System + Tween + UI Builder | 3 | MIT | 2026-05-26 |
+| [`gml-raptor`](https://github.com/Grisgram/gml-raptor) | Framework integral de juego. ⏳ **Casi un año sin tocar** y con licencia sin declarar: mira su `LICENSE` real antes de reutilizar nada. Es el framework GML más completo que hay descargado, y por eso se conserva. | 61 | NOASSERTION | 2025-09-21 |
 
 **Extensiones y librerías por categoría:**
 
-| Repo | Ruta | Qué es | Licencia |
-|---|---|---|---|
-| [`GameMaker-Save`](https://github.com/NiZaMinius/GameMaker-Save) | `datos-y-estructuras/` | Guardado cifrado (Rust, XChaCha20-Poly1305) | Apache-2.0 |
-| [`gms_enet`](https://github.com/alitoprak/gms_enet) | `red-y-multijugador/` | Red UDP fiable (ENet) | Unlicense |
-| [`htgm`](https://github.com/meseta/htgm) | `red-y-multijugador/` | Servidor web en GML puro | MIT |
-| [`gm-socketio`](https://github.com/ignoxx/gm-socketio) | `red-y-multijugador/` | Socket.io para GMS2 (HTML5) | MIT |
-| [`IVideo`](https://github.com/mionumbra/IVideo) | `extras/` | Reproducción de vídeo (FFmpeg) | MIT |
-| [`GML-Lua`](https://github.com/WushR00M/GML-Lua) | `extras/` | Lua 5.4 embebido (scripting/modding) | MIT |
-| [`GLoader`](https://github.com/Kruger0/GLoader) | `3d/` | Cargador `.glb`/`.gltf` en GML | sin licencia |
-| [`ImGM`](https://github.com/knno/ImGM) | `interfaz-de-usuario/` | Wrapper de Dear ImGui | MIT |
-| [`GM-Testing-Library`](https://github.com/DAndrewBox/GM-Testing-Library) | `depuracion/` | Framework de testing para librerías | MIT |
+| Repo | Ruta | Qué es | ★ | Licencia | Último cambio |
+|---|---|---|---:|---|---|
+| [`gm-socketio`](https://github.com/ignoxx/gm-socketio) | `red-y-multijugador/` | Socket.io para GMS2 (HTML5) | 45 | MIT | 2026-03-07 |
+| [`GM-Testing-Library`](https://github.com/DAndrewBox/GM-Testing-Library) | `depuracion/` | Framework de testing para librerías | 41 | MIT | 2026-07-23 |
+| [`ImGM`](https://github.com/knno/ImGM) | `interfaz-de-usuario/` | Wrapper de Dear ImGui | 12 | MIT | 2026-09-07 |
+| [`GameMaker-Save`](https://github.com/NiZaMinius/GameMaker-Save) | `datos-y-estructuras/` | Guardado cifrado (Rust, XChaCha20-Poly1305) | 6 | Apache-2.0 | 2026-08-05 |
+| [`gms_enet`](https://github.com/alitoprak/gms_enet) | `red-y-multijugador/` | Red UDP fiable (ENet) | 1 | Unlicense | 2026-07-25 |
+| [`IVideo`](https://github.com/mionumbra/IVideo) | `extras/` | Reproducción de vídeo (FFmpeg) | 0 | MIT | 2026-07-30 |
+| [`GML-Lua`](https://github.com/WushR00M/GML-Lua) | `extras/` | Lua 5.4 embebido (scripting/modding) | 0 | MIT | 2026-08-01 |
+| [`htgm`](https://github.com/meseta/htgm) | `red-y-multijugador/` | Servidor web en GML puro. ⏳ **14 meses sin tocar**, pero no le conocemos sustituto y las funciones de red de GameMaker en las que se apoya no han cambiado en la LTS 2026. | 13 | MIT | 2025-07-09 |
+| [`GLoader`](https://github.com/Kruger0/GLoader) | `3d/` | Cargador `.glb`/`.gltf` en GML. ⏳ **14 meses sin tocar** y ⚠️ **sin licencia**: sin permiso explícito no puedes reutilizarlo en un juego que publiques. Para 3D con soporte vivo, `BBMOD`. | 11 | sin licencia | 2025-07-25 |
 
 **Runtimes / motores alternativos de código abierto** (`juegos_y_motores/`):
 
@@ -771,9 +792,17 @@ El detalle de las herramientas de IA está en [`07 · IA y GameMaker §6 bis.2`]
 > compilados) en una 3DS o Wii U con homebrew, un caso de uso muy de nicho. No aporta nada al
 > desarrollo normal de un juego nuevo.
 
-> ⚠️ Licencias `NOASSERTION` / `sin licencia`: revisa el `LICENSE` real del repo antes de
-> redistribuir. `gml_lsp` está **archivado** (referencia, no producción). Muchos son de 2026 con
-> pocas estrellas: valor por actualidad, no por popularidad.
+> ⚠️ **Licencias `NOASSERTION` / `sin licencia`**: revisa el `LICENSE` real del repo antes de
+> redistribuir. Sin licencia declarada, el derecho de autor por defecto dice que **no** puedes
+> reutilizar el código, aunque esté publicado.
+>
+> 🕰️ **Sobre las fechas.** La columna «Último cambio» es el `pushed_at` real de GitHub,
+> medido el **2026-09-09**, no una estimación. Se ordena cada tabla de más vivo a más parado.
+> Un repositorio parado no es automáticamente inútil —`htgm` lleva catorce meses quieto y
+> sigue siendo lo único que hace lo que hace—, pero **tiene que justificar por qué sigue
+> aquí**: los que llevan más de diez meses sin tocar llevan esa justificación escrita en su
+> fila, o el aviso de qué usar en su lugar. Si al releer esto una fila lleva parada y no
+> explica para qué sirve hoy, esa fila sobra.
 
 ### YellowAfterlife (YAL) y GameMakerDiscord — el filón que faltaba
 
