@@ -116,6 +116,25 @@ Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepc
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
 buena una tarea que no lo está.
 
+> ✅ **Siete de estas trampas se vuelven a comprobar solas contra el CLI instalado.**
+> Cada una lleva su fecha —«verificado el 08-09-2026»— y esa fecha envejece sola: una trampa que
+> YoYo arregle se convierte en una advertencia **falsa**, y una advertencia falsa enseña a
+> desconfiar de las otras catorce, que es peor que no advertir.
+>
+> ```bash
+> bash "$BIB/_indice/verificar-trampas.sh"
+> ```
+>
+> Monta un proyecto de usar y tirar y reproduce la 3, la 5, la 8, la 10, la 10 bis, la 14 y el
+> `IMPORT YY` de `§3 ter.1`. Sale con 0 si **siguen** siendo ciertas y con 1 si alguna ya no lo
+> es —que es una buena noticia, pero obliga a actualizar este documento y la skill—.
+>
+> Las otras ocho no se comprueban, y el motivo está escrito en la cabecera del script: la 1 son
+> dieciocho `init` y varios minutos; la 2 depende del entorno de quien ejecute; la 4 es
+> conceptual; la 6 y la 13 piden `gm-cli run`; la 11 no es determinista; la 12 se mide mejor
+> dentro del juego (`validar-ejecucion.sh`); y **la 15 no se comprueba a propósito**, porque
+> comprobarla destruiría la caché compartida del usuario.
+
 ### Trampa 1 · 9 de las 18 plantillas de `gm-cli init` fallan hoy en macOS
 
 `gm-cli init` con una plantilla que trae *prefabs* falla con `PREFABS RESTORE exited with code

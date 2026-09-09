@@ -151,6 +151,15 @@ Eso es todo. Hace, en orden y parando al primer fallo real:
 
 Sale con **0** solo si no queda deuda. Si algo necesita a una persona, lo dice por su nombre.
 
+**Tres comprobaciones más viven aparte porque tardan y necesitan GameMaker instalado.**
+Córrelas antes de publicar:
+
+| Comando | Qué demuestra |
+|---|---|
+| `bash _indice/validar-compilacion.sh` | Los 13 scripts de `06` compilan contra el runtime real |
+| `bash _indice/validar-ejecucion.sh` | Y además **hacen lo que dicen**: 189 comprobaciones dentro de un juego que se ejecuta |
+| `bash _indice/verificar-trampas.sh` | Las 7 trampas comprobables de `12 · 09 §0` **siguen** siendo ciertas con el CLI de hoy |
+
 ### Qué pasa cuando YoYo publica un runtime nuevo
 
 Los símbolos **se re-derivan del `GmlSpec.xml` del runtime instalado** en cada ejecución. No
