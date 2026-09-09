@@ -268,6 +268,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 
 | Repositorio | Qué es | ★ | Licencia | Último cambio | archivos |
 |---|---|---:|---|---|---:|
+| `sprite-gen` [↗](https://github.com/aldegad/sprite-gen) | **La tubería de sprites para un agente.** De UN dibujo saca una hoja con alfa real y un `manifest.json` con los **rectángulos absolutos** de cada fotograma, por estado, con fps y bucle. Es a la vez skill de Codex/Claude y CLI de Python. Cuatro tuberías: filas de atlas, vídeo→bucle transparente, troceado de hojas y recoloreado determinista. Su rejilla («Backbone Lattice») mantiene el pixel art alineado, que es el fallo que `puerta-pixel-art.py` mide. **Exporta a Aseprite, Phaser y Flame — a GameMaker lo lleva `_indice/atlas-a-gamemaker.py`.** | 817 | Apache-2.0 | 2026-09-09 | 0 |
 | `pixel-art-fixer` [↗](https://github.com/Retro-Diffusion/pixel-art-fixer) | **Convierte pixel art falso en pixel art real**: rejilla alineada, escala entera, colores recuperados. *Solo procesado de imagen, sin modelo* — local y gratis. | 383 | MIT | 2026-07-15 | 22 |
 | `pixeldetector` [↗](https://github.com/Astropulse/pixeldetector) | **Repara pixel art dañado** por reescalado o compresión JPEG, y lo devuelve a su resolución real. Solo pide Pillow, Numpy y Scipy. | 357 | MIT | 2024-04-04 | 3 |
 | `sd-palettize` [↗](https://github.com/Astropulse/sd-palettize) | Reduce a paleta las imágenes generadas. Extensión de Automatic1111. | 206 | Sin licencia | 2024-04-18 | 4 |

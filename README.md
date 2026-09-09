@@ -58,7 +58,7 @@ español con el inglés. Sale con 0 solo si no queda deuda.
 
 ## Qué NO incluye, y por qué
 
-El manual oficial y los 634 repositorios de código real que usa la versión completa **no se
+El manual oficial y los 635 repositorios de código real que usa la versión completa **no se
 redistribuyen aquí**: el manual es obra de YoYo Games, y cada repositorio tiene su licencia. Se
 reconstruyen en tu máquina. Sin ellos, `buscar.py` sigue dando la firma exacta de cualquier
 símbolo (sale del runtime), pero te remitirá a `manual.gamemaker.io` en vez de a un archivo local,
@@ -85,7 +85,7 @@ Proyecto independiente, sin relación con YoYo Games.
 > **Puerta de entrada única** a toda la base de conocimiento de GameMaker de este repositorio.
 > Última ampliación: **1 de septiembre de 2026** · **270 documentos propios en español**,
 > **6 152 páginas de manual oficial espejado**, **la API completa del runtime** y
-> **634 repositorios con 61 959 archivos `.gml`**. 3,8 GB · UTF-8.
+> **635 repositorios con 61 959 archivos `.gml`**. 3,8 GB · UTF-8.
 > Versión de referencia: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · GMS2 Runtime 2026.0.0.23) ·
 > Beta **2026.100.0** (IDE 1139 / runtime 1090) · **GMRT** en Beta 0.21.
 
@@ -113,7 +113,7 @@ Contiene:
 - 🆕 **El manual oficial entero, sin conexión** — 3 119 páginas en inglés y 3 033 en español, en Markdown.
 - 🆕 **La API completa del runtime** — 2 357 funciones, 886 constantes, 210 variables y 33 structs,
   extraídas del `GmlSpec.xml` del runtime instalado. Si algo no está ahí, **no existe**.
-- 🆕 **634 repositorios descargados** — 61 959 archivos `.gml` reales, organizados por tema y catalogados en español.
+- 🆕 **635 repositorios descargados** — 61 959 archivos `.gml` reales, organizados por tema y catalogados en español.
 - 🆕 **Cursos y recursos en español** — investigados, verificados uno a uno y con veredicto honesto.
 - 🆕 **Utilidades e integraciones** — itch.io, extensiones nativas, Steam, Discord, Photon, Colyseus, pipeline de arte.
 - 🆕 **Un buscador offline** — `_indice/buscar.py` cruza símbolo ↔ manual ↔ documentación ↔ código real.
@@ -162,12 +162,12 @@ respetan **en inglés** (son la API real). Las explicaciones y los comentarios e
 | [08 - Referencia GML completa](./08%20-%20Referencia%20GML%20completa/) | 24 + API | Dibujo, formas, texto, color, superficies, shaders, vertex buffers, texturas, tiles, matemáticas, vectores, strings, DS, arrays, structs, buffers, ficheros, fecha, sistema · **+ el catálogo completo de la API** | **La referencia técnica en español**, tema por tema |
 | 🆕 [09 - Manual oficial](./09%20-%20Manual%20oficial/README.md) | **6 152** | El manual oficial entero espejado: **3 119 páginas en inglés** y **3 033 en español, sin una sola página sin traducir** | **La fuente de verdad, sin conexión.** Cuando algo contradice a un tutorial, manda esto |
 | 🆕 [10 - Cursos en español](./10%20-%20Cursos%20en%20espa%C3%B1ol/_INDICE-CURSOS-ES.md) | 13 | Todo el material de aprendizaje en castellano que existe, verificado con `yt-dlp`, con veredicto honesto, ruta de aprendizaje y apuntes completos de 17 vídeos transcritos | **Aprender sin pasar por el inglés** |
-| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **634 repos** | **61 959 archivos `.gml`** reales: 325 librerías por tema, 212 plantillas y ejemplos, 44 extensiones oficiales, 24 juegos y motores, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
+| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **635 repos** | **61 959 archivos `.gml`** reales: 325 librerías por tema, 212 plantillas y ejemplos, 44 extensiones oficiales, 24 juegos y motores, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
 | 🆕 [12 - Utilidades e integraciones](./12%20-%20Utilidades%20e%20integraciones/_INDICE-UTILIDADES.md) | 10 | Herramientas de flujo de trabajo, extensiones nativas, Steam/Discord/Twitch, Photon y Colyseus, pipeline de arte y audio, itch.io, dónde buscar, tooling externo, 🆕 el manual del agente de IA para operar `gm-cli` | **Lo que rodea al motor y te hace ir más rápido** |
 | 🆕 [13 - Diseño y producción de videojuegos](./13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/_INDICE-DISENO.md) | 28 | Diseño de juego (core loop, balance, dificultad, GDD), niveles, pixel art y resolución, animación (Sequences, Animation Curves), UI/UX, arquitectura del proyecto, generación procedural avanzada, físicas a mano y fluidos, sonido y mezcla, testing y QA, producción y lanzamiento, narrativa, matemáticas aplicadas, 🆕 formatos de producción especiales (kiosco, educativo, publicitario, infantil, *streaming*) | **El oficio de hacer juegos, no solo el motor.** Lo que va antes y alrededor del código, con GML verificado |
 | 🆕 [_indice](./_indice/) | 5 + skill + memoria | `buscar.py` (buscador offline), `validar-proyecto.py` (valida el GML de un proyecto real), `actualizar.py` (mantenimiento en un comando), `simbolos.json` (3 486 símbolos), `documentos.json`, la skill [`skills/gamemaker-biblioteca/`](./_indice/skills/gamemaker-biblioteca/SKILL.md) — instalable en nueve CLI de IA distintos, ver [«Qué CLI están soportados»](#qué-cli-de-ia-están-soportados) —, y [`traduccion/`](./_indice/traduccion/README.md) (memoria de 4 503 frases y 2 009 celdas con la que se completó el manual en español) | **La forma rápida de encontrar cualquier cosa, desde aquí o desde otro proyecto** |
 
-**Total: 270 documentos propios en español + 6 152 páginas de manual + 634 repositorios.**
+**Total: 270 documentos propios en español + 6 152 páginas de manual + 635 repositorios.**
 
 ### El buscador: úsalo antes que nada
 

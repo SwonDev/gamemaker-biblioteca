@@ -131,8 +131,8 @@ Eso es todo. Hace, en orden y parando al primer fallo real:
 
 0. **Se comprueba a sí mismo primero.** Las tres herramientas que dan garantías
    —`verificar-enlaces.py`, `validar-codigo-gml.py`, `auditar-juego-completo.py`,
-   `validar-proyecto.py`, `puerta-pixel-art.py` y `validar-integracion.py`— pasan sus propias
-   autopruebas (**72 casos** que
+   `validar-proyecto.py`, `puerta-pixel-art.py`, `validar-integracion.py` y
+   `atlas-a-gamemaker.py`— pasan sus propias autopruebas (**82 casos** que
    ya han mordido de verdad) **antes** de que nadie se fíe de lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
    igual que «está todo bien». Si el metro está mal, da igual lo que mida. Cada una se puede
    correr suelta con `--autoprueba`.
