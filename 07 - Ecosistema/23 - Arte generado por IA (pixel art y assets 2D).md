@@ -30,6 +30,46 @@ resultado no necesita ser el asset final?». Ahí es donde funciona:
 | **Retratos puntuales sin animar** | Una sola imagen por personaje, sin necesidad de que cuadre con otras 40 | Un busto de diálogo en una visual novel, si el juego declara su uso (§4) |
 | **Fondos muy lejanos, siempre desenfocados** | Nunca se ven a tamaño real ni de cerca — ya cubierto en 13 · 03 §7.2 | La capa de parallax más al fondo de todas |
 
+### 1 bis · Los modelos entrenados SOLO para pixel art son otra cosa
+
+Todo lo de arriba habla de modelos **generales** (Stable Diffusion, Midjourney y compañía) y su
+conclusión —que no hacen pixel art de verdad— sigue siendo cierta para ellos. Pero existe una
+familia aparte que este documento no mencionaba: **modelos entrenados exclusivamente en pixel
+art**, que no «dibujan bonito y luego reducen», sino que generan directamente en rejilla y con
+paleta corta.
+
+El más conocido es **Retro Diffusion** (Astropulse). Lo que cambia respecto a un modelo general:
+
+- **La rejilla es el espacio de trabajo, no un posprocesado.** Un modelo general produce una
+  imagen ilustrada que luego alguien pixeliza, y de ahí salen los bordes sucios y las paletas de
+  200 colores. Uno especializado emite ya píxeles discretos.
+- **Sabe qué es una hoja de sprites.** Genera vistas por dirección y ciclos de animación como
+  formato de salida, no como una cuadrícula que tú tienes que recortar a ojo.
+
+**Qué NO cambia**, y por eso el resto del documento sigue en pie:
+
+- **La consistencia entre generaciones sigue sin estar resuelta** (§3). Dos peticiones del mismo
+  personaje siguen sin ser el mismo personaje.
+- **El estado legal es el mismo** (§4): que el modelo sea específico no altera ni la posición de
+  la U.S. Copyright Office ni la obligación de declararlo en Steam e itch.io.
+- **Sigue necesitando revisión a tamaño real.** Vale como punto de partida, no como asset final.
+
+> ⚠️ **Y son de pago y alojados.** No hay pesos que te descargues: se llaman por API, con un
+> sistema de créditos. Para esta biblioteca eso los deja **por debajo** de la escalera de
+> [`12 · 09 §5.2`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#52-gráfico-la-escalera-de-prioridad-sin-el-rectángulo-plano):
+> un agente puede dibujar una silueta digna con Pillow sin cuenta, sin clave y sin coste, y eso
+> se intenta primero.
+>
+> 🔎 **Existe un servidor MCP oficial** (`Retro-Diffusion/retro-diffusion-mcp`, MIT), que permite
+> pedir sprites desde Claude, Cursor o cualquier cliente MCP. Comprobado el 09-09-2026: es de
+> **02-09-2026 y tiene 3 estrellas** — o sea, una semana de vida y sin rodaje. Anotado porque es
+> exactamente la forma en que un agente lo usaría, no porque esté probado. Pruébalo tú antes de
+> depender de él.
+>
+> Y hay servicios web construidos encima —**SpriteBrew** es el más visible, con 21 estilos y
+> exportación a GameMaker— que son de pago por créditos. Útiles para un humano con prisa;
+> irrelevantes para un agente que debe poder trabajar sin cuentas.
+
 **El upscaler es el caso que más se malinterpreta.** Un upscaler de imagen general
 (Real-ESRGAN, Gigapixel) funciona razonablemente bien sobre **ilustración** —líneas suaves,
 degradados, pintura digital— porque su trabajo es «adivinar detalle plausible entre píxeles
