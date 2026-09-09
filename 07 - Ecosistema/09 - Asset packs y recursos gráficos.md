@@ -227,6 +227,33 @@ Las fuentes se importan en GameMaker como cualquier asset, pero **revisa la lice
 - ⚠️ Ojo con las fuentes «gratuitas» de bancos de dudosa procedencia: hay fuentes
   *shareware* y con licencia solo personal circulando como si fueran libres.
 
+### 6.1 Tipografías de PÍXEL — que no son las de Google Fonts
+
+Google Fonts es la opción segura… para texto vectorial. En un juego de pixel art una fuente
+vectorial escalada **hierve**: el rasterizador la suaviza y los bordes bailan al mover la cámara.
+Lo que hace falta es una tipografía **diseñada a tamaño de píxel**, que se usa a su tamaño nativo
+o a múltiplos enteros de él.
+
+Comprobadas el 09-09-2026, con la licencia leída en la propia página:
+
+| Tipografía | Autor | Licencia | Nota |
+|---|---|---|---|
+| [monogram](https://datagoblin.itch.io/monogram) | datagoblin | **CC0** (*Creative Commons Zero v1.0 Universal*, dicho en la ficha) | Monoespaciada, 5×7, con acentos y símbolos. La opción por defecto si no quieres pensar |
+| [m5x7](https://managore.itch.io/m5x7) · [m6x11](https://managore.itch.io/m6x11) | Daniel Linssen | **CC0** («free to use») | Dos tamaños de la misma familia; m6x11 lee mejor a tamaño pequeño |
+| [Pixel Operator](https://www.dafont.com/pixel-operator.font) | Jayvee Enaguas | ⚠️ **compruébala** | Su página de DaFont muestra a la vez «100% Free», «Donationware» y «Free for personal»: DaFont agrupa varias fuentes por página y esas etiquetas no siempre son de la que buscas. Abre el `readme` del `.zip` antes de publicar |
+| [Kenney Fonts](https://kenney.nl/assets/kenney-fonts) | Kenney | **CC0** | Ya citadas arriba; incluyen varias de píxel |
+
+> 🔴 **La trampa que las hace inútiles si no la conoces**: importar una fuente de píxel y dejar
+> que GameMaker la interpole la deja igual de borrosa que una vectorial. Va con
+> `gpu_set_texfilter(false)` y a tamaño nativo o múltiplo entero — la explicación completa, con
+> la escala de ventana, en
+> [`13 · 03 §1.6`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/03%20-%20Pixel%20art%20y%20resolución.md).
+>
+> Y si además la quieres **con tildes y eñes garantizadas**, la vía que no depende de ninguna
+> licencia ajena es hornear tu propia hoja de glifos: receta completa en
+> [`12 · 09`, Trampa 12](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md),
+> con el generador ya escrito.
+
 Para texto con caracteres CJK (chino, japonés, coreano) en GameMaker, consulta el tutorial
 específico del foro:
 <https://forum.gamemaker.io/index.php?threads/handling-cjk-text-in-gms-2.100032/>
