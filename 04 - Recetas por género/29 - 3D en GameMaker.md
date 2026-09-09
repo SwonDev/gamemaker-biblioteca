@@ -72,6 +72,13 @@ fecha de entrega. Detalle en
 
 ---
 
+> 🎨 **¿Y los modelos?** Hasta hoy esta receta explicaba cómo cargar un `.obj` y no decía de
+> dónde sacarlo. Cuatro fuentes **CC0** —Kenney 3D, Quaternius, Kay Lousberg y ambientCG para
+> texturas— más un buscador con licencia mezclada, en
+> [`07 · 09 §7 bis`](../07%20-%20Ecosistema/09%20-%20Asset%20packs%20y%20recursos%20gráficos.md).
+> Ahí está también qué formato entra directo (`.obj`) y cuál necesita pasar por `BBMOD`
+> (glTF y FBX).
+
 ## 1 · Los ejes, la cámara y el interruptor de profundidad
 
 ### El sistema de coordenadas: Z arriba, Y al sur

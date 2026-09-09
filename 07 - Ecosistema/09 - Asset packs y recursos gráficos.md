@@ -267,6 +267,44 @@ específico del foro:
 
 ---
 
+## 7 bis. Modelos 3D libres — el hueco que dejaba `04 · 29`
+
+Esta biblioteca tiene receta de [3D en GameMaker](../04%20-%20Recetas%20por%20género/29%20-%203D%20en%20GameMaker.md)
+—cámara, z-buffer, *culling*, niebla, matrices y carga de `.obj`— y hasta hoy **ninguna fuente de
+modelos**. Un agente al que le pidan un juego 3D se quedaba igual que con los sprites: sin nada
+que poner.
+
+Las cuatro que sirven, comprobadas el 09-09-2026 (código 200 y licencia leída en el propio sitio):
+
+| Fuente | Qué tiene | Formatos | Licencia |
+|---|---|---|---|
+| [Kenney 3D](https://kenney.nl/assets/category:3D) | Kits completos y coherentes entre sí: ciudad, mazmorra, naves, prototipado | OBJ · FBX · glTF | **CC0** |
+| [Quaternius](https://quaternius.com/) | Packs temáticos con estilo propio: personajes animados, naturaleza, vehículos | OBJ · FBX · glTF · Blend | **CC0** (declarado en su portada) |
+| [Kay Lousberg](https://kaylousberg.itch.io/) | Kits *low-poly* muy pulidos, con personajes riggeados | glTF · FBX · OBJ | **CC0** |
+| [ambientCG](https://ambientcg.com/) | **Texturas PBR**, no modelos: suelos, paredes, metal, tela | PNG/JPG por canal | **CC0** («Public Domain», dicho en su portada) |
+| [Poly Pizza](https://poly.pizza/) | Buscador con miles de modelos sueltos, heredero de Google Poly | glTF/GLB | **Mezclada: CC0 y CC-BY** — mira la ficha de CADA modelo |
+
+> 🔴 **Poly Pizza es la excepción y por eso va la última.** Las otras cuatro son CC0 de arriba
+> abajo; ahí la licencia es **por modelo**, y hay CC-BY entre medias. Bajar sin mirar la ficha es
+> cómo se acaba publicando con una atribución que faltaba. La regla de §1 vale aquí doble.
+
+**Cómo llegan a GameMaker**, que es la parte que no cuenta ninguna de esas webs:
+
+- `.obj` va directo con el cargador de
+  [`04 · 29 §2`](../04%20-%20Recetas%20por%20género/29%20-%203D%20en%20GameMaker.md) — es texto plano
+  y se convierte a *vertex buffer* en la carga.
+- glTF/FBX **no** los lee GameMaker: pasan por [`BBMOD`](https://github.com/blueburncz/BBMOD)
+  (catalogado en `11 - Código descargado`), que los convierte a su propio formato binario.
+- Las texturas PBR de ambientCG son más de las que GameMaker 2D-con-3D suele necesitar: coge el
+  *color* y, como mucho, el mapa normal para `04 · 24`.
+
+> ⚠️ **Antes de bajar un kit entero, mira el presupuesto de triángulos de
+> [`04 · 29`](../04%20-%20Recetas%20por%20género/29%20-%203D%20en%20GameMaker.md)**: GameMaker
+> dibuja 3D, pero no es un motor 3D, y un modelo de 40 000 triángulos pensado para Unity se come
+> el framerate sin avisar.
+
+---
+
 ## 8. Bancos de música y SFX ya hechos (no generadores)
 
 La sección 5 lista **herramientas para crear** audio; esto es dónde bajar **audio ya producido**.
