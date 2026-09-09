@@ -298,21 +298,50 @@ def _sin_resultados(patron, ambito="la biblioteca"):
     return 1
 
 
+def _tiene_contenido(ruta, exts, tope=40000):
+    """¿Hay al menos UN archivo con esas extensiones ahí dentro?
+
+    No basta con que la carpeta exista. En un clon recién sacado de GitHub,
+    «11 - Código descargado» **existe** —viajan su `_CATALOGO.md` y su
+    `_RUTAS.json`, que sí son nuestros— pero **no hay ni un `.gml`**: el corpus
+    se reconstruye aparte. Mirar solo si la carpeta está hacía que `--codigo`
+    contestara «sin resultados», que es el falso «no existe»: el peor fallo
+    posible en una biblioteca cuyo trabajo es que un modelo no se invente cosas.
+    Corta en el primer acierto, así que en el caso normal no recorre nada.
+    """
+    if os.path.isfile(ruta):
+        return ruta.endswith(tuple(exts))
+    vistos = 0
+    for _base, _dirs, files in os.walk(ruta):
+        _dirs[:] = [d for d in _dirs if d != ".git"]
+        for f in files:
+            if f.endswith(tuple(exts)):
+                return True
+            vistos += 1
+            if vistos > tope:      # techo de seguridad: no barrer un disco entero
+                return False
+    return False
+
+
 def grep(subdirs, patron, exts, limite=40):
     # acepta tanto carpetas como archivos sueltos (README.md, RUTA.md…)
     existentes = [os.path.join(RAIZ, d) for d in subdirs
-                  if os.path.exists(os.path.join(RAIZ, d))]
+                  if os.path.exists(os.path.join(RAIZ, d))
+                  and _tiene_contenido(os.path.join(RAIZ, d), exts)]
     if not existentes:
         # Sin rutas, un `grep -r` de este sistema no falla ni calla: recorre el
         # directorio de trabajo entero. Avisar de qué falta es lo correcto, no
         # devolver resultados de donde no tocaba buscar.
-        print(f"No está instalado: {', '.join(subdirs)}")
+        print(f"No está instalado (o no tiene {'/'.join(exts)}): {', '.join(subdirs)}")
         if any(d.startswith("09 - Manual oficial") for d in subdirs):
             print("  Instálalo con ./reconstruir.sh manual, o consulta "
                   "gm-cli manual read \"<tema>\" mientras tanto.")
         elif any(d.startswith("11 - Código descargado") for d in subdirs):
-            print("  Instálalo con ./reconstruir.sh codigo.")
-        return 0
+            print("  Instálalo con ./reconstruir.sh codigo. El `_CATALOGO.md` sí viaja en")
+            print("  el repositorio: ahí está qué contiene cada repo, aunque no el código.")
+        print("  ⚠️  Esto NO es «no se ha encontrado»: es «no se ha podido buscar».")
+        print("      Sale con 2 justamente para que no se confunda con un 1.")
+        return 2
     if not _grep_disponible():
         return 1
     args = ["grep", "-rniI", "--include=*" + exts[0]]
@@ -492,7 +521,85 @@ DOCS += [f for f in sorted(os.listdir(_RAIZ)) if f.endswith(".md")]
 DOCS += ["_indice/COMO-BUSCAR.md", "_indice/traduccion/README.md",
          "09 - Manual oficial/README.md"]
 
+def autoprueba():
+    """El **contrato de códigos de salida**, que es de lo que se fía todo lo demás.
+
+        0 = encontrado / correcto
+        1 = se ha buscado y NO está
+        2 = no se ha podido buscar
+
+    La diferencia entre 1 y 2 es la razón de ser de esta biblioteca. Un `1` dice
+    «esa función no existe, no la escribas»; un `2` dice «no lo sé». Confundirlos
+    en la dirección equivocada produce el peor fallo posible —dar por inexistente
+    algo que sí existe— y en la otra, un falso verde. Se comprobó ejecutando la
+    herramienta de verdad, en subprocesos, no llamando a funciones internas.
+    """
+    import subprocess
+    yo = os.path.abspath(__file__)
+    fallos = []
+
+    def correr(*args):
+        return subprocess.run([sys.executable, yo, *args],
+                              capture_output=True, text=True)
+
+    def revisar(nombre, ok, detalle=""):
+        if ok:
+            print("  \u2713 " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  \u2717 %s  ->  %s" % (nombre, detalle))
+
+    hay_indice = os.path.exists(os.path.join(IDX, "simbolos.json"))
+
+    r = correr("--help")
+    revisar("--help sale con 0 y no lo busca como símbolo",
+            r.returncode == 0 and "NO existe" not in r.stdout, "exit %d" % r.returncode)
+
+    r = correr()
+    revisar("sin argumentos sale con 2, no con 0", r.returncode == 2, "exit %d" % r.returncode)
+
+    r = correr("--modoinventado", "x")
+    revisar("un modo que no existe sale con 2 y los enumera",
+            r.returncode == 2 and "Modos:" in r.stdout, "exit %d" % r.returncode)
+
+    if hay_indice:
+        r = correr("draw_sprite_ext")
+        revisar("un símbolo que existe sale con 0", r.returncode == 0, "exit %d" % r.returncode)
+
+        # El nombre real que un CLI con esta skill cargada se inventó el 09-09-2026.
+        r = correr("sprite_set_interpolation")
+        revisar("un símbolo inventado sale con 1 (no con 0)",
+                r.returncode == 1, "exit %d" % r.returncode)
+    else:
+        print("  · sin simbolos.json: los dos casos de símbolo no se ejecutan "
+              "(no es un fallo, ver actualizar.py paso 2)")
+
+    # Lo que motivó esta autoprueba: en un clon de GitHub, «11 - Código descargado»
+    # existe con su catálogo pero SIN un solo .gml. Antes eso daba «sin resultados»
+    # y exit 1 —un falso «no existe»—, y el manual ausente daba exit 0 —un falso
+    # verde—. Los dos son ahora 2.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        vacio = os.path.join(tmp, "11 - Código descargado")
+        os.makedirs(vacio)
+        with open(os.path.join(vacio, "_CATALOGO.md"), "w", encoding="utf-8") as f:
+            f.write("# catálogo, pero ni un .gml\n")
+        revisar("una carpeta con catálogo pero sin .gml NO cuenta como instalada",
+                not _tiene_contenido(vacio, [".gml"]))
+        with open(os.path.join(vacio, "x.gml"), "w", encoding="utf-8") as f:
+            f.write("// ahora sí\n")
+        revisar("y en cuanto hay un .gml, sí", _tiene_contenido(vacio, [".gml"]))
+
+    if fallos:
+        print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (7 if hay_indice else 5))
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(2)

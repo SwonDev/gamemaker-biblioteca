@@ -356,6 +356,10 @@ def main():
         ("verificar-espejo.py",       "espejo español del manual"),
         ("argumentos.py",             "guardián de argumentos de sobra"),
         ("sincronizar-skill.py",      "etiqueta de versión de la skill"),
+        # `buscar.py` es la herramienta de la que se fía todo lo demás y era la
+        # única sin autoprueba. Su contrato 0/1/2 —encontrado, buscado y no está,
+        # no se ha podido buscar— es lo que separa «no lo escribas» de «no lo sé».
+        ("buscar.py",                "contrato de códigos de salida del buscador"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
