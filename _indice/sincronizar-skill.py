@@ -278,6 +278,11 @@ def estado_enlaces():
         "Genérico ~/.agents (Codex canónico · Copilot CLI · Gemini CLI · Cursor CLI · Kimi Code)":
             os.path.expanduser("~/.agents/skills/gamemaker-biblioteca"),
         "opencode": os.path.expanduser("~/.config/opencode/skills/gamemaker-biblioteca"),
+        # Qwen NO tiene una ruta fija: lee las carpetas que declare `skills.directories`
+        # en su settings.json. Copiar en ~/.qwen/skills/ y cantar «instalada» era un
+        # verde falso — comprobado el 09-09-2026: ese settings.json declaraba solo
+        # ~/.claude/skills, así que la copia de ~/.qwen/skills no la leía nadie y la
+        # skill le llegaba de rebote por la carpeta de Claude Code.
         "Qwen Code": os.path.expanduser("~/.qwen/skills/gamemaker-biblioteca"),
         "Kimi Code CLI": os.path.expanduser("~/.kimi-code/skills/gamemaker-biblioteca"),
         "Gemini CLI": os.path.expanduser("~/.gemini/skills/gamemaker-biblioteca"),
@@ -295,6 +300,25 @@ def estado_enlaces():
     propio = os.path.join(SKILL, "SKILL.md")
     txt_propio = open(propio, encoding="utf-8").read() if os.path.isfile(propio) else None
     lineas = []
+
+    # Qwen: lo que manda es su settings.json, no la carpeta.
+    try:
+        import json as _json
+        _cfg = os.path.expanduser("~/.qwen/settings.json")
+        _dirs = []
+        if os.path.isfile(_cfg):
+            _dirs = (_json.load(open(_cfg, encoding="utf-8")).get("skills") or {}).get("directories") or []
+        _dirs_abs = [os.path.realpath(os.path.expanduser(d)) for d in _dirs]
+        _qwen_propio = os.path.realpath(os.path.expanduser("~/.qwen/skills"))
+        if _dirs and _qwen_propio not in _dirs_abs:
+            lineas.append("  ⚠ Qwen Code: su settings.json declara "
+                          f"{', '.join(_dirs)} y NO ~/.qwen/skills, así que la copia de ahí")
+            lineas.append("    no la lee. Le llega de rebote por otra carpeta: funciona hoy y")
+            lineas.append("    dejaría de funcionar si desinstalas ese CLI. Añade ~/.qwen/skills")
+            lineas.append("    a `skills.directories` en ~/.qwen/settings.json.")
+    except Exception:
+        pass
+
     for nombre, ruta in sitios.items():
         if not os.path.lexists(ruta):
             # Un destino opcional que falta no es un fallo: es un CLI que no está
