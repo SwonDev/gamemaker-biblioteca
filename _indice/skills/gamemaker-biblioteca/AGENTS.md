@@ -53,6 +53,18 @@ La distinción entre `⚠` y `✓` no es cosmética: comprobar solo que existe `
 confirmar el nombre y adivinar los argumentos «porque suenan razonables» es el fallo que cuela
 código roto (caso real en `_indice/auditorias/r5-revalidacion.md`).
 
+> 🔴 **Y esto vale también cuando NO estás escribiendo código.** Nombrar una función en una frase
+> —«desactívalo con `sprite_set_interpolation`»— cuenta como escribirla: el usuario la va a
+> copiar igual. **Antes de enviar cualquier respuesta que mencione una función de GML, pasa por
+> `buscar.py` todas las que hayas nombrado**, aunque estés seguro y aunque sea una sola línea de
+> conversación.
+>
+> No es una precaución teórica. El 09-09-2026, un CLI con esta skill cargada respondió a «mi
+> sprite se ve emborronado» recomendando `sprite_set_interpolation()`. **Esa función no existe.**
+> Había consultado la biblioteca para el resto de la respuesta y aun así añadió ese nombre de
+> memoria, que es exactamente el fallo que esta skill existe para impedir. Si te descubres
+> escribiendo un nombre sin haberlo buscado en este turno, bórralo y búscalo.
+
 ```sh
 python3 "$BIB/_indice/buscar.py" nombre_de_la_funcion
 ```
