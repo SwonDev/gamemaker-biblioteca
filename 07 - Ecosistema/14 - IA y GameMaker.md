@@ -556,7 +556,7 @@ terceros**: revisa su licencia y su compatibilidad con tu runtime antes de usarl
 
 | Proyecto | Ruta local | Qué hace | Licencia |
 |---|---|---|---|
-| **`gamemaker-mcp`** (yearningss) ⚠️ *homónimo del de Petah, pero distinto* | `librerias/ia-y-mcp/gamemaker-mcp` | Servidor MCP **project-aware con ~190 tools**: análisis estático de GML, refactor y builds automáticos. Va mucho más allá que el de docs de Petah | MIT |
+| **`gamemaker-mcp`** (yearningss) ⚠️ *homónimo del de Petah, pero distinto* | `librerias/ia-y-mcp/gamemaker-mcp` | Servidor MCP **project-aware con **225 tools** (eran ~190 en la auditoría del 2 de septiembre; su autor sigue añadiendo)**: análisis estático de GML, refactor y builds automáticos. Va mucho más allá que el de docs de Petah | MIT |
 | **`GameMaker-MCP-Server`** (darkw3bb) | `librerias/ia-y-mcp/GameMaker-MCP-Server` | Servidor MCP pensado para **Cursor**: construir proyectos GameMaker asistidos por IA | NOASSERTION (revisa LICENSE) |
 | **`gm-forge-mcp`** (nicklesimba) | `librerias/ia-y-mcp/gm-forge-mcp` | Servidor MCP para **crear y editar** proyectos GameMaker | MIT |
 | **`gamemaker-skills`** (leihaht) | `librerias/ia-y-mcp/gamemaker-skills` | **Skills de Claude Code** para GMS2/GML (objetos, shaders, red, optimización). Ejemplo de cómo empaquetar conocimiento GML para un agente | MIT |

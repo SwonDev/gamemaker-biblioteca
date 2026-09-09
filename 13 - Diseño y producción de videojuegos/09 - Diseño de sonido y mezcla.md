@@ -665,6 +665,78 @@ en el mismo sitio del código, su representación visual.** Si están en sitios 
 desincronizará; la forma limpia es emitir una señal única que escuchen audio e interfaz
 ([04 · 16](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md)).
 
+### 8 quater · Generar audio con IA — y por qué aquí la licencia va PRIMERO
+
+El arte tiene su peldaño de IA escrito y probado (`12 · 09 §5.2` peldaño 3, `07 · 23`). El audio
+no lo tenía, y la asimetría se notaba: un agente sin compositor se quedaba en la síntesis del
+§8 bis, que cubre los efectos pero **no la música**, que es donde de verdad no puede improvisar.
+
+**Pero en audio el orden se invierte respecto al arte: la licencia se mira antes que la calidad**,
+porque la herramienta abierta más conocida no se puede usar en un juego que vendas. Verificado
+leyendo cada licencia el 09-09-2026, no de memoria:
+
+**Todo lo de esta tabla está comprobado el 09-09-2026 leyendo el repositorio y su licencia**,
+con la fecha del último cambio a la vista — porque en esto lo que valía hace un año ya no vale:
+
+| Herramienta | Estado | Código | **Pesos del modelo** | ¿Sirve para un juego comercial? |
+|---|---|---|---|---|
+| [`audio.cpp`](https://github.com/0xShug0/audio.cpp) — 2 380 ★ | 🟢 **vivo**, último cambio **hoy** (creado en junio de 2026) | **Apache-2.0** | Uno por familia — 62 familias, música incluida (MiniMax Music 3, ACE-Step 1.5 XL) | **Es la vía práctica hoy.** Motor en C++ puro sobre `ggml`: **sin Python, sin Conda**, GGUF cuantizado, y corre en CPU, CUDA, Metal y ROCm. Justo lo que un agente puede invocar desde una terminal |
+| [`stable-audio-tools`](https://github.com/Stability-AI/stable-audio-tools) — 3,9 k ★ | 🟢 vivo, último cambio hoy | MIT | *Stability AI Community License*; el modelo está **gated** en HuggingFace | **Depende de tu facturación**: esa licencia pone un umbral de ingresos. Léela entera y guárdate la fecha antes de publicar |
+| [`audiocraft`](https://github.com/facebookresearch/audiocraft) — MusicGen/AudioGen, 23,6 k ★ | 🟡 **quieto desde marzo de 2026** | MIT | 🔴 **CC-BY-NC 4.0** | **NO, y por eso está en esta tabla.** Es la que más gente encuentra primero por sus 23 mil estrellas, y su propio README lo dice: *«The models weights in this repository are released under the CC-BY-NC 4.0 license»* |
+| Servicios hospedados (ElevenLabs, Suno, Magnific…) | — | — | — | **Lo que diga TU plan**, no lo que diga la portada: los derechos de uso comercial van atados al nivel de suscripción |
+
+> 🔴 **Y la regla que generaliza el caso de MusicGen: la licencia del programa NO es la licencia
+> del modelo.** `audio.cpp` es Apache-2.0 y eso no dice nada sobre los pesos que le cargues:
+> cada familia de modelos trae los suyos. Mira **las dos** antes de publicar, siempre, y anota la
+> fecha en la que las leíste.
+
+> 🔴 **El error caro es de los que no dan ningún síntoma.** Un `.ogg` generado con MusicGen suena
+> igual de bien que uno con licencia limpia, entra en el proyecto igual, compila igual y se
+> publica igual. El problema aparece cuando el juego ya está a la venta. Es exactamente la misma
+> familia que la fuente muda o el *included file* que no se copia: **compila, corre y miente**,
+> solo que aquí la factura no la paga el jugador.
+
+**Dónde encaja en la escalera del §8 bis**: entre el peldaño 2 y el 3, **no por encima de la
+síntesis**. Y la razón no es ideológica:
+
+- Para **efectos**, la síntesis del §8 bis y jsfxr siguen ganando: son gratis, deterministas,
+  offline, sin licencia que leer, y un láser de arcade sintetizado suena mejor que uno generado.
+- Para **música**, es al revés: un bucle de dos minutos no se sintetiza con `tono_generar()`, y
+  ahí es donde la generación aporta lo que ninguna otra vía da.
+
+**Y se declara igual que el arte.** Las reglas de divulgación de Steam e itch.io de
+[`07 · 23 §4`](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#4--el-estado-legal-verificado-el-2026-09-07-con-fuente-primaria-y-fecha)
+están escritas hablando de imágenes, pero **no distinguen el medio**: el formulario de Steam
+pregunta por contenido generado por IA, no por arte generado por IA.
+
+> ✅ **Qué caza el compilador y qué no — medido, no supuesto (09-09-2026).** Antes de
+> recomendar una guarda conviene saber si hace falta, así que se probó:
+>
+> | Situación | `gm-cli compile` |
+> |---|---|
+> | `resource create type=sound` sin archivo, y **nadie lo referencia** en GML | ✅ **exit 0, limpio** — el compilador lo descarta por no usado |
+> | El mismo sonido, **referenciado** desde el código | 🔴 **exit 1**: `Failed to convert audio file 'snd_x' - source file does not exist` |
+>
+> Es decir: **el asset sin archivo lo caza el compilador**, y bien —en cuanto lo uses—. Lo que
+> NO caza es lo otro: un archivo que **sí existe y no suena** (silencio grabado, una conversión
+> que salió vacía, un `.ogg` de 0 s). Ahí la duración sí es la medida:
+>
+> ```gml
+> // En el arranque, con los sonidos que de verdad tienen que sonar:
+> debug_exigir_sonidos([snd_musica_menu, snd_golpe, snd_moneda]);   // 06 · scr_debug.gml
+> ```
+>
+> `audio_sound_length()` devuelve la duración en segundos, y está **medida en ejecución**:
+> `bash _indice/validar-ejecucion.sh` comprueba en cada pasada que un `.wav` de medio segundo
+> mide `0.50`. Igual que con la fuente: duración 0 prueba que no hay audio y es concluyente;
+> duración > 0 prueba que hay algo, **no** que sea el sonido correcto ni que se oiga bien. Eso
+> sigue siendo trabajo de una persona (§4).
+>
+> ⚠️ **Y la consecuencia práctica del cuadro de arriba**: que `gm-cli compile` salga limpio **no
+> significa que todos tus assets de sonido tengan audio detrás** — solo que los que usas hoy lo
+> tienen. Un agente que crea los assets en una fase y escribe el código en otra no se entera
+> hasta la segunda.
+
 ### 8 ter · Un `.wav` como archivo, no solo en runtime
 
 §8 bis resuelve la síntesis **en caliente**, dentro del juego en marcha — perfecta para un SFX

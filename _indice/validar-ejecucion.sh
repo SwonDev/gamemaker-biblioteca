@@ -186,6 +186,11 @@ fi
 # fabrica Python con su biblioteca estándar — ni descargas ni licencias ajenas.
 WAV="$PROY/_tono.wav"
 if python3 "$RAIZ/_indice/pruebas/generar_sonido.py" "$WAV" >/dev/null 2>&1; then
+    # NO se crea aquí un `snd_vacio` sin archivo: MEDIDO el 09-09-2026, un sonido
+    # sin audio detrás rompe el build con `Failed to convert audio file` EN CUANTO
+    # el GML lo referencia (exit 1). Sin referenciar, el compilador lo descarta y
+    # compila limpio. Es decir: el compilador ya lo caza, y meterlo aquí solo haría
+    # fallar el banco por algo que no es un fallo de la biblioteca.
     for snd in snd_prueba snd_prueba2 snd_prueba3; do
         gm-cli resourcetool eval "resource create type=sound name=$snd" "$YYP" >/dev/null 2>&1
         gm-cli resourcetool eval "sound setfile name=$snd path=$WAV" "$YYP" >/dev/null 2>&1

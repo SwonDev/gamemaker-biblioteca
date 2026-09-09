@@ -492,4 +492,20 @@ function banco_audio_comprobar()
 
     var _v = sfx(snd_prueba, 0.02);
     comprobar("y sonar despues de reiniciar funciona", audio_is_playing(_v), _v);
+
+    // --- La duracion como medida, no como suposicion (13 · 09 §8 quater) -----
+    // Un sonido SIN archivo lo caza el compilador en cuanto el GML lo referencia
+    // (medido: `Failed to convert audio file`, exit 1). Lo que el compilador NO
+    // caza es un archivo que SI existe y no suena. `audio_sound_length()` mide, y
+    // esa medida es la que sirve de guarda en el arranque.
+    show_debug_message("MEDIDO · audio_sound_length(snd_prueba) = "
+        + string(audio_sound_length(snd_prueba)));
+    comprobar("un sonido con archivo dura mas que cero",
+              audio_sound_length(snd_prueba) > 0, audio_sound_length(snd_prueba));
+    comprobar("debug_sonidos_vacios no señala los tres que si tienen archivo",
+              array_length(debug_sonidos_vacios([snd_prueba, snd_prueba2, snd_prueba3])) == 0,
+              debug_sonidos_vacios([snd_prueba, snd_prueba2, snd_prueba3]));
+    comprobar("y debug_exigir_sonidos dice true con ellos",
+              debug_exigir_sonidos([snd_prueba, snd_prueba2, snd_prueba3]));
+
 }

@@ -495,3 +495,61 @@ function debug_exigir_fuente_con_acentos(_fuente = -1, _muestra = "áéíóúü�
     show_debug_message(_texto);
     return false;
 }
+
+
+// ============================================================================
+// EL SONIDO QUE NO SUENA, MEDIDO EN VEZ DE ESCUCHADO
+//
+// Conviene saber qué caza ya el compilador antes de añadir una guarda, así que se
+// midió (09-09-2026):
+//   · Un asset de sonido SIN archivo y que nadie referencia → compila limpio: el
+//     compilador lo descarta por no usado.
+//   · El mismo, referenciado desde GML → rompe el build con
+//     `Failed to convert audio file … source file does not exist` (exit 1).
+//
+// O sea: el asset sin archivo YA lo caza el compilador. Lo que NO caza es un
+// archivo que sí existe y no suena — silencio grabado, una conversión que salió
+// vacía, un `.ogg` de 0 s. Para eso sirve esto.
+//
+//   MEDIDO con `bash _indice/validar-ejecucion.sh`, en cada pasada:
+//       audio_sound_length(snd_con_archivo_de_medio_segundo) == 0.50
+//
+// ⚠️ Lo que prueba y lo que no. Duración 0 prueba que no hay audio: es
+//    concluyente. Duración > 0 prueba que hay algo, no que sea el sonido
+//    correcto ni que se oiga a un volumen razonable. Eso lo juzga una persona
+//    (`13 · 09 §4`). Es una red barata, no un sustituto de escuchar.
+// ============================================================================
+
+/// @function debug_sonidos_vacios(_sonidos)
+/// @desc     Devuelve los sonidos de la lista que duran 0 s — es decir, los que
+///           existen como asset y no tienen archivo detrás.
+/// @param    {Array} _sonidos  Array de índices de sonido.
+/// @returns  {Array}           Los que están vacíos. Array vacío = todos bien.
+function debug_sonidos_vacios(_sonidos) {
+    var _vacios = [];
+    if (!is_array(_sonidos)) { return _vacios; }
+
+    for (var _i = 0; _i < array_length(_sonidos); _i++) {
+        var _s = _sonidos[_i];
+        if (!audio_exists(_s) || audio_sound_length(_s) <= 0) {
+            array_push(_vacios, _s);
+        }
+    }
+    return _vacios;
+}
+
+/// @function debug_exigir_sonidos(_sonidos)
+/// @desc     Falla ruidosamente si alguno de los sonidos está vacío. Llámalo una
+///           vez al arrancar con los que de verdad tienen que sonar.
+/// @param    {Array} _sonidos
+/// @returns  {Bool}  true si están todos.
+function debug_exigir_sonidos(_sonidos) {
+    var _vacios = debug_sonidos_vacios(_sonidos);
+    if (array_length(_vacios) == 0) { return true; }
+
+    show_debug_message("SONIDOS VACÍOS: " + string(array_length(_vacios))
+        + " asset(s) de sonido duran 0 s: existen y no suenan. Si el archivo falta,"
+        + " el compilador lo dice al referenciarlo; si está pero es silencio o dura"
+        + " cero, esto es lo único que lo caza. Ver 13 · 09 §8 quater.");
+    return false;
+}

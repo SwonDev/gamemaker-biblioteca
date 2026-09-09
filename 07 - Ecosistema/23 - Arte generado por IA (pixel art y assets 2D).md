@@ -125,6 +125,34 @@ tamaño real**, no confiar a ciegas. Hoy no sustituyen redibujar a mano.
 
 ---
 
+### 1 ter · `SpriteBrew`: la tubería más pulida, y por qué aquí sirve solo a medias
+
+[`SpriteBrew`](https://github.com/GAlbanese09/spritebrew) (52 ★, AGPL-3.0, activo a julio de
+2026) es hoy el flujo más completo de hoja de sprites del ecosistema: texto → personaje →
+animación → troceado → previsualización → **exportación lista para GameMaker**, con 21 estilos y
+un modo «anima mi personaje» que parte de tu propio dibujo.
+
+**Y aquí viene la letra pequeña, que es la que importa:**
+
+- **La generación por IA es de pago y hospedada.** Funciona por *tokens* en `spritebrew.com`
+  (cuenta gratuita con 5 para empezar; packs desde 4,99 $), no en tu máquina.
+- **Por debajo llama a los modelos de Retro Diffusion por API.** Es decir: es un frontal bonito
+  sobre lo mismo que [§1 bis](#1-bis--pixel-art-por-ia-de-verdad-retro-diffusion-y-el-pipeline-de-astropulse)
+  ya te deja ejecutar **en local y sin cuenta**. Si tienes montado ese pipeline, la generación de
+  SpriteBrew no te aporta nada que no tengas.
+- **Lo que sí aporta gratis y sin cuenta** son sus herramientas de tubería, que no usan IA:
+  trocear una hoja de sprites (con detección por contorno para rejillas irregulares), vista
+  previa de la animación, editor de píxeles, redimensionado *pixel-perfect* y **exportación
+  multi-motor**. Ese troceado por contorno es justo lo que
+  [`spritesplitter`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md)
+  hace en local, por si prefieres no subir nada.
+- **AGPL-3.0 cubre el programa, no el arte que produzcas** con él. Aun así, para publicar sigue
+  aplicando §4: divulgación en Steam e itch.io.
+
+> ⚠️ **Un agente no puede usarlo desatendido**: es una web con cuenta y tokens. Para el flujo
+> automatizado de esta biblioteca, el peldaño sigue siendo el de `12 · 09 §5.2` — dibujo por
+> código, assets libres, y generación local.
+
 ## 2 · Qué no sirve, y por qué es estructural (no un problema de «calidad del modelo»)
 
 | No sirve para… | Por qué es un límite estructural, no una cuestión de mejorar el modelo |

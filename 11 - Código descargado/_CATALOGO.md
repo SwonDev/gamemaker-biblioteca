@@ -710,7 +710,7 @@ El detalle de las herramientas de IA está en [`07 · IA y GameMaker §6 bis.2`]
 
 | Repo | Qué es | Licencia |
 |---|---|---|
-| [`gamemaker-mcp`](https://github.com/yearningss/gamemaker-mcp) | Servidor MCP project-aware (~190 tools): análisis GML, refactor, builds | MIT |
+| [`gamemaker-mcp`](https://github.com/yearningss/gamemaker-mcp) | Servidor MCP project-aware (**225 tools** a 09-09-2026): análisis GML, refactor, builds | MIT |
 | [`GameMaker-MCP-Server`](https://github.com/darkw3bb/GameMaker-MCP-Server) | Servidor MCP para Cursor | NOASSERTION |
 | [`gm-forge-mcp`](https://github.com/nicklesimba/gm-forge-mcp) | Servidor MCP para crear/editar proyectos | MIT |
 | [`gamemaker-skills`](https://github.com/leihaht/gamemaker-skills) | Skills de Claude Code para GMS2/GML | MIT |
