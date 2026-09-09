@@ -794,6 +794,104 @@ function jugador_penalizacion_por_peso(_inventario, _fraccion_sobrecarga = 0.85)
 }
 ```
 
+### 5.2 bis Interactuar con lo que tienes delante
+
+> **El hueco que cierra esta sección.** El diagrama del bucle central (§3) dice
+> «*Interacción: ¿se pulsó «usar» delante de algo?*» y hasta ahora **ninguna sección lo
+> implementaba**. Es la mecánica más básica de un RPG —hablar con alguien, abrir un cofre, leer
+> un cartel— y un agente que buscó `interactuar con NPC` en toda la biblioteca no encontró ni un
+> resultado ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba-rpg.md)). Lo único parecido
+> vivía en [`01 · 08`](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md) como
+> ejemplo de un *bug*.
+
+#### La decisión: un punto delante, no un radio alrededor
+
+Hay tres formas de saber «qué tengo delante», y solo una se comporta como el jugador espera:
+
+| Método | Qué falla |
+|---|---|
+| El **más cercano en un radio** (`instance_nearest` + distancia) | Habla con el NPC que tienes **detrás**. El jugador no entiende por qué |
+| Una **caja de colisión** hija del jugador | Funciona, pero es un objeto más que mover, rotar y mantener sincronizado cada frame |
+| ✅ Un **punto a una distancia fija en la dirección a la que miras** | Predecible, cero objetos extra, y coincide con lo que el jugador ve |
+
+```gml
+/// @func interactuar_objetivo(_alcance)
+/// @desc Qué hay delante del jugador ahora mismo. `noone` si nada.
+///       Se llama desde el Step del jugador; NO consume la tecla.
+/// @param {Real} _alcance  Píxeles por delante del origen. 12-20 en un cenital de 16 px.
+/// @return {Id.Instance}
+function interactuar_objetivo(_alcance)
+{
+    // `direccion_mirada` la lleva el propio jugador en grados (0 dcha, 90 arriba,
+    // 180 izq, 270 abajo) y se actualiza SOLO cuando hay entrada de movimiento:
+    // si se recalcula cada frame, al soltar la tecla vuelve a 0 y acabas hablando
+    // siempre con lo que tienes a la derecha.
+    var _px = x + lengthdir_x(_alcance, direccion_mirada);
+    var _py = y + lengthdir_y(_alcance, direccion_mirada);
+
+    return instance_position(_px, _py, obj_interactuable);
+}
+```
+
+`obj_interactuable` es el **padre** de todo lo que se puede usar: NPC, cofre, cartel, puerta.
+Esa es la razón de la jerarquía de objetos de §2 — con el padre, esta función no cambia nunca
+por mucho contenido que añadas.
+
+> 🔴 **Un interactuable SIN sprite asignado es invisible para `instance_position()`.** Sin
+> `sprite_index` no hay máscara de colisión, así que la función no lo encuentra **aunque esté
+> exactamente donde miras**, y no hay error de ningún tipo. Es la misma trampa que documenta
+> [`01 · 08` §9](../01%20-%20Fundamentos/08%20-%20Movimiento%20y%20colisiones.md#9-errores-típicos):
+> a un cartel o a un disparador invisible dale un sprite real (aunque sea transparente) o fija
+> `mask_index` a mano.
+
+#### Consumir la pulsación una sola vez
+
+```gml
+/// Step del jugador
+var _objetivo = interactuar_objetivo(14);
+
+// Sugerencia en pantalla: el jugador tiene que SABER que puede pulsar, antes de pulsar.
+puede_interactuar = (_objetivo != noone);
+
+if (puede_interactuar && keyboard_check_pressed(vk_space) && !dialogo_activo())
+{
+    with (_objetivo) { usar(other.id); }   // cada interactuable define su propio usar()
+}
+```
+
+> ⚠️ **El `!dialogo_activo()` no es opcional, y la guarda tiene que cubrir también el fotograma
+> en que el diálogo se CIERRA.** Si no, la misma pulsación que cierra la conversación vuelve a
+> abrirla, y el jugador se queda atrapado en un bucle. Es exactamente el fallo que tenía
+> [`06 · scr_ui_confirmar.gml`](../06%20-%20Assets%20y%20Scripts/scr_ui_confirmar.gml) hasta que
+> se le añadió el campo `recien_cerrado`: mira cómo lo resuelve ahí y copia el patrón.
+
+#### La sugerencia en pantalla
+
+Un interactuable al que no se le nota que lo es no existe. Lo mínimo: un indicador sobre la
+cabeza del objetivo, no un texto fijo en una esquina.
+
+```gml
+/// Draw del jugador (o Draw GUI, si prefieres tamaño fijo)
+if (puede_interactuar)
+{
+    var _o = interactuar_objetivo(14);
+    if (_o != noone)
+    {
+        // Flota un poco para que se lea sobre cualquier fondo.
+        var _bob = sin(current_time / 200) * 2;
+        draw_sprite(spr_indicador_usar, 0, _o.x, _o.bbox_top - 6 + _bob);
+    }
+}
+```
+
+> 💡 **Si varios interactuables se solapan** —un cofre pegado a un NPC—, `instance_position`
+> devuelve uno cualquiera de los dos. Para elegir el más cercano al punto, usa
+> `instance_position_list(_px, _py, obj_interactuable, _lista, false)` y quédate con el de menor
+> `point_distance` al punto de mira. Solo hace falta si tu mapa lo permite: en la mayoría de los
+> pueblos, no.
+
+---
+
 ### 5.3 Contenido en JSON
 
 ```json
