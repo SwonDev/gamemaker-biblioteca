@@ -1366,5 +1366,67 @@ def main():
     return codigo_salida
 
 
+def autoprueba():
+    """Los invariantes del extractor, con texto conocido.
+
+    Este validador decide si dos documentos definen lo mismo de dos formas
+    incompatibles, y sus dos errores son opuestos y caros: callarse una colisión
+    real (dos recetas que no se pueden usar juntas) o inventarse una, y entonces
+    se renombra algo que estaba bien. Los casos de abajo son los que han moldeado
+    su lógica.
+    """
+    fallos = []
+
+    def revisar(nombre, condicion, detalle=""):
+        if condicion:
+            print("  \u2713 " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  \u2717 %s  ->  %s" % (nombre, detalle))
+
+    def declara(texto, suelto=False):
+        f, m, e, _limpio, _amb = extraer_declaraciones("prueba.md", texto, suelto)
+        return f, m, e
+
+    doc = ("# D\n\n```gml\nfunction si_cuenta(_a, _b) { return _a; }\n```\n\n"
+           "```text\nfunction no_cuenta(_x) { }\n```\n")
+    f, _m, _e = declara(doc)
+    nombres = [d["nombre"] for d in f]
+    revisar("una función dentro de un bloque ```gml se extrae", "si_cuenta" in nombres, nombres)
+    revisar("y una dentro de un bloque ```text NO", "no_cuenta" not in nombres, nombres)
+    revisar("la aridad se cuenta bien", bool(f) and f[0]["aridad"] == 2,
+            f[0]["aridad"] if f else "sin función")
+
+    f, _m, _e = declara("```gml\nfunction con_defecto(_a, _b = 3, _c = []) { }\n```")
+    revisar("los parámetros con valor por defecto cuentan",
+            bool(f) and f[0]["aridad"] == 3, f[0]["aridad"] if f else "sin función")
+
+    f, _m, _e = declara("```gml\nfunction fuera() {\n  var _f = function dentro() { };\n}\n```")
+    nombres = [d["nombre"] for d in f]
+    revisar("una función anidada no cuenta como declaración de nivel superior",
+            "fuera" in nombres and "dentro" not in nombres, nombres)
+
+    f, m, e = declara("```gml\n#macro TOPE 10\nenum Estado { QUIETO, ANDANDO }\n```")
+    revisar("un #macro se extrae", [d["nombre"] for d in m] == ["TOPE"], m)
+    revisar("un enum se extrae", any(d["nombre"] == "Estado" for d in e), e)
+
+    revisar("dos cuerpos iguales salvo espacios normalizan igual",
+            normalizar_cuerpo("{ return 1; }") == normalizar_cuerpo("{\n  return 1;\n}"))
+    revisar("y dos distintos, no",
+            normalizar_cuerpo("{ return 1; }") != normalizar_cuerpo("{ return 2; }"))
+
+    f, _m, _e = declara("function de_un_gml(_a) { return _a; }\n", suelto=True)
+    revisar("en un .gml suelto no hacen falta vallas",
+            [d["nombre"] for d in f] == ["de_un_gml"], f)
+
+    if fallos:
+        print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n\u2713 Las 10 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())
