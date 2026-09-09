@@ -400,8 +400,13 @@ gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolc
 > `Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1`, y **no generan
 > el `.yyp`**. No es cosa de la versión: ocurre igual en la 2.2.0 y en la 2.3.0, con y sin
 > `--toolchain`. En cambio **sí funcionan** *Space Rocks* y *Blank Pixel Game* (probadas).
-> **Solución:** crea el proyecto con una plantilla que funcione y añade los prefabs desde el
-> IDE, o crea el proyecto desde la interfaz de GameMaker. Pruebas y detalle en
+> **Solución rápida:** crea el proyecto con una plantilla que funcione (*Space Rocks* o
+> *Blank Pixel Game*). **Y si necesitas justo una de las nueve, SÍ hay arreglo** —la causa es un
+> `gmpm.dll` desparejado entre el CLI y el IDE, no la plantilla—: la receta de cuatro pasos,
+> verificada ejecutándola, está en la
+> [Trampa 1 de `12 · 09`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md).
+> El cuarto paso es el que falta en todas partes y sin él parece que el rodeo no sirve.
+> Pruebas y detalle en
 > [13 · GM CLI](./07%20-%20Ecosistema/13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md).
 > Para actualizar el CLI usa **npm** (`npm install -g @gamemaker/gm-cli@latest`), no pnpm: ya
 > estaba gestionado con npm y mezclar gestores deja dos copias globales.

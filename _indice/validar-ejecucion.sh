@@ -53,7 +53,12 @@ if [ ! -f "$YYP" ]; then
 fi
 
 echo "Montando el banco de pruebas…"
-for obj in obj_solido obj_moneda obj_salida obj_bala obj_test; do
+# obj_puerta, obj_caja, obj_placa, obj_llave, obj_jugador y obj_muro existen para
+# que se puedan EJECUTAR las funciones de la receta 04 · 59 que los nombran. Sin
+# ellos el código compila igual —GML no resuelve el objeto hasta ejecutarlo— y dos
+# de las once funciones no se probarían nunca: pasarían por «verde» sin correr.
+for obj in obj_solido obj_moneda obj_salida obj_bala obj_test \
+           obj_puerta obj_caja obj_placa obj_llave obj_jugador obj_muro; do
     gm-cli resourcetool eval "resource create type=object name=$obj" "$YYP" >/dev/null 2>&1
 done
 
@@ -78,6 +83,7 @@ PIEZAS=(
   "scr_camera:$RAIZ/06 - Assets y Scripts/scr_camera.gml"
   "scr_audio:$RAIZ/06 - Assets y Scripts/scr_audio.gml"
   "scr_banco_scripts:$RAIZ/_indice/pruebas/banco_scripts.gml"
+  "scr_banco_circuitos:$RAIZ/_indice/pruebas/banco_circuitos.gml"
 )
 for pieza in "${PIEZAS[@]}"; do
     nombre="${pieza%%:*}"
@@ -106,6 +112,12 @@ gm-cli resourcetool eval "object event findorcreate name=obj_solido type=create"
 cp "$RAIZ/_indice/pruebas/banco_solido_create.gml" "$PROY/objects/obj_solido/Create_0.gml" \
   || { echo "✗ no se pudo copiar el Create de obj_solido"; exit 2; }
 
+# obj_puerta necesita su `canal` para que `circuitos_validar()` de la receta 59
+# tenga algo que leer.
+gm-cli resourcetool eval "object event findorcreate name=obj_puerta type=create" "$YYP" >/dev/null 2>&1
+printf 'canal   = "puerta_norte";\nmodo    = "todos";\ncuantos = 1;\nabierta = false;\n' \
+  > "$PROY/objects/obj_puerta/Create_0.gml"
+
 # La hoja de glifos de la fuente de sprite (Trampa 12, tercera salida). Un PNG por
 # carácter, importados EN LOTE: `resourcetool script` mete los 89 en poco más de un
 # segundo; por `eval`, uno a uno, serían minutos.
@@ -129,6 +141,43 @@ if python3 "$RAIZ/_indice/pruebas/generar_glifos.py" "$GLIFOS" >/dev/null 2>&1; 
 else
     echo "✗ no se pudo generar la hoja de glifos (¿falta Pillow?). El banco de fuente"
     echo "  NO se puede ejecutar, y eso no es lo mismo que que pase."
+    exit 2
+fi
+
+# Un sprite de 16x16 para los objetos de rejilla. NO es decoración: un objeto sin
+# sprite no tiene máscara de colisión, así que ni `place_meeting()` ni
+# `instance_position()` lo encuentran — y un muro invisible que además no choca es
+# un fallo silencioso perfecto.
+python3 - "$PROY/_celda.png" <<'PYEOF'
+import sys
+try:
+    from PIL import Image
+    Image.new("RGBA", (16, 16), (120, 120, 140, 255)).save(sys.argv[1])
+except ImportError:
+    sys.exit(1)
+PYEOF
+if [ -f "$PROY/_celda.png" ]; then
+    gm-cli resourcetool eval "resource create type=sprite name=spr_celda" "$YYP" >/dev/null 2>&1
+    gm-cli resourcetool eval "sprite addframe name=spr_celda path=$PROY/_celda.png" "$YYP" >/dev/null 2>&1
+    # No hay `OBJECT SET sprite=`: el sprite de un objeto se asigna con
+    # `resource set expr=<objeto>.spriteId value=<sprite>`.
+    for o in obj_muro obj_puerta obj_caja obj_placa obj_llave obj_jugador; do
+        gm-cli resourcetool eval "resource set expr=$o.spriteId value=spr_celda" "$YYP" >/dev/null 2>&1
+    done
+    # Leer de vuelta: sin máscara, media receta no se probaría y saldría en verde.
+    if ! grep -q "spr_celda" "$PROY/objects/obj_muro/obj_muro.yy"; then
+        echo "✗ obj_muro se quedó sin sprite: sin máscara no hay colisión que probar"
+        exit 2
+    fi
+fi
+
+# El código de la receta 04 · 59 se EXTRAE del documento, no se copia: así lo que
+# se ejecuta es lo que un lector va a copiar, y no una versión que se separó.
+RECETA59="$RAIZ/04 - Recetas por género/59 - Puertas, llaves y placas de presión - el puzle de sala.md"
+gm-cli resourcetool eval "resource create type=script name=scr_receta_59" "$YYP" >/dev/null 2>&1
+if ! python3 "$RAIZ/_indice/pruebas/extraer_funciones.py" "$RECETA59" \
+        "$PROY/scripts/scr_receta_59/scr_receta_59.gml"; then
+    echo "✗ no se pudieron extraer las funciones de la receta 59"
     exit 2
 fi
 

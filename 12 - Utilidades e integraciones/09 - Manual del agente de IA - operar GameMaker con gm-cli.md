@@ -1753,6 +1753,29 @@ el 08-09-2026 (`gm-cli` 2.3.0 / `ResourceTool@2026.0.17`). Lo de abajo **devolvi
    `path.points` no se asignan de golpe: se escribe **elemento a elemento**.
 3. **`FullName` nunca se escribe.** Para renombrar, `name` (ver §3 bis.5).
 
+### 3 bis.1 ter · Darle su sprite a un objeto — y por qué no es cosmético
+
+**No existe `OBJECT SET sprite=`.** Se hace con `RESOURCE SET` sobre la propiedad, y hay que
+saberlo porque `help object` no lo menciona:
+
+```bash
+gm-cli resourcetool eval "resource set expr=obj_muro.spriteId value=spr_celda"
+```
+
+Verificado el 09-09-2026 leyendo el `.yy` de vuelta: escribe la referencia completa
+(`{"name":"spr_celda","path":"sprites/spr_celda/spr_celda.yy"}`), no solo el nombre.
+
+> 🔴 **Y esto NO es decoración: un objeto sin sprite no tiene máscara de colisión.** Sin máscara,
+> **ni `place_meeting()` ni `instance_position()` lo encuentran nunca**. Un `obj_muro` creado con
+> `resource create` y sin sprite es invisible *y además atravesable*, y no da un solo error: el
+> jugador cruza las paredes y no hay nada que depurar. Es la misma familia que las Trampas 5 y 6
+> —compila, corre y miente— y le pasa exactamente a un agente que monte los objetos por CLI y
+> deje el arte para después.
+>
+> Si de verdad quieres un volumen invisible que sí colisione, dale un sprite y pon
+> `visible = false`; o usa una máscara aparte con `maskSpriteId`. Lo que no funciona es no tener
+> ninguna.
+
 ### 3 bis.2 La sala entera: tamaño, cámaras, físicas y capas
 
 Nada de esto estaba documentado, y es justo lo que hace falta para montar un nivel sin abrir el
