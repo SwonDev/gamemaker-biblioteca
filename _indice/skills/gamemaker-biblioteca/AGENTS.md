@@ -203,7 +203,7 @@ los errores de todo lo que venga después.
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
 | Compilar (desde la carpeta del `.yyp`) | `gm-cli compile` · ejecutar: `gm-cli run` |
 | Crear o editar recursos (objetos, sprites, rooms, eventos) | `gm-cli resourcetool eval "<comando>"` o el MCP `gamemaker-resource-tool` del proyecto |
-| Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "<plantilla>" --ai --toolchain GMS2@2026.0.0.23` |
+| Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "<plantilla>" --ai --toolchain GMS2@2026.0.0.23` — el `-n` **solo admite letras, números, guiones y guiones bajos**: «Cripta de las Placas» falla con `Use only letters, numbers, dashes, and underscores`. El nombre bonito del juego se pone luego en `options set … property=display_name value="Cripta de las Placas"`, entrecomillado |
 | Plantillas que **sí** funcionan hoy | `Space Rocks` · `Blank Pixel Game` · `Tower Defense Template` · `RPG Starter Pack` · `Scrolling Shooter Game Template` · `Survivor Game Template` · `Brick Breaker Template` · `Puzzle Slider Template` · `Fire Jump Template` — las otras 9 fallan, y `init` **no las lista** al fallar |
 
 9 de las 18 plantillas fallan al crear el proyecto (`PREFABS RESTORE exited with code 1`): por

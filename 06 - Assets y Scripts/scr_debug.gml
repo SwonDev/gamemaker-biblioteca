@@ -431,3 +431,67 @@ function debug_assert(_condicion, _mensaje) {
     }
     return _condicion;
 }
+
+
+// ============================================================================
+// LA FUENTE MUDA, DETECTADA SIN MIRAR UN PÍXEL
+//
+// La Trampa 12 de `12 · 09 §0` dice que la fuente por defecto de GameMaker se come
+// los acentos españoles en silencio, y que la única forma de detectarlo es capturar
+// la pantalla y mirar el PNG. Es verdad a medias: hay una forma más barata, y sale
+// de una medida hecha dentro del juego.
+//
+//   MEDIDO con `bash _indice/validar-ejecucion.sh`, fuente por defecto (`draw_set_font(-1)`):
+//       string_width("a") = 9      ← la letra existe
+//       string_width("á") = 0      ← la fuente no la tiene
+//       string_width("ñ") = 0
+//       string_width("¿") = 0
+//
+// Un carácter que la fuente no tiene mide CERO. Así que la fuente muda se puede
+// detectar con una condición, en el arranque, sin capturas y sin ojos.
+//
+// ⚠️ Lo que esto demuestra y lo que no. Ancho 0 prueba que el glifo NO está: es
+//    concluyente. Ancho > 0 prueba que hay algo dibujado en ese hueco, no que sea
+//    el glifo correcto — una hoja de glifos con el mapa desordenado dibuja letras
+//    cambiadas y mide perfectamente. Para eso sigue haciendo falta mirar
+//    (`13 · 10 §8.6`). Es una red barata que caza el fallo más común, no un sustituto.
+// ============================================================================
+
+/// @function debug_fuente_sin_glifos(_fuente, _muestra)
+/// @desc     Devuelve los caracteres de `_muestra` que la fuente NO tiene.
+///           Array vacío = todos los caracteres miden algo.
+/// @param    {Asset.GMFont|Real} _fuente   La fuente a examinar (-1 = la del motor).
+/// @param    {String}            _muestra  Los caracteres que tu juego va a dibujar.
+/// @returns  {Array<String>}
+function debug_fuente_sin_glifos(_fuente = -1, _muestra = "áéíóúüñÁÉÍÓÚÜÑ¿¡") {
+    var _antes = draw_get_font();
+    draw_set_font(_fuente);
+
+    var _faltan = [];
+    for (var _i = 1; _i <= string_length(_muestra); _i++) {
+        var _c = string_char_at(_muestra, _i);
+        if (string_width(_c) <= 0) { array_push(_faltan, _c); }
+    }
+
+    draw_set_font(_antes);
+    return _faltan;
+}
+
+/// @function debug_exigir_fuente_con_acentos(_fuente, _muestra)
+/// @desc     Falla ruidosamente si la fuente no dibuja los caracteres que le pasas.
+///           Llámalo UNA vez al arrancar, con la fuente que vas a usar para el texto
+///           del juego. Cuesta microsegundos y cierra la Trampa 12 entera.
+/// @param    {Asset.GMFont|Real} _fuente
+/// @param    {String}            _muestra
+/// @returns  {Bool}  true si están todos.
+function debug_exigir_fuente_con_acentos(_fuente = -1, _muestra = "áéíóúüñÁÉÍÓÚÜÑ¿¡") {
+    var _faltan = debug_fuente_sin_glifos(_fuente, _muestra);
+    if (array_length(_faltan) == 0) { return true; }
+
+    var _texto = "FUENTE SIN GLIFOS: la fuente elegida no dibuja "
+               + string(array_length(_faltan)) + " carácter(es) de tu texto: "
+               + string_join_ext("", _faltan)
+               + "\nSe dibujarán como nada, sin error y sin aviso (12 · 09 Trampa 12).";
+    show_debug_message(_texto);
+    return false;
+}

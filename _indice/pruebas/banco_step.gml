@@ -8,6 +8,7 @@ if (paso == 1) banco_desactivadas_preparar();
 if (paso == 4)
 {
     banco_desactivadas_comprobar();
+    banco_fuente();
 
     show_debug_message("=========================================");
     show_debug_message("RESULTADO: " + string(global.ok) + " correctas, " + string(global.ko) + " fallidas");

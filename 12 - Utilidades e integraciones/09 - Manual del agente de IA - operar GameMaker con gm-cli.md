@@ -1229,6 +1229,85 @@ nadie se lo había dicho ([`r13-prueba-rpg.md`](../_indice/auditorias/r13-prueba
 > [§3 bis del nivel como mapa de texto](../04%20-%20Recetas%20por%20género/58%20-%20El%20nivel%20como%20mapa%20de%20texto%20-%20construir%20sin%20abrir%20el%20editor%20de%20salas.md).
 > Si te resulta más cómodo, deja fuera del mapa la comilla y la barra.
 
+##### La receta completa, verificada ejecutándola
+
+Lo de arriba explica **por qué** `font_add_sprite_ext`; esto es el **cómo**, de punta a punta.
+Un agente lo resolvió entero por su cuenta porque no estaba escrito
+([`r15` §2.8](../_indice/auditorias/r15-prueba-puzles.md)); ahora está, y además lo comprueba
+`bash _indice/validar-ejecucion.sh` en cada pasada, dentro de un juego real.
+
+**1 · Dibuja un PNG POR CARÁCTER, no una tira.** `SPRITE ADDFRAME` añade **un fotograma por
+archivo**: la hoja de glifos de una fuente de sprite no es una imagen larga, son N imágenes del
+mismo tamaño. El generador completo, listo para copiar, está en
+`_indice/pruebas/generar_glifos.py` — rasteriza una `.ttf` del sistema con **umbral duro** (sin
+antialias: así no hay halo de alfa parcial y la puerta del peldaño 2 bis lo deja en paz).
+
+**2 · El espacio necesita una barra sólida.** El manual lo dice de pasada —«puede definir el
+espacio como cualquier carácter que desee, por ejemplo una sola línea»— y la imagen elegida
+nunca se dibuja. Lo que no dice es la consecuencia: **si la sub-imagen del espacio va vacía, el
+ancho del espacio lo decide el motor y no tú.** Medido con una barra de 4 px y `sep = 1`:
+
+```console
+MEDIDO · string_width(" ") con barra solida = 5
+```
+
+**3 · Impórtalos EN LOTE.** Uno a uno con `resourcetool eval` son minutos; en lote, un segundo:
+
+```bash
+# un `sprite addframe` por línea, y una sola llamada
+for g in glifos/g_*.png; do
+  echo "sprite addframe name=spr_glifos path=$g" >> lote.txt
+done
+gm-cli resourcetool eval "resource create type=sprite name=spr_glifos" <proyecto.yyp>
+gm-cli resourcetool script lote.txt <proyecto.yyp>
+```
+
+Medido aquí: **89 fotogramas en 1,46 s**. Y como siempre, `Saved successfully` no vale — se lee
+de vuelta contando los fotogramas del `.yy`:
+
+```bash
+grep -o '"\$GMSpriteFrame"' sprites/spr_glifos/spr_glifos.yy | wc -l   # → 89
+```
+
+**4 · Deja fuera del mapa la comilla y la barra invertida.** No es una limitación seria: son dos
+caracteres que casi ningún juego dibuja, y evitarlos elimina de raíz el literal mal escapado.
+
+**5 · El mapa del `.gml` y la hoja tienen que coincidir CARÁCTER A CARÁCTER.** Si divergen, el
+juego dibuja letras cambiadas y compila igual de limpio. Se comprueba en una línea, dentro del
+juego:
+
+```gml
+// El número de sub-imágenes tiene que ser el número de caracteres del mapa.
+if (sprite_get_number(spr_glifos) != string_length(GLIFOS_MAPA)) {
+    show_debug_message("HOJA Y MAPA DESCUADRADOS: " + string(sprite_get_number(spr_glifos))
+        + " sub-imágenes para " + string(string_length(GLIFOS_MAPA)) + " caracteres");
+}
+```
+
+> 🔴 **Y el hallazgo que cambia cómo se detecta esta trampa entera: NO hace falta una captura.**
+> Hasta ahora este documento decía que la fuente muda solo se detecta capturando la pantalla y
+> mirando el PNG. Es verdad a medias. **Un carácter que la fuente no tiene mide cero.** Medido
+> dentro del juego contra la fuente por defecto del motor:
+>
+> ```console
+> MEDIDO · fuente por defecto: a=9  á=0  ñ=0  ¿=0
+> ```
+>
+> Así que la Trampa 12 se cierra con una condición en el arranque, sin ojos y sin capturas.
+> Está hecha en [`06 · scr_debug.gml`](../06%20-%20Assets%20y%20Scripts/scr_debug.gml):
+>
+> ```gml
+> // En el arranque, con la fuente que vas a usar de verdad:
+> debug_exigir_fuente_con_acentos(global.fnt_ui);   // avisa y devuelve false si falta alguno
+> var _faltan = debug_fuente_sin_glifos(global.fnt_ui, "áéíóúüñÁÉÍÓÚÜÑ¿¡");
+> ```
+>
+> **Lo que prueba y lo que no**: ancho 0 prueba que el glifo **no está**, y eso es concluyente.
+> Ancho > 0 prueba que hay algo dibujado en ese hueco, **no** que sea el glifo correcto — una
+> hoja con el mapa desordenado dibuja letras cambiadas y mide perfectamente. Para eso sigue
+> haciendo falta mirar ([`13 · 10 §8.6`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md)).
+> Es una red barata que caza el fallo más común de los dos, no un sustituto de mirar.
+
 **Severidad**: alta, y de la familia silenciosa de las Trampas 5, 6 y 8 — con el agravante de que
 la vía que parece más segura (no tocar `resourcetool`, fiarse de la fuente por defecto) es
 precisamente la que lo dispara. Cross-referencias con la explicación completa y el aviso para
