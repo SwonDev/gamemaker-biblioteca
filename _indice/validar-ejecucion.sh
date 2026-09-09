@@ -87,6 +87,12 @@ cp "$RAIZ/_indice/pruebas/banco_create.gml" "$PROY/objects/obj_test/Create_0.gml
 cp "$RAIZ/_indice/pruebas/banco_step.gml" "$PROY/objects/obj_test/Step_0.gml" \
   || { echo "✗ no se pudo copiar el evento Step"; exit 2; }
 
+# obj_solido lleva Create para poder medir si el quinto argumento de
+# instance_create_layer() llega antes que el Create (r15 §2.5).
+gm-cli resourcetool eval "object event findorcreate name=obj_solido type=create" "$YYP" >/dev/null 2>&1
+cp "$RAIZ/_indice/pruebas/banco_solido_create.gml" "$PROY/objects/obj_solido/Create_0.gml" \
+  || { echo "✗ no se pudo copiar el Create de obj_solido"; exit 2; }
+
 gm-cli resourcetool eval \
   "room instance create room=room1 object=obj_test name=inst_test layer=Instances x=0 y=0" \
   "$YYP" >/dev/null 2>&1

@@ -78,6 +78,21 @@ comprobar("colision: desde fuera, instancia.nombre devuelve...",
           _moneda.nivel_mapa_clave == "VALOR_DE_LA_VARIABLE",
           _moneda.nivel_mapa_clave);
 
+// --- 4 bis · El Create ya ve las variables de la casilla --------------------
+with (instance_find(obj_solido, 0))
+{
+    comprobar("el Create del objeto ya ve nivel_col (5o argumento)", vio_col >= 0, vio_col);
+    comprobar("y tambien nivel_clave", string_pos("_x", vio_clave) > 0, vio_clave);
+}
+
+// --- 4 ter · El gancho al_crear --------------------------------------------
+var _vistos = { n: 0 };
+nivel_mapa_construir(_m, _leyenda, {
+    nombre: "n4b",
+    al_crear: method(_vistos, function(_inst, _c, _col, _fila) { n++; })
+});
+comprobar("al_crear se llama una vez por instancia creada", _vistos.n == 14, _vistos.n);
+
 // --- 5 · El filtro `omitir` -------------------------------------------------
 var _r3 = nivel_mapa_construir(_m, _leyenda, {
     nombre: "n3",

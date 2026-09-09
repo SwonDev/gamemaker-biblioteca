@@ -983,6 +983,23 @@ pantalla completa y si interpola píxeles se pueden fijar por CLI/MCP hoy.
 > imprime la tabla con la cabecera `Option`, así que el reflejo es escribir
 > `options set … option=version`, que no existe. El argumento correcto es **`PROPERTY=`**, y el
 > error de un nombre equivocado **vuelca la ayuda entera** en vez de decir cuál era.
+>
+> **Y `name=` es peor que un nombre equivocado, porque cada verbo falla de una manera distinta.**
+> Cuatro variantes verificadas el 09-09-2026 leyendo el `.yy` de vuelta:
+>
+> | Lo que escribes | Qué pasa |
+> |---|---|
+> | `options set … property=display_name value="Con espacios"` | ✅ escribe `Con espacios` |
+> | `options set … property=display_name value=Con espacios` | escribe `Con` — trunca y dice «éxito» |
+> | `options set … property=display_name value='Con espacios'` | escribe `'Con` — **peor**: se queda la comilla |
+> | `options set … property=display_name value=Con\ espacios` | escribe `Con\` |
+> | `options set … name=display_name value=X` | `Command failed: npm exec failed with code 1`, sin decir por qué |
+> | `options get … name=display_name` | **vuelca las ~30 propiedades** (13 KB) y termina en `Successful`: ignora el argumento sin avisar |
+> | `options get … property=display_name` | ✅ `display_name = Con espacios` |
+>
+> La fila del `GET` con `name=` es la que muerde: no falla, **contesta otra cosa**. Un agente que
+> busque su propiedad en esa avalancha creerá que la ha leído.
+> ([`r15` §2.7](../_indice/auditorias/r15-prueba-puzles.md))
 
 > 💡 **`options info` no cabe en la salida de un agente.** `options info platform=mac` devuelve
 > **82 KB** de tabla con bordes Unicode, que desborda la salida del Bash de Claude Code y de
@@ -2182,6 +2199,43 @@ Las siete son **MIT o Apache-2.0 y se ejecutan en local**. Catálogo y contexto 
 > 🔑 **Regla: nada que salga de un generador entra en el juego sin pasar por aquí.** Es un
 > comando, no cuesta nada, y es la diferencia entre un sprite que se ve nítido a tamaño real y
 > uno que se ve emborronado sin causa aparente.
+
+> 🔴 **PERO ANTES PASA LA PUERTA, o esta regla te destruye el arte.** La regla de arriba,
+> obedecida al pie de la letra, se come también los sprites que dibujaste tú con Pillow en el
+> peldaño 1(b) — porque Pillow también es «un generador». Medido sobre arte real de 16×20 px
+> dibujado a 1:1: `pixel-art-fixer` lo declaró una imagen de **6×7 ampliada ×2,5**, y
+> `pixeldetector` lo redujo a **4×10**. Un personaje con capucha, cara, cinturón y botas quedó
+> en una mancha. Las dos herramientas hacen bien lo que anuncian —buscar la rejilla oculta de
+> una imagen ampliada—; lo que faltaba era distinguir los dos casos.
+> Caso completo: [`r15-prueba-puzles.md` §2.1](../_indice/auditorias/r15-prueba-puzles.md).
+>
+> ```bash
+> python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>
+> ```
+>
+> Sale con **0 si no hay nada que reparar** y con **1 listando qué PNG lo piden y por qué**.
+> Decide con tres medidas y exigiendo las tres **a la vez**, no una cualquiera:
+>
+> | Medida | Qué distingue |
+> |---|---|
+> | **Escala real** — el mayor `k` tal que reducir por `k` y volver a ampliar reproduce la imagen EXACTA | `k == 1` ya es pixel art de verdad: no hay rejilla que reconstruir |
+> | **Paleta** — número de colores distintos | Un PNG de un modelo trae cientos; uno con paleta fija, decenas |
+> | **Halo** — % de píxeles con alfa intermedio (0 < a < 255) | Un generador deja el borde emborronado; un pincel, no |
+>
+> **La conjunción no es un detalle, es lo que evita el destrozo**: cada síntoma por separado
+> tiene causas legítimas. Una sombra es alfa parcial *a propósito* (81 % medido en un caso real)
+> y una puerta de bloques grandes puede ser, por casualidad, un aumento exacto ×2. Con la
+> disyunción, esos dos archivos reales se habrían triturado.
+>
+> Verificada en las dos direcciones: sobre 76 PNG de arte real dibujado a 1:1 dice
+> «0 piden reparación», y sobre un pixel art ampliado ×4 con interpolación suave lo señala
+> (3 753 colores, 62 % de alfa intermedio) sin tocar el que se amplió con vecino más próximo.
+
+> ⚠️ **`pixel-art-fixer` no arranca por la orden que anuncia su propio README.**
+> `python -m pixelfixer.cli entrada.png` termina en `ModuleNotFoundError: No module named
+> 'detector'`: el paquete se renombró a `pixelfixer` y `cli.py` sigue importando del nombre viejo
+> en sus tres sitios. **La API sí funciona** — `from pixelfixer import detect` y
+> `from pixelfixer.reconstruct import reconstruct`. Verificado en `r15` §2.2.
 
 #### Peldaño 3 — Generación por IA
 

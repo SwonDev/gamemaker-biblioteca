@@ -286,6 +286,11 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
   <proyecto>», copia la carpeta al disco y **jamás la registra en el `.yyp`**. Y ojo con la
   variante peor: un proyecto que **compila** después de una operación fallida puede estar
   compilando precisamente *porque* la operación no se hizo.
+  ⚠️ **Que mienta no significa que no se pueda**: el truncado del primer espacio se resuelve
+  entrecomillando el valor —`value="Cripta de las Placas"`, verificado leyendo el `.yy`— y la
+  comilla simple o la barra invertida NO valen (dejan `'Cripta` y `Con\`). Un agente lo leyó
+  aquí como «imposible» y renunció al nombre del juego; la salida estaba en `12/09` Trampa 10 y
+  esta línea no la mencionaba.
 - Nada está «hecho» sin `gm-cli compile` limpio y su salida real reportada. `--errors-only`
   sirve para iterar rápido, pero **antes de dar un juego por terminado, compílalo al menos una
   vez sin ese flag y lee los avisos**: es el único modo que muestra el `WARNING` de un

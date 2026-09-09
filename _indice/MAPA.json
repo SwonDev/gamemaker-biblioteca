@@ -771,6 +771,10 @@
           "titulo": "scr_math_util — Utilidades matemáticas y funciones de easing para GameMaker LTS 2026"
         },
         {
+          "ruta": "06 - Assets y Scripts/scr_nivel_mapa.gml",
+          "titulo": "scr_nivel_mapa — El nivel como mapa de texto: validar, construir y autotile"
+        },
+        {
           "ruta": "06 - Assets y Scripts/scr_pool.gml",
           "titulo": "scr_pool — Object pooling: reutiliza instancias en vez de crearlas y destruirlas"
         },
@@ -795,7 +799,7 @@
           "titulo": "scr_ui_confirmar — Diálogo de confirmación genérico (Sí/No), con «No» siempre por defecto"
         }
       ],
-      "n_documentos": 13
+      "n_documentos": 14
     },
     {
       "titulo": "El ecosistema alrededor del motor",

@@ -65,6 +65,26 @@ Todas en `11 - Código descargado/herramientas/pixel-art-ia/`.
 > avisaba del problema y no daba salida; ahora la hay, y es local. **Pásale por él cualquier
 > imagen generada antes de convertirla en sprite.**
 
+> 🔴 **Pero solo a lo generado, y eso hay que MEDIRLO antes.** «Pásale cualquier imagen» aplicado
+> literalmente destruye el pixel art dibujado a 1:1: sobre un sprite real de 16×20,
+> `pixel-art-fixer` lo declaró una imagen de 6×7 ampliada ×2,5 y `pixeldetector` lo redujo a
+> 4×10. La herramienta no falla —busca la rejilla oculta de una imagen ampliada, que es su
+> trabajo—; lo que falta es la puerta de delante:
+>
+> ```bash
+> python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>
+> ```
+>
+> Sale con 0 si no hay nada que reparar y con 1 diciendo qué PNG lo piden y por qué. Los tres
+> criterios y por qué se exigen **a la vez**, en
+> [`12 · 09 §5.2` peldaño 2 bis](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md).
+
+> ⚠️ **La CLI de `pixel-art-fixer` está rota.** `python -m pixelfixer.cli entrada.png` —la orden
+> que anuncia su propio README— muere con `ModuleNotFoundError: No module named 'detector'`:
+> el paquete se renombró y `cli.py` sigue importando el nombre viejo en sus tres sitios.
+> **La API sí funciona**: `from pixelfixer import detect` y
+> `from pixelfixer.reconstruct import reconstruct`.
+
 #### Lo que sí es de pago: la generación
 
 El modelo de **Retro Diffusion** se llama por API con créditos. Lo que aporta frente a un modelo
