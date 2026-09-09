@@ -2940,6 +2940,140 @@ QA MANUAL Y PLAYTESTING
 
 ---
 
+## 12 bis · Los bugs que solo aparecen cuando dos estados se cruzan
+
+> **De dónde sale esta sección.** De contrastar nuestro checklist contra
+> `game-quality-gates`, una skill de gamedev genérica —web y móvil, no GameMaker—
+> instalada en la máquina del autor, cuyo material dice estar destilado de setenta y
+> tantos bugs reales. Su frase de cabecera merece robarse entera:
+>
+> > Los bugs no salen de las funciones sueltas, salen de la **interacción entre
+> > estados**. Cada mecánica funciona sola; se rompen en combinación.
+>
+> Eso explica por qué el §12 de arriba, que es un buen checklist de *método de
+> prueba*, no las caza: cada casilla mira una cosa a la vez. Lo que sigue es esa idea
+> traducida a GameMaker —donde algunas de sus reglas no aplican y otras muerden mucho
+> más fuerte—, escrito de cero: la skill de origen **no declara licencia**, así que se
+> cita la idea y no se copia el texto.
+
+### 12 bis.1 · Un solo sitio donde se limpia
+
+Un juego se sale de una partida por más puertas de las que parece: morir, terminar el
+nivel, volver al menú, cerrar desde la pausa, `room_goto` de un atajo de depuración.
+Cada puerta que limpia por su cuenta es una puerta que se olvidará de lo próximo que
+añadas.
+
+**Una función, un sitio.** `partida_limpiar()` (o el nombre que uses) que borre en
+orden fijo: estructuras de datos → temporizadores → interfaz → proyectiles y
+partículas → enemigos. Todas las salidas la llaman. **Mecánica nueva = una línea más
+ahí dentro**, nunca una limpieza esparcida por cinco eventos.
+
+En GameMaker el sitio natural es el evento **Clean Up**, que se dispara *tanto* al
+destruir la instancia *como* al terminar la sala — las dos puertas por las que se
+escapan las fugas.
+
+### 12 bis.2 · Lo que GameMaker **no** recoge solo
+
+Aquí la traducción no es literal: en un motor con recolector de basura, un mapa que
+nadie mira desaparece. En GML **no**. Un `ds_map` vive hasta que alguien llama a
+`ds_map_destroy`, y si nadie lo hace, cada entrada en la sala deja otro. El juego va
+perfecto en la demo de dos minutos y se arrastra a la media hora.
+
+Se crea a mano y se destruye a mano:
+
+| Se crea con | Se destruye con |
+|---|---|
+| `ds_map_create` · `ds_list_create` · `ds_grid_create` · `ds_stack_create` · `ds_queue_create` · `ds_priority_create` | `ds_*_destroy` |
+| `surface_create` | `surface_free` |
+| `part_system_create` / `part_system_create_layer` · `part_type_create` · `part_emitter_create` | `part_*_destroy` |
+| `buffer_create` | `buffer_delete` |
+| `vertex_create_buffer` | `vertex_delete_buffer` |
+| `audio_emitter_create` | `audio_emitter_free` |
+| `time_source_create` | `time_source_destroy` |
+| `sprite_add` · `font_add` | `sprite_delete` · `font_delete` |
+
+**Los structs y los arrays sí se recogen solos** — esa es justamente la razón por la
+que conviene preferirlos a las `ds_*` en código nuevo (`08 · 15`). Las `ds_*` siguen
+haciendo falta para lo que ellas hacen mejor: rejillas grandes, colas de prioridad.
+
+> 🤖 **Esto ya no es un consejo, es una comprobación.**
+> `python3 "$BIB/_indice/auditar-juego-completo.py" <proyecto>` lista cada familia que
+> tu proyecto crea y nunca destruye en ninguna parte. Está calibrado para no dar
+> falsos positivos: solo habla si el destructor **no aparece ni una vez** en todo el
+> proyecto, y a `sprite_add`, `font_add` y `time_source_create` les exige aparecer más
+> de una vez antes de decir nada, porque cargar una fuente al arrancar y usarla toda la
+> partida es legítimo y no crece. Medido contra los 22 juegos completos de
+> `11 - Código descargado/juegos_y_motores` para fijar ese umbral.
+
+### 12 bis.3 · La alarma muere contigo; el *time source*, no
+
+Una alarma pertenece a su instancia: si la instancia se destruye, la alarma se va con
+ella. Es cómodo y es la razón por la que casi nadie piensa en esto. Pero
+`time_source_create` **no** pertenece a nadie: sigue viva, y su función de vuelta puede
+ejecutarse cuando el objeto que la creó ya no existe, tocando variables de una
+instancia muerta. Guárdate el identificador y destrúyelo en **Clean Up**.
+
+### 12 bis.4 · Copia los datos ANTES de destruir
+
+El patrón de siempre: la bala muere y quiere dejar chispas de su color en su posición.
+
+```gml
+// ✗ leer del difunto
+instance_destroy();
+efecto_chispas(x, y, color);   // en el evento Destroy aún funciona…
+                               // …pero llamado desde FUERA, sobre un id ya muerto, no
+// ✓ copiar primero, destruir después
+var _x = x, _y = y, _c = color;
+instance_destroy();
+efecto_chispas(_x, _y, _c);
+```
+
+Y su hermano mayor, que ya nos mordió y está documentado en `06 - Assets y Scripts/scr_pool.gml`:
+**`instance_exists()` devuelve `false` sobre una instancia desactivada**. Comprobar
+existencia antes de reactivar da siempre «no existe», y el objeto se pierde para
+siempre sin un solo error. Primero `instance_activate_object()`, después preguntar.
+
+### 12 bis.5 · Modificar un atributo sin mirar los efectos activos
+
+El clásico: el jugador tiene una ralentización activa, entra en una zona de barro que
+«asegura» una velocidad mínima, y el `max()` borra la ralentización.
+
+```gml
+// ✗ el suelo pisa el efecto de estado
+velocidad = max(velocidad, VELOCIDAD_BASE);
+// ✓ la referencia es la base YA modificada por los efectos activos
+velocidad = max(velocidad, velocidad_base_actual);
+```
+
+Cualquier código que toque velocidad, ataque, defensa o tamaño tiene que preguntar
+primero qué efectos temporales hay puestos. El sistema de efectos de estado está en
+[`04 · 32`](../04%20-%20Recetas%20por%20género/32%20-%20Sistema%20de%20daño%20y%20efectos%20de%20estado.md);
+esta es la regla que hace que se use de verdad.
+
+### 12 bis.6 · La lista, en una tanda
+
+Antes de dar por terminada una versión, con el juego **en marcha**:
+
+```
+[ ] Cada salida de partida (morir, completar, menú, pausa→salir) llama a la MISMA
+    función de limpieza.
+[ ] Toda ds_*/surface/buffer/partícula/vertex buffer/emisor creada tiene su destructor
+    en algún Clean Up  →  lo comprueba auditar-juego-completo.py.
+[ ] Todo time_source_create guardado y destruido; ninguna función de vuelta toca una
+    instancia que puede haber muerto.
+[ ] Los datos se copian a variables locales antes de instance_destroy().
+[ ] Nada reactiva instancias sin instance_activate_object() antes de instance_exists().
+[ ] Ningún cambio de atributo ignora los efectos de estado activos.
+[ ] Entrar y salir de la misma sala veinte veces seguidas: la memoria del depurador
+    vuelve al mismo sitio, no sube en escalera.
+```
+
+Ese último punto es el que los caza casi todos, y no lo automatiza nadie: se entra y
+se sale veinte veces mirando la ventana **Memory** del depurador. Si sube en escalera y
+no baja, algo de la tabla de 12 bis.2 se está quedando dentro.
+
+---
+
 ## 13 · Errores clásicos y cómo evitarlos
 
 | Error | Por qué duele | Qué hacer |
