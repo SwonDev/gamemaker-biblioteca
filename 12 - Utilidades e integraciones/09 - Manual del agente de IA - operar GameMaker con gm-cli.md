@@ -110,7 +110,7 @@
 
 ---
 
-## 0 · Las diecisiete trampas que hacen fracasar a un agente hoy
+## 0 · Las dieciocho trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -1608,6 +1608,58 @@ si necesitas varias pulsaciones de la misma tecla, suelta y deja pasar al menos 
 antes de contar el siguiente borde. Y sobre todo, **elige teclas sin doble significado**: `ESC`
 suele ser a la vez «pausa» y «atrás», y ahí el doble borde se nota el doble.
 
+### Trampa 18 · Desde un Mac se COMPILA para Windows, pero no se EMPAQUETA — y el error no lo dice
+
+**El síntoma**: `gm-cli compile --target windows` sale con éxito desde macOS. Anima. Después,
+`gm-cli package --target windows` escupe **un muro de traza de C#** que empieza así:
+
+```
+System.DllNotFoundException: Unable to load shared library 'kernel32.dll' or one of its
+dependencies … dlopen(…/kernel32.dll.dylib, 0x0001): tried: … (no such file)
+   at Vestris.ResourceLib.Kernel32.BeginUpdateResource(String pFileName, …)
+   at Igor.Utils.UpdateWindowsVersion(String _filePath, YYDictionary`2 _options)
+   at Igor.WindowsBuilder.PackageZip()
+```
+
+Leído deprisa —y son treinta líneas de `dlopen` fallando— parece «la exportación a Windows está
+rota» o «falta un runtime». **Ninguna de las dos.**
+
+**La causa, que está en la última línea útil de la traza**: el empaquetado de Windows termina
+**sellando la versión dentro del `.exe`**, y eso lo hace con `BeginUpdateResource`, una función
+de la **API de Windows**. En macOS esa DLL no existe y no puede existir. Es el *último* paso del
+empaquetado, no el primero.
+
+**Lo que sí tienes cuando eso falla** — y esto es lo que nadie dice: el `.exe` de Windows **ya
+está construido**. Medido el 2026-09-09 con el juego de [`r18`](../_indice/auditorias/r18-prueba-visual.md):
+
+```console
+$ ls .gmcache/build-gms2-windows-VM/output/
+data.win        970 316 bytes     ← los datos del juego
+enjambre.exe  7 941 704 bytes     ← el runner de Windows, PE32+ x86-64
+options.ini
+```
+
+Y **funciona**. Ejecutado bajo Wine 11 en el mismo Mac: `GameMaker v2026.0.0.23`, `DirectX11:
+Using hardware device`, audio inicializado, los menús navegados con teclas simuladas, y el
+juego escribió su partida guardada con la versión de esquema y el *checksum* correctos —
+comprobado recalculándolo fuera del juego.
+
+**Qué hacer, entonces**:
+
+| Quieres | Desde macOS |
+|---|---|
+| Comprobar que tu juego compila para Windows | ✅ `gm-cli compile --target windows` |
+| Probarlo de verdad | ✅ coge `enjambre.exe` + `data.win` de `.gmcache/build-gms2-windows-VM/output/` |
+| Un `.zip` distribuible, con versión sellada | ❌ hace falta Windows: una máquina o un *runner* de CI |
+
+> ⚠️ **Y una advertencia sobre `screen_save()` bajo Wine**: el juego se ve corriendo en el log
+> —DirectX11 por hardware, `Run_Start`, menús respondiendo— pero el PNG que produce
+> `screen_save()` sale **completamente negro**. No se ha podido distinguir si es cosa de la
+> traducción de DirectX de Wine o del runner de Windows: para eso hace falta una máquina
+> Windows de verdad, que aquí no la hay. **Si verificas tu juego en Windows por captura y sale
+> negra, no concluyas que no dibuja**: comprueba por otra vía —el log, o un archivo que el
+> juego escriba— antes de creerte la imagen.
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -1638,7 +1690,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -2794,7 +2846,7 @@ después de cada `compile`, no solo el `exit 0`.
       «no he mirado nada» (§7.7).
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -2822,11 +2874,11 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] Si una llamada de `resourcetool` falló con `System.AccessViolationException` sobre un
       proyecto que ya sabes sano, la reintentaste antes de asumir que el proyecto está corrupto —
       el propio `ResourceTool@2026.0.17` puede fallar así de forma no determinista
-      (Trampa 11 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      (Trampa 11 de [§0](#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el juego dibuja texto en español, comprobaste **mirando la captura**, no el código,
       que las tildes y la eñe se ven — nunca dependiendo de `draw_set_font(-1)`/la fuente por
       defecto para texto en español (Trampa 12 de
-      [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      [§0](#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 
 ---
 
