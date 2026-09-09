@@ -110,7 +110,7 @@
 
 ---
 
-## 0 · Las quince trampas que hacen fracasar a un agente hoy
+## 0 · Las diecisiete trampas que hacen fracasar a un agente hoy
 
 Léelas antes de escribir un solo comando. Son silenciosas: no lanzan una excepción que las
 delate, así que un agente que no las conozca de antemano pierde el tiempo, o peor, da por
@@ -1548,6 +1548,66 @@ que exija una cuenta o una firma suya (tiendas, certificación, claves). La tabl
 releerla sabiendo que ahora es **más corta de lo que era**: lo que es «abrir un diálogo y
 rellenar un campo» ya no pertenece a esa lista.
 
+### Trampa 16 · Los subcomandos que un agente adivina mal: `SOUND SETFILE`, `type=create` sin subtipo y `OPTIONS SET PROPERTY`
+
+Los tres salieron construyendo el juego de [`r18`](../_indice/auditorias/r18-prueba-visual.md)
+el 2026-09-09, y los tres tienen la misma forma: el nombre que uno escribiría por analogía **no
+existe**, y el error no siempre lo dice.
+
+| Lo que un agente escribe | Qué pasa | Lo que hay que escribir |
+|---|---|---|
+| `sound set name=X path=…`<br>`sound import name=X path=…` | La carpeta `sounds/X/` se crea **vacía**: ni un `.wav` dentro. Y como el proyecto se guarda igual, la salida contiene «Success» — un script que busque esa palabra da el import por bueno | `sound setfile name=X path="…"` |
+| `object event findorcreate name=X type=create subtype=create` | **No crea nada** y no da error legible. El `Create_0.gml` sencillamente no aparece | `object event findorcreate name=X type=create` — **sin `subtype`**. Los eventos que no tienen subtipo (Create, CleanUp, Destroy) hay que pedirlos sin el argumento |
+| `options set platform=mac name=icon_png value=…` | `Ignoring Argument: NAME` · `Missing Argument: PROPERTY` | `options set platform=mac property=icon_png value="…"` |
+
+**La lección, más allá de los tres nombres**: el único modo fiable de saber qué acepta un
+subcomando es **pedírselo a él**. Un argumento inventado hace que imprima su propia ayuda con la
+lista exacta:
+
+```console
+$ gm-cli resourcetool eval "object event findorcreate name=obj_x type=draw subtype=zzz"
+Invalid subtype 'zzz' for event type 'draw'. Expected draw_normal | draw_begin | draw_end |
+draw_pre | draw_post | gui | gui_begin | gui_end | draw_resize
+```
+
+Es el mismo truco del nombre inventado que ya usa la [Trampa 10](#trampa-10--options-set-tiene-una-lista-cerrada-real--y-esta-vez-no-hay-campo-crudo-que-la-esquive) para listar propiedades, aplicado a los eventos.
+
+> 🔴 **Y la regla que los cubre a los tres**: «Success» en la salida **no** es verificación.
+> Aquí el `sound set` inexistente devolvió una salida con «Success» dentro —del guardado del
+> proyecto, no del import— y un script que la buscaba dio por importados ocho sonidos que no
+> existían. Lo que se comprueba es el **disco**: `find sounds -name "*.wav"`. Es la misma
+> lección de la [Trampa 7](#trampa-7--antes-de-dar-un-comando-por-imposible-prueba-resource-info-exprproject-y-help-comando), pagada otra vez.
+
+### Trampa 17 · `keyboard_key_release()` genera un SEGUNDO borde de `keyboard_check_pressed`
+
+**El síntoma**: un guion de prueba que simula una pulsación con
+`keyboard_key_press(k)` y la suelta al fotograma siguiente con `keyboard_key_release(k)`
+produce **dos** eventos de «tecla recién pulsada», no uno. En un menú, la primera pulsación
+abre la pausa y la segunda la cierra: la captura de pantalla sale con el juego corriendo y
+parece que la pausa no funciona.
+
+**Medido en esta sesión** (runner de Mac, 2026.0.0.23), instrumentando el objeto que recibe la
+entrada:
+
+```console
+# con press + release
+###PAUSA### recibida en estado=jugando
+###PAUSA### recibida en estado=pausa      ← el segundo borde, del RELEASE
+
+# con press y SIN release
+###PAUSA### recibida en estado=jugando    ← uno solo
+```
+
+**Por qué importa aunque no escribas pruebas**: `keyboard_key_press` es la vía por la que un
+agente sin manos ejerce el juego que acaba de construir —lo que convierte «compila» en «se
+navega»—. Si el guion suelta la tecla, cada pulsación cuenta doble y el recorrido se sale por
+donde no debe, y el síntoma es una captura equivocada, no un error.
+
+**Qué hacer**: en un guion de prueba, **pulsa y no sueltes** si el juego se cierra poco después;
+si necesitas varias pulsaciones de la misma tecla, suelta y deja pasar al menos un fotograma
+antes de contar el siguiente borde. Y sobre todo, **elige teclas sin doble significado**: `ESC`
+suele ser a la vez «pausa» y «atrás», y ahí el doble borde se nota el doble.
+
 ---
 
 ## 1 · El ciclo completo del agente
@@ -1578,7 +1638,7 @@ compilador, no a todos los que hay.
 > ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
-> llegó al paquete compilado (Trampa 8 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+> llegó al paquete compilado (Trampa 8 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 > **Antes de cerrar una tarea, compila al menos una vez sin el flag** y lee la salida completa —
 > ver el checklist de [§8](#8--checklist-final-antes-de-dar-una-tarea-por-terminada).
 
@@ -2734,7 +2794,7 @@ después de cada `compile`, no solo el `exit 0`.
       «no he mirado nada» (§7.7).
 - [ ] **Compilaste también sin `--errors-only` al menos una vez** y leíste la salida completa
       buscando `WARNING` — no solo el `exit 0` del paso anterior. Es el único modo que muestra un
-      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      *included file* que no llegó al paquete (Trampa 8 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el proyecto tiene algún `includedfile`, comprobaste su `filePath`
       (`resource info expr=project.IncludedFiles LIST` o el `.yyp`) y que el archivo físico
       existe de verdad dentro de `datafiles/` — no confiaste en que `resourcetool` lo copiara.
@@ -2762,11 +2822,11 @@ después de cada `compile`, no solo el `exit 0`.
 - [ ] Si una llamada de `resourcetool` falló con `System.AccessViolationException` sobre un
       proyecto que ya sabes sano, la reintentaste antes de asumir que el proyecto está corrupto —
       el propio `ResourceTool@2026.0.17` puede fallar así de forma no determinista
-      (Trampa 11 de [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      (Trampa 11 de [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 - [ ] Si el juego dibuja texto en español, comprobaste **mirando la captura**, no el código,
       que las tildes y la eñe se ven — nunca dependiendo de `draw_set_font(-1)`/la fuente por
       defecto para texto en español (Trampa 12 de
-      [§0](#0--las-quince-trampas-que-hacen-fracasar-a-un-agente-hoy)).
+      [§0](#0--las-diecisiete-trampas-que-hacen-fracasar-a-un-agente-hoy)).
 
 ---
 
