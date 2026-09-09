@@ -218,8 +218,10 @@ arreglo** —la causa es un `gmpm.dll` desparejado, no la plantilla—: receta e
    ejecutable, las *Variable Definitions* de un objeto, el `nineSlice`, mover un recurso de
    carpeta, anidar capas, el código de creación de una instancia, crear una Extensión y los Flex
    Panels. **Todas son clics en diálogos, no juicios humanos**: un agente con control del
-   escritorio puede hacerlas. Antes: copia del proyecto. Después: **verifica por CLI**
+   escritorio debería poder hacerlas. Antes: copia del proyecto. Después: **verifica por CLI**
    (`options get`, `resource info`, `font glyphlist`), nunca por lo que se vio en pantalla.
+   ⚠️ **Razonado, no medido**: nadie ha ejecutado aún ninguna de las nueve conduciendo el IDE.
+   Trátalo como vía plausible y sin rodar (`12/09 §0 bis`).
 4. **El humano, solo para sus sentidos y sus cuentas.** Si se ve bien, si se oye bien, si se
    siente bien, el rendimiento en hardware real, y lo que exija su firma o su cuenta de tienda.
    Esa lista es **más corta de lo que parece**: rellenar un campo en un diálogo ya no está en ella.

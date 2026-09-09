@@ -1411,6 +1411,19 @@ humanos. Eso convierte «pídeselo al humano» en «hazlo tú, con más cuidado�
 > resultado por CLI** —`options get`, `resource info`, `font glyphlist`— en vez de fiarte de lo
 > que se vio en pantalla. La regla de leer siempre de vuelta vale aquí el doble.
 
+> 🔎 **Estado de esta afirmación, dicho con la misma vara que el resto del documento.** Lo de
+> arriba es **razonado, no medido**: la lista de nueve operaciones sí está verificada una a una
+> con sus variantes, y *Codex Computer Use* está instalado en este equipo (comprobado el
+> 09-09-2026 en `~/.codex/computer-use/`), pero **nadie de este proyecto ha ejecutado ninguna de
+> las nueve conduciendo el IDE**. Que sean diálogos y no juicios humanos hace el argumento
+> sólido; no lo convierte en una prueba.
+>
+> **Lo que lo convertiría en prueba**, y es el orden en que conviene intentarlo —de menos a más
+> riesgo—: hornear los glifos de una fuente (Trampa 5) sobre un proyecto de usar y tirar, y
+> comprobar el resultado con `font glyphlist`, que devuelve el diccionario vacío o lleno sin
+> ambigüedad. Si eso funciona, el resto de la lista es la misma mecánica. Hasta entonces, trátalo
+> como una vía **plausible y sin rodar**, no como una garantía.
+
 ### 4º · El humano, solo para lo que depende de sus sentidos o de su cuenta
 
 Lo que queda tras los tres peldaños anteriores es corto y no lo resuelve ninguna herramienta:
