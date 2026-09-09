@@ -308,5 +308,86 @@ def main():
     return 1 if (inventadas or problemas_aridad) else 0
 
 
+def autoprueba():
+    """Casos que ya han mordido, montados como proyectos de mentira.
+
+    Este script es el que un agente corre sobre SU juego, así que sus dos formas
+    de equivocarse son caras y opuestas: dejar pasar una función inventada (y el
+    juego no arranca) o señalar una real (y se enseña a desconfiar de la lista
+    entera, que es peor — pasó en r12).
+    """
+    import subprocess, tempfile
+    yo = os.path.abspath(__file__)
+    fallos = []
+
+    def revisar(nombre, condicion, detalle=""):
+        if condicion:
+            print("  ✓ " + nombre)
+        else:
+            fallos.append(nombre)
+            print("  ✗ %s  ->  %s" % (nombre, detalle))
+
+    def proyecto(base, ficheros):
+        os.makedirs(base, exist_ok=True)
+        with open(os.path.join(base, "falso.yyp"), "w", encoding="utf-8") as f:
+            f.write('{"resources":[]}')
+        for nombre, codigo in ficheros.items():
+            d = os.path.join(base, "scripts", nombre)
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, nombre + ".gml"), "w", encoding="utf-8") as f:
+                f.write(codigo)
+        r = subprocess.run([sys.executable, yo, base, "--todo"], capture_output=True, text=True)
+        return r.returncode, r.stdout
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # 1 · Código correcto: no puede dar ni un falso positivo.
+        c, o = proyecto(os.path.join(tmp, "bien"), {
+            "scr_ok": "function mover() {\n  x += lengthdir_x(4, image_angle);\n"
+                      "  draw_sprite_ext(spr, 0, x, y, 1, 1, 0, c_white, 1);\n}\n"})
+        revisar("código correcto sale con 0", c == 0, "exit %d · %s" % (c, o.strip()[-120:]))
+
+        # 2 · Una función del runtime que NO existe: tiene que cazarla.
+        c, o = proyecto(os.path.join(tmp, "inventada"), {
+            "scr_mal": "function pinta() {\n  sprite_set_interpolation(spr, false);\n}\n"})
+        revisar("una función inventada del runtime se caza", c != 0, "exit %d" % c)
+        revisar("y la nombra en la salida", "sprite_set_interpolation" in o, o.strip()[-120:])
+
+        # 3 · El caso de r15 §2.3: `case "@":` no puede romper el análisis.
+        c, o = proyecto(os.path.join(tmp, "arroba"), {
+            "scr_mapa": 'function leer(_c) {\n  switch (_c) {\n    case "@": return 1;\n'
+                        '    case "S": return 2;\n  }\n  return 0;\n}\n'})
+        revisar("`case \"@\":` no dispara el aviso de cadena sin cerrar",
+                "NO cierra" not in o and c == 0, o.strip()[-140:])
+
+        # 4 · Una cadena de verdad sin cerrar SÍ tiene que avisar.
+        c, o = proyecto(os.path.join(tmp, "rota"), {
+            "scr_rota": 'function mal() {\n  var _t = "sin cerrar;\n  return _t;\n}\n'})
+        revisar("una cadena sin cerrar de verdad SÍ se avisa", "NO cierra" in o, o.strip()[-140:])
+
+        # 5 · Lo que el propio proyecto define no es «inventado».
+        c, o = proyecto(os.path.join(tmp, "propia"), {
+            "scr_mias": "function mi_helper() { return 1; }\n"
+                        "function usa() { return mi_helper() + 1; }\n"})
+        revisar("una función propia del proyecto no se marca como inventada", c == 0,
+                "exit %d · %s" % (c, o.strip()[-120:]))
+
+        # 6 · Sin argumentos: no puede salir con 0 fingiendo que todo está bien.
+        r = subprocess.run([sys.executable, yo], capture_output=True, text=True)
+        revisar("sin argumentos NO sale con 0", r.returncode != 0, "exit %d" % r.returncode)
+
+        # 7 · Una carpeta que no existe tampoco.
+        r = subprocess.run([sys.executable, yo, os.path.join(tmp, "no_existe")],
+                           capture_output=True, text=True)
+        revisar("una carpeta inexistente NO sale con 0", r.returncode != 0, "exit %d" % r.returncode)
+
+    if fallos:
+        print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
+        return 1
+    print("\n✓ Las 8 comprobaciones de la autoprueba pasan.")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())

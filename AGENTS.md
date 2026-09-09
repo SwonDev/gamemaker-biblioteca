@@ -130,9 +130,9 @@ python3 _indice/actualizar.py
 Eso es todo. Hace, en orden y parando al primer fallo real:
 
 0. **Se comprueba a sí mismo primero.** Las tres herramientas que dan garantías
-   —`verificar-enlaces.py`, `validar-codigo-gml.py` y `auditar-juego-completo.py`— pasan sus
-   propias autopruebas (27 casos que ya han mordido de verdad) **antes** de que nadie se fíe de
-   lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
+   —`verificar-enlaces.py`, `validar-codigo-gml.py`, `auditar-juego-completo.py`,
+   `validar-proyecto.py` y `puerta-pixel-art.py`— pasan sus propias autopruebas (**43 casos** que
+   ya han mordido de verdad) **antes** de que nadie se fíe de lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
    igual que «está todo bien». Si el metro está mal, da igual lo que mida. Cada una se puede
    correr suelta con `--autoprueba`.
 1. **Verifica los enlaces internos** — cero rotos o no sigue.
