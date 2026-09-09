@@ -130,10 +130,36 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
         _revisar("`5 bis` y `2.5D` NO cuentan como duplicado de `5`", _c == 0,
                  "exit %d · %s" % (_c, _o.strip()[-100:]))
 
+        # i · Citas por número entre documentos: «13 · 10 §8.7».
+        def _arbol(nombre, cuerpo_citante, cuerpo_citado):
+            raiz = os.path.join(_tmp, nombre)
+            c1 = os.path.join(raiz, "13 - Diseño")
+            c2 = os.path.join(raiz, "04 - Recetas")
+            os.makedirs(c1); os.makedirs(c2)
+            open(os.path.join(c1, "05 - Citante.md"), "w", encoding="utf-8").write(cuerpo_citante)
+            open(os.path.join(c2, "06 - Citado.md"), "w", encoding="utf-8").write(cuerpo_citado)
+            return raiz
+
+        _citado = ("# Citado\n\n## 8. Cómo escalarlo\n\n"
+                   "1. **Uno** — algo.\n2. **Atajos** — puertas de un solo sentido.\n\n"
+                   "## 2 · El método\n\n| # | Qué |\n|---|---|\n| 2.2 | **Concepto** |\n")
+        _ok = _arbol("citas_ok",
+                     "# Citante\n\n## 1 · Uno\n\nVer [x](../04%20-%20Recetas/06%20-%20Citado.md) "
+                     "y `04 · 06 §8.2` y `04 · 06 §2.2` y `04 · 06 §8`.\n", _citado)
+        _c, _o = _correr(_ok)
+        _revisar("citas a encabezado, punto de lista y fila de tabla resuelven", _c == 0,
+                 "exit %d · %s" % (_c, _o.strip()[-140:]))
+
+        _mal = _arbol("citas_mal",
+                      "# Citante\n\n## 1 · Uno\n\nVer [x](../04%20-%20Recetas/06%20-%20Citado.md) "
+                      "y `04 · 06 §99.9`.\n", _citado)
+        _c, _o = _correr(_mal)
+        _revisar("una cita a una sección que NO existe falla", _c != 0, "exit %d" % _c)
+
     if _fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(_fallos))
         sys.exit(1)
-    print("\n✓ Las 9 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 11 comprobaciones de la autoprueba pasan.")
     sys.exit(0)
 
 DEST = sys.argv[1] if len(sys.argv) > 1 else RAIZ
@@ -423,8 +449,81 @@ def secciones_repetidas(ruta_md):
     return {k: v for k, v in vistos.items() if v > 1}
 
 
+# ─── Citas por número entre documentos: «13 · 10 §8.7» ──────────────────────
+# 2 239 de estas hay en la biblioteca, y NO son enlaces: nadie las comprobaba. Se
+# renumera una sección y se quedan apuntando al vacío en silencio. Se detectó al
+# renumerar cuatro secciones el 09-09-2026, y una estaba rota de antes.
+#
+# Una etiqueta citable puede venir de tres sitios, y los tres son legítimos aquí:
+#   · un encabezado           `### 8.7 · …`
+#   · una fila de tabla        `| 2.2 | **Concepto y pitch** | …`
+#   · un punto de lista numerada dentro de una sección numerada
+#     (`## 8. Cómo escalarlo` + `2. **Atajos** …`  →  §8.2)
+PAT_CITA = re.compile(
+    r"\b(\d{2})\s*(?:·|/)\s*(\d{2})\s*§\s*"
+    r"([0-9]+(?:\.[0-9]+)*(?:\s+(?:bis|ter|quater|quinquies)(?:\.[0-9]+)*)?)", re.I)
+PAT_FILA_ETIQ = re.compile(
+    r"^\|\s*([0-9]+(?:\.[0-9]+)*(?:\s+(?:bis|ter|quater|quinquies)(?:\.[0-9]+)*)?)\s*\|", re.I)
+PAT_PUNTO = re.compile(r"^\s{0,3}(\d+)\.\s+\S")
+
+CACHE_ETIQUETAS = {}
+
+
+def etiquetas_citables(ruta_md):
+    """Todas las etiquetas «§X» que ese documento define, de las tres formas."""
+    if ruta_md in CACHE_ETIQUETAS:
+        return CACHE_ETIQUETAS[ruta_md]
+    etiquetas, dentro, seccion = set(), False, None
+    try:
+        txt = open(ruta_md, encoding="utf-8", errors="replace").read()
+    except OSError:
+        CACHE_ETIQUETAS[ruta_md] = etiquetas
+        return etiquetas
+    for linea in txt.splitlines():
+        if PAT_FENCE.match(linea.strip()):
+            dentro = not dentro
+            continue
+        if dentro:
+            continue
+        m = PAT_SECCION.match(linea)
+        if m:
+            et = " ".join(m.group(1).lower().split())
+            etiquetas.add(et)
+            seccion = et
+            continue
+        m = PAT_FILA_ETIQ.match(linea)
+        if m:
+            etiquetas.add(" ".join(m.group(1).lower().split()))
+            continue
+        m = PAT_PUNTO.match(linea)
+        if m and seccion and "." not in seccion and " " not in seccion:
+            etiquetas.add(f"{seccion}.{m.group(1)}")
+    CACHE_ETIQUETAS[ruta_md] = etiquetas
+    return etiquetas
+
+
+def indice_de_documentos(destino):
+    """(carpeta, documento) → ruta, para resolver «13 · 10»."""
+    idx = {}
+    for r, ds, fs in os.walk(destino):
+        ds[:] = [d for d in ds if d not in {".git", "node_modules", "11 - Código descargado",
+                                            "09 - Manual oficial", ".ruff_cache",
+                                            "Lumbre", "GameMaker_Fuentes", "auditorias"}]
+        for fi in fs:
+            if not fi.endswith(".md"):
+                continue
+            mc = re.match(r"^(\d{2}) ", os.path.basename(r))
+            mf = re.match(r"^(\d{2}) ", fi)
+            if mc and mf:
+                idx[(mc.group(1), mf.group(1))] = os.path.join(r, fi)
+    return idx
+
+
 duplicadas = []
 revisados = 0
+DOCS_POR_NUMERO = indice_de_documentos(DEST)
+citas_rotas = []
+citas_ok = 0
 for _raiz, _dirs, _files in os.walk(DEST):
     _dirs[:] = [d for d in _dirs if d not in {".git", "node_modules", "11 - Código descargado",
                                               "09 - Manual oficial", ".ruff_cache",
@@ -437,6 +536,20 @@ for _raiz, _dirs, _files in os.walk(DEST):
         rep = secciones_repetidas(_ruta)
         if rep:
             duplicadas.append((_ruta, rep))
+        try:
+            _txt = open(_ruta, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        for _m in PAT_CITA.finditer(_txt):
+            _dest = DOCS_POR_NUMERO.get((_m.group(1), _m.group(2)))
+            if _dest is None:
+                continue          # documento no numerado o fuera del árbol: no se juzga
+            _et = " ".join(_m.group(3).lower().split())
+            if _et in etiquetas_citables(_dest):
+                citas_ok += 1
+            else:
+                citas_rotas.append((os.path.relpath(_ruta, RAIZ), _m.group(0),
+                                    os.path.relpath(_dest, RAIZ)))
 
 if duplicadas:
     print(f"\n✗ {len(duplicadas)} documento(s) repiten un número de sección "
@@ -448,4 +561,13 @@ if duplicadas:
 else:
     print(f"\n{revisados} documentos sin números de sección repetidos.")
 
-sys.exit(1 if (rotos or anclas_rotas or duplicadas) else 0)
+if citas_rotas:
+    print(f"\n✗ {len(citas_rotas)} cita(s) «NN · MM §X» apuntan a una sección que no existe:")
+    for doc, cita, dest in citas_rotas[:20]:
+        print(f"  {doc}\n      «{cita}» → {dest}")
+    if len(citas_rotas) > 20:
+        print(f"  … y {len(citas_rotas) - 20} más")
+else:
+    print(f"{citas_ok} citas por número («13 · 10 §8.7») resuelven a una sección real.")
+
+sys.exit(1 if (rotos or anclas_rotas or duplicadas or citas_rotas) else 0)

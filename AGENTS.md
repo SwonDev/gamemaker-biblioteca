@@ -131,11 +131,14 @@ Eso es todo. Hace, en orden y parando al primer fallo real:
 
 0. **Se comprueba a sí mismo primero.** Las tres herramientas que dan garantías
    —`verificar-enlaces.py`, `validar-codigo-gml.py`, `auditar-juego-completo.py`,
-   `validar-proyecto.py` y `puerta-pixel-art.py`— pasan sus propias autopruebas (**45 casos** que
+   `validar-proyecto.py` y `puerta-pixel-art.py`— pasan sus propias autopruebas (**47 casos** que
    ya han mordido de verdad) **antes** de que nadie se fíe de lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
    igual que «está todo bien». Si el metro está mal, da igual lo que mida. Cada una se puede
    correr suelta con `--autoprueba`.
-1. **Verifica los enlaces internos** — cero rotos o no sigue.
+1. **Verifica los enlaces internos** — cero rotos o no sigue. Y con ellos, dos cosas que
+   no son enlaces y nadie comprobaba: que ningún documento **repita un número de sección**
+   (una cita «§N» ahí es ambigua) y que las **2 272 citas por número** del tipo
+   «`13 · 10 §8.7`» resuelvan a una sección que existe de verdad.
 2. **Regenera** `documentos.json` y `simbolos.json` desde el disco, incluido el cruce
    «qué documento explica este símbolo».
 3. **Sincroniza `MAPA.json`**: descubre los documentos nuevos, actualiza títulos y recuentos.
