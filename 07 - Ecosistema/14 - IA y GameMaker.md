@@ -501,12 +501,35 @@ instalar.)*
 |---|---|---|---|
 | **`gamemaker-resource-tool`** (oficial) | — | Lo que lanza `gm-cli resourcetool mcp`: crear y editar recursos (objetos, sprites, rooms, eventos) del proyecto. Es el que traen los proyectos de `gm-cli init` | **Por defecto.** Es oficial, va con tu runtime y no añade dependencias |
 | **`gms-mcp`** (PyPI, terceros) | Python 3.10+ | Crear/renombrar assets, **indexar símbolos GML** (definición y referencias), texture groups, **seleccionar runtime, compilar y ejecutar**, health checks. Trabaja dentro de un «project boundary» de seguridad | Cuando quieras indexado de símbolos y control de compilación desde el agente, más allá de los recursos |
-| **`gamemaker-mcp`** (Petah, GitHub) | Node.js ≥22 | Solo **documentación**: buscar funciones GML, búsqueda de texto, navegar la referencia. No toca el proyecto | Si tu agente solo necesita consultar la API (aunque esta biblioteca ya cubre eso offline con `buscar.py`) |
+| **`gamemaker-mcp`** (Petah, **GitHub**) | Node.js ≥22 | Solo **documentación**: buscar funciones GML, búsqueda de texto, navegar la referencia. No toca el proyecto | Si tu agente solo necesita consultar la API (aunque esta biblioteca ya cubre eso offline con `buscar.py`) |
+| **`gamemaker-mcp`** (yearningss, **npm**) ⚠️ mismo nombre, proyecto distinto | Node.js | **225 herramientas**: inspección del `.yyp`, edición guardada, operaciones de objeto/sala/sprite/shader, instantáneas, diagnósticos de GML, perfilador, ejecutor de tests, generador de JSDoc para Feather y compilación con Igor. Instalador para 20 clientes de IA | Ver el aviso de abajo antes de instalarlo |
 
 > 🔺 **`gms-mcp` está en desarrollo activo** (v0.0.7 publicada el **2 de septiembre de 2026**,
 > con CI contra GameMaker 2024 y 2026 LTS reales). Es de terceros: instálalo con
 > `pip install gms-mcp` **revisando antes** que la versión soporta tu runtime.
 > Fuentes: <https://pypi.org/project/gms-mcp/> · <https://github.com/Petah/gamemaker-mcp>
+
+> 🔴 **Cuidado con el nombre `gamemaker-mcp`: son DOS proyectos distintos.** El de la tabla que
+> «solo documenta» es <https://github.com/Petah/gamemaker-mcp>. El paquete de **npm** con ese
+> mismo nombre es otro: <https://github.com/yearningss/gamemaker-mcp>, MIT, y hace muchísimo
+> más. Medido el 09-09-2026: **v2.0.0 publicada ese mismo día**, repositorio creado el
+> 21-07-2026, **15 estrellas y 125 descargas semanales**. Es decir: ambicioso, activo y **sin
+> rodaje**.
+>
+> **Lo que promete** (su README): 225 herramientas MCP, análisis estático de GML, perfilador de
+> FPS, detector de código muerto, auditor de estado de dibujo, ejecutor de tests, generador de
+> JSDoc para Feather, instantáneas del proyecto con restauración, y compilación con Igor
+> síncrona o en segundo plano.
+>
+> ⚠️ **Y lo que hay que sopesar antes de usarlo**: escribe **directamente sobre los `.yy`/`.yyp`**
+> («tolerant parsing… including trailing commas»), no a través del `ResourceTool` oficial. Eso es
+> exactamente lo que prohíbe la regla dura de esta biblioteca y de `AGENTS.md §4`, porque el
+> formato es frágil. Lo mitiga con concurrencia optimista por SHA-256 y copias de seguridad, que
+> es más de lo que hace un `sed`, pero **sigue siendo edición directa**. Nadie de este proyecto
+> lo ha probado. Si lo usas, haz una copia del proyecto antes y compara el `.yyp` después.
+>
+> **Por defecto sigue siendo `gamemaker-resource-tool`**: es oficial, viene con tu runtime, y
+> `12 · 09 §3 bis` documenta ya cómo construir salas, capas, cámaras y tilemaps con él.
 >
 > 💡 **¿MCP de docs de terceros vs esta biblioteca?** `gamemaker-mcp` hace lo mismo que hace el
 > `buscar.py` de este proyecto —dar la API de GML a un LLM— pero como servidor MCP en vez de

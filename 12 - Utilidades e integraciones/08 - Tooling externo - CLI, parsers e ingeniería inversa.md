@@ -144,6 +144,35 @@ sin enterarte. Hay una *pull request* que lo diagnostica correctamente — la **
 En macOS y Linux, por tanto, usa `gmts compile` a mano (o engánchalo tú a tu propio flujo) y
 **no confíes en la compilación automática**.
 
+> 🆕 **Hay una alternativa VIVA, y apunta justo a nuestro runtime: `typescript-to-gml`**
+> (<https://github.com/Rhemery/Typescript-to-GML>, MIT). Medido el 09-09-2026: repositorio
+> creado el **30-08-2026**, último cambio el **07-09-2026**, `0.2.0-beta.5` en npm con **202
+> descargas semanales** — más que el paquete que documenta esta sección, y con dos semanas de
+> vida.
+>
+> Lo que lo hace distinto de `@odemian/gamemaker-typescript`:
+>
+> - **Declara compatibilidad con `2026.0.0.23`**, el runtime exacto de esta biblioteca — el
+>   agujero que la sección de abajo dejaba abierto.
+> - **Genera las declaraciones desde el `GmlSpec.xml` del runtime instalado**, que es la misma
+>   fuente de verdad que usa `_indice/simbolos.json`. No hay una lista escrita a mano que se
+>   quede vieja.
+> - **Es conservador a propósito**: la sintaxis no soportada produce un diagnóstico `TS2GML`
+>   localizado en el fuente **en vez de GML inválido**. Es la política contraria a «genera algo y
+>   que falle al compilar».
+> - Las clases se vuelven constructores de GML; las que derivan de `GMObject` se vuelven
+>   **assets de objeto con sus archivos de evento**; las que derivan de `GMRoom`, código de
+>   creación de una sala existente. Un manifiesto registra qué assets son suyos, así que **no
+>   pisa** los que escribiste tú.
+>
+> ⚠️ **Lo que él mismo avisa, y hay que respetar**: es una beta pública, *«suitable for guarded
+> use in a source-controlled project»*, y **solo se ha probado de punta a punta en el objetivo
+> Windows VM**. Ni este proyecto ni el autor lo han ejercitado en macOS. Si lo pruebas, en un
+> proyecto con control de versiones y leyendo antes su `docs/Known-Issues.md`.
+>
+> Instalación: no es un `pnpm add` — se importa un `.yymps` en el IDE y se ejecuta
+> `ts2gml.bat build` desde la carpeta del juego, con Node ≥22 y una extensión de VS Code.
+
 ⚠️ **Sin verificar contra LTS 2026.0.0.23.** El README no menciona esa versión en ningún punto, y
 el paquete está parado: `0.0.11` publicada el **17-04-2026**, sin un solo *commit* desde entonces
 (comprobado en la API de GitHub el 08-09-2026, casi cinco meses). No significa que no funcione
