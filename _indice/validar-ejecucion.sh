@@ -67,6 +67,17 @@ PIEZAS=(
   "scr_banco_nivel_mapa:$RAIZ/_indice/pruebas/banco_nivel_mapa.gml"
   "scr_banco_desactivadas:$RAIZ/_indice/pruebas/banco_desactivadas.gml"
   "scr_banco_fuente:$RAIZ/_indice/pruebas/banco_fuente.gml"
+  "scr_math_util:$RAIZ/06 - Assets y Scripts/scr_math_util.gml"
+  "scr_state_machine:$RAIZ/06 - Assets y Scripts/scr_state_machine.gml"
+  "scr_grid_pathfinding:$RAIZ/06 - Assets y Scripts/scr_grid_pathfinding.gml"
+  "scr_tiempo:$RAIZ/06 - Assets y Scripts/scr_tiempo.gml"
+  "scr_save_load:$RAIZ/06 - Assets y Scripts/scr_save_load.gml"
+  "scr_ui_confirmar:$RAIZ/06 - Assets y Scripts/scr_ui_confirmar.gml"
+  "scr_input_buffer:$RAIZ/06 - Assets y Scripts/scr_input_buffer.gml"
+  "scr_tween:$RAIZ/06 - Assets y Scripts/scr_tween.gml"
+  "scr_camera:$RAIZ/06 - Assets y Scripts/scr_camera.gml"
+  "scr_audio:$RAIZ/06 - Assets y Scripts/scr_audio.gml"
+  "scr_banco_scripts:$RAIZ/_indice/pruebas/banco_scripts.gml"
 )
 for pieza in "${PIEZAS[@]}"; do
     nombre="${pieza%%:*}"
@@ -118,6 +129,26 @@ if python3 "$RAIZ/_indice/pruebas/generar_glifos.py" "$GLIFOS" >/dev/null 2>&1; 
 else
     echo "✗ no se pudo generar la hoja de glifos (¿falta Pillow?). El banco de fuente"
     echo "  NO se puede ejecutar, y eso no es lo mismo que que pase."
+    exit 2
+fi
+
+# Tres sonidos para el banco de audio: era el único script reutilizable que no
+# se podía ejecutar, porque sus funciones reciben ids de sonido. El WAV lo
+# fabrica Python con su biblioteca estándar — ni descargas ni licencias ajenas.
+WAV="$PROY/_tono.wav"
+if python3 "$RAIZ/_indice/pruebas/generar_sonido.py" "$WAV" >/dev/null 2>&1; then
+    for snd in snd_prueba snd_prueba2 snd_prueba3; do
+        gm-cli resourcetool eval "resource create type=sound name=$snd" "$YYP" >/dev/null 2>&1
+        gm-cli resourcetool eval "sound setfile name=$snd path=$WAV" "$YYP" >/dev/null 2>&1
+    done
+    # Leer de vuelta: un sonido sin archivo compila y no suena.
+    if ! ls "$PROY/sounds/snd_prueba/"*.wav >/dev/null 2>&1; then
+        echo "✗ snd_prueba se creó sin archivo de audio: el banco de audio no probaría nada"
+        exit 2
+    fi
+    echo "  (3 sonidos de prueba generados y enlazados)"
+else
+    echo "✗ no se pudo generar el WAV de prueba"
     exit 2
 fi
 

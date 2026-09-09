@@ -19,12 +19,21 @@
 > la carpeta en vez de una lista escrita a mano**: un script nuevo ya no puede quedarse fuera
 > de la prueba sin que nadie se entere.
 >
-> ✅ **Ejecución verificada (2026-09-09), que no es lo mismo:** `scr_nivel_mapa.gml` además se
-> **ejecuta** dentro de un juego real, con un banco de 39 comprobaciones —
-> `bash _indice/validar-ejecucion.sh`. Hizo falta: el script compilaba sin un solo aviso y
-> tenía un fallo que ni el validador de símbolos ni el compilador podían ver (una variable de
-> instancia llamada igual que una función global; ver [`05 · 04 §2 bis`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md)).
-> Los otros doce scripts todavía solo están **compilados**, no ejecutados.
+> ✅ **Ejecución verificada (2026-09-09), que no es lo mismo:** **los trece** se **ejecutan**
+> dentro de un juego real, con un banco de **162 comprobaciones** —
+> `bash _indice/validar-ejecucion.sh`. No es un adorno: sacó **cuatro fallos que compilaban sin
+> un solo aviso**, tres de ellos en código que esta biblioteca reparte.
+>
+> | Qué apareció | Dónde | Por qué no lo veía el compilador |
+> |---|---|---|
+> | Una variable de instancia llamada igual que una función global: leer su nombre devuelve **la función**, no el valor | `scr_nivel_mapa.gml` | Es código válido. Regla en [`05 · 04 §2 bis`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md) |
+> | `pool_cleanup_orphans()` **vaciaba la lista de instancias libres entera** | `scr_pool.gml` | `instance_exists()` dice `false` sobre una desactivada, y las libres lo están |
+> | `destroy()` no destruía **ni una** instancia libre | `scr_pool.gml` | Mismo motivo, con el orden de dos líneas invertido |
+> | Tras `audio_destruir()`, un `audio_init()` posterior **no hacía nada** y dejaba el juego mudo | `scr_audio.gml` | La marca de «ya inicializado» no se borraba. Pasa en cuanto el controlador de audio no es persistente |
+>
+> Y una trampa de uso que ahora avisa sola: en `Grid`/`GridPonderado`, `_ancho` y `_alto` van en
+> **píxeles** mientras que `bloquear()` y `buscar()` van en **celdas**. Pasar columnas donde van
+> píxeles deja una rejilla de 1×1 que nunca encuentra ruta y parece que el pathfinding está roto.
 
 ---
 
