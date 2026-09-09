@@ -45,17 +45,28 @@ for spr in spr_player_idle spr_player_run; do
 done
 
 echo "Añadiendo y compilando los scripts de la biblioteca…"
-for scr in scr_audio scr_camera scr_debug scr_grid_pathfinding scr_input_buffer scr_math_util \
-           scr_pool scr_save_load scr_state_machine scr_tiempo scr_tween scr_ui_confirmar; do
+# Se recorre la carpeta, NO una lista escrita a mano: un script nuevo que nadie
+# añadiera a la lista se quedaría fuera y la prueba seguiría saliendo en verde.
+N=0
+for ruta in "$BIB"/scr_*.gml; do
+    [ -f "$ruta" ] || { echo "✗ no hay ni un scr_*.gml en «$BIB»"; exit 2; }
+    scr="$(basename "$ruta" .gml)"
     gm-cli resourcetool eval "resource create type=script name=$scr" "$YYP" >/dev/null 2>&1
-    cp "$BIB/$scr.gml" "$PROY/scripts/$scr/$scr.gml" 2>/dev/null
+    if ! cp "$ruta" "$PROY/scripts/$scr/$scr.gml" 2>/dev/null; then
+        # Sin esto, un `resource create` fallido dejaba el script FUERA del
+        # proyecto y la compilación salía en verde sin haberlo compilado.
+        echo "✗ no se pudo copiar $scr: el recurso no se creó en el proyecto"
+        exit 2
+    fi
+    N=$((N + 1))
 done
+echo "  ($N scripts)"
 
 SALIDA="$(cd "$PROY" && gm-cli compile 2>&1)"
 ERRS="$(echo "$SALIDA" | grep -icE "compile error|syntax error|Error : |expecting|malformed")"
 
 if echo "$SALIDA" | grep -q "Compilation finished" && [ "$ERRS" -eq 0 ]; then
-    echo "✓ Los 12 scripts reutilizables compilan sin errores contra el runtime 2026.0.0.23."
+    echo "✓ Los $N scripts reutilizables compilan sin errores contra el runtime 2026.0.0.23."
     exit 0
 else
     echo "✗ La compilación falló:"

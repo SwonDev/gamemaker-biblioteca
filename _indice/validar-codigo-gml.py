@@ -88,24 +88,85 @@ def comillas_descuadradas(codigo):
     falsos con UNO real, y eso enseña a desconfiar de la lista entera justo donde estaba
     el único fallo que iba a reventar el juego.
 
-    Se cuenta por línea, tras quitar comentarios, y se ignoran las cadenas verbatim
-    (`@"…"`, `@'…'`), que sí pueden abarcar varias líneas de forma legítima.
-    """
-    sin_com = COMENTARIO.sub(" ", codigo)
-    # Las cadenas verbatim (@"…", @'…') SÍ pueden abarcar varias líneas de forma
-    # legítima y no admiten escapes: se retiran enteras antes de contar, conservando
-    # los saltos de línea para que los números que se devuelvan sigan siendo los del
-    # archivo original.
-    def _hueco(m):
-        return "\n" * m.group(0).count("\n")
-    sin_verbatim = re.sub(r'@"[^"]*"|@\'[^\']*\'', _hueco, sin_com, flags=re.S)
+    NO se hace con expresiones regulares, y esto tiene su historia. La versión de
+    regex quitaba los comentarios primero y luego borraba las cadenas verbatim con
+    `@"[^"]*"`. Daba TRES falsos positivos, todos en código perfectamente válido:
 
+      · `case "@":`  — el `@` pegado a su comilla de cierre parecía el comienzo de
+        un `@"…"`, y se tragaba hasta la siguiente comilla, dos líneas más abajo.
+        Lo encontró un agente que construía un juego con la leyenda de `04 · 58 §2`,
+        donde `"@"` es justo el punto de aparición: **la receta que recomienda esta
+        biblioteca disparaba el validador de esta biblioteca**
+        (`_indice/auditorias/r15-prueba-puzles.md` §2.3).
+      · `"https://…"` — quitar el comentario antes que la cadena convierte el `//`
+        interno en comentario y se lleva por delante la comilla de cierre. Es el
+        mismo error que `limpiar()` documenta en su propio docstring… y que esta
+        función cometía dos líneas más abajo.
+      · `"hola@"`    — cualquier `@` al final de una cadena, por la misma causa que
+        el primero, y sin que el lookbehind `(?<!")` lo salvara.
+
+    El daño no era el aviso: era que el análisis del archivo entero se descartaba.
+    Por eso ahora se recorre carácter a carácter con un autómata de cuatro estados
+    —código, cadena, cadena verbatim, comentario de bloque—, que es la única forma
+    de que «esto es una cadena» y «esto es un comentario» dejen de pisarse.
+    """
     rotas = []
-    for i, linea in enumerate(sin_verbatim.split("\n"), 1):
-        # Se quitan primero las secuencias escapadas (\\ y \") para no contarlas.
-        limpia = re.sub(r'\\.', "", linea)
-        if limpia.count('"') % 2:
+    en_bloque = False        # dentro de /* … */, que cruza líneas
+    en_verbatim = None       # comilla que cierra el @"…" en curso, o None
+
+    for i, linea in enumerate(codigo.split("\n"), 1):
+        j, n = 0, len(linea)
+        en_cadena = None     # comilla que cierra la cadena normal en curso
+
+        while j < n:
+            c = linea[j]
+
+            if en_bloque:
+                if c == "*" and j + 1 < n and linea[j + 1] == "/":
+                    en_bloque = False
+                    j += 2
+                    continue
+                j += 1
+                continue
+
+            if en_verbatim:
+                # Una cadena verbatim no admite escapes: solo la cierra su comilla.
+                if c == en_verbatim:
+                    en_verbatim = None
+                j += 1
+                continue
+
+            if en_cadena:
+                if c == "\\":
+                    j += 2       # secuencia escapada: \" no cierra nada
+                    continue
+                if c == en_cadena:
+                    en_cadena = None
+                j += 1
+                continue
+
+            # --- estado código ---
+            if c == "/" and j + 1 < n and linea[j + 1] == "/":
+                break            # comentario de línea: el resto no cuenta
+            if c == "/" and j + 1 < n and linea[j + 1] == "*":
+                en_bloque = True
+                j += 2
+                continue
+            if c == "@" and j + 1 < n and linea[j + 1] in "\"'":
+                en_verbatim = linea[j + 1]
+                j += 2
+                continue
+            if c in "\"'":
+                en_cadena = c
+                j += 1
+                continue
+            j += 1
+
+        # Una cadena normal que llega al final de la línea sin cerrarse es el fallo
+        # que se persigue: GameMaker no compila, y todo lo que venga después se lee mal.
+        if en_cadena:
             rotas.append(i)
+
     return rotas
 
 
@@ -494,5 +555,54 @@ def main():
     return 1 if (graves or no_ascii or escrituras_wd or problemas_aridad) else 0
 
 
+# --- Autoprueba del detector de cadenas -------------------------------------
+# Once casos que ya han mordido de verdad. Se conservan aquí y no en un archivo
+# aparte porque lo que hay que poder ejecutar en cualquier clon es exactamente
+# esto: `python3 _indice/validar-codigo-gml.py --autoprueba`.
+CASOS_COMILLAS = [
+    # (nombre, código, líneas que DEBEN salir rotas)
+    ("case \"@\" de la leyenda de 04 · 58",
+     'var _c = "x";\nswitch (_c)\n{\n    case "@": a++;  break;\n    case "S": b++;  break;\n}\n', []),
+    ("URL con // dentro de una cadena",
+     'var _u = "https://gamemaker.io";\nvar _v = "otra";\n', []),
+    ("arroba al final de una cadena",
+     'var _m = "hola@";\nvar _n = "y otra";\n', []),
+    ("comillas escapadas dentro de la cadena",
+     'var _a = "dijo \\"hola\\"";\n', []),
+    ("base64 con barras",
+     'var _b = "Ud93/wghI//D2cr/";\nvar _c = 1;\n', []),
+    ("cadena verbatim de varias líneas",
+     'var _t = @"linea 1\nlinea 2";\nvar _z = 1;\n', []),
+    ("comentario de bloque con comillas dentro",
+     'var _a = 1; /* aqui " hay una comilla\n  y otra " */ var _b = 2;\n', []),
+    ("cadena con comilla simple",
+     "var _s = 'texto';\nvar _t = 2;\n", []),
+    ("ROTA: cadena sin cerrar",
+     'var _a = "sin cerrar;\nvar _b = 3;\n', [1]),
+    ("ROTA: sin cerrar en mitad del archivo",
+     'var _a = 1;\nvar _b = "ay;\nvar _c = 3;\n', [2]),
+    ("ROTA: el caso original de r12 (comilla sin escapar en el mapa)",
+     'var _m = ["###", "#"#"];\n', [1]),
+]
+
+
+def autoprueba():
+    fallos = 0
+    for nombre, codigo, esperado in CASOS_COMILLAS:
+        obtenido = comillas_descuadradas(codigo)
+        if obtenido == esperado:
+            print(f"  ✓ {nombre}")
+        else:
+            fallos += 1
+            print(f"  ✗ {nombre}: devolvió {obtenido}, se esperaba {esperado}")
+    if fallos:
+        print(f"\n✗ {fallos} de {len(CASOS_COMILLAS)} casos de comillas_descuadradas() fallan.")
+        return 1
+    print(f"\n✓ Los {len(CASOS_COMILLAS)} casos de comillas_descuadradas() pasan.")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())

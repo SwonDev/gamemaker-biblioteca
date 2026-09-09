@@ -6,16 +6,25 @@
 > OpenGameArt, Freesound, Tiled→GameMaker, paletas, fuentes…), con licencias verificadas y qué
 > formato bajar. Este README cubre solo los **scripts GML**.
 
-> Doce scripts `.gml` listos para importar en cualquier proyecto de **GameMaker LTS 2026**.
+> Trece scripts `.gml` listos para importar en cualquier proyecto de **GameMaker LTS 2026**.
 > Generado en **agosto de 2026** (`scr_audio.gml` y `scr_tiempo.gml`, en **septiembre de 2026**;
-> `scr_ui_confirmar.gml`, el 8 de septiembre de 2026) · Verificado contra el manual oficial con
-> `gm-cli manual read`.
+> `scr_ui_confirmar.gml`, el 8 de septiembre de 2026; `scr_nivel_mapa.gml`, el 9) · Verificado
+> contra el manual oficial con `gm-cli manual read`.
 >
-> ✅ **Compilación verificada (2026-09-08):** los doce scripts se compilaron juntos en un
+> ✅ **Compilación verificada (2026-09-09):** los trece scripts se compilaron juntos en un
 > proyecto real con `gm-cli compile` contra el runtime **2026.0.0.23** — cero errores de GML.
 > La prueba es reproducible: `bash _indice/validar-compilacion.sh` (crea el proyecto en
 > `~/gm_prueba_scripts`, mete los scripts, compila y borra el proyecto al terminar; sale con 0
-> solo si el compilador oficial no da ni un error de GML).
+> solo si el compilador oficial no da ni un error de GML). Desde el 9 de septiembre **recorre
+> la carpeta en vez de una lista escrita a mano**: un script nuevo ya no puede quedarse fuera
+> de la prueba sin que nadie se entere.
+>
+> ✅ **Ejecución verificada (2026-09-09), que no es lo mismo:** `scr_nivel_mapa.gml` además se
+> **ejecuta** dentro de un juego real, con un banco de 39 comprobaciones —
+> `bash _indice/validar-ejecucion.sh`. Hizo falta: el script compilaba sin un solo aviso y
+> tenía un fallo que ni el validador de símbolos ni el compilador podían ver (una variable de
+> instancia llamada igual que una función global; ver [`05 · 04 §2 bis`](../05%20-%20Referencia/04%20-%20Convenciones%20y%20estilo%20GML.md)).
+> Los otros doce scripts todavía solo están **compilados**, no ejecutados.
 
 ---
 
@@ -67,6 +76,7 @@ Lo segundo es más limpio.
 | [`scr_audio.gml`](./scr_audio.gml) | Gestor de audio: buses y emisores por categoría, mezcla con ducking, banco de tomas con round robin, cupo de voces con fundido, anillo de emisores posicionales y crossfade de música/ambiente | ninguna | ⭐ Esencial |
 | [`scr_tiempo.gml`](./scr_tiempo.gml) | `Cooldown` para habilidades, `Temporizador` independiente del framerate y un reloj de juego con escala de tiempo | ninguna | ⭐ Esencial |
 | [`scr_ui_confirmar.gml`](./scr_ui_confirmar.gml) | Diálogo de confirmación (Sí/No) genérico, con «No» siempre por defecto — sin `show_question()` | ninguna | ⭐ Esencial |
+| [`scr_nivel_mapa.gml`](./scr_nivel_mapa.gml) | El nivel como mapa de texto: validar, construir saltándose la roca enterrada, autotile de 4 bits y clave estable para el guardado | ninguna | ⭐ Esencial |
 
 ---
 
