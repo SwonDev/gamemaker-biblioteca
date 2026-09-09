@@ -1,6 +1,6 @@
 ---
 name: gamemaker-biblioteca
-description: "Fuente fidedigna para desarrollar con GameMaker LTS 2026 y GML. Úsala antes de escribir o revisar GML, ante cualquier duda de API (¿existe esta función?, firma, obsoleta, manual), y al planificar o construir un juego con GameMaker en cualquiera de sus disciplinas — diseño de juego y GDD, niveles, mundo, pixel art, animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura y patrones, generación procedural, físicas y fluidos, combate y enemigos, IA, pathfinding, progresión, sonido y voz, testing, producción, negocio, narrativa, matemáticas, móvil y 3D — y para publicar: firmar, notarizar, subir a Steam, Play, App Store y consolas (Nintendo, PlayStation, Xbox). Dispara con GameMaker, GML, gm-cli, resourcetool, archivos .yyp/.yy/.gml, «hazme un juego», «publicar mi juego», y con «no compila» o «se comporta raro» en un proyecto GameMaker."
+description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego», «no compila», «se comporta raro», archivos .yyp/.yy/.gml, gm-cli, resourcetool, publicar un juego. Fuente fidedigna para LTS 2026: verifica cada símbolo antes de escribirlo (¿existe?, firma, obsoleta, manual) y trae las trampas del CLI que hacen fracasar a un agente. Cubre el desarrollo entero — diseño y GDD, niveles, arte y animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura, procedural, físicas, combate, IA, pathfinding, progresión, sonido, narrativa, testing, producción, móvil y 3D — y la publicación: firmar, notarizar, Steam, Play, App Store y consolas."
 ---
 
 # GameMaker · biblioteca fidedigna
@@ -9,15 +9,26 @@ Una base de conocimiento local, en español, verificada contra el runtime instal
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
 detrás un documento contrastado.
 
+**Lo primero de todo, una sola vez por sesión**, y no solo la asignación: también la
+comprobación. Copia las dos líneas tal cual.
+
 ```sh
 BIB="${GM_BIBLIOTECA:-$(cat ~/.config/gamemaker-biblioteca/ruta 2>/dev/null)}"
+[ -f "$BIB/_indice/buscar.py" ] && echo "✓ biblioteca en $BIB" || echo "✗ NO instalada (BIB=«$BIB»): usa gm-cli manual read \"<símbolo>\" para cada duda de API, y NUNCA la memoria."
 ```
 
-Esa línea abre **cada** comando de esta skill: la biblioteca está donde la instalaron, no en una
+`$BIB` abre **cada** comando de esta skill: la biblioteca está donde la instalaron, no en una
 ruta fija. La escribe `instalar.sh` al copiar la skill; `$GM_BIBLIOTECA` la pisa si hace falta.
 
-Si `$BIB` sale vacío, la biblioteca no está instalada en esta máquina: dilo, y cae a
-`gm-cli manual read "<símbolo>"` para cada duda. **Nunca a la memoria.**
+**La segunda línea existe porque sin ella el fallo es mudo.** Si la ruta está vacía —o guardada
+pero ya no existe, que es peor— el primer `python3 "$BIB/_indice/buscar.py"` responde
+`can't open file '/_indice/buscar.py'`: un error de Python que no dice nada sobre qué hacer, y
+que un agente interpreta como «la herramienta está rota» en vez de «la biblioteca no está aquí».
+
+- Sale `✓` → sigue con todo lo de abajo.
+- Sale `✗` → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de
+  API. **Nunca a la memoria.** Todo lo que esta skill dice sobre trampas del CLI, convenciones y
+  flujo sigue siendo válido; lo único que pierdes es el buscador y los documentos.
 
 ## La regla que gobierna todo
 

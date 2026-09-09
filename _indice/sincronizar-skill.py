@@ -202,6 +202,24 @@ def generar_agents_md():
         print("    Kimi Code y otros parsers estrictos rechazarán la skill entera.")
         print("    Suele ser una descripción sin comillas que contiene «: ». Entrecomíllala.")
         return None
+
+    # Los disparadores tienen que caber en la PRIMERA parte de la descripción.
+    # Codex avisa en vivo de que «Skill descriptions were shortened to fit the skills
+    # context budget» cuando hay muchas skills instaladas: lo que se corta es el final.
+    # Si las palabras que hacen saltar la skill viven ahí, la skill deja de activarse y
+    # nadie se entera — el fallo más caro posible, porque no da error: da silencio.
+    DISPARADORES = ("GameMaker", "GML", ".yyp", "gm-cli", "hazme un juego", "no compila")
+    cabeza = descripcion[:200].lower()
+    faltan = [d for d in DISPARADORES if d.lower() not in cabeza]
+    if faltan:
+        print("  ⚠ Estos disparadores NO están en los primeros 200 caracteres de la")
+        print("    descripción, y son los primeros en perderse si un CLI la acorta:")
+        print("      " + ", ".join(faltan))
+        print("    Muévelos al principio; la lista de disciplinas puede ir al final.")
+    if len(descripcion) > 1024:
+        print(f"  ⚠ La descripción mide {len(descripcion)} caracteres. Cuanto más larga,")
+        print("    más probable que un CLI la recorte. Por debajo de 1024 va sobrada.")
+
     out = [
         "# AGENTS.md — Biblioteca GameMaker (generado desde la skill)\n",
         "> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**\n"
@@ -250,7 +268,13 @@ def estado_enlaces():
     sitios = {
         "Claude Code": os.path.expanduser("~/.claude/skills/gamemaker-biblioteca"),
         "Codex (pool)": os.path.expanduser("~/.codex/skills-pool/gamemaker-biblioteca"),
-        "Codex (activa)": os.path.expanduser("~/.codex/skills/gamemaker-biblioteca"),
+        # Codex BORRA esta carpeta por su cuenta: se ha visto desaparecer tras un
+        # `codex exec`, mientras el resto de skills seguían ahí. Y da igual — con la
+        # skill solo en ~/.agents, Codex la encontró y la usó bien (verificado el
+        # 09-09-2026 con `codex exec -m gpt-reserve`: respondió con el comando exacto
+        # de la skill). Por eso su ausencia es informativa, no un fallo: marcarla en
+        # rojo entrenaba a ignorar la lista entera.
+        "Codex (ruta legacy, opcional)": os.path.expanduser("~/.codex/skills/gamemaker-biblioteca"),
         "Genérico ~/.agents (Codex canónico · Copilot CLI · Gemini CLI · Cursor CLI · Kimi Code)":
             os.path.expanduser("~/.agents/skills/gamemaker-biblioteca"),
         "opencode": os.path.expanduser("~/.config/opencode/skills/gamemaker-biblioteca"),
@@ -261,12 +285,19 @@ def estado_enlaces():
         "Cursor CLI": os.path.expanduser("~/.cursor/skills/gamemaker-biblioteca"),
         "Cline": os.path.expanduser("~/.cline/skills/gamemaker-biblioteca"),
     }
+    # CLI que este equipo no tiene instalados: su ausencia no dice nada del estado
+    # de la skill, así que no se pinta como error.
+    OPCIONALES = {"Gemini CLI", "GitHub Copilot CLI", "Cursor CLI", "Cline"}
+
     propio = os.path.join(SKILL, "SKILL.md")
     txt_propio = open(propio, encoding="utf-8").read() if os.path.isfile(propio) else None
     lineas = []
     for nombre, ruta in sitios.items():
         if not os.path.lexists(ruta):
-            lineas.append(f"  ✗ {nombre}: falta {ruta}")
+            # Un destino opcional que falta no es un fallo: es un CLI que no está
+            # instalado, o —en el caso de Codex— una ruta que el propio CLI limpia.
+            marca = "·" if "opcional" in nombre or nombre in OPCIONALES else "✗"
+            lineas.append(f"  {marca} {nombre}: falta {ruta}")
             continue
         real = os.path.realpath(ruta)
         skill_md = os.path.join(real, "SKILL.md")

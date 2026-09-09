@@ -479,20 +479,24 @@ else                camera_set_view_angle(cam, 0);
 
 ### 5.2 Tween helper con structs
 
-> ⚠️ **Deuda técnica del repositorio, léela antes de copiar nada de aquí:** hay **dos** sistemas
-> de tween con una función que se llama igual. El de abajo define
-> `tween_to(_target, _prop, _hasta, _duracion, _ease, _on_end)` con duración en **fotogramas**,
-> `_prop` como **string** de una sola propiedad y necesita el objeto `objTweenManager`.
-> [`06 · scr_tween.gml`](../06%20-%20Assets%20y%20Scripts/scr_tween.gml) define OTRO
-> `tween_to(_objetivo, _props, _duracion, _easing, _on_complete, _retraso)` con duración en
-> **segundos** y un struct de varias propiedades a la vez — y es el que usa
-> [`13 · 04` §4](<../13 - Diseño y producción de videojuegos/04 - Animación de sprites, Sequences y Animation Curves.md#4--animación-procedural-en-código>)
-> y el que la biblioteca trata como estándar cuando no hace falta el `objTweenManager` de esta
-> receta (el shake/hit-stop no dependen del tween). **No crees un tercero, y no mezcles los dos
-> en el mismo proyecto**: GameMaker no permite declarar dos funciones con el mismo nombre.
-> Si tu juego ya usa `scr_tween.gml`, reutilízalo aquí también en vez de este bloque — la única
-> pieza que este documento aporta de más es `objTweenManager` como cola centralizada, que puedes
-> adaptar para llamar al `tween_to()` de `scr_tween.gml` con su propia firma.
+> 💡 **Hay dos sistemas de tween en esta biblioteca, y ahora se llaman distinto a propósito.**
+> Hasta el 09-09-2026 los dos declaraban `tween_to()` con seis argumentos y significados
+> distintos: copiar los dos documentos al mismo proyecto no compilaba, y llamar a uno con la
+> firma del otro fallaba en silencio. El de esta receta pasó a llamarse **`tween_prop`**, que
+> además dice lo que hace.
+>
+> | | `tween_prop` (aquí) | [`tween_to` de `06 · scr_tween.gml`](../06%20-%20Assets%20y%20Scripts/scr_tween.gml) |
+> |---|---|---|
+> | Propiedades | **Una**, por nombre (`"x"`) | **Varias a la vez**, en un struct |
+> | Duración | **Fotogramas** | **Segundos** |
+> | Necesita | El objeto `objTweenManager` | Nada |
+> | Extras | Cola centralizada, cancelar por objetivo | Retraso, `on_complete` |
+>
+> **El estándar de la biblioteca es `tween_to`** — es el que usa
+> [`13 · 04` §4](<../13 - Diseño y producción de videojuegos/04 - Animación de sprites, Sequences y Animation Curves.md#4--animación-procedural-en-código>).
+> Usa esta receta cuando de verdad quieras la cola centralizada de `objTweenManager`; si no,
+> reutiliza `scr_tween.gml` y ahórrate el objeto. **Los dos pueden convivir ya en el mismo
+> proyecto**, pero no hace falta: elige uno.
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -623,13 +627,13 @@ function Tween(
 tweens = [];
 ```
 
-> ⚠️ **`tween_to()` y `tween_cancel_all()` van en un script, no en este `Create`.** Se
+> ⚠️ **`tween_prop()` y `tween_cancel_all()` van en un script, no en este `Create`.** Se
 > llaman desde fuera de `objTweenManager` en el resto del documento (§5.3 y siguientes),
-> y las dos ya son autosuficientes sin `self`: `tween_to()` escribe en
+> y las dos ya son autosuficientes sin `self`: `tween_prop()` escribe en
 > `objTweenManager.tweens` cualificado con punto, y `tween_cancel_all()` ya usa
 > `with (objTweenManager) {...}` por dentro. No hay ninguna razón para dejarlas ligadas
 > al evento — y si se quedan aquí, cualquier otro objeto que las llame sin cualificar
-> revienta con `Variable X.tween_to(...) not set before reading it`, el mismo mecanismo
+> revienta con `Variable X.tween_prop(...) not set before reading it`, el mismo mecanismo
 > de [`04 · 19` §1](./19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md#1--el-conductor).
 
 ```gml
@@ -637,9 +641,9 @@ tweens = [];
 // scr_tween_manager.gml
 // ---------------------------------------------------------------------------
 
-/// @func tween_to(_target, _prop, _hasta, _duracion, _ease, _on_end)
+/// @func tween_prop(_target, _prop, _hasta, _duracion, _ease, _on_end)
 /// @desc Crea un tween desde el valor ACTUAL de la propiedad hasta _hasta.
-function tween_to(_target, _prop, _hasta, _duracion, _ease, _on_end)
+function tween_prop(_target, _prop, _hasta, _duracion, _ease, _on_end)
 {
     var _desde = 0;
 
@@ -700,19 +704,19 @@ array_resize(tweens, 0);
 
 ```gml
 // Menú que entra con rebote
-tween_to(self, "menu_y", 200, 40, global.Ease.out_back);
+tween_prop(self, "menu_y", 200, 40, global.Ease.out_back);
 
 // Barra de vida que baja suave
-tween_to(self, "hp_display", hp, 20, global.Ease.out_cubic);
+tween_prop(self, "hp_display", hp, 20, global.Ease.out_cubic);
 
 // Botón que hace "pop" al pulsarse
-tween_to(self, "button_scale", 0.9, 8, global.Ease.out_quad, function()
+tween_prop(self, "button_scale", 0.9, 8, global.Ease.out_quad, function()
 {
-    tween_to(self, "button_scale", 1.0, 12, global.Ease.out_elastic);
+    tween_prop(self, "button_scale", 1.0, 12, global.Ease.out_elastic);
 });
 
 // Fade a negro y cambio de room
-tween_to(objTransition, "fade_alpha", 1, 30, global.Ease.out_quad, function()
+tween_prop(objTransition, "fade_alpha", 1, 30, global.Ease.out_quad, function()
 {
     room_goto(rm_next);
 });
@@ -733,8 +737,8 @@ function squash_stretch(_obj, _x, _y, _duracion)
     _obj.squash_x = _x;
     _obj.squash_y = _y;
 
-    tween_to(_obj, "squash_x", 1, _duracion, global.Ease.out_elastic);
-    tween_to(_obj, "squash_y", 1, _duracion, global.Ease.out_elastic);
+    tween_prop(_obj, "squash_x", 1, _duracion, global.Ease.out_elastic);
+    tween_prop(_obj, "squash_y", 1, _duracion, global.Ease.out_elastic);
 }
 
 /// @func squash_preset(_obj, _tipo)
@@ -956,7 +960,7 @@ function fx_floating_text(_x, _y, _texto, _color)
 
         // Pop de entrada
         pop_scale = 0.2;
-        tween_to(self, "pop_scale", 1.0, 12, global.Ease.out_back);
+        tween_prop(self, "pop_scale", 1.0, 12, global.Ease.out_back);
     }
 }
 ```
@@ -1659,7 +1663,7 @@ Cuatro tiempos, siempre en el mismo orden:
 // scr_recompensa — la coreografía en cuatro tiempos
 // Verificado: variable_global_exists, is_undefined, floor, array_push, array_delete,
 //             array_length, audio_play_sound, audio_sound_pitch (audio ya verificado en §5.7)
-// Reutiliza global.game_freeze (§5.0) y tween_to/global.Ease.out_back (§5.2)
+// Reutiliza global.game_freeze (§5.0) y tween_prop/global.Ease.out_back (§5.2)
 // ---------------------------------------------------------------------------
 
 enum RecompensaFase { PARON, CONTEO, PAUSA, CERRADA }
@@ -1693,7 +1697,7 @@ function recompensa_actualizar()
             {
                 _r.fase = RecompensaFase.CONTEO;
                 _r.reloj = 0;
-                tween_to(_r, "valor_mostrado", _r.valor_final, 30, global.Ease.out_back);
+                tween_prop(_r, "valor_mostrado", _r.valor_final, 30, global.Ease.out_back);
             }
             break;
 
