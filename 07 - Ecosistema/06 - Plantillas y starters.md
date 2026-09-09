@@ -207,6 +207,8 @@ Los únicos resultados tienen **0–1 estrellas**, sin licencia declarada y sin 
 | `lucmsilva651/spacerocks-gml` | 1 | 2024-05-26 | sin licencia |
 | `Krapin2000/playgama-bridgeGamemakerTemplate` | 0 | 2025-07-01 | sin licencia |
 
+> ⚠️ **Para Playgama Bridge usa el SDK oficial, no esa plantilla.** [`Playgama/bridge-gamemaker`](https://github.com/Playgama/bridge-gamemaker) tiene 22 ★, licencia **MIT** y se actualiza (septiembre de 2026); la plantilla de la tabla lleva sin tocarse desde julio de 2025 y no declara licencia. Qué hace el SDK, sus 84 funciones y los 26 portales que cubre, en [`01 · 16 — Los portales HTML5`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md).
+
 **Recomendación:** no pierdas tiempo con plantillas de terceros sin licencia. Usa las oficiales y apóyate en **librerías con licencia limpia** (ver archivo 02) para lo que la plantilla no cubra.
 
 ---

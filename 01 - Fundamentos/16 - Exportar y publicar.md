@@ -138,6 +138,67 @@ por línea de comandos con `butler`, está en
 
 ---
 
+## Los portales HTML5: donde un juego de navegador se juega de verdad
+
+itch.io es el sitio para **compartir** un juego HTML5. Los **portales** —Poki, CrazyGames,
+Yandex Games, GameDistribution, Y8, Facebook Instant Games, Telegram, Discord, YouTube
+Playables— son donde lo juegan cientos de miles de personas y donde se monetiza con anuncios.
+Y cada uno tiene su propio SDK de JavaScript: anuncios, guardado en la nube, identidad del
+jugador, tablas de clasificación, pagos. Integrarlos uno a uno es el trabajo que hunde el
+proyecto.
+
+**`Playgama Bridge` resuelve eso con un SDK único** (22 ★, **MIT**, activo a septiembre de 2026):
+un solo juego de funciones que por debajo habla con **26 plataformas**, y que en el resto de
+motores es el estándar de hecho (hay puente para Unity, Godot, Construct, Defold, Cocos y
+GDevelop).
+
+<https://github.com/Playgama/bridge-gamemaker>
+
+Se instala como **extensión** del proyecto y expone **84 funciones**, todas con el prefijo
+`playgama_bridge_`. Agrupadas por familia, y **leídas de la propia extensión**, no de memoria:
+
+| Familia | Cuántas | Para qué |
+|---|---:|---|
+| `advertisement` | 18 | intersticial, recompensado, banner, banner avanzado, detección de AdBlock y retardo mínimo entre intersticiales |
+| `social` | 14 | compartir, invitar amigos, unirse a la comunidad, publicar |
+| `platform` | 11 | en qué portal estás (`playgama_bridge_platform_id`), idioma, *payload* de entrada, hora del servidor |
+| `player` | 8 | identidad, invitado o autenticado, nombre, foto, autorizar |
+| `payments` | 5 | compras dentro del juego |
+| `notifications` · `leaderboards` · `daily` · `cross` | 4 c/u | avisos, tablas de clasificación, recompensa diaria, progreso entre dispositivos |
+| `tasks` · `storage` · `remote` | 3 c/u | tareas, guardado en la nube, configuración remota |
+| `achievements` | 2 | logros |
+| `device` | 1 | móvil, tableta o escritorio |
+
+> 🔴 **La línea que se olvida y deja el juego en la pantalla de carga.** El portal no sabe que tu
+> juego ya terminó de cargar hasta que se lo dices, y hasta entonces muchos mantienen su propio
+> *loader* encima:
+>
+> ```gml
+> // En el Create del primer objeto del juego, cuando ya puedes dibujar:
+> playgama_bridge_platform_send_message("game_ready");
+> ```
+>
+> Es la primera línea del ejemplo oficial del repositorio, y es todo lo que hace ese ejemplo.
+
+**Cómo encaja con el resto de esta biblioteca:**
+
+- El guardado va por `playgama_bridge_storage_*`, no por ficheros: en un navegador dentro de un
+  portal no hay carpeta de guardado. Es la misma decisión que ya obliga a tomar
+  [`04 · 25`](../04%20-%20Recetas%20por%20género/25%20-%20Menú%20de%20opciones%20y%20ajustes.md)
+  al separar «dónde se guarda» de «qué se guarda».
+- El idioma sale de `playgama_bridge_platform_language`, que es exactamente la entrada que
+  espera el sistema de idiomas de [`04 · 21`](../04%20-%20Recetas%20por%20género/21%20-%20Localización%20e%20idiomas%20%28con%20traducción%20por%20IA%29.md).
+- Los anuncios recompensados **pausan el juego**: llámalos desde un estado, no desde el Step del
+  jugador, y aplícales la pausa de verdad de
+  [`04 · 41 §3.1`](../04%20-%20Recetas%20por%20género/41%20-%20Transiciones,%20carga%20y%20pausa.md).
+
+> ⚠️ **No confundas el SDK oficial con la plantilla de la comunidad.** En
+> [`07 · 06`](../07%20-%20Ecosistema/06%20-%20Plantillas%20y%20starters.md) figura
+> `Krapin2000/playgama-bridgeGamemakerTemplate` (0 ★, **sin licencia**, sin tocar desde julio de
+> 2025). El repositorio de arriba es el oficial, tiene licencia MIT y se actualiza.
+
+---
+
 ## Compilar desde la línea de comandos
 
 Para CI o para automatizar builds, el CLI oficial:

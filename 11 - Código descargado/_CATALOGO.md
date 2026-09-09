@@ -292,6 +292,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | Repositorio | Qué es | ★ | Licencia | Último cambio | `.gml` |
 |---|---|---:|---|---|---:|
 | `steamworks.gml` [↗](https://github.com/YAL-GameMaker/steamworks.gml) | Ampliaciones del SDK de Steamworks. ⚠️ Su funcionalidad se fusionó en la extensión oficial. | 90 | sin licencia | 2023-07-31 | 71 |
+| `bridge-gamemaker` [↗](https://github.com/Playgama/bridge-gamemaker) | **Playgama Bridge**: un solo SDK para publicar en **26 portales HTML5** (Poki, CrazyGames, Yandex Games, GameDistribution, Y8, Telegram, Discord, Facebook Instant Games, YouTube Playables…). 84 funciones `playgama_bridge_*`: anuncios, guardado en la nube, identidad, tablas, pagos, logros y configuración remota. Es el estándar de hecho: hay puente equivalente para Unity, Godot, Construct, Defold, Cocos y GDevelop. | 22 | MIT | 2026-09-01 | 2 |
 | `GMTwitch` [↗](https://github.com/GameMakerDiscord/GMTwitch) | Interfaz ligera de **Twitch**, de código abierto. | 69 | MIT | 2022-01-03 | 15 |
 | `GMHook` [↗](https://github.com/Kruger0/GMHook) | Implementación de **webhooks de Discord** para GameMaker. | 11 | MIT | 2026-07-04 | 7 |
 | `GOG.gml` [↗](https://github.com/GameMakerDiscord/GOG.gml) | Extensión nativa para el SDK de **GOG.com**. | 11 | MIT | 2023-07-30 | 15 |
@@ -643,6 +644,7 @@ Programas que rodean a GameMaker sin ser librerías de GML.
 |---|---|---:|---|---|---:|
 | `GMEdit` [↗](https://github.com/YellowAfterlife/GMEdit) | Editor de código alternativo para GameMaker, con mejoras de autocompletado y navegación. No es una librería: es una herramienta externa. | 369 | MIT | 2026-07-22 | 146 |
 | `YYToolkit` [↗](https://github.com/AurieFramework/YYToolkit) | Herramienta de instrumentación en tiempo de ejecución para juegos ya compilados de GameMaker. Contexto de ingeniería inversa/modding. | 133 | AGPL-3.0 | 2026-03-03 | 0 |
+| `G3M` [↗](https://github.com/y114git/G3M) | Gestor de **mods** para juegos hechos con GameMaker ya publicados: instala, activa y ordena parches sin tocar el ejecutable. Útil como referencia de qué espera un jugador que moddea, si tu juego va a admitir mods (`04 · 43`). | 45 | GPL-3.0 | 2026-09-01 | 0 |
 | `GameMaker-Bugs` [↗](https://github.com/YoYoGames/GameMaker-Bugs) | **El rastreador oficial de bugs.** Búscalo aquí antes de perder una tarde con un fallo que ya está reportado. Su wiki tiene los requisitos de SDK por plataforma. | 82 | sin licencia | 2026-08-27 | 0 |
 
 ## Repositorios catalogados pero no descargados
@@ -667,6 +669,37 @@ Programas que rodean a GameMaker sin ser librerías de GML.
 | [NuxiiGit/disarm](https://github.com/NuxiiGit/disarm) | El repositorio ya no existe (404 el 01-09-2026) |
 
 <a id="novedades-2026"></a>
+
+## Barrido del 9 de septiembre de 2026: qué salió y qué NO
+
+Se repitió el barrido contra GitHub —no de memoria— por dos vías, y **conviene dejar escrito el
+resultado para que nadie lo repita**:
+
+1. `language:"Game Maker Language" stars:>40` → **91 repositorios**, de los que 35 no estaban
+   aquí. Revisados uno a uno, **ninguno merecía entrar**:
+   - la mayoría son **fangames sin licencia** de propiedad ajena (Mario, Sonic, Kirby, Geometry
+     Dash) o **decompilaciones de juegos comerciales**, y esta biblioteca ya cataloga los pocos
+     que aportan estructura (`MegamixEngine`, `Pizza-Tower-EXtracted`, `nt-recreated-public`);
+   - varios son **falsos positivos** de la detección de lenguaje de GitHub: firmware de teclados
+     (`comet46-hardware`, `kotonoha_keyboards`), placas (`N64-FRAM-Memory-Pak`) y hasta un
+     análisis estadístico (`Co-occurrence_Network_Analysis`);
+   - los pocos que son librerías de verdad están **abandonados en GM:Studio 1.x**
+     (`GMnet-ENGINE`, sin tocar desde 2018), y `Warp` cubre lo mismo y está vivo.
+2. `topic:gamemaker pushed:>2026-01-01 stars:>15` → 40 repositorios, **30 ya estaban**. De los 6
+   restantes, cuatro se descartan con motivo (`UndertaleModTool` y `xtreme3d` ya están
+   documentados fuera del catálogo, `gms-sample-library` no tiene licencia, `saveeditor` no es de
+   GameMaker) y **dos entran**, ya en sus secciones:
+
+| Repo | Dónde | Por qué faltaba |
+|---|---|---|
+| [`bridge-gamemaker`](https://github.com/Playgama/bridge-gamemaker) | Integraciones con servicios | **El hueco de verdad**: la biblioteca cubría itch.io y no los **portales HTML5** (Poki, CrazyGames, Yandex…), que es donde se juega y se monetiza un juego de navegador. Peor: `07 · 06` apuntaba a una plantilla de la comunidad con 0 ★ y sin licencia en vez de al SDK oficial MIT. Documentado en [`01 · 16`](../01%20-%20Fundamentos/16%20-%20Exportar%20y%20publicar.md) |
+| [`G3M`](https://github.com/y114git/G3M) | Herramientas del ecosistema | Gestor de mods del lado del jugador; referencia para `04 · 43` |
+
+**Conclusión honesta: el catálogo estaba bien.** 632 → 634. Lo que faltaba no era un repositorio
+sino una **sección de documentación** —los portales HTML5— y eso no lo encuentra un barrido de
+repositorios: lo encontró preguntarse para qué sirve cada repo que aparece.
+
+---
 
 ## Novedades 2025-2026 (auditoría del 2 de septiembre)
 
