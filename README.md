@@ -45,10 +45,10 @@ alguno de ellos, cada script lo dice explícitamente en vez de fallar con un tra
 
 ## Qué hay dentro
 
-**251 documentos en español**, del `if` a cómo se firma una build para Steam. No solo el motor:
+**270 documentos en español**, del `if` a cómo se firma una build para Steam. No solo el motor:
 diseño de juego y GDD, niveles, pixel art, animación, VFX y shaders, UI y accesibilidad, cámaras,
 arquitectura, generación procedural, físicas y fluidos, combate, IA, pathfinding, progresión,
-sonido, narrativa, testing, producción y negocio. Y **57 recetas por género**, de plataformas a
+sonido, narrativa, testing, producción y negocio. Y **59 recetas por género**, de plataformas a
 *bullet heaven*.
 
 **Herramientas que la mantienen honesta.** Un solo comando —`python3 _indice/actualizar.py`—
@@ -58,7 +58,7 @@ español con el inglés. Sale con 0 solo si no queda deuda.
 
 ## Qué NO incluye, y por qué
 
-El manual oficial y los 608 repositorios de código real que usa la versión completa **no se
+El manual oficial y los 634 repositorios de código real que usa la versión completa **no se
 redistribuyen aquí**: el manual es obra de YoYo Games, y cada repositorio tiene su licencia. Se
 reconstruyen en tu máquina. Sin ellos, `buscar.py` sigue dando la firma exacta de cualquier
 símbolo (sale del runtime), pero te remitirá a `manual.gamemaker.io` en vez de a un archivo local,
@@ -83,9 +83,9 @@ Proyecto independiente, sin relación con YoYo Games.
 # Biblioteca de conocimiento · GameMaker LTS 2026
 
 > **Puerta de entrada única** a toda la base de conocimiento de GameMaker de este repositorio.
-> Última ampliación: **1 de septiembre de 2026** · **251 documentos propios en español**,
+> Última ampliación: **1 de septiembre de 2026** · **270 documentos propios en español**,
 > **6 152 páginas de manual oficial espejado**, **la API completa del runtime** y
-> **608 repositorios con 61 846 archivos `.gml`**. 3,8 GB · UTF-8.
+> **634 repositorios con 61 959 archivos `.gml`**. 3,8 GB · UTF-8.
 > Versión de referencia: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · GMS2 Runtime 2026.0.0.23) ·
 > Beta **2026.100.0** (IDE 1139 / runtime 1090) · **GMRT** en Beta 0.21.
 
@@ -113,7 +113,7 @@ Contiene:
 - 🆕 **El manual oficial entero, sin conexión** — 3 119 páginas en inglés y 3 033 en español, en Markdown.
 - 🆕 **La API completa del runtime** — 2 357 funciones, 886 constantes, 210 variables y 33 structs,
   extraídas del `GmlSpec.xml` del runtime instalado. Si algo no está ahí, **no existe**.
-- 🆕 **608 repositorios descargados** — 61 846 archivos `.gml` reales, organizados por tema y catalogados en español.
+- 🆕 **634 repositorios descargados** — 61 959 archivos `.gml` reales, organizados por tema y catalogados en español.
 - 🆕 **Cursos y recursos en español** — investigados, verificados uno a uno y con veredicto honesto.
 - 🆕 **Utilidades e integraciones** — itch.io, extensiones nativas, Steam, Discord, Photon, Colyseus, pipeline de arte.
 - 🆕 **Un buscador offline** — `_indice/buscar.py` cruza símbolo ↔ manual ↔ documentación ↔ código real.
@@ -155,19 +155,19 @@ respetan **en inglés** (son la API real). Las explicaciones y los comentarios e
 | [01 - Fundamentos](./01%20-%20Fundamentos/_INDICE-FUNDAMENTOS.md) | 18 | GML desde cero: tipos, handles, structs, arrays, eventos, movimiento, colisiones, instancias, rooms, dibujo, input, audio, persistencia, depuración | **Tu manual de cabecera.** El manual oficial reordenado, con el «por qué» explicado y las trampas marcadas |
 | [02 - Novedades 2026](./02%20-%20Novedades%202026/_INDICE-NOVEDADES.md) | 11 | LTS 2026.0, cambios de GML, GMRT, UI Layers, partículas, gráficos, audio, Package Manager, Code Editor 2, roadmap | **Qué ha cambiado y hacia dónde va.** Imprescindible si vienes de 2023 o antes |
 | [03 - Cursos (YouTube)](./03%20-%20Cursos%20%28YouTube%29/_INDICE-CURSOS.md) | 47 | 44 capítulos de curso transcritos + índice, enlaces originales y descubiertas | **Aprender haciendo.** Sky LaRell Anderson (12), DragoniteSpam (26), PixelatedPope cámaras (4), más el plataformas oficial |
-| [04 - Recetas por género](./04%20-%20Recetas%20por%20g%C3%A9nero/_INDICE-RECETAS.md) | 58 | 15 géneros destripados sistema por sistema, el plano de un juego completo y 20 recetas transversales: game feel, señales, web, menús, ritmo, servicios, localización, Box2D, IA y árboles de comportamiento, luz, opciones, música, accesibilidad, móvil, 3D, combate cuerpo a cuerpo, 🆕 souls-like, metajuego transversal, party games, combate no letal | **Cómo se construye tu juego.** De plataformas a multijugador, y de 2D a 3D |
+| [04 - Recetas por género](./04%20-%20Recetas%20por%20g%C3%A9nero/_INDICE-RECETAS.md) | 59 | 15 géneros destripados sistema por sistema, el plano de un juego completo y 20 recetas transversales: game feel, señales, web, menús, ritmo, servicios, localización, Box2D, IA y árboles de comportamiento, luz, opciones, música, accesibilidad, móvil, 3D, combate cuerpo a cuerpo, 🆕 souls-like, metajuego transversal, party games, combate no letal | **Cómo se construye tu juego.** De plataformas a multijugador, y de 2D a 3D |
 | [05 - Referencia](./05%20-%20Referencia/) | 6 | Tutoriales oficiales (106 catalogados), publicar y exportar, entregar el juego (firma/notarización/tiendas), 🆕 **publicar en consolas** (Nintendo/PlayStation/Xbox), **glosario A–Z**, **convenciones de estilo** | **Consulta rápida.** Lo que miras una vez y no memorizas |
 | [06 - Assets y Scripts](./06%20-%20Assets%20y%20Scripts/README.md) | 11 `.gml` | Scripts reutilizables: matemáticas, cámara, FSM, tweens, guardado, pooling, A\*, input, debug | **Código para copiar.** Cada función verificada contra el manual |
 | [07 - Ecosistema](./07%20-%20Ecosistema/_INDICE-ECOSISTEMA.md) | 24 | GitHub de YoYoGames, librerías, extensiones, proyectos de ejemplo, foro, itch.io, comunidades, blogs, GM CLI, IA | **El mundo alrededor del motor.** Qué usar, qué evitar y qué está abandonado |
 | [08 - Referencia GML completa](./08%20-%20Referencia%20GML%20completa/) | 24 + API | Dibujo, formas, texto, color, superficies, shaders, vertex buffers, texturas, tiles, matemáticas, vectores, strings, DS, arrays, structs, buffers, ficheros, fecha, sistema · **+ el catálogo completo de la API** | **La referencia técnica en español**, tema por tema |
 | 🆕 [09 - Manual oficial](./09%20-%20Manual%20oficial/README.md) | **6 152** | El manual oficial entero espejado: **3 119 páginas en inglés** y **3 033 en español, sin una sola página sin traducir** | **La fuente de verdad, sin conexión.** Cuando algo contradice a un tutorial, manda esto |
 | 🆕 [10 - Cursos en español](./10%20-%20Cursos%20en%20espa%C3%B1ol/_INDICE-CURSOS-ES.md) | 13 | Todo el material de aprendizaje en castellano que existe, verificado con `yt-dlp`, con veredicto honesto, ruta de aprendizaje y apuntes completos de 17 vídeos transcritos | **Aprender sin pasar por el inglés** |
-| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **608 repos** | **61 846 archivos `.gml`** reales: 325 librerías por tema, 212 plantillas y ejemplos, 44 extensiones oficiales, 24 juegos y motores, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
+| 🆕 [11 - Código descargado](./11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md) | **634 repos** | **61 959 archivos `.gml`** reales: 325 librerías por tema, 212 plantillas y ejemplos, 44 extensiones oficiales, 24 juegos y motores, 3 herramientas | **Ver cómo lo hace gente que ya lo ha hecho.** Todo greppable |
 | 🆕 [12 - Utilidades e integraciones](./12%20-%20Utilidades%20e%20integraciones/_INDICE-UTILIDADES.md) | 10 | Herramientas de flujo de trabajo, extensiones nativas, Steam/Discord/Twitch, Photon y Colyseus, pipeline de arte y audio, itch.io, dónde buscar, tooling externo, 🆕 el manual del agente de IA para operar `gm-cli` | **Lo que rodea al motor y te hace ir más rápido** |
 | 🆕 [13 - Diseño y producción de videojuegos](./13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/_INDICE-DISENO.md) | 28 | Diseño de juego (core loop, balance, dificultad, GDD), niveles, pixel art y resolución, animación (Sequences, Animation Curves), UI/UX, arquitectura del proyecto, generación procedural avanzada, físicas a mano y fluidos, sonido y mezcla, testing y QA, producción y lanzamiento, narrativa, matemáticas aplicadas, 🆕 formatos de producción especiales (kiosco, educativo, publicitario, infantil, *streaming*) | **El oficio de hacer juegos, no solo el motor.** Lo que va antes y alrededor del código, con GML verificado |
 | 🆕 [_indice](./_indice/) | 5 + skill + memoria | `buscar.py` (buscador offline), `validar-proyecto.py` (valida el GML de un proyecto real), `actualizar.py` (mantenimiento en un comando), `simbolos.json` (3 486 símbolos), `documentos.json`, la skill [`skills/gamemaker-biblioteca/`](./_indice/skills/gamemaker-biblioteca/SKILL.md) — instalable en nueve CLI de IA distintos, ver [«Qué CLI están soportados»](#qué-cli-de-ia-están-soportados) —, y [`traduccion/`](./_indice/traduccion/README.md) (memoria de 4 503 frases y 2 009 celdas con la que se completó el manual en español) | **La forma rápida de encontrar cualquier cosa, desde aquí o desde otro proyecto** |
 
-**Total: 251 documentos propios en español + 6 152 páginas de manual + 608 repositorios.**
+**Total: 270 documentos propios en español + 6 152 páginas de manual + 634 repositorios.**
 
 ### El buscador: úsalo antes que nada
 

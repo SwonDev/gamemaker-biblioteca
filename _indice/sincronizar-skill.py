@@ -353,15 +353,20 @@ def cifras_desfasadas(n_documentos):
     servir para nada. Contarlas cuesta microsegundos.
     """
     texto = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
+    # El README es la puerta de entrada de quien clona: sus cifras envejecen igual
+    # y nadie las mira. Tenía tres desfasadas a la vez (251 documentos cuando eran
+    # 270, 57 recetas cuando eran 59, 608 repos cuando eran 634).
+    ruta_readme = os.path.join(RAIZ, "README.md")
+    readme = open(ruta_readme, encoding="utf-8").read() if os.path.isfile(ruta_readme) else ""
     avisos = []
 
-    def _mirar(patron, real, que):
-        m = re.search(patron, texto)
+    def _mirar(patron, real, que, donde="la skill", cuerpo=None):
+        m = re.search(patron, cuerpo if cuerpo is not None else texto)
         if not m:
             return          # si la frase se reescribió, no hay nada que comparar
-        dicho = int(m.group(1))
+        dicho = int(m.group(1).replace("\u202f", "").replace(" ", ""))
         if dicho != real:
-            avisos.append(f"la skill dice {dicho} {que} y son {real}")
+            avisos.append(f"{donde} dice {dicho} {que} y son {real}")
 
     # Recetas: los .md numerados de 04, menos el 00, que es el plano maestro.
     d04 = os.path.join(RAIZ, "04 - Recetas por género")
@@ -396,6 +401,26 @@ def cifras_desfasadas(n_documentos):
     _mirar(r"Los (\d+) documentos", n_documentos, "documentos")
     _mirar(r"\*\*(\d+) recetas\*\*", recetas, "recetas")
     _mirar(r"(\d+) scripts de `06`", scripts, "scripts de 06")
+
+    # Y las del README, con las mismas cuentas.
+    if readme:
+        rutas_json = os.path.join(RAIZ, "11 - Código descargado", "_RUTAS.json")
+        n_repos = 0
+        if os.path.isfile(rutas_json):
+            try:
+                n_repos = len(json.load(open(rutas_json, encoding="utf-8")))
+            except ValueError:
+                n_repos = 0
+        _mirar(r"\*\*(\d+) documentos en español\*\*", n_documentos, "documentos",
+               "el README", readme)
+        _mirar(r"\*\*(\d+) documentos propios en español\*\*", n_documentos, "documentos",
+               "el README", readme)
+        _mirar(r"Y \*\*(\d+) recetas por género\*\*", recetas, "recetas", "el README", readme)
+        if n_repos:
+            _mirar(r"los (\d+) repositorios de código real", n_repos, "repositorios",
+                   "el README", readme)
+            _mirar(r"\*\*(\d+) repos\*\*", n_repos, "repositorios", "el README", readme)
+
     return avisos
 
 
