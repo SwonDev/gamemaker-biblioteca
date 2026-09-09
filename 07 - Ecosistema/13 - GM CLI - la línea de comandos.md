@@ -1239,6 +1239,22 @@ La causa es el paso `PREFABS RESTORE` de `ProjectTool`, la utilidad que GameMake
 abrir, importar y convertir proyectos. Las plantillas que incluyen **prefabs** dependen de él;
 las que no, no lo ejecutan y por eso funcionan.
 
+> 🔴 **`Failed to fetch templates:` (sin nada detrás) suele ser límite de tasa, no un fallo tuyo.**
+> `gm-cli init` descarga la plantilla de `api.gamemaker.io` **en cada invocación**, y esa API
+> limita por tasa: tras varios `init` seguidos —lo normal en una sesión de verificación o en un
+> CI— responde **429** y el CLI se queda con ese mensaje truncado. Comprobado el 09-09-2026,
+> justo mientras se escribía esto:
+>
+> ```console
+> $ curl -s -o /dev/null -w "%{http_code}" https://api.gamemaker.io/api/gamemaker/project-templates
+> 429
+> ```
+>
+> Se pasa solo en unos minutos. Y si tu herramienta crea un proyecto de prueba en cada pasada,
+> **guárdate una copia del proyecto vacío la primera vez** y restáurala cuando el `init` falle:
+> es lo que hace `_indice/validar-compilacion-docs.py` desde ese día, y con ello la validación
+> de los 3448 bloques dejó de depender de la red.
+
 ### La causa raíz, y por qué sí tiene arreglo
 
 > ❌ **Corrección del 08-09-2026.** Este documento decía que la única salida era el IDE. No lo es:

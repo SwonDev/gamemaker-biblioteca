@@ -371,7 +371,10 @@ exactamente lo que hay que aprender primero.
   no para producción seria.
 - **Intercambio de paleta en runtime.** Recolorear sin duplicar sprites (equipos de un
   multijugador, variantes de enemigo, daltonismo) se resuelve con un shader de sustitución.
-  La librería libre **Chameleon** ya lo trae hecho; está catalogada en
+  Dos librerías libres lo traen hecho: **`ColorMod`** (JujuAdams, MIT, 2024) —del mismo autor
+  que Bulb, Scribble e Input, así que su estilo te va a resultar familiar— y **Chameleon**
+  (MIT), que funciona pero lleva parada desde 2022. Empieza por ColorMod. Las dos están
+  catalogadas en
   [12 · 05 §1](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte,%20audio%20y%20niveles.md).
 - **Tintado barato.** Para un flash de daño no hace falta shader:
 

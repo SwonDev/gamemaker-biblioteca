@@ -1,10 +1,10 @@
 # Catálogo del código descargado
 
 > Espejo local del código fuente del ecosistema de GameMaker.
-> **608 repositorios** clonados con `git clone --depth 1` (base del **1 de septiembre de 2026**;
+> **616 repositorios** clonados con `git clone --depth 1` (base del **1 de septiembre de 2026**;
 > ampliado el **2 de septiembre** con la organización completa de tutoriales de DragoniteSpam y una
 > auditoría de novedades 2025-2026, incluida la suite de YellowAfterlife y el barrido completo de GameMakerDiscord y las 44 extensiones oficiales GMEXT-*).
-> **El recuento exacto y siempre al día es [`_RUTAS.json`](./_RUTAS.json)** (608 claves); la tabla
+> **El recuento exacto y siempre al día es [`_RUTAS.json`](./_RUTAS.json)** (616 claves); la tabla
 > de abajo es el desglose orientativo por categoría.
 
 ## Qué es esto y qué no es
@@ -250,6 +250,13 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 |---|---|---:|---|---|---:|
 | `Bulb` [↗](https://github.com/JujuAdams/Bulb) | Iluminación 2D dinámica con sombras proyectadas. Luces, oclusores y penumbras sobre superficies. | 107 | MIT | 2026-07-08 | 113 |
 | `Gamemaker-Lighting-Engine` [↗](https://github.com/bilouw/Gamemaker-Lighting-Engine) | Motor de **iluminación** 2D. | 27 | MIT | 2019-02-15 | 15 |
+| `GMShaders-Radiance-Cascades` [↗](https://github.com/Yaazarai/GMShaders-Radiance-Cascades) | **Cascadas de radiancia** en GameMaker: iluminación global 2D con rebote de color, el método de moda desde 2024. Es el código del artículo de GM Shaders. | 171 | Unlicense | 2025-02-05 | 31 |
+| `RadianceCascades` [↗](https://github.com/Yaazarai/RadianceCascades) | Implementación 2D del paper original de Alexander Sannikov (Path of Exile). La versión anterior y más desnuda de la anterior. | 64 | Sin licencia | 2024-05-03 | 7 |
+| `Global-Irradiance` [↗](https://github.com/Yaazarai/Global-Irradiance) | Irradiancia global 2D: el paso previo a las cascadas, con voxelización y propagación por rejilla. | 15 | Unlicense | 2023-10-27 | 8 |
+| `Volumetric-HRC` [↗](https://github.com/Yaazarai/Volumetric-HRC) | Volumétricos por píxel en tiempo constante mediante extensión de rayos y cascadas holográficas. Lo más reciente del autor. | 121 | Unlicense | 2026-07-23 | 28 |
+| `PathTraced-Volumetrics` [↗](https://github.com/Yaazarai/PathTraced-Volumetrics) | Volumétricos por trazado de caminos: la versión de referencia, lenta y correcta, con la que se contrasta la rápida. | 34 | Unlicense | 2026-02-17 | 7 |
+| `2D-QuickRayTracing-GLSL` [↗](https://github.com/Yaazarai/2D-QuickRayTracing-GLSL) | Trazado de rayos 2D en dos pasadas con GLSL ES. Base de las técnicas de arriba. | 82 | LGPL-2.1 | 2026-05-08 | 0 |
+| `prettylight` [↗](https://github.com/niksudan/prettylight) | Iluminación 2D sencilla y directa, sin sombras proyectadas. Útil como punto de partida mínimo. | 86 | MIT | 2018-10-08 | 19 |
 
 <a id="integraciones"></a>
 
@@ -398,6 +405,7 @@ Código reutilizable, **organizado por tema**. Antes de escribir un sistema desd
 | `gml-outline-shader-drawer` [↗](https://github.com/Grisgram/gml-outline-shader-drawer) | Dibujado de **contornos** (outline) con shader. | 26 | MIT | 2024-10-16 | 42 |
 | `Bokeh` [↗](https://github.com/XorDev/Bokeh) | Shader de **bokeh** (desenfoque con forma de diafragma). | 19 | sin licencia | 2024-03-02 | 2 |
 | `Chameleon` [↗](https://github.com/Lojemiru/Chameleon) | **Intercambio de paletas** rápido y fiable. Para variantes de color de un mismo sprite sin duplicar assets. | 16 | MIT | 2022-10-28 | 35 |
+| `ColorMod` [↗](https://github.com/JujuAdams/ColorMod) | **Intercambio de paletas** del autor de Bulb, Scribble e Input. Más nuevo y más usado que Chameleon; misma licencia. | 27 | MIT | 2024-10-27 | 11 |
 | `Xpanda` [↗](https://github.com/GameMakerDiscord/Xpanda) | Permite **`#include`** en shaders: reutilizar código GLSL entre ficheros. Imprescindible si escribes más de dos shaders. | 16 | MIT | 2026-05-05 | 42 |
 | `1PassBlur` [↗](https://github.com/XorDev/1PassBlur) | Shader de **desenfoque en una sola pasada**. | 15 | sin licencia | 2026-01-15 | 5 |
 | `GMS-Voronoi-Pixels` [↗](https://github.com/XorDev/GMS-Voronoi-Pixels) | Efecto de **píxeles de Voronoi**. | 14 | sin licencia | 2022-05-18 | 5 |
