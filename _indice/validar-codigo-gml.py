@@ -331,6 +331,11 @@ def main():
     if not corpus_instalado:
         externas = set()   # no se puede descartar por extensión: se avisará al final
 
+    solo_corpus = {}   # nombres que solo salva el corpus de terceros — ver el bucle de abajo
+    FAMILIAS_PREFIJO = ("draw_", "audio_", "gpu_", "ds_", "camera_", "instance_", "sprite_",
+                        "room_", "layer_", "surface_", "shader_", "buffer_", "window_",
+                        "display_", "font_", "keyboard_", "mouse_", "gamepad_", "view_")
+
     # 1 · recolectar TODAS las funciones y métodos que la biblioteca define (son legítimas)
     definidas = set()
     docs = []
@@ -374,6 +379,15 @@ def main():
                         problemas_aridad.setdefault(nom, []).append(
                             (os.path.relpath(fp, RAIZ),
                              f"{n_args} argumento(s) — la firma admite entre {minimo} y {maximo}"))
+            # Un nombre con prefijo de familia del runtime que NO está en el runtime ni
+            # lo define la biblioteca, y que solo se salva porque alguna librería de
+            # terceros lo declara, merece quedar anotado: ahí es donde se esconden
+            # nuestras propias invenciones. `draw_polygon()` vivió meses en 01/11 —
+            # dentro de una lista de funciones reales— porque el corpus la absolvía, y
+            # solo apareció al validar un clon SIN corpus (09-09-2026).
+            if (nom not in runtime and nom not in definidas and nom not in PALABRAS
+                    and nom in externas and nom.startswith(FAMILIAS_PREFIJO)):
+                solo_corpus.setdefault(nom, set()).add(os.path.relpath(fp, RAIZ))
             if nom in runtime or nom in definidas or nom in externas or nom in PALABRAS:
                 continue
             if nom.startswith(PREF_ASSET):     # referencia a un recurso, no una función
@@ -431,6 +445,32 @@ def main():
         print("  Pueden ser funciones de extensión perfectamente válidas. Para comprobarlo,")
         print("  trae el corpus con `./reconstruir.sh codigo` y vuelve a ejecutar.")
         graves = {}
+
+    # Un documento que YA avisa de que ese nombre no es del runtime está haciendo lo
+    # correcto: dejarlo en la lista para siempre sería ruido, y el ruido enseña a
+    # ignorar la lista. Se separa —no se silencia—, igual que los relevos de
+    # validar-integracion.py.
+    AVISOS = ("no es una función del runtime", "no es una funcion del runtime",
+              "no son funciones del runtime", "NO existe", "no existe en el runtime")
+    reconocidos = {}
+    for nom in list(solo_corpus):
+        docs_ = solo_corpus[nom]
+        if all(any(a.lower() in open(os.path.join(RAIZ, d), encoding="utf-8",
+                                     errors="replace").read().lower() for a in AVISOS)
+               for d in docs_):
+            reconocidos[nom] = solo_corpus.pop(nom)
+
+    if reconocidos:
+        print(f"\n· {len(reconocidos)} nombre(s) que solo salva el corpus, pero el documento ya "
+              f"avisa de que no son del runtime: {', '.join(sorted(reconocidos))}")
+
+    if solo_corpus:
+        print(f"\n🔎 {len(solo_corpus)} nombre(s) con pinta de función del runtime que NO están")
+        print("   en el runtime: solo los salva alguna librería de `11 - Código descargado`.")
+        print("   Míralos: si tu documento los presenta como API de GameMaker, es un error")
+        print("   nuestro que el corpus está tapando. Si son de una librería, dilo en el texto.")
+        for nom, docs_ in sorted(solo_corpus.items()):
+            print(f"    · {nom}()  —  {', '.join(sorted(docs_)[:2])}")
 
     if graves:
         print("\n\033[1mFUNCIONES DEL RUNTIME QUE NO EXISTEN — a corregir:\033[0m")

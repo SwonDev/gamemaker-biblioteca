@@ -667,6 +667,12 @@ Y la recomendación final, que enlaza con todo lo anterior:
 10. Añade `gpu_set_blendenable(false/true)` y comprueba que el problema desaparece.
 11. Añade `display_write_all_specs()` y observa dónde se dibuja. **Explica con tus palabras
     por qué la GUI deja de alinearse.**
+    > ⚠️ **`display_write_all_specs()` NO es una función del runtime** — no está ni en
+    > `GmlSpec.xml` ni en `fnames` ni en el manual de LTS 2026 (comprobado el 09-09-2026). Es un
+    > script del autor del curso. Si sigues el ejercicio sin tenerlo, el juego compila y revienta
+    > al ejecutarse (Trampa 4). Sustitúyelo por tus propios `show_debug_message()` con
+    > `display_get_width()`, `display_get_gui_width()` y `camera_get_view_width(view_camera[0])`,
+    > que sí existen.
 12. Añade a tu juego un objeto que siga al ratón con `mouse_x` / `mouse_y`. Comprueba que
     **deja de funcionar** al dibujar en una caja.
 
