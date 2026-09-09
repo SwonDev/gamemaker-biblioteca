@@ -1199,7 +1199,7 @@ gm-cli cache clean
 
 ---
 
-## 12. Bug conocido: las plantillas con prefabs fallan al crear el proyecto
+## 12 bis. Bug conocido: las plantillas con prefabs fallan al crear el proyecto
 
 > **Verificado el 31 de agosto de 2026** y **reverificado el 2 de septiembre de 2026** en
 > este Mac (macOS, Apple Silicon) con `gm-cli` **2.2.0** y **2.3.0**. No es un problema de

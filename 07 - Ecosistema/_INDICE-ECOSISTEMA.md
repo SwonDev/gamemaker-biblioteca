@@ -219,7 +219,7 @@ Comando (verificado):
 gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolchain GMS2@2026.0.0.23
 ```
 
-> ⚠️ Las plantillas que usan **prefabs** (p. ej. *Platformer Template*) fallan con `ProjectTool PREFABS RESTORE exited with code 1`. **No es un problema de versión: sigue fallando en 2.3.0**, la última publicada (reverificado 02-09-2026). Detalle y alternativas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
+> ⚠️ Las plantillas que usan **prefabs** (p. ej. *Platformer Template*) fallan con `ProjectTool PREFABS RESTORE exited with code 1`. **No es un problema de versión: sigue fallando en 2.3.0**, la última publicada (reverificado 02-09-2026). Detalle y alternativas en [`07 · 13` §12](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md#12-bis-bug-conocido-las-plantillas-con-prefabs-fallan-al-crear-el-proyecto).
 
 ---
 

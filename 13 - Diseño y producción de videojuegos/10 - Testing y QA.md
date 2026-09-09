@@ -1890,7 +1890,7 @@ fondo, los botones... y ningún texto.
 El Procedimiento 1 empieza con «dispara la captura». **¿Y si no puedes ejecutar el juego?** Pasa
 más de lo que parece: un agente al que se le prohíbe `gm-cli run`, un entorno sin pantalla, una
 plataforma que no compila aquí. Entre «compila» y «se ve bien» quedaba entonces un vacío, y
-`§8.7` —las seis preguntas— no lo llena, porque es una lectura del código.
+`§8.8` —las seis preguntas— no lo llena, porque es una lectura del código.
 
 **La salida es componer la pantalla en Python con los mismos assets**: los mismos PNG, la misma
 rejilla, el mismo `image_index` de autotile, el mismo orden de dibujo, la misma fuente de sprite
@@ -1907,7 +1907,7 @@ Un agente lo hizo en un juego de puzles y **cazó dos fallos que ni el compilado
   `string_width(texto) + 14` sin acotar contra los 320 px de ancho de la sala.
 
 Ninguno de los dos es un símbolo inventado ni un error de sintaxis, que es justo lo que las seis
-preguntas de §8.7 sí cazan. Son errores de **composición**, y solo se ven mirando.
+preguntas de §8.8 sí cazan. Son errores de **composición**, y solo se ven mirando.
 
 > 🔴 **Y la regla que hace que esto no se convierta en una mentira: di que es una maqueta.**
 > Una imagen compuesta en Python **no es una captura del juego** y no comparte una sola línea de
@@ -2576,7 +2576,7 @@ causa que esta sesión encontró de verdad al reproducir el cuelgue a propósito
 
 ---
 
-### 8.7 Cuando NO puedes ejecutar: las seis preguntas que se responden leyendo
+### 8.8 Cuando NO puedes ejecutar: las seis preguntas que se responden leyendo
 
 Todo lo anterior —el mini-framework, el guion de humo, §8.6— **se apoya en ejecutar el juego**.
 Un agente muchas veces no puede: `run` está prohibido en su entorno, no hay pantalla, o el
@@ -2925,7 +2925,7 @@ QA MANUAL Y PLAYTESTING
 [ ] Al menos 5 personas que no habían visto el juego, observadas en silencio.
 [ ] Cada observación se convirtió en tarea con criterio de aceptación.
 
-«COMPILA LIMPIO» NO ES «FUNCIONA» (§8.6 y §8.7)
+«COMPILA LIMPIO» NO ES «FUNCIONA» (§8.6, §8.7 y §8.8)
 [ ] Al menos una captura de pantalla por flujo/pantalla nuevo, ABIERTA y mirada de verdad —
     no solo comprobada por que screen_save() no dio error o el PNG existe en disco.
 [ ] El guardado se verificó MATANDO el proceso del juego por completo y volviendo a lanzarlo,

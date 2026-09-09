@@ -676,7 +676,7 @@ que salir del mismo terreno o el jugador percibe la costura aunque no sepa nombr
 
 El método completo son tres pasos, y **el primero es el que casi todo el mundo se salta**.
 
-### 2 bis .1 Por qué «ir cuesta abajo» no funciona
+### 2 bis.1 Por qué «ir cuesta abajo» no funciona
 
 El impulso natural es: pon un manantial en un pico, mira los ocho vecinos, muévete al más bajo,
 repite. Sobre ruido fBm eso **se atasca en la tercera o cuarta celda**. Un mapa de Perlin está
@@ -696,7 +696,7 @@ La solución de verdad viene de la hidrología, no del *gamedev*: **rellenar las
 antes de trazar nada**. Sobre una superficie sin depresiones, «ir cuesta abajo» no puede
 atascarse — por construcción, toda celda tiene un camino no ascendente hasta el borde del mapa.
 
-### 2 bis .2 Paso 1 — Rellenar depresiones (*priority-flood*)
+### 2 bis.2 Paso 1 — Rellenar depresiones (*priority-flood*)
 
 El algoritmo es de Barnes, Lehman y Mulla (2014) y es sorprendentemente corto: mete todo el
 borde del mapa en una cola de prioridad ordenada por altura, y ve sacando siempre la celda más
@@ -782,7 +782,7 @@ Ese épsilon es **invisible en el terreno** (una millonésima de la escala de al
 para que la comparación de reales dé un ganador. No uses un valor mucho menor: los reales de GML
 son *double* y a partir de cierto punto el épsilon se pierde al sumarse a una altura cercana a 1.
 
-### 2 bis .3 Paso 2 — Dirección y acumulación de flujo (D8)
+### 2 bis.3 Paso 2 — Dirección y acumulación de flujo (D8)
 
 Con la superficie rellenada, cada celda tiene un destino único: su vecino más bajo. Es el modelo
 **D8** — ocho direcciones, una sola salida por celda. Y una vez sabes a dónde va cada celda,
@@ -892,7 +892,7 @@ function ancho_de_rio(_acumulacion, _umbral, _ancho_max)
 }
 ```
 
-### 2 bis .4 Paso 3 — Excavar el cauce
+### 2 bis.4 Paso 3 — Excavar el cauce
 
 Marcar celdas como «agua» en el tilemap da un río plano pegado encima del terreno. Un río de
 verdad **ha excavado un valle**: hunde el cauce en el mapa de alturas *original* (no en el
@@ -946,7 +946,7 @@ Con `_profundidad` entre 0,02 y 0,06 sobre alturas normalizadas a 0-1, el valle 
 el mapa parezca acuchillado. Por encima de 0,1 se convierte en un cañón — que puede ser
 justo lo que quieres para un bioma concreto, pero decídelo, no lo heredes.
 
-### 2 bis .5 El montaje completo
+### 2 bis.5 El montaje completo
 
 ```gml
 /// @func generar_mundo_con_rios(_ancho, _alto, _semilla)
@@ -967,7 +967,7 @@ function generar_mundo_con_rios(_ancho, _alto, _semilla)
     // 2. Superficie hidrológica: sin ella el paso 3 se atasca.
     var _relleno = rellenar_depresiones(_alt, _ancho, _alto);
 
-    // 3. Flujo. La global es requisito del comparador, ver §2 bis .3.
+    // 3. Flujo. La global es requisito del comparador, ver §2 bis.3.
     global.__rio_relleno = _relleno;
     var _flujo = calcular_flujo(_relleno, _ancho, _alto);
 
@@ -993,7 +993,7 @@ function es_lago(_alt, _relleno, _i)
 }
 ```
 
-### 2 bis .6 Coste y cuándo no hacerlo
+### 2 bis.6 Coste y cuándo no hacerlo
 
 En un mapa de 192×128 sobre el runtime 2026.0.0.23, el reparto es aproximadamente: el ruido fBm
 domina, el *priority-flood* añade un `ds_priority` de 24 576 entradas, y la ordenación para la
@@ -1768,7 +1768,7 @@ como **esqueleto** al que luego se le abren salas, se le añaden bucles y se le 
 Un laberinto crudo es aburrido; un laberinto crudo bien generado es un excelente punto de
 partida.
 
-### 3 quinquies .1 Representar el laberinto por paredes, no por baldosas
+### 3 quinquies.1 Representar el laberinto por paredes, no por baldosas
 
 La tentación es trabajar directamente sobre una rejilla de baldosas donde una celda es «pared»
 o «suelo». Funciona, pero complica todo: hay que razonar con celdas de índice par e impar y
@@ -1788,7 +1788,7 @@ celdas implicadas**. La conversión a baldosas se hace al final, una sola vez, y
 truco clásico: un laberinto de `A × B` celdas se dibuja en una rejilla de `(2A+1) × (2B+1)`
 baldosas, donde las celdas caen en las posiciones impares y las paredes en las pares.
 
-### 3 quinquies .2 El algoritmo, con pila explícita
+### 3 quinquies.2 El algoritmo, con pila explícita
 
 El *recursive backtracker* es una búsqueda en profundidad que va abriendo pasillos hacia celdas
 no visitadas y retrocede cuando se queda sin salida. Se llama «recursivo» por cómo se explica,
@@ -1871,7 +1871,7 @@ function generar_laberinto(_ancho, _alto, _semilla)
 > en un muro invisible si consulta la de destino. Es un bug que no rompe la generación, solo el
 > movimiento — y por eso cuesta tanto encontrarlo. `_bit[_d]` y `_opu[_d]`, siempre los dos.
 
-### 3 quinquies .3 Pasar de máscaras a baldosas
+### 3 quinquies.3 Pasar de máscaras a baldosas
 
 ```gml
 /// @func laberinto_a_rejilla(_lab)
@@ -1904,7 +1904,7 @@ function laberinto_a_rejilla(_lab)
 }
 ```
 
-### 3 quinquies .4 Trenzado: quitarle los callejones
+### 3 quinquies.4 Trenzado: quitarle los callejones
 
 Un laberinto perfecto es, para jugar, **agotador**: cada callejón obliga a desandar el camino
 entero. El remedio es el **trenzado** (*braiding*): abrir una pared más en cada callejón sin
@@ -1968,7 +1968,7 @@ de acción donde el jugador huye de enemigos.
 > se **conectan** los de un laberinto porque estorban. No las confundas: podar un laberinto
 > perfecto lo deja casi vacío, porque casi todo él es callejón.
 
-### 3 quinquies .5 Qué algoritmo elegir, y por qué el sesgo importa
+### 3 quinquies.5 Qué algoritmo elegir, y por qué el sesgo importa
 
 Todos estos algoritmos producen laberintos perfectos válidos. La diferencia es la **textura**:
 qué se siente al recorrerlos. La terminología («*river*», el grado de serpenteo) es de Jamis
