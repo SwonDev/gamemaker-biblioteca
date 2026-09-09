@@ -108,7 +108,13 @@ IND = os.path.join(RAIZ, "_indice")
 URL = re.compile(r"https?://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]+")
 # dominios que NO se validan: el manual está espejado en disco; badges/imágenes no son recursos
 IGNORA = ("manual-lts-2026", "img.shields.io", "user-images.githubusercontent",
-          "camo.githubusercontent", "badge")
+          "camo.githubusercontent", "badge",
+          # Servidores de sellado de tiempo para firmar binarios: NO son páginas
+          # web. Responden 404 a un GET y funcionan perfectamente para lo suyo
+          # (`signtool /tr`). Marcarlos como muertos es un falso positivo, y de
+          # los caros: alguien podría "arreglar" una URL de firma que estaba bien.
+          "timestamp.digicert.com", "timestamp.sectigo.com",
+          "timestamp.comodoca.com", "timestamp.apple.com")
 # URLs que son EJEMPLOS o PLACEHOLDERS, no enlaces reales que validar:
 PLACEHOLDER = re.compile(
     r"example\.com|localhost|127\.0\.0\.1|YOUR_|url-to-picture|miservidor|"
@@ -178,7 +184,16 @@ def recolectar(con_terceros):
         # Por defecto solo se valida el contenido PROPIO. Los enlaces en los
         # READMEs de repos de terceros no son nuestros para arreglar (editarlos
         # los desincronizaría de su upstream). --con-terceros los incluye.
-        excl = {".git", "09 - Manual oficial"}
+        # `GameMaker_Fuentes` (almacén crudo de clones ajenos, 14 GB) y `Lumbre`
+        # (el juego personal del autor) NO se tocan, no se citan y no se publican
+        # — lo dice el .gitignore y AGENTS.md. Faltaban aquí, y el informe venía
+        # arrastrando enlaces muertos de documentación de terceros que además NO
+        # es nuestra para arreglar: un `polyfill.io` de los docs de Pixel-Composer
+        # aparecía como si fuera una cita de esta biblioteca.
+        # `auditorias` queda fuera por el mismo motivo que en `verificar-enlaces.py`:
+        # son informes con fecha, y un enlace que murió después es un hecho
+        # histórico del informe, no algo que corregir.
+        excl = {".git", "09 - Manual oficial", "GameMaker_Fuentes", "Lumbre", "auditorias"}
         if not con_terceros:
             excl.add("11 - Código descargado")
         dirs[:] = [d for d in dirs if d not in excl and not d.startswith(".")]
@@ -191,7 +206,13 @@ def recolectar(con_terceros):
                 continue
             txt = COD.sub(" ", txt)          # fuera las URLs de ejemplo en código
             for m in URL.finditer(txt):
-                u = recortar_puntuacion(m.group(0))
+                # Un autolink `<https://…Inc.>` ya viene delimitado por el `>`:
+                # ahí el punto final ES parte de la URL y recortarlo la rompe.
+                # Pasaba con el caso Tetris (`…_v._Xio_Interactive,_Inc.`), que
+                # salía como muerto siendo un enlace perfecto.
+                delimitada = (m.end() < len(txt) and txt[m.end()] == ">"
+                              and m.start() > 0 and txt[m.start() - 1] == "<")
+                u = m.group(0) if delimitada else recortar_puntuacion(m.group(0))
                 if any(x in u for x in IGNORA) or PLACEHOLDER.search(u):
                     continue
                 urls[u] += 1
@@ -428,6 +449,7 @@ def autoprueba():
         ("https://bottosson.github.io/posts/oklab/)/", "https://bottosson.github.io/posts/oklab/",
          "aunque detrás siga habiendo barra"),
     ]
+
     fallos = 0
     for entrada, esperado, nombre in casos:
         obtenido = recortar_puntuacion(entrada)
@@ -436,10 +458,35 @@ def autoprueba():
         else:
             fallos += 1
             print("  \u2717 %s  ->  %s" % (nombre, obtenido))
+    # El autolink va aparte: NO pasa por `recortar_puntuacion`, y ese es el punto.
+    # Un `<https://…Inc.>` viene delimitado por el `>`, así que el punto final es
+    # parte de la URL. Recortarlo daba por muerto el caso Tetris, que está vivo.
+    def _extraer(texto):
+        for _m in URL.finditer(texto):
+            delimitada = (_m.end() < len(texto) and texto[_m.end()] == ">"
+                          and _m.start() > 0 and texto[_m.start() - 1] == "<")
+            return _m.group(0) if delimitada else recortar_puntuacion(_m.group(0))
+        return None
+
+    for texto, esperado, nombre in [
+        ("ver <https://en.wikipedia.org/wiki/A,_Inc.> y punto",
+         "https://en.wikipedia.org/wiki/A,_Inc.",
+         "en un autolink <…> el punto final NO se recorta"),
+        ("ver [x](https://ejemplo.com/y). Y sigue",
+         "https://ejemplo.com/y",
+         "y fuera de un autolink sí se recorta"),
+    ]:
+        obtenido = _extraer(texto)
+        if obtenido == esperado:
+            print("  \u2713 " + nombre)
+        else:
+            fallos += 1
+            print("  \u2717 %s  ->  %s" % (nombre, obtenido))
+
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % fallos)
         return 1
-    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % len(casos))
+    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (len(casos) + 2))
     return 0
 
 

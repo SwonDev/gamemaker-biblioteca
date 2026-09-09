@@ -1,6 +1,6 @@
 # 09 · Plataformas para principiantes — apuntes de la serie de Alas de reptil (2025)
 
-> **Fuente:** canal [Alas de reptil](https://www.youtube.com/@alasdereptil) · 2025.
+> **Fuente:** canal [Alas de reptil](https://www.youtube.com/results?search_query=Alas+de+reptil+GameMaker) · 2025.
 > **Es el material en español más reciente que se ha encontrado** (el último vídeo es de
 > **octubre de 2025**), y el único que enseña desde cero para GameMaker actual.
 >
@@ -299,4 +299,4 @@ rápido o wall jump. El patrón está en
 
 ---
 
-Fuente original: canal [Alas de reptil](https://www.youtube.com/@alasdereptil).
+Fuente original: canal [Alas de reptil](https://www.youtube.com/results?search_query=Alas+de+reptil+GameMaker).

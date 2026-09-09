@@ -259,7 +259,7 @@ popularidad del fan game no es un escudo: es lo que dispara la reclamación.
 
 Fuentes: PC Gamer —
 <https://www.pcgamer.com/gta-modding-tool-openiv-shuts-down-claiming-cease-and-desist-from-take-two/>
-· bit-tech, 15-06-2017 — <https://www.bit-tech.net/news/gaming/2017/06/15/gta-tool-openiv-downed/>
+· bit-tech, 15-06-2017 — bit-tech, 15-06-2017 — el artículo ya no está en línea (comprobado el 09-09-2026)
 · PC Gamer, sobre la política revisada —
 <https://www.pcgamer.com/rockstar-says-you-wont-be-banned-for-using-gta-5-single-player-mods/>
 (todas consultadas 07-09-2026).
@@ -579,7 +579,7 @@ Todas consultadas el **7 de septiembre de 2026**.
 - Wikipedia, *AM2R* — <https://en.wikipedia.org/wiki/AM2R>
 - Slashdot, *Nintendo Shuts Down 'Pokemon Uranium' Fan Game After 1.5 Million Downloads*, 18-08-2016 — <https://games.slashdot.org/story/16/08/18/0047205/nintendo-shuts-down-pokemon-uranium-fan-game-after-15-million-downloads>
 - PC Gamer, *GTA modding tool OpenIV shuts down due to cease and desist from Take-Two* — <https://www.pcgamer.com/gta-modding-tool-openiv-shuts-down-claiming-cease-and-desist-from-take-two/>
-- bit-tech, *GTA modding tool OpenIV downed by cease and desist notification*, 15-06-2017 — <https://www.bit-tech.net/news/gaming/2017/06/15/gta-tool-openiv-downed/>
+- bit-tech, *GTA modding tool OpenIV downed by cease and desist notification*, 15-06-2017 — bit-tech, 15-06-2017 — el artículo ya no está en línea (comprobado el 09-09-2026)
 - PC Gamer, *Rockstar says you won't be banned for using GTA 5 single-player mods* — <https://www.pcgamer.com/rockstar-says-you-wont-be-banned-for-using-gta-5-single-player-mods/>
 - Kotaku, *Fan-Made Streets Of Rage Remake Pulled After Request From Sega*, 11-04-2011 — <https://kotaku.com/fan-made-streets-of-rage-remake-pulled-after-request-fr-5791059>
 - GamesRadar+, *Undertale's Toby Fox says fans should be "supported at every opportunity"...* — <https://www.gamesradar.com/undertales-toby-fox-says-fans-should-be-supported-at-every-opportunity-amid-debate-over-music-rights-in-fanmade-prequel/>

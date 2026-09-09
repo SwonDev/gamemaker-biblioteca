@@ -47,7 +47,7 @@
 | **Twitch** | Oficial: [GMEXT-Twitch](https://github.com/YoYoGames/GMEXT-Twitch) ★21 (2025-12-29). Comunidad: [GMTwitch](https://github.com/GameMakerDiscord/GMTwitch) ★69 · [MM's Twitch IRC](https://maddestudios.itch.io/mms-twitchtv-irc-interface-for-gamemaker) 💸 $2 (funciona incluso en HTML5) |
 | **Reddit (Devvit)** | Oficial: [GMEXT-Reddit](https://github.com/YoYoGames/GMEXT-Reddit) · [GM-RedditDemo](https://github.com/YoYoGames/GM-RedditDemo) · [GameMakerRedditTemplate](https://github.com/YoYoGames/GameMakerRedditTemplate). 🆕 Reddit es un **target nuevo** en 2026 |
 | **Facebook** | [GMEXT-Facebook](https://github.com/YoYoGames/GMEXT-Facebook) |
-| **Medal** | [GMEXT-Medal](https://github.com/YoYoGames/GMEXT-Medal) (clips de partida) |
+| **Medal** | `GMEXT-Medal` ⚠️ **Retirada del repositorio oficial** (comprobado el 09-09-2026: el repo devuelve 404 y no aparece en la organización YoYoGames). (clips de partida) |
 | **GitHub** | [GitHub.gml](https://github.com/AlubJ/GitHub.gml) ★3 — envoltorio de la API REST de GitHub desde GML |
 
 📁 Todas descargadas: oficiales en `extensiones_oficiales/`, comunidad en `librerias/integraciones/`.

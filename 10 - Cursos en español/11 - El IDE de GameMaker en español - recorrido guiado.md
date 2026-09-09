@@ -1,7 +1,7 @@
 # 11 · El IDE de GameMaker en español — recorrido guiado
 
 > **Fuente de partida:** [*Interfaz General [Game Maker 2024]*](https://youtu.be/KRJhX4YgcHo)
-> de [Altair_AML](https://www.youtube.com/@Altair_AML) · 17:08 · marzo de 2024.
+> de [Altair_AML](https://www.youtube.com/channel/UCMP5XWWzhJ_A6DPNKNfQVOw) · 17:08 · marzo de 2024.
 >
 > Apuntes propios: el recorrido del vídeo, **actualizado a LTS 2026** y con cada zona del IDE
 > enlazada a **su página del manual oficial en español**, que ya está completo en esta
@@ -182,4 +182,4 @@ Detalle completo en [02 - Novedades 2026](../02%20-%20Novedades%202026/).
 
 ---
 
-Fuente original: canal [Altair_AML](https://www.youtube.com/@Altair_AML).
+Fuente original: canal [Altair_AML](https://www.youtube.com/channel/UCMP5XWWzhJ_A6DPNKNfQVOw).

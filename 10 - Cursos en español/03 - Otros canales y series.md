@@ -131,7 +131,7 @@ Serie *Game Maker Studio | Curso Básico*: [Introducción al GML](https://youtu.
 | [TR Old School Gamer](https://www.youtube.com/channel/UCK9kPTmlJlZTXNpPQC5Kq9A) | [Crear videojuego arcade Pac-Man](https://youtu.be/TmdtdSWLkvw) (17 min) | 2018 | 🔴 Histórico, pero buen desglose del diseño de Pac-Man |
 | [TekhRules](https://www.youtube.com/channel/UCI7DqArZ5WIP-ZDLBxFY8IQ) | [Creación de videojuegos con Game Maker desde cero · Ep1](https://youtu.be/gt7B9yoVsh0) (27 min) | 2013 | 🔴 Histórico |
 | [Alexis Jeansalle](https://www.youtube.com/channel/UCrwHfYcR9KzvMI9_3nzq5yg) (`@elbooz-cursos`) | *Curso Programación de Juegos 2D con GameMaker*, [módulo 4](https://youtu.be/hT9hnhKuR9c) (9 min) | 2012 | 🔴 Histórico |
-| [Leedeo Studio](https://www.youtube.com/@LeedeoStudio) | [La historia de GameMaker](https://youtu.be/CkoZNKxxEVs) (15 min) | reciente | 🟢 Divulgación, no técnico. Buen contexto |
+| [Leedeo Studio](https://www.youtube.com/results?search_query=Leedeo+Studio+GameMaker) | [La historia de GameMaker](https://youtu.be/CkoZNKxxEVs) (15 min) | reciente | 🟢 Divulgación, no técnico. Buen contexto |
 
 ---
 
