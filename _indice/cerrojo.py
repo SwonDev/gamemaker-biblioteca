@@ -46,10 +46,42 @@ class CerrojoOcupado(Exception):
         super().__init__(f"«{ruta}» está en uso por el proceso {pid} desde {desde}")
 
 
-def _vivo(pid):
-    """¿Existe ese proceso? `signal 0` no envía nada: solo pregunta."""
+def _vivo(pid, sistema=None):
+    """¿Existe ese proceso? Sin matarlo, que es más difícil de lo que parece.
+
+    🔴 **En POSIX, `os.kill(pid, 0)` pregunta; en Windows, MATA.** La documentación de
+    Python lo dice sin adornos: en Windows, `os.kill(pid, sig)` con cualquier señal que
+    no sea `CTRL_C_EVENT` o `CTRL_BREAK_EVENT` llama a `TerminateProcess` con `sig` como
+    código de salida. Es decir, la forma canónica de preguntar «¿sigue vivo?» en Linux y
+    Mac **termina el proceso** en Windows.
+
+    Aquí eso sería lo peor posible: esta función decide si un cerrojo está huérfano. En
+    Windows habría matado al proceso que legítimamente tenía la carpeta de trabajo —una
+    compilación de otra persona— para después quedarse con ella.
+
+    El equivalente en Windows es `OpenProcess` con `PROCESS_QUERY_LIMITED_INFORMATION`,
+    que solo consulta. `sistema` existe para poder probar las dos ramas desde cualquier
+    máquina; en uso normal se deduce sola.
+    """
     if not isinstance(pid, int) or pid <= 0:
         return False
+    if sistema is None:
+        sistema = os.name
+    if sistema == "nt":
+        import ctypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        ERROR_INVALID_PARAMETER = 87
+        try:
+            k32 = ctypes.windll.kernel32          # noqa: F821 (solo existe en Windows)
+        except AttributeError:
+            return True                            # no se puede consultar: se respeta
+        h = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if h:
+            k32.CloseHandle(h)
+            return True
+        # 87 = «parámetro no válido» es lo que devuelve un PID que ya no existe.
+        # Cualquier otro error (5, acceso denegado) significa que existe y no es nuestro.
+        return k32.GetLastError() != ERROR_INVALID_PARAMETER
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -203,6 +235,37 @@ def autoprueba():
         except CerrojoOcupado:
             revisar("un cerrojo sin dueño legible se recupera", False, "sigue bloqueado")
 
+        # 5 bis · La rama de Windows no puede llamar a `os.kill`: allí eso MATA.
+        #         Se comprueba desde cualquier sistema pidiendo la rama a mano y
+        #         vigilando que `os.kill` no se toca. Sin esta prueba, el fallo solo
+        #         aparecería en Windows y en forma de proceso muerto ajeno.
+        import os as _os
+        _kill_real = _os.kill
+        _llamadas = []
+
+        def _kill_espia(*a, **k):
+            _llamadas.append(a)
+            return _kill_real(*a, **k)
+
+        _os.kill = _kill_espia
+        try:
+            _vivo(999999, sistema="nt")
+        except Exception:
+            pass
+        finally:
+            _os.kill = _kill_real
+        revisar("la rama de Windows NUNCA llama a os.kill (allí MATA)",
+                _llamadas == [], "llamó %d vez(ces)" % len(_llamadas))
+
+        _llamadas.clear()
+        _os.kill = _kill_espia
+        try:
+            _vivo(os.getpid(), sistema="posix")
+        finally:
+            _os.kill = _kill_real
+        revisar("y la de POSIX sí lo usa, con la señal 0",
+                len(_llamadas) == 1 and _llamadas[0][1] == 0, str(_llamadas))
+
         # 5 · `espera` da margen en vez de rendirse al instante.
         with Cerrojo(trabajo):
             t0 = time.time()
@@ -216,7 +279,7 @@ def autoprueba():
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 7 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 9 comprobaciones de la autoprueba pasan.")
     return 0
 
 
