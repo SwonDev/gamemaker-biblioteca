@@ -340,6 +340,10 @@ CASOS = [
     ("Tengo un atlas con su manifest.json: ¿cómo lo meto en GameMaker?",
      ["--texto", "atlas-a-gamemaker"],
      ["Manual del agente de IA"]),
+
+    ("Me piden un juego 3D y no tengo modelos: ¿de dónde los saco?",
+     ["--texto", "Quaternius"],
+     ["Asset packs y recursos gráficos"]),
 ]
 
 
