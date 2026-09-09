@@ -320,6 +320,15 @@ def autoprueba():
     yo = os.path.abspath(__file__)
     fallos = []
 
+    # Esta autoprueba compara contra el índice de símbolos del runtime instalado.
+    # Sin él no puede correr — y «no se ha podido comprobar» NO es «falla»: son
+    # cosas distintas y confundirlas es el error que este proyecto persigue.
+    if not os.path.exists(os.path.join(IND, "simbolos.json")):
+        print("· Autoprueba NO ejecutada: falta _indice/simbolos.json.")
+        print("  No es un fallo: se genera con `python3 _indice/actualizar.py` (paso 2),")
+        print("  y entonces esta autoprueba sí puede correr.")
+        return 2
+
     def revisar(nombre, condicion, detalle=""):
         if condicion:
             print("  ✓ " + nombre)
