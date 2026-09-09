@@ -504,9 +504,17 @@ instalar.)*
 | **`gamemaker-mcp`** (Petah, **GitHub**) | Node.js ≥22 | Solo **documentación**: buscar funciones GML, búsqueda de texto, navegar la referencia. No toca el proyecto | Si tu agente solo necesita consultar la API (aunque esta biblioteca ya cubre eso offline con `buscar.py`) |
 | **`gamemaker-mcp`** (yearningss, **npm**) ⚠️ mismo nombre, proyecto distinto | Node.js | **225 herramientas**: inspección del `.yyp`, edición guardada, operaciones de objeto/sala/sprite/shader, instantáneas, diagnósticos de GML, perfilador, ejecutor de tests, generador de JSDoc para Feather y compilación con Igor. Instalador para 20 clientes de IA | Ver el aviso de abajo antes de instalarlo |
 
-> 🔺 **`gms-mcp` está en desarrollo activo** (v0.0.7 publicada el **2 de septiembre de 2026**,
-> con CI contra GameMaker 2024 y 2026 LTS reales). Es de terceros: instálalo con
-> `pip install gms-mcp` **revisando antes** que la versión soporta tu runtime.
+> 🔺 **`gms-mcp` está en desarrollo MUY activo** — tanto que esta línea ya se ha quedado corta
+> una vez: era la v0.0.7 del 2 de septiembre y el **2026-09-09** ya iba por la **v0.0.11**, con
+> cuatro publicaciones (`rc`, `dev` y final) **el mismo día**. Licencia MIT, en
+> [`Ampersand-Game-Studios/gms-mcp`](https://github.com/Ampersand-Game-Studios/gms-mcp).
+> Ese ritmo tiene dos caras: se arregla rápido y **rompe rápido**. Fija la versión que hayas
+> probado (`pip install gms-mcp==0.0.11`) en vez de dejar que se actualice sola a mitad de un
+> proyecto.
+>
+> Lo que no ha cambiado desde la primera investigación: tiene **CI contra GameMaker 2024 y
+> 2026 LTS reales**, que es más de lo que enseña casi ningún MCP de terceros. Sigue siendo de
+> terceros: instálalo **revisando antes** que la versión soporta tu runtime.
 > Fuentes: <https://pypi.org/project/gms-mcp/> · <https://github.com/Petah/gamemaker-mcp>
 
 > 🔴 **Cuidado con el nombre `gamemaker-mcp`: son DOS proyectos distintos.** El de la tabla que

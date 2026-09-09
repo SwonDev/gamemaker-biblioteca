@@ -35,6 +35,18 @@ tareas sobre el `.yyp`.
 📁 Descargado: `11 - Código descargado/librerias/herramientas-externas/stitch/`
 🔗 Extensión: <https://marketplace.visualstudio.com/items?itemName=bscotch.bscotch-stitch-vscode>
 
+> 🎨 **Y dentro de Stitch hay una pieza que casi nadie conoce y que resuelve el hueco entre
+> «tengo los PNG» y «son sprites del proyecto»**:
+> [`@bscotch/sprite-source`](https://www.npmjs.com/package/@bscotch/sprite-source) (v1.6.0,
+> 2026-01-09, MIT). Es el *pipeline de arte* real de Butterscotch Shenanigans —los de
+> *Crashlands*—: defines en un `sprites.source.json` unas carpetas de **staging** donde el
+> artista (o el generador) suelta exportaciones en crudo, y la herramienta las convierte en
+> sprites del `.yyp` sin abrir el IDE. Es la versión con años de producción detrás de lo que
+> hace `_indice/atlas-a-gamemaker.py` para un atlas suelto.
+>
+> ⚠️ **Su propio README avisa en negrita de que hace cambios irreversibles en tus archivos.**
+> No lo pruebes fuera de un repositorio con git limpio.
+
 ### vim-gml · MIT · repo original borrado, la copia de aquí es la buena
 
 Resaltado de sintaxis de GML para Vim y Neovim.

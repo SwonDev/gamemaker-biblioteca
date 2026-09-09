@@ -12,9 +12,18 @@
 
 # GameMaker · biblioteca fidedigna
 
+<!-- SKILL-VERSION: r17 · 2026-09-09 -->
+`r17 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
 detrás un documento contrastado.
+
+> 🏷️ **Para qué sirve esa etiqueta.** Una skill instalada es una **copia**: puede llevar meses
+> desfasada sin que se note, porque responde igual de convencida. `sincronizar-skill.py` compara
+> la versión de cada copia instalada con la de esta carpeta y **te dice cuál va atrasada y por
+> cuánto**. Si en una sesión ves un `r` distinto del que tiene el repositorio, reinstala con
+> `./instalar.sh` antes de fiarte de lo que diga.
 
 **Lo primero de todo, una sola vez por sesión**, y no solo la asignación: también la
 comprobación. Copia las dos líneas tal cual.
