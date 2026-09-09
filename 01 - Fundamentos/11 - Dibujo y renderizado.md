@@ -694,9 +694,22 @@ draw_line(x1, y1, x2, y2);
 draw_line_width(x1, y1, x2, y2, ancho);
 draw_point(x, y);
 draw_arrow(x1, y1, x2, y2, tamano);
-draw_polygon(...);
 draw_triangle(x1,y1, x2,y2, x3,y3, outline);
 ```
+
+> ❌ **`draw_polygon()` NO existe, y esta lista la incluía.** Era el error que esta biblioteca
+> existe para impedir: un nombre inventado colado en un catálogo de funciones reales, donde nadie
+> lo cuestiona. Y encima se contradecía con
+> [`08 · 02`](../08%20-%20Referencia%20GML%20completa/02%20-%20Dibujo%20de%20formas%20y%20primitivas.md),
+> que ya la documenta como inexistente con su alternativa. Detectado el 09-09-2026 al ejecutar
+> `validar-codigo-gml.py` sobre un clon **sin** `11 - Código descargado`: con el corpus instalado,
+> el validador la daba por buena porque alguna librería de terceros define una función con ese
+> nombre. Para un polígono: `draw_primitive_begin(pr_trianglefan)` + `draw_vertex*`, o un vertex
+> buffer (§7).
+
+> 💡 **De ahí sale una lección sobre el propio validador**: el corpus de terceros *absuelve*
+> nombres, así que un clon sin él es **más severo**, no menos. Si dudas de un nombre, compruébalo
+> con `buscar.py`, que solo mira el runtime — no con la ausencia de avisos.
 
 ```gml
 // Ejemplo: dibujar la bounding box de colisión para depurar

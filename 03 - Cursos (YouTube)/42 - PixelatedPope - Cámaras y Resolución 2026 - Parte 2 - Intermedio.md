@@ -627,6 +627,12 @@ El autor recomienda dejar esta información visible en pantalla durante el desar
 La solución del autor es sustituir **todos** los usos de `camera_set_view_pos` por su
 script `camera_set_view_pos_subpixel`. Se usa exactamente igual:
 
+> ⚠️ **Ni `camera_set_view_pos_subpixel` ni `display_write_all_specs` son funciones del
+> runtime**: son scripts que reparte el autor del curso, y no están en `GmlSpec.xml`, ni en
+> `fnames`, ni en el manual (comprobado el 09-09-2026). Si los copias sin tener sus scripts, el
+> proyecto **compila igual** y revienta al ejecutarse — la Trampa 4 en estado puro. Consíguelos
+> del curso o escríbelos tú.
+
 ```gml
 // Antes:
 camera_set_view_pos(view_camera[0], _target_x, _target_y);
