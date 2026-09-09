@@ -80,9 +80,56 @@ Las cuatro búsquedas de texto salen ahora con **2** («no se ha podido buscar»
 dice con todas las letras: de sus cuatro fuentes, tres se recorren con `grep`, así que sin él
 solo se ha mirado una. Cuatro casos de autoprueba, fingiendo que `grep` no está.
 
-> **Lo que esto cambia en el estado de verificación**: Windows sigue **sin ejecutarse** — no hay
-> máquina, y así seguirá escrito. Pero ya no es una casilla en blanco: sus rutas de código
-> específicas están auditadas, y las dos que estaban mal, corregidas y con prueba.
+### 2.3 · Y después dejó de ser auditoría: se EJECUTÓ
+
+Auditar el código encontró dos fallos. Ejecutarlo encontró un tercero que la lectura no
+podía ver — y ejecutarlo sí era posible, solo que no se había intentado: **`wine` 11 estaba
+instalado en esta máquina desde el principio**.
+
+Con un `WINEPREFIX` aparte, para no tocar el prefijo de 1,9 GB del usuario, y el **Python
+3.12.7 embebido de Windows** descargado de python.org:
+
+```console
+$ wine pyw/python.exe -c "import os,sys; print(os.name, sys.platform)"
+nt win32
+```
+
+**Resultado: 12 de las 14 herramientas pasan sus autopruebas bajo Windows.** Las otras dos
+—`puerta-pixel-art` y `atlas-a-gamemaker`— salen con **2**, no con 1: «falta Pillow, así que
+NO se ha mirado ningún PNG». Es la respuesta correcta, no un fallo.
+
+### 2.4 · 🔴 El tercer fallo: en Windows, un proceso muerto parece vivo
+
+Solo apareció ejecutando. La rama de Windows que acababa de escribir usaba `OpenProcess` y
+daba por vivo cualquier PID que se pudiera abrir. **En Windows eso no es cierto**: el objeto
+de kernel de un proceso terminado sigue siendo abrible, así que `OpenProcess` devuelve un
+handle válido para algo que ya murió.
+
+Consecuencia medida: **el cerrojo huérfano no se recuperaba nunca**. Su dueño muerto parecía
+vivo, y la herramienta quedaba bloqueada para siempre hasta borrar una carpeta a mano — que
+es exactamente el fallo que el cerrojo existe para evitar.
+
+Corregido preguntando además por `GetExitCodeProcess`: solo `259` (`STILL_ACTIVE`) significa
+«sigue corriendo». Y verificado ejecutando de nuevo bajo Windows.
+
+### 2.5 · Un cuarto: seis herramientas reventaban al imprimir un `✓`
+
+```
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713'
+```
+
+En Windows, `sys.stdout` usa la página de códigos ANSI en cuanto la salida no es una consola
+interactiva. Doce herramientas llevaban ya las seis líneas que lo arreglan —copiadas a mano de
+una a otra— y seis no: **tres de ellas escritas hoy**. Morían en la primera línea que imprimían.
+
+La cabecera de esas seis líneas decía, literalmente, «no verificado en Windows de verdad».
+Ahora lo está. Y `actualizar.py` tiene un **paso 0 ter** que comprueba que ninguna herramienta
+se quede sin ellas, porque copiar a mano es como se olvidaron las seis.
+
+> **Estado de verificación de Windows, ahora**: las herramientas **se ejecutan** bajo un Python
+> de Windows real (sobre Wine, que no es lo mismo que una máquina Windows: no cubre rutas UNC,
+> permisos de dominio ni antivirus). Lo que NO se ha ejecutado nunca en Windows es **GameMaker
+> mismo** — `gm-cli`, el runtime y el IDE—, y eso seguirá escrito hasta que haya máquina.
 
 ---
 
@@ -111,8 +158,10 @@ sus credenciales, y se dice así.
 
 - **Verificado ejecutando**: macOS arm64 — 14 herramientas · 157 casos de autoprueba ·
   el juego de [`r18`](./r18-prueba-visual.md) construido, ejecutado y fotografiado.
-- **Verificado por auditoría de código, no ejecutando**: las rutas de Windows de `cerrojo.py`
-  y `buscar.py`, con prueba automática que corre en cualquier sistema.
-- **Sin verificar, y así seguirá hasta que haya máquina o cuenta**: Windows ejecutándose de
-  verdad · el peldaño de *computer use* (razonado, nunca medido) · Kimi y Qwen activando la
-  skill.
+- **Verificado ejecutando en Windows** (Python 3.12.7 de Windows sobre Wine 11): 12 de 14
+  herramientas pasan sus autopruebas; las otras 2 salen con 2 por falta de Pillow, que es la
+  respuesta correcta. Cuatro fallos encontrados y corregidos por el camino, dos de ellos
+  invisibles a la lectura del código.
+- **Sin verificar, y así seguirá hasta que haya máquina o cuenta**: **GameMaker en Windows**
+  —`gm-cli`, runtime e IDE, que es otra cosa que las herramientas de Python— · el peldaño de
+  *computer use* (razonado, nunca medido) · Kimi y Qwen activando la skill.

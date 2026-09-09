@@ -414,6 +414,29 @@ def main():
         print(f"  ✓ ninguna herramienta con autoprueba se queda fuera "
               f"({len(_autopruebas)} ejecutadas).")
 
+    # 0 ter · ¿Sobrevive cada herramienta a una consola de Windows?
+    # En Windows, `sys.stdout` usa la página de códigos ANSI en cuanto la salida no es
+    # una consola interactiva, y un `✓` la revienta con UnicodeEncodeError. **Medido**
+    # el 2026-09-09 ejecutando las autopruebas con un Python 3.12.7 de Windows bajo
+    # Wine: seis herramientas morían en la primera línea que imprimían. Las seis líneas
+    # que lo arreglan estaban ya en doce de ellas, copiadas a mano — y a mano se olvidan.
+    _sin_guarda = []
+    for _f in sorted(os.listdir(IND)):
+        if not _f.endswith(".py"):
+            continue
+        try:
+            _txt = open(os.path.join(IND, _f), encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        if "reconfigure(encoding" not in _txt:
+            _sin_guarda.append(_f)
+    if _sin_guarda:
+        print("  ⚠ sin protección de codificación para Windows: " + ", ".join(_sin_guarda))
+        problemas.append("estas herramientas revientan en una consola de Windows: "
+                         + ", ".join(_sin_guarda))
+    else:
+        print("  ✓ todas resisten una consola de Windows (medido con Python de Windows).")
+
     paso(1, "Enlaces internos")
     if correr("verificar-enlaces.py") != 0:
         print("→ hay enlaces rotos: corrígelos antes de seguir.")

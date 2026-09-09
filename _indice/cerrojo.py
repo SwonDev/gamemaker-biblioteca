@@ -34,6 +34,22 @@ import errno
 import json
 import os
 import time
+import sys
+
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida vía subprocess), sys.stdout usa la página de
+# códigos ANSI del sistema en vez de UTF-8 — y los ✓/✗/⚠ de este código no caben ahí.
+#
+# **Medido, ya no supuesto** (2026-09-09, Python 3.12.7 de Windows bajo Wine 11):
+#     UnicodeEncodeError: 'charmap' codec can't encode character '\u2713'
+# La autoprueba reventaba en la primera línea que imprimía un ✓. Las herramientas que ya
+# llevaban estas seis líneas pasaron; las que no, murieron.
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 __all__ = ["Cerrojo", "CerrojoOcupado"]
 
@@ -77,8 +93,21 @@ def _vivo(pid, sistema=None):
             return True                            # no se puede consultar: se respeta
         h = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         if h:
+            # 🔴 Abrir el proceso NO basta. En Windows, un proceso terminado sigue
+            # siendo «abrible» mientras exista su objeto de kernel, así que
+            # `OpenProcess` devuelve un handle válido para algo que ya murió. Medido
+            # ejecutando la autoprueba bajo un Python de Windows: el cerrojo huérfano
+            # NO se recuperaba —su dueño muerto parecía vivo— y la herramienta quedaba
+            # bloqueada para siempre hasta borrar una carpeta a mano. Hay que preguntar
+            # además por el código de salida: 259 (STILL_ACTIVE) es el único que
+            # significa «sigue corriendo».
+            STILL_ACTIVE = 259
+            codigo = ctypes.c_ulong()
+            ok = k32.GetExitCodeProcess(h, ctypes.byref(codigo))
             k32.CloseHandle(h)
-            return True
+            if not ok:
+                return True                    # no se pudo consultar: se respeta
+            return codigo.value == STILL_ACTIVE
         # 87 = «parámetro no válido» es lo que devuelve un PID que ya no existe.
         # Cualquier otro error (5, acceso denegado) significa que existe y no es nuestro.
         return k32.GetLastError() != ERROR_INVALID_PARAMETER
@@ -214,7 +243,9 @@ def autoprueba():
         muerto = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
                                 capture_output=True, text=True)
         pid_muerto = int(muerto.stdout.strip())
-        os.makedirs(trabajo + ".lock")
+        # `exist_ok`: si el caso anterior falló, la carpeta sigue ahí y este caso
+        # reventaba con FileExistsError, tapando su propio resultado.
+        os.makedirs(trabajo + ".lock", exist_ok=True)
         with open(os.path.join(trabajo + ".lock", "dueño.json"), "w", encoding="utf-8") as f:
             json.dump({"pid": pid_muerto, "desde": "hace mucho"}, f)
         try:
@@ -226,7 +257,7 @@ def autoprueba():
             revisar("un cerrojo huérfano se recupera solo", False, "sigue bloqueado")
 
         # 4 · Un cerrojo corrupto (sin dueño legible) tampoco atasca para siempre.
-        os.makedirs(trabajo + ".lock")
+        os.makedirs(trabajo + ".lock", exist_ok=True)
         try:
             c3 = Cerrojo(trabajo)
             c3.adquirir()

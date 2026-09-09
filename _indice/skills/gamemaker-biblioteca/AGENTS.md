@@ -12,8 +12,8 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r19 · 2026-09-09 -->
-`r19 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r20 · 2026-09-09 -->
+`r20 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -299,12 +299,18 @@ documentos, generado del disco, en `$BIB/_indice/skills/gamemaker-biblioteca/ref
 Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el texto.
 
 > 🖥️ **Y lo que NO está verificado, dicho por delante para que no lo descubras tú.**
-> Todo lo de esta skill se ha ejecutado en **macOS arm64**. En **Windows** no se ha
-> ejecutado nada: sus rutas de código están auditadas y dos fallos corregidos —`os.kill`
-> allí no pregunta, **mata**, y sin `grep` las búsquedas de texto no pueden mirar nada—,
-> pero eso es auditoría, no ejecución. El peldaño de *computer use* está **razonado, nunca
-> medido**. Y de **Kimi y Qwen** solo se ha comprobado que reciben la skill íntegra, no
-> que la activen. Detalle en `_indice/auditorias/r19-cobertura-y-portabilidad.md`.
+> El desarrollo de juegos de esta skill se ha ejecutado entero en **macOS arm64**. Las
+> **herramientas de `_indice/` sí se han ejecutado en Windows** (Python 3.12.7 de Windows
+> sobre Wine): 12 de 14 pasan y las otras 2 dicen «falta Pillow, no he mirado nada», que es
+> la respuesta correcta. Por el camino salieron cuatro fallos —`os.kill` en Windows no
+> pregunta, **mata**; un proceso muerto parece vivo si solo miras `OpenProcess`; sin `grep`
+> las búsquedas decían «no existe» en vez de «no he mirado»; y seis herramientas reventaban
+> al imprimir un `✓`—, todos corregidos.
+> **Lo que sigue sin ejecutarse en Windows es GameMaker mismo**: `gm-cli`, el runtime y el
+> IDE. El peldaño de *computer use* está **razonado, nunca medido**. Y de **Kimi y Qwen**
+> solo está comprobado que reciben la skill íntegra, no que la activen — Qwen, además,
+> declara `~/.claude/skills` y no `~/.qwen/skills` en su `settings.json`.
+> Detalle en `_indice/auditorias/r19-cobertura-y-portabilidad.md`.
 
 ## Prohibiciones duras
 

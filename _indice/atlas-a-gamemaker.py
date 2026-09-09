@@ -36,6 +36,21 @@ import os
 import re
 import sys
 
+# Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
+# propio actualizar.py capturando la salida vía subprocess), sys.stdout usa la página de
+# códigos ANSI del sistema en vez de UTF-8 — y los ✓/✗/⚠ de este código no caben ahí.
+#
+# **Medido, ya no supuesto** (2026-09-09, Python 3.12.7 de Windows bajo Wine 11):
+#     UnicodeEncodeError: 'charmap' codec can't encode character '\u2713'
+# La autoprueba reventaba en la primera línea que imprimía un ✓. Las herramientas que ya
+# llevaban estas seis líneas pasaron; las que no, murieron.
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+
 
 def _pillow():
     try:
