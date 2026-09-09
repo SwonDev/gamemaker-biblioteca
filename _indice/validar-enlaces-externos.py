@@ -117,6 +117,39 @@ PLACEHOLDER = re.compile(
 # quitar bloques de código ``` ``` y `inline`: una URL de ejemplo dentro de código
 # no es un enlace de navegación (el manual usa http_get("http://ejemplo…") así)
 COD = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+
+
+def recortar_puntuacion(u):
+    """Quita la puntuación que arrastra una URL al final de una frase.
+
+    Ojo con el paréntesis, que es donde estaba el fallo: un `.rstrip(")")` a
+    secas partía `…/wiki/Hades_(video_game)` en `…/wiki/Hades_(video_game`, y el
+    informe daba por MUERTOS doce enlaces de Wikipedia que están perfectamente
+    vivos. Doce falsos positivos de setenta hacen que nadie se crea la lista, que
+    es peor que no tenerla.
+
+    La regla correcta: un `)` final solo sobra si NO cierra un `(` abierto dentro
+    de la propia URL.
+    """
+    # 1 · Cortar en el primer `)` que cierra un paréntesis que la URL no abrió.
+    #     Es el de `[texto](https://tabelf.link/)'s ...` en Markdown: el regex se
+    #     traga el cierre del enlace Y lo que venga detrás. Estrictamente al final
+    #     no sirve, porque ahí la basura va DESPUÉS del paréntesis sobrante.
+    abiertos = 0
+    for i, ch in enumerate(u):
+        if ch == "(":
+            abiertos += 1
+        elif ch == ")":
+            if abiertos == 0:
+                u = u[:i]
+                break
+            abiertos -= 1
+
+    # 2 · Y quitar la puntuación que arrastra el final de una frase.
+    u = u.rstrip(".,;:!]'\"")
+    while u.endswith(")") and u.count(")") > u.count("("):
+        u = u[:-1].rstrip(".,;:!]'\"")
+    return u
 FRAGILES = ("itch.io", "forum.gamemaker.io", "marketplace.yoyogames.com",
             "marketplace.gamemaker.io", "gms.yoyogames.com", "releases.gamemaker.io",
             "gm48.net", "glebtsereteli.github.io", "help.yoyogames.com")
@@ -158,7 +191,7 @@ def recolectar(con_terceros):
                 continue
             txt = COD.sub(" ", txt)          # fuera las URLs de ejemplo en código
             for m in URL.finditer(txt):
-                u = m.group(0).rstrip(".,);]'\"")
+                u = recortar_puntuacion(m.group(0))
                 if any(x in u for x in IGNORA) or PLACEHOLDER.search(u):
                     continue
                 urls[u] += 1
@@ -367,5 +400,50 @@ def main():
     return 1 if resultados["muerto"] else 0
 
 
+def autoprueba():
+    """Los casos de recorte que ya han dado falsos positivos.
+
+    Un informe de enlaces muertos con doce falsos positivos de setenta no se lee:
+    se ignora entero. Por eso el recorte de puntuación tiene prueba propia.
+    """
+    casos = [
+        ("https://en.wikipedia.org/wiki/Hades_(video_game)",
+         "https://en.wikipedia.org/wiki/Hades_(video_game)",
+         "un paréntesis que SÍ cierra uno abierto se conserva"),
+        ("https://es.wikipedia.org/wiki/A_(letra)):",
+         "https://es.wikipedia.org/wiki/A_(letra)",
+         "y el de más, con dos puntos detrás, se quita"),
+        ("https://ejemplo.com/pagina).", "https://ejemplo.com/pagina",
+         "un paréntesis suelto de la frase se quita"),
+        ("https://jqlang.github.io/jq/):", "https://jqlang.github.io/jq/",
+         "«):» al final de una cita se quita"),
+        ("https://ejemplo.com/x,", "https://ejemplo.com/x",
+         "una coma final se quita"),
+        ("https://ejemplo.com/normal", "https://ejemplo.com/normal",
+         "una URL limpia no se toca"),
+        ("https://tabelf.link/)'s", "https://tabelf.link/",
+         "un `)` EN MEDIO corta ahí, no solo al final"),
+        ("https://mashmerlow.github.io/)._", "https://mashmerlow.github.io/",
+         "y lo que venga detrás se va con él"),
+        ("https://bottosson.github.io/posts/oklab/)/", "https://bottosson.github.io/posts/oklab/",
+         "aunque detrás siga habiendo barra"),
+    ]
+    fallos = 0
+    for entrada, esperado, nombre in casos:
+        obtenido = recortar_puntuacion(entrada)
+        if obtenido == esperado:
+            print("  \u2713 " + nombre)
+        else:
+            fallos += 1
+            print("  \u2717 %s  ->  %s" % (nombre, obtenido))
+    if fallos:
+        print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % fallos)
+        return 1
+    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % len(casos))
+    return 0
+
+
 if __name__ == "__main__":
+    if "--autoprueba" in sys.argv:
+        sys.exit(autoprueba())
     sys.exit(main())
