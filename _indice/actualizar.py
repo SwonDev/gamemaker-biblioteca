@@ -347,13 +347,22 @@ def main():
         ("validar-proyecto.py",       "validador del proyecto de un agente"),
         ("puerta-pixel-art.py",       "puerta antes de reparar pixel art"),
     ]
-    for _script, _que in _autopruebas:
+    _aplazadas = []       # las que necesitan algo que aún no existe en este clon
+
+    def _correr_autoprueba(_script, _que, _reintento=False):
         _r = subprocess.run([PY, os.path.join(IND, _script), "--autoprueba"],
                             capture_output=True, text=True)
         if _r.returncode == 2 and "Pillow" in _r.stdout:
             # Sin Pillow no se puede ejecutar esa autoprueba. Decirlo, y no
             # confundirlo con «falla»: son cosas distintas.
             print(f"  · {_script}: sin Pillow, autoprueba no ejecutada (no es un fallo)")
+        elif _r.returncode == 2 and "simbolos.json" in _r.stdout:
+            # Necesita el índice, que lo genera el paso 2. Se reintenta después.
+            if _reintento:
+                print(f"  · {_script}: sigue sin _indice/simbolos.json (¿sin runtime instalado?)")
+            else:
+                _aplazadas.append((_script, _que))
+                print(f"  · {_script}: aplazada hasta que el paso 2 genere simbolos.json")
         elif _r.returncode != 0:
             for _l in _r.stdout.splitlines():
                 if _l.strip().startswith("✗"):
@@ -362,6 +371,9 @@ def main():
         else:
             _ultima = [l for l in _r.stdout.splitlines() if l.strip().startswith("✓")]
             print("  " + (_ultima[-1].strip() if _ultima else f"{_script}: correcta"))
+
+    for _script, _que in _autopruebas:
+        _correr_autoprueba(_script, _que)
 
     paso(1, "Enlaces internos")
     if correr("verificar-enlaces.py") != 0:
@@ -380,6 +392,11 @@ def main():
         else:
             problemas.append("no hay _indice/simbolos.json: instala GameMaker/gm-cli "
                               "y repite (ver el mensaje del paso 2 de arriba)")
+
+    if _aplazadas:
+        print("\n  Autopruebas aplazadas, ahora que ya hay índice de símbolos:")
+        for _script, _que in _aplazadas:
+            _correr_autoprueba(_script, _que, _reintento=True)
 
     paso(3, "Coherencia de MAPA.json y del catálogo de código con el disco")
     for a in revisar_rutas_codigo():
