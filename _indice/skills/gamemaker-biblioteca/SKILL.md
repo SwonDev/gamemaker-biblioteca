@@ -344,6 +344,12 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
       una máquina sí puede mirar: si **alguien dibuja en Draw GUI** (donde viven el HUD y los
       menús), si hay **texto escrito a pelo en un `draw_text`** —que no se puede traducir— y si
       el **splash o la intro se pueden saltar**.
+      **Y te lista los recursos que creas y no destruyes nunca**: `ds_*`, superficies,
+      buffers, partículas, *vertex buffers*, emisores de audio y *time sources*. GameMaker
+      no los recoge solo —los structs y los arrays sí, estos no—, así que cada entrada en
+      la sala deja otro y el juego que va fino en dos minutos se arrastra a la media hora.
+      Es la clase de fallo que no sale probando cada mecánica por separado, solo cuando dos
+      estados se cruzan: la lista entera, con la tanda para cazarlos, está en `13/10 §12 bis`.
       **También te dice qué sistemas has escrito que ya existían hechos** —entrada, texto,
       diálogo, serialización, guardado, tweens, pathfinding, idiomas—: tres agentes seguidos
       escribieron su propio sistema de entrada teniendo `Input` en el catálogo, así que el paso

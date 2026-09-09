@@ -556,6 +556,70 @@ def audio_en_pausa(gml):
                           r"sound_gain|master_gain)\s*\(", gml))
 
 
+# Recursos que GameMaker NO recoge solo. Los 16 pares están verificados uno a uno
+# contra el índice de símbolos (`buscar.py`), no escritos de memoria.
+#
+# **Por qué merece una comprobación propia.** Es la clase de fallo que describe la
+# regla 6 de `game-quality-gates` («cambiar de escena = limpieza completa») llevada
+# a GameMaker, y aquí muerde más fuerte: un `ds_map` no es un objeto de JavaScript
+# que el recolector se lleve cuando nadie lo mira. Vive hasta que alguien llama a
+# `ds_map_destroy`, y si nadie lo hace, la memoria crece cada vez que se entra en la
+# sala. El juego funciona perfectamente en la demo de dos minutos y se muere a la
+# media hora — el bug que no sale probando cada función por separado.
+#
+# **Calibrado para no dar un solo falso positivo:** solo avisa si el destructor no
+# aparece NI UNA VEZ en toda la carpeta del proyecto. Con que exista una llamada en
+# cualquier sitio, se calla — puede estar mal puesta, pero eso ya no lo decide una
+# expresión regular, y un aviso que salta cuando no toca se aprende a ignorar.
+PARES_RECURSOS = [
+    ("ds_map_create",        "ds_map_destroy",        "un ds_map"),
+    ("ds_list_create",       "ds_list_destroy",       "una ds_list"),
+    ("ds_grid_create",       "ds_grid_destroy",       "una ds_grid"),
+    ("ds_stack_create",      "ds_stack_destroy",      "una ds_stack"),
+    ("ds_queue_create",      "ds_queue_destroy",      "una ds_queue"),
+    ("ds_priority_create",   "ds_priority_destroy",   "una ds_priority"),
+    ("surface_create",       "surface_free",          "una superficie"),
+    ("part_system_create",   "part_system_destroy",   "un sistema de partículas"),
+    ("part_type_create",     "part_type_destroy",     "un tipo de partícula"),
+    ("part_emitter_create",  "part_emitter_destroy",  "un emisor de partículas"),
+    ("buffer_create",        "buffer_delete",         "un buffer"),
+    ("audio_emitter_create", "audio_emitter_free",    "un emisor de audio"),
+    ("vertex_create_buffer", "vertex_delete_buffer",  "un vertex buffer"),
+]
+
+# Segundo nivel: recursos que **una sola vez** son legítimos. Una fuente o un sprite
+# cargados al arrancar y usados toda la partida no son una fuga: son un recurso que
+# vive lo que vive el juego. Un time source persistente para el reloj del mundo,
+# igual. Solo delatan una fuga si se crean MÁS DE UNA VEZ sin que nadie los libere,
+# porque entonces la cuenta crece.
+#
+# Medido sobre los 20 juegos completos de `11 - Código descargado/juegos_y_motores`:
+# tratar `font_add` como fuga sin más disparaba en 6 de 20, todos legítimos. Ese es
+# el aviso que hace que se deje de leer el informe entero.
+PARES_UNA_VEZ = [
+    ("time_source_create",   "time_source_destroy",   "un time source"),
+    ("sprite_add",           "sprite_delete",         "un sprite cargado en caliente"),
+    ("font_add",             "font_delete",           "una fuente cargada en caliente"),
+]
+
+
+def recursos_sin_liberar(gml):
+    """[(crear, destruir, humano, veces)] de lo que se crea y nunca se destruye.
+
+    Los de `PARES_UNA_VEZ` solo cuentan si se crean más de una vez: crearlos una
+    sola vez al arrancar es un uso legítimo, no una fuga.
+    """
+    sueltos = []
+    for lista, minimo in ((PARES_RECURSOS, 1), (PARES_UNA_VEZ, 2)):
+        for crear, destruir, humano in lista:
+            # `part_system_create_layer` cuenta como `part_system_create`: el
+            # destructor es el mismo. `\w*` cubre la familia sin una fila aparte.
+            veces = len(re.findall(r"\b" + crear + r"\w*\s*\(", gml))
+            if veces >= minimo and not re.search(r"\b" + destruir + r"\s*\(", gml):
+                sueltos.append((crear, destruir, humano, veces))
+    return sueltos
+
+
 def icono_y_version(ruta):
     """Icono puesto y versión distinta de la de fábrica (05/02 §4.4)."""
     dir_opt = os.path.join(ruta, "options")
@@ -634,6 +698,7 @@ def main():
     debug, debug_infra = contar_trazas(ruta)
     sin_guarda, con_guarda = objetos_sin_guarda(ruta)
     audio_pausa = audio_en_pausa(gml)
+    fugas = recursos_sin_liberar(gml)
     icono, version = icono_y_version(ruta)
     reinv = reinventos(ruta)
     sin_mascara = objetos_sin_mascara(ruta)
@@ -651,6 +716,8 @@ def main():
                           "objetos_que_leen_entrada_sin_guarda": sin_guarda,
                           "objetos_con_guarda": con_guarda,
                           "pausa_toca_el_audio": audio_pausa,
+                          "recursos_creados_y_nunca_liberados":
+                              [{"crear": c, "destruir": d, "veces": v} for c, d, _h, v in fugas],
                           "icono_propio": icono, "version": version,
                           "sistemas_que_ya_existen": [{"tuyo": n, "existe": e} for n, e in reinv],
                           "objetos_sin_mascara_contra_los_que_se_colisiona": sin_mascara,
@@ -754,6 +821,22 @@ def main():
             print("  · Ningún objeto usa guardas de pausa/transición (¿el juego tiene pausa?)")
         print("  %s La pausa hace algo con el audio (04/41 §4)"
               % ("✓" if audio_pausa else "✗"))
+        if fugas:
+            print("  ✗ Recursos que se crean y NUNCA se liberan en todo el proyecto:")
+            for crear, destruir, humano, veces in fugas:
+                print("      · %s() aparece %d vez(ces) y %s() ni una: se crea %s"
+                      % (crear, veces, destruir, humano))
+            print("    GameMaker no recoge esto solo. No es un objeto que el recolector se")
+            print("    lleve cuando nadie lo mira: vive hasta que alguien lo destruye.")
+            print("    La pregunta que decide si es una fuga de verdad: **¿se vuelve a crear")
+            print("    cada vez que se entra en la sala?** Si sí, la memoria crece sin parar y")
+            print("    el juego que va perfecto en una demo de dos minutos se muere a la media")
+            print("    hora. Si se crea una sola vez al arrancar y dura toda la partida, no")
+            print("    crece — pero libéralo igual en **Clean Up**, que cuesta una línea y te")
+            print("    ahorra la duda. Ese evento se dispara tanto al destruir la instancia")
+            print("    como al terminar la sala, que es justo lo que hace falta.")
+        else:
+            print("  ✓ Todo recurso manual que se crea tiene su destructor en alguna parte")
         print("  %s Icono o splash propios en options/ (05/02 §4.4)"
               % ("✓" if icono else "✗"))
         if version:
@@ -959,10 +1042,53 @@ def autoprueba():
         revisar("avisa de que `Input` ya existe", "scr_input" in rein, rein)
         revisar("y no se inventa avisos para lo demás", "scr_propio" not in rein, rein)
 
+    # --- recursos creados y nunca liberados -------------------------------------
+    # La comprobación se calibra por los dos lados: tiene que saltar con la fuga
+    # y CALLARSE en cuanto el destructor aparece en cualquier parte del proyecto.
+    # Un aviso que salta cuando no toca se aprende a ignorar, y con él se ignoran
+    # los que sí importaban.
+    _fuga = recursos_sin_liberar("var _m = ds_map_create();\nds_map_set(_m, 0, 1);")
+    revisar("un ds_map creado y nunca destruido salta",
+            [c for c, _d, _h, _v in _fuga] == ["ds_map_create"], str(_fuga))
+
+    _ok = recursos_sin_liberar("var _m = ds_map_create();\nds_map_destroy(_m);")
+    revisar("y con su ds_map_destroy en el proyecto se calla", _ok == [], str(_ok))
+
+    # El destructor puede estar en OTRO archivo: el auditor concatena todo el GML
+    # del proyecto justo para que esto no dé un falso positivo.
+    _ok2 = recursos_sin_liberar("obj_a: var _s = surface_create(64, 64);\n"
+                                "obj_b (Clean Up): surface_free(global.s);")
+    revisar("el destructor vale aunque esté en otro objeto", _ok2 == [], str(_ok2))
+
+    # `part_system_create_layer` es de la misma familia y se destruye igual.
+    _ok3 = recursos_sin_liberar("part_system_create_layer(\"Efectos\", true);\n"
+                                "part_system_destroy(global.ps);")
+    revisar("part_system_create_layer cuenta como part_system_create", _ok3 == [], str(_ok3))
+
+    # Un time source creado UNA vez es el reloj del mundo: legítimo. Dos ya es un
+    # patrón que crece, y las alarmas —que sí mueren con la instancia— no sirven de
+    # excusa: un time source sobrevive a su creador.
+    _uno = recursos_sin_liberar("global.ts = time_source_create(time_source_game, 1, "
+                                "time_source_units_seconds, function() {});")
+    revisar("un time source creado UNA vez no se denuncia", _uno == [], str(_uno))
+
+    _dos = recursos_sin_liberar("time_source_create(time_source_game, 1, s, f);\n"
+                                "time_source_create(time_source_game, 2, s, g);")
+    revisar("creado dos veces y nunca destruido, sí",
+            [c for c, _d, _h, _v in _dos] == ["time_source_create"], str(_dos))
+
+    _fuentes = recursos_sin_liberar("font_add(\"a\", 12, false, false, 32, 128);")
+    revisar("una fuente cargada una sola vez no es una fuga", _fuentes == [], str(_fuentes))
+
+    # Y lo que NO es una fuga: un proyecto que no crea nada manual no debe salir
+    # en el informe con avisos vacíos.
+    revisar("un proyecto sin recursos manuales no genera aviso",
+            recursos_sin_liberar("x += 1;\ndraw_self();") == [])
+
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 21 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las 29 comprobaciones de la autoprueba pasan.")
     return 0
 
 
