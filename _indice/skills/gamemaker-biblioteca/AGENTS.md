@@ -37,7 +37,7 @@ que un agente interpreta como «la herramienta está rota» en vez de «la bibli
 - **`✓`** → todo lo de abajo funciona tal cual.
 - **`⚠`** → la biblioteca está, pero le falta el índice de símbolos, que se genera del
   **runtime instalado** (un clon recién bajado de GitHub sin GameMaker en la máquina está así).
-  Los 268 documentos, las recetas y los validadores funcionan; lo que no funciona es
+  Los 270 documentos, las recetas y los validadores funcionan; lo que no funciona es
   `buscar.py <símbolo>`. Para verificar una firma usa `gm-cli manual read "<símbolo>"`, y si
   hay GameMaker instalado arréglalo de una vez con `python3 "$BIB/_indice/actualizar.py"`.
 - **`✗`** → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de

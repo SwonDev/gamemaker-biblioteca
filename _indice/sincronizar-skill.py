@@ -344,12 +344,48 @@ def estado_enlaces():
     return lineas
 
 
+def cifras_desfasadas(n_documentos):
+    """Números que la skill afirma y que se pueden contar.
+
+    Una cifra escrita a mano envejece sola y nadie se entera: la skill decía «268
+    documentos» cuando ya eran 270. No es grave por dos documentos — es grave
+    porque enseña que las cifras de la skill son aproximadas, y entonces dejan de
+    servir para nada. Contarlas cuesta microsegundos.
+    """
+    texto = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
+    avisos = []
+
+    def _mirar(patron, real, que):
+        m = re.search(patron, texto)
+        if not m:
+            return          # si la frase se reescribió, no hay nada que comparar
+        dicho = int(m.group(1))
+        if dicho != real:
+            avisos.append(f"la skill dice {dicho} {que} y son {real}")
+
+    # Recetas: los .md numerados de 04, menos el 00, que es el plano maestro.
+    d04 = os.path.join(RAIZ, "04 - Recetas por género")
+    recetas = len([f for f in os.listdir(d04)
+                   if re.match(r"^\d\d - ", f) and f.endswith(".md")
+                   and not f.startswith("00 ")]) if os.path.isdir(d04) else 0
+    d06 = os.path.join(RAIZ, "06 - Assets y Scripts")
+    scripts = len([f for f in os.listdir(d06) if f.endswith(".gml")]) if os.path.isdir(d06) else 0
+
+    _mirar(r"Los (\d+) documentos", n_documentos, "documentos")
+    _mirar(r"\*\*(\d+) recetas\*\*", recetas, "recetas")
+    _mirar(r"(\d+) scripts de `06`", scripts, "scripts de 06")
+    return avisos
+
+
 def main():
     if not os.path.isfile(os.path.join(SKILL, "SKILL.md")):
         print(f"No hay skill en {SKILL}: nada que sincronizar.")
         return 0
     n = generar_indice()
     print(f"references/indice-documentos.md regenerado: {n} documentos.")
+    desfasadas = cifras_desfasadas(n)
+    for a in desfasadas:
+        print(f"  ⚠ cifra desfasada: {a}")
     agents = generar_agents_md()
     if agents:
         print(f"AGENTS.md regenerado desde SKILL.md: {os.path.relpath(agents, RAIZ)}")
@@ -362,7 +398,7 @@ def main():
         print("Todas las rutas que cita la skill existen.")
     for l in estado_enlaces():
         print(l)
-    return 1 if rotas else 0
+    return 1 if (rotas or desfasadas) else 0
 
 
 if __name__ == "__main__":
