@@ -2173,7 +2173,7 @@ confirmar_abrir(txt("pausa_confirmar_salir"),
 ```
 
 > ⚠️ **No usa `show_question()`**: bloquea el juego en un bucle cerrado y se ignora fuera de
-> Windows salvo en modo debug (`01 · 15 §12`). Es un estado más de tu propia máquina, como el
+> Windows salvo en modo debug (`01 · 15 §3`). Es un estado más de tu propia máquina, como el
 > resto de esta biblioteca.
 
 #### n) Ranura de guardado (metadatos, miniatura y «guardando…»)
