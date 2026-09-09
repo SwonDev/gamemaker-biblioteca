@@ -28,7 +28,12 @@ RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 PROY="$HOME/gm_prueba_ejecucion"
 YYP="$PROY/gm_prueba_ejecucion.yyp"
 
-limpiar() { rm -rf "$PROY"; }
+# Cerrojo: dos ejecuciones a la vez sobre la misma carpeta se pisan y
+# producen errores que no existen. Ver `_indice/cerrojo.sh`.
+. "$(cd "$(dirname "$0")" && pwd)/cerrojo.sh"
+cerrojo_tomar "$PROY" || exit 2
+
+limpiar() { rm -rf "$PROY"; cerrojo_soltar "$PROY"; }
 trap limpiar EXIT
 rm -rf "$PROY"
 

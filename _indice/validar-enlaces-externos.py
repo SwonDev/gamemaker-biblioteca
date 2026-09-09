@@ -177,6 +177,33 @@ CODIGOS_BLOQUEADO = {"401", "403", "429", "999"}
 # código HTTP que leer.
 CODIGOS_SIN_RED = {"000", "ERR", "TIMEOUT"}
 
+# Repositorios CERRADOS, que no muertos. GitHub responde 404 a quien no está
+# dentro de un repositorio privado — el mismo 404, byte por byte, que devuelve
+# uno que jamás existió. Desde fuera no hay forma de distinguirlos, así que el
+# comprobador solo puede hacer dos cosas: gritar cada semana por algo que nadie
+# puede arreglar, o reclasificarlo. Gritar es peor: un aviso que salta cuando no
+# toca se aprende a ignorar, y con él se ignoran los que sí importan.
+#
+# La excepción NO es un permiso permanente: se apoya en un CENTINELA, una URL
+# pública que solo sigue viva mientras el motivo siga siendo cierto. Si la
+# organización que aloja esos repositorios desaparece, el centinela cae y sus
+# 404 vuelven a contar como muertos. Una excepción que no puede caducar es una
+# mentira con fecha de entrega.
+CERRADOS_ESPERADOS = (
+    ("github.com/GameMakerEnterprise/",
+     "https://github.com/GameMakerEnterprise",
+     "repositorio privado de GameMaker Enterprise: la wiki del runner de consola "
+     "solo se ve con la aprobación del fabricante (NDA)"),
+)
+
+
+def motivo_cerrado(u):
+    """(centinela, motivo) si esta URL es un 404 esperado; None si no lo es."""
+    for patron, centinela, motivo in CERRADOS_ESPERADOS:
+        if patron in u:
+            return centinela, motivo
+    return None
+
 
 def recolectar(con_terceros):
     urls = collections.Counter()
@@ -359,7 +386,8 @@ def main():
     print(f"comprobando {len(objetivo)} enlaces con {args.hilos} hilos "
           f"(hasta {args.reintentos} reintentos por fallo transitorio)…\n")
 
-    resultados = {"vivo": [], "muerto": [], "bloqueado": [], "no_comprobado": [], "otro": []}
+    resultados = {"vivo": [], "muerto": [], "bloqueado": [], "no_comprobado": [],
+                  "otro": [], "cerrado": []}
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.hilos) as ex:
         futuros = [ex.submit(comprobar, u, args.reintentos, 2.0, args.timeout) for u in objetivo]
         for i, fut in enumerate(concurrent.futures.as_completed(futuros), 1):
@@ -367,6 +395,31 @@ def main():
             resultados[clase].append((code, u, urls[u]))
             if i % 100 == 0 or i == len(objetivo):
                 print(f"  … {i}/{len(objetivo)}")
+
+    # Reclasificar los 404 esperados — pero solo si su centinela responde. El
+    # centinela se comprueba AQUÍ y no antes para no gastar una petición cuando
+    # ninguno de sus repositorios ha salido muerto.
+    cerrados_motivo = {}
+    if any(motivo_cerrado(u) for _c, u, _n in resultados["muerto"]):
+        centinelas = {}
+        for code, u, n in list(resultados["muerto"]):
+            m = motivo_cerrado(u)
+            if not m:
+                continue
+            centinela, motivo = m
+            if centinela not in centinelas:
+                print(f"  comprobando el centinela {centinela} …")
+                centinelas[centinela] = comprobar(centinela, 1, 2.0, args.timeout)[2]
+            if centinelas[centinela] == "vivo":
+                resultados["muerto"].remove((code, u, n))
+                resultados["cerrado"].append((code, u, n))
+                cerrados_motivo[u] = motivo
+            else:
+                # El centinela no responde: no hay evidencia para la excepción,
+                # así que el enlace se queda donde estaba. Callar sin pruebas
+                # sería justo el fallo que esta tabla intenta evitar.
+                print(f"  ⚠ el centinela {centinela} no está vivo "
+                      f"({centinelas[centinela]}): {u} sigue contando como muerto")
 
     for clave in resultados:
         resultados[clave].sort()
@@ -399,6 +452,15 @@ def main():
         for code, u, n in resultados["no_comprobado"]:
             f.write(f"{code}  {u}  (citado {n}×)\n")
 
+        if resultados["cerrado"]:
+            f.write(f"\n## CERRADOS, NO MUERTOS ({len(resultados['cerrado'])}) — "
+                    f"404 esperado: el recurso existe pero es privado.\n"
+                    f"## Su centinela público respondió 2xx en esta misma pasada, que es "
+                    f"la única\n## prueba que se puede tener desde fuera. NO los borres.\n")
+            for code, u, n in resultados["cerrado"]:
+                f.write(f"{code}  {u}  (citado {n}×)\n")
+                f.write(f"       └─ {cerrados_motivo.get(u, '')}\n")
+
         if resultados["otro"]:
             f.write(f"\n## OTROS CÓDIGOS ({len(resultados['otro'])}) — "
                     f"no encajan en ninguna categoría anterior, revisar a mano.\n")
@@ -408,6 +470,8 @@ def main():
     print(f"\n— vivo: {len(resultados['vivo'])}")
     print(f"— muerto de verdad: {len(resultados['muerto'])}")
     print(f"— bloqueado (existe, rechaza al robot): {len(resultados['bloqueado'])}")
+    if resultados["cerrado"]:
+        print(f"— cerrado, no muerto (privado, centinela vivo): {len(resultados['cerrado'])}")
     print(f"— no se pudo comprobar (red/timeout/5xx): {len(resultados['no_comprobado'])}")
     if resultados["otro"]:
         print(f"— otros códigos: {len(resultados['otro'])}")
@@ -483,10 +547,34 @@ def autoprueba():
             fallos += 1
             print("  \u2717 %s  ->  %s" % (nombre, obtenido))
 
+    # La lista de 404 esperados es la que más fácil se le va a la mano a alguien:
+    # un patrón demasiado ancho silencia repositorios que sí están rotos. Por eso
+    # se prueba sobre todo lo que NO debe entrar.
+    for url, debe_entrar, nombre in [
+        ("https://github.com/GameMakerEnterprise/GMS2-Runner-PS4/wiki/", True,
+         "la wiki privada del runner de PS4 entra en la excepción"),
+        ("https://github.com/GameMakerEnterprise/GMS2-Runner-Switch2/wiki", True,
+         "y la de Switch 2 también"),
+        ("https://github.com/GameMakerEnterprise", False,
+         "pero el centinela NO se excepciona a sí mismo: si él cae, hay que verlo"),
+        ("https://github.com/YoYoGames/GMEXT-Steamworks", False,
+         "un repositorio público de YoYo no entra"),
+        ("https://github.com/GameMakerEnterpriseFalso/x", False,
+         "ni un nombre de organización parecido"),
+        ("https://gamemaker.io/es", False,
+         "ni nada fuera de GitHub"),
+    ]:
+        entra = motivo_cerrado(url) is not None
+        if entra == debe_entrar:
+            print("  \u2713 " + nombre)
+        else:
+            fallos += 1
+            print("  \u2717 %s  ->  entra=%s" % (nombre, entra))
+
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % fallos)
         return 1
-    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (len(casos) + 2))
+    print("\n\u2713 Las %d comprobaciones de la autoprueba pasan." % (len(casos) + 8))
     return 0
 
 

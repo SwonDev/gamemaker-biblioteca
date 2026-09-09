@@ -348,6 +348,11 @@ def main():
         ("puerta-pixel-art.py",       "puerta antes de reparar pixel art"),
         ("validar-integracion.py",    "extractor de declaraciones entre documentos"),
         ("atlas-a-gamemaker.py",      "puente de atlas de sprite-gen a GameMaker"),
+        # Estas dos tenían autoprueba desde el principio y nadie la ejecutaba: la
+        # lista se escribió a mano y se quedaron fuera. Una autoprueba que no corre
+        # no protege de nada. El paso 0 bis comprueba ahora que no falte ninguna.
+        ("validar-enlaces-externos.py", "recorte de URLs y 404 esperados"),
+        ("cerrojo.py",                "cerrojo de las carpetas de trabajo"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
@@ -376,6 +381,30 @@ def main():
 
     for _script, _que in _autopruebas:
         _correr_autoprueba(_script, _que)
+
+    # 0 bis · ¿Se ha quedado alguna autoprueba fuera de la lista de arriba? Esa lista
+    # se escribe a mano, y a mano se olvidan cosas: `validar-enlaces-externos.py` y
+    # `cerrojo.py` tenían decenas de casos que no corría nadie. Una autoprueba que no
+    # se ejecuta da la misma seguridad que no tenerla, con el agravante de que
+    # parece que sí.
+    _listadas = {_s for _s, _ in _autopruebas} | {_s for _s, _ in _aplazadas}
+    _sueltas = []
+    for _f in sorted(os.listdir(IND)):
+        if not _f.endswith(".py") or _f in _listadas or _f == "actualizar.py":
+            continue
+        try:
+            _txt = open(os.path.join(IND, _f), encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        if '"--autoprueba"' in _txt:
+            _sueltas.append(_f)
+    if _sueltas:
+        print("  ⚠ con autoprueba pero SIN ejecutar en este paso: " + ", ".join(_sueltas))
+        problemas.append("hay herramientas con --autoprueba fuera del paso 0: "
+                         + ", ".join(_sueltas))
+    else:
+        print(f"  ✓ ninguna herramienta con autoprueba se queda fuera "
+              f"({len(_autopruebas)} ejecutadas).")
 
     paso(1, "Enlaces internos")
     if correr("verificar-enlaces.py") != 0:

@@ -58,6 +58,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
     import subprocess, tempfile
     _yo = os.path.abspath(__file__)
     _fallos = []
+    _hechas = []
 
     def _correr(carpeta, extra=None):
         _cmd = [sys.executable, _yo, carpeta] + (extra or [])
@@ -65,6 +66,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
         return _r.returncode, _r.stdout
 
     def _revisar(nombre, condicion, detalle=""):
+        _hechas.append(nombre)
         if condicion:
             print("  ✓ " + nombre)
         else:
@@ -93,6 +95,35 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
             "# Uno\n\n## Sección real\n\nVer [el ancla](#seccion-que-no-existe).\n")
         _c, _o = _correr(_d)
         _revisar("un ancla rota NO sale con 0", _c != 0, "exit %d" % _c)
+
+        # c bis · Ancla declarada con <a id="…">, no con un encabezado. `_CATALOGO.md`
+        # navega así: treinta enlaces de su índice de temas. Antes salían todos rotos.
+        _ah = os.path.join(_tmp, "ancla-html"); os.makedirs(_ah)
+        open(os.path.join(_ah, "uno.md"), "w", encoding="utf-8").write(
+            "# Uno\n\n<a id=\"tema-x\"></a>\n\n## Tema X\n\n"
+            "Ver [dos](./dos.md) y [ir al tema](#tema-x).\n")
+        open(os.path.join(_ah, "dos.md"), "w", encoding="utf-8").write("# Dos\n")
+        _c, _o = _correr(_ah)
+        _revisar("un ancla <a id=\"…\"> cuenta como válida", _c == 0,
+                 "exit %d · %s" % (_c, _o.strip()[:100]))
+
+        # c ter · El documento propio dentro de una carpeta excluida SÍ se revisa.
+        # «11 - Código descargado» se salta entera (miles de READMEs de terceros), y
+        # eso dejaba a `_CATALOGO.md` —que es nuestro y está publicado— sin comprobar:
+        # se le rompió un ancla a mano y el script seguía diciendo «0 rotas».
+        _ex = os.path.join(_tmp, "excluida"); os.makedirs(_ex)
+        open(os.path.join(_ex, "uno.md"), "w", encoding="utf-8").write("# Uno\n\nVer [x](./uno.md).\n")
+        _cd = os.path.join(_ex, "11 - Código descargado"); os.makedirs(_cd)
+        open(os.path.join(_cd, "_CATALOGO.md"), "w", encoding="utf-8").write(
+            "# Catálogo\n\nVer [nada](./no-existe-en-absoluto.md).\n")
+        # un README de terceros en la misma carpeta, con un enlace roto que NO es culpa
+        # nuestra: ese sí se sigue ignorando.
+        open(os.path.join(_cd, "README.md"), "w", encoding="utf-8").write(
+            "# Ajeno\n\nVer [tampoco](./tampoco-existe.md).\n")
+        _c, _o = _correr(_ex)
+        _revisar("un enlace roto de `_CATALOGO.md` NO sale con 0", _c != 0, "exit %d" % _c)
+        _revisar("y el README ajeno de esa misma carpeta se sigue ignorando",
+                 "tampoco-existe" not in _o, _o.strip()[:100])
 
         # d · Cero enlaces: NO es «todo bien», es «no he mirado nada».
         _e = os.path.join(_tmp, "vacio"); os.makedirs(_e)
@@ -159,7 +190,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
     if _fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(_fallos))
         sys.exit(1)
-    print("\n✓ Las 11 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las %d comprobaciones de la autoprueba pasan." % len(_hechas))
     sys.exit(0)
 
 DEST = sys.argv[1] if len(sys.argv) > 1 else RAIZ
@@ -183,6 +214,12 @@ PAT_COD = re.compile(r"`(11 - Código descargado/[^`]+)`")
 
 PAT_FENCE = re.compile(r"^(`{3,}|~{3,})")
 PAT_HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
+# Ancla HTML explícita: <a id="librerias"></a> o <a name="…">. GitHub las honra
+# igual que las de un encabezado, y `_CATALOGO.md` navega con ellas — su índice
+# de temas son treinta enlaces de este tipo. Mirar solo los encabezados los daba
+# todos por rotos.
+PAT_ANCLA_HTML = re.compile(r"""<a\s+[^>]*?(?:id|name)\s*=\s*["']([^"']+)["']""",
+                            re.I)
 PAT_MD_LINK_EN_TEXTO = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 
 # Estas dos carpetas son opcionales por diseño (ver .gitignore y PUBLICAR.md): un clon
@@ -257,6 +294,7 @@ def encabezados_de(ruta_md):
     if ruta_md in CACHE_ENCABEZADOS:
         return CACHE_ENCABEZADOS[ruta_md]
     anclas = []
+    explicitas = []
     try:
         txt = open(ruta_md, encoding="utf-8", errors="replace").read()
     except OSError:
@@ -277,6 +315,8 @@ def encabezados_de(ruta_md):
             continue
         if en_bloque_codigo:
             continue
+        for m_ancla in PAT_ANCLA_HTML.finditer(linea):
+            explicitas.append(m_ancla.group(1))
         m = PAT_HEADING.match(linea)
         if not m:
             continue
@@ -294,6 +334,7 @@ def encabezados_de(ruta_md):
         else:
             vistos[base] = 0
             resultado.append(base)
+    resultado.extend(explicitas)
     CACHE_ENCABEZADOS[ruta_md] = resultado
     return resultado
 
@@ -303,14 +344,46 @@ anclas_rotas, anclas_ok = [], 0
 pendientes_opcionales = {}  # {carpeta: [(doc, destino), ...]} — no instalada, no es un error
 pendientes_generados = {}   # {fichero: [(doc, destino), ...]} — aún no generado, no es un error
 
-for raiz, dirs, files in os.walk(DEST):
-    # Lumbre (juego personal) y GameMaker_Fuentes (repos crudos) no son documentación.
-    dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "11 - Código descargado",
-                                            "09 - Manual oficial", ".ruff_cache",
-                                            "Lumbre", "GameMaker_Fuentes",
-                                            # informes de trabajo, no documentación: sus
-                                            # rutas son relativas a la raíz, no a su carpeta
-                                            "auditorias"}]
+# Documentos NUESTROS que viven dentro de una carpeta excluida. «11 - Código
+# descargado» se salta entera porque contiene miles de READMEs de terceros que no
+# escribimos ni podemos arreglar — pero `_CATALOGO.md` sí es de la biblioteca, está
+# publicado y es una de sus puertas de entrada. Excluir la carpeta entera dejaba sus
+# enlaces sin comprobar NUNCA: se rompió un ancla suya a propósito y este script
+# seguía diciendo «0 rotas». Un validador que no mira un documento y responde que
+# está bien es peor que no tenerlo, porque además tranquiliza.
+EXCEPCIONES_PROPIAS = (
+    ("11 - Código descargado", ("_CATALOGO.md",)),
+)
+
+
+def documentos_propios_en_excluidas(destino):
+    """[(carpeta, [documento, ...])] de los documentos nuestros dentro de excluidas."""
+    salida = []
+    for carpeta, ficheros in EXCEPCIONES_PROPIAS:
+        ruta = os.path.join(destino, carpeta)
+        presentes = [f for f in ficheros if os.path.isfile(os.path.join(ruta, f))]
+        if presentes:
+            salida.append((ruta, presentes))
+    return salida
+
+
+def recorrer_documentacion(destino, excluidas):
+    """os.walk podando las carpetas excluidas, MÁS las excepciones propias."""
+    for raiz, dirs, files in os.walk(destino):
+        dirs[:] = [d for d in dirs if d not in excluidas]
+        yield raiz, files
+    for ruta, ficheros in documentos_propios_en_excluidas(destino):
+        yield ruta, ficheros
+
+
+EXCLUIDAS = {".git", "node_modules", "11 - Código descargado",
+             "09 - Manual oficial", ".ruff_cache",
+             # Lumbre (juego personal) y GameMaker_Fuentes (repos crudos) no son
+             # documentación. Los informes de «auditorias» tampoco: sus rutas son
+             # relativas a la raíz, no a su carpeta.
+             "Lumbre", "GameMaker_Fuentes", "auditorias"}
+
+for raiz, files in recorrer_documentacion(DEST, EXCLUIDAS):
     for f in files:
         if not f.endswith(".md"):
             continue
@@ -524,10 +597,7 @@ revisados = 0
 DOCS_POR_NUMERO = indice_de_documentos(DEST)
 citas_rotas = []
 citas_ok = 0
-for _raiz, _dirs, _files in os.walk(DEST):
-    _dirs[:] = [d for d in _dirs if d not in {".git", "node_modules", "11 - Código descargado",
-                                              "09 - Manual oficial", ".ruff_cache",
-                                              "Lumbre", "GameMaker_Fuentes", "auditorias"}]
+for _raiz, _files in recorrer_documentacion(DEST, EXCLUIDAS):
     for _f in sorted(_files):
         if not _f.endswith(".md"):
             continue

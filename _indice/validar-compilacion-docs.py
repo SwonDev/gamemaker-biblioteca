@@ -199,6 +199,9 @@ for _flujo in (sys.stdout, sys.stderr):
         pass
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cerrojo import Cerrojo, CerrojoOcupado  # noqa: E402
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser("~")
 PROY = os.path.join(HOME, "gm_prueba_docs")
@@ -695,6 +698,29 @@ def main():
         print("  de `actualizar.py` (enlaces, índices, símbolos inventados…) no depende de esto.")
         return 2
 
+    # El proyecto de prueba vive en una ruta FIJA de $HOME (ver la cabecera). Dos
+    # ejecuciones a la vez se pisan a media compilación y el resultado es un falso
+    # rojo: «errores de compilación» sin listar ni uno. Con cerrojo, la segunda dice
+    # exactamente qué pasa y sale con 2 («no se ha podido comprobar»), nunca con 1
+    # («hay errores»): no ha mirado nada, así que no puede acusar a nadie.
+    try:
+        cerrojo = Cerrojo(PROY, espera=2.0).adquirir()
+    except CerrojoOcupado as e:
+        print(f"✗ La carpeta de trabajo «{e.ruta}» ya la está usando otra ejecución")
+        print(f"  de este script (proceso {e.pid}, desde {e.desde}).")
+        print("  NO se ha comprobado nada: dos compilaciones simultáneas sobre la misma")
+        print("  carpeta se pisan y producen errores que no existen. Espera a que termine")
+        print("  la otra, o bórrala a mano si estás seguro de que ya no corre nadie:")
+        print(f"    rm -rf '{e.ruta}.lock'")
+        return 2
+
+    try:
+        return _compilar_todo(args)
+    finally:
+        cerrojo.liberar()
+
+
+def _compilar_todo(args):
     t0 = time.time()
     print("Extrayendo bloques ```gml de los documentos…")
     bloques = extraer_bloques()
