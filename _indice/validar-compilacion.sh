@@ -26,7 +26,12 @@ BIB="$(cd "$(dirname "$0")/.." && pwd)/06 - Assets y Scripts"
 PROY="$HOME/gm_prueba_scripts"
 YYP="$PROY/gm_prueba_scripts.yyp"
 
-limpiar() { rm -rf "$PROY"; }
+# Cerrojo: dos ejecuciones a la vez sobre la misma carpeta se pisan y
+# producen errores que no existen. Ver `_indice/cerrojo.sh`.
+. "$(cd "$(dirname "$0")" && pwd)/cerrojo.sh"
+cerrojo_tomar "$PROY" || exit 2
+
+limpiar() { rm -rf "$PROY"; cerrojo_soltar "$PROY"; }
 trap limpiar EXIT
 
 rm -rf "$PROY"   # por si quedó de una ejecución anterior interrumpida

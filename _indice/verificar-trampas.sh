@@ -28,10 +28,15 @@ command -v gm-cli >/dev/null 2>&1 || { echo "✗ falta gm-cli en el PATH"; exit 
 
 PROY="$HOME/gm_prueba_trampas"
 YYP="$PROY/gm_prueba_trampas.yyp"
+
+# Cerrojo: dos ejecuciones a la vez sobre la misma carpeta se pisan y
+# producen errores que no existen. Ver `_indice/cerrojo.sh`.
+. "$(cd "$(dirname "$0")" && pwd)/cerrojo.sh"
+cerrojo_tomar "$PROY" || exit 2
 FALLOS=0
 CAMBIADAS=()
 
-limpiar() { rm -rf "$PROY"; }
+limpiar() { rm -rf "$PROY"; cerrojo_soltar "$PROY"; }
 trap limpiar EXIT
 rm -rf "$PROY"
 
