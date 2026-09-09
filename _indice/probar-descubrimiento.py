@@ -295,6 +295,35 @@ CASOS = [
     ("¿Cómo sé que el juego está TERMINADO y no solo que funciona?",
      ["--texto", "lista MAESTRA"],
      ["Anatomía de un juego completo"]),
+
+    # --- Lo que la tercera prueba a ciegas buscó y no encontró (r15) -----------
+    # Las cinco preguntas exactas que un agente construyendo un juego de puzles
+    # hizo a `buscar.py` y se quedó sin respuesta. Si vuelven a quedarse sin
+    # respuesta, esta prueba lo dice antes que el siguiente agente.
+
+    ("Necesito una placa de presión que abra una puerta",
+     ["--texto", "placa de presión"],
+     ["Puertas, llaves y placas"]),
+
+    ("¿Cómo reinicio el nivel sin que se queden las puertas abiertas?",
+     ["--texto", "reiniciar el nivel"],
+     ["Puertas, llaves y placas"]),
+
+    ("Quiero una fuente propia con tildes y eñes, sin licencia ajena",
+     ["--texto", "font_add_sprite_ext"],
+     ["Manual del agente de IA"]),
+
+    ("¿Cómo compruebo que mi fuente dibuja los acentos, sin capturar la pantalla?",
+     ["--texto", "debug_exigir_fuente_con_acentos"],
+     ["scr_debug.gml"]),
+
+    ("Voy a reparar el pixel art generado; ¿corro riesgo con el que dibujé yo?",
+     ["--texto", "puerta-pixel-art"],
+     ["Manual del agente de IA"]),
+
+    ("¿Puedo fiarme de que el código de la biblioteca hace lo que dice?",
+     ["--texto", "validar-ejecucion"],
+     ["Assets y Scripts"]),
 ]
 
 
