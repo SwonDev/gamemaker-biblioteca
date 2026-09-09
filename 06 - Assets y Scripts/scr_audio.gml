@@ -184,7 +184,11 @@ function emisores_liberar()
 ///                                     juego 2D con SFX cortos).
 function audio_init(_emisores_anillo = 24)
 {
-    if (variable_global_exists("bus")) { return; }   // no reinicializar dos veces
+    // No reinicializar dos veces: perdería los volúmenes que el jugador acaba de
+    // elegir en Opciones. Se comprueba que además SEA un struct, porque
+    // `audio_destruir()` lo deja en `undefined` — sin esa segunda condición,
+    // destruir y volver a inicializar dejaba el audio muerto en silencio.
+    if (variable_global_exists("bus") && is_struct(global.bus)) { return; }
 
     // El modelo por defecto es "audio_falloff_none": con él la ganancia vale
     // siempre 1, aunque el emisor esté a dos pantallas. Es EL bug de audio
@@ -250,6 +254,18 @@ function audio_destruir()
     if (global.musica_voz != -1)   { audio_stop_sound(global.musica_voz);   global.musica_voz   = -1; }
     if (global.ambiente_voz != -1) { audio_stop_sound(global.ambiente_voz); global.ambiente_voz = -1; }
     if (global.voz_voz != -1)      { audio_stop_sound(global.voz_voz);      global.voz_voz      = -1; }
+
+    // Y BORRAR LA MARCA. Sin esto, `audio_init()` posterior veía que
+    // `global.bus` existía, se creía ya inicializado y volvía sin hacer nada —
+    // dejando `global.em.sfx` apuntando a emisores YA LIBERADOS. El juego seguía
+    // llamando a `sfx()` y no sonaba nada, sin un solo error.
+    //
+    // Pasa de verdad en cuanto el controlador de audio no es persistente: se
+    // destruye al cambiar de sala (Clean Up → `audio_destruir`), se recrea en la
+    // siguiente (Create → `audio_init`), y a partir de ahí el juego es mudo.
+    // Lo cazó el banco de `_indice/validar-ejecucion.sh`; compilaba perfectamente.
+    global.bus = undefined;
+    global.em  = undefined;
 }
 
 /// @function audio_step()

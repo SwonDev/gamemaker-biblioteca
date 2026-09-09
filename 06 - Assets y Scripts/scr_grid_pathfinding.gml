@@ -72,6 +72,19 @@ function Grid(_tamano_celda, _ancho = -1, _alto = -1, _izq = 0, _arr = 0) constr
     columnas = ceil(ancho / celda);
     filas    = ceil(alto  / celda);
 
+    // Trampa de unidades: `_ancho`/`_alto` van en PÍXELES, y `set_coste()`,
+    // `bloquear()` y `buscar()` en CELDAS. Pasar el número de columnas donde van
+    // los píxeles deja una rejilla de 1x1 que no da error: simplemente no
+    // encuentra ninguna ruta, nunca, y parece que el pathfinding está roto.
+    // Ninguna rejilla real es de una sola celda, así que decirlo aquí no molesta
+    // a nadie y ahorra la tarde de buscarlo.
+    if (columnas < 2 || filas < 2) {
+        show_debug_message("Grid: la rejilla ha salido de " + string(columnas) + "x" + string(filas)
+            + " celdas. ¿Pasaste columnas y filas donde van PÍXELES? "
+            + "Con celda de " + string(celda) + " px, para " + string(columnas) + " columnas "
+            + "hay que pasar " + string(columnas * celda) + ".");
+    }
+
     // `mp_grid_create` devuelve un índice que HAY QUE DESTRUIR con
     // `mp_grid_destroy`: no lo limpia el recolector de basura.
     id_mp = mp_grid_create(izq, arr, columnas, filas, celda, celda);
@@ -235,6 +248,19 @@ function GridPonderado(_tamano_celda, _ancho = -1, _alto = -1, _izq = 0, _arr = 
     alto     = (_alto  <= 0) ? room_height : _alto;
     columnas = ceil(ancho / celda);
     filas    = ceil(alto  / celda);
+
+    // Trampa de unidades: `_ancho`/`_alto` van en PÍXELES, y `set_coste()`,
+    // `bloquear()` y `buscar()` en CELDAS. Pasar el número de columnas donde van
+    // los píxeles deja una rejilla de 1x1 que no da error: simplemente no
+    // encuentra ninguna ruta, nunca, y parece que el pathfinding está roto.
+    // Ninguna rejilla real es de una sola celda, así que decirlo aquí no molesta
+    // a nadie y ahorra la tarde de buscarlo.
+    if (columnas < 2 || filas < 2) {
+        show_debug_message("GridPonderado: la rejilla ha salido de " + string(columnas) + "x" + string(filas)
+            + " celdas. ¿Pasaste columnas y filas donde van PÍXELES? "
+            + "Con celda de " + string(celda) + " px, para " + string(columnas) + " columnas "
+            + "hay que pasar " + string(columnas * celda) + ".");
+    }
 
     // costes[fila][columna] = coste de entrar en esa celda.
     // -1 significa "intransitable".
