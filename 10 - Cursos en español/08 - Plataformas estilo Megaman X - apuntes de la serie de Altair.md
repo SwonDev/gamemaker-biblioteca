@@ -1,7 +1,7 @@
 # 08 · Plataformas estilo Megaman X — apuntes técnicos
 
 > **Fuente:** serie *Megaman X Tutorial* (6 partes, 2022-2023) de
-> [Altair_AML](https://www.youtube.com/@Altair_AML) · GameMaker 2022.
+> [Altair_AML](https://www.youtube.com/channel/UCMP5XWWzhJ_A6DPNKNfQVOw) · GameMaker 2022.
 >
 > | # | Vídeo | Duración | Qué enseña |
 > |---|---|---:|---|
@@ -600,5 +600,5 @@ for (var _i = 0; _i < global.hp; _i++) {
 
 ---
 
-Fuente original: canal [Altair_AML](https://www.youtube.com/@Altair_AML). El pack de sprites y
+Fuente original: canal [Altair_AML](https://www.youtube.com/channel/UCMP5XWWzhJ_A6DPNKNfQVOw). El pack de sprites y
 el proyecto completo están enlazados en la descripción de cada vídeo.

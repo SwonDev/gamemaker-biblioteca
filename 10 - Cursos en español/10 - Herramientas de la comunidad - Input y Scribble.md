@@ -1,6 +1,6 @@
 # 10 · Herramientas de la comunidad: Input y Scribble
 
-> **Fuente de partida:** dos vídeos de [Altair_AML](https://www.youtube.com/@Altair_AML) (2023):
+> **Fuente de partida:** dos vídeos de [Altair_AML](https://www.youtube.com/channel/UCMP5XWWzhJ_A6DPNKNfQVOw) (2023):
 > [*Mejora tu proyecto con Input*](https://youtu.be/mcJ86swsjNE) (11:00) y
 > [*Cómo crear diálogos fácilmente con Scribble*](https://youtu.be/rxsPzpbBv74) (7:23).
 >

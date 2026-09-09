@@ -256,4 +256,4 @@ al proyecto:
 | Juegos made with GameMaker | <https://itch.io/games/made-with-gamemaker> | ✅ |
 | Assets tag GameMaker | <https://itch.io/game-assets/tag-gamemaker> | ✅ |
 | Herramientas tag GameMaker | <https://itch.io/tools/tag-gamemaker> | ✅ |
-| ~~itch.io/jams/tag-gamemaker~~ | ~~<https://itch.io/jams/tag-gamemaker>~~ | ❌ **404** |
+| ~~itch.io/jams/tag-gamemaker~~ | ~~<https://itch.io/jams?tag=gamemaker>~~ | ❌ **404** |

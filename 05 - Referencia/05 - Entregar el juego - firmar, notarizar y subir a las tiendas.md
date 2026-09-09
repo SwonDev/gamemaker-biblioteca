@@ -577,7 +577,7 @@ Para subir a App Store Connect necesitas, dentro de tu cuenta de Apple Developer
 
 - Un certificado **Apple Distribution** (distinto del Developer ID de macOS de §2.2: este es
   específico para distribuir a través de las tiendas de Apple).
-  <https://developer.apple.com/documentation/xcode/certificates>
+  <https://developer.apple.com/documentation/security/certificate-key-and-trust-services>
 - Un **perfil de aprovisionamiento** (*provisioning profile*) de tipo *App Store*, que vincula tu
   App ID, el certificado de distribución y (si tu juego usa alguna) las *capabilities* (Game
   Center, notificaciones push).
@@ -849,7 +849,7 @@ Todas consultadas el **7 de septiembre de 2026**, salvo que se indique otra fech
 - Notarizing macOS software before distribution — <https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution>
 - Hardened Runtime — <https://developer.apple.com/documentation/security/hardened-runtime>
 - Customizing the notarization workflow — <https://developer.apple.com/documentation/security/customizing-the-notarization-workflow>
-- Certificates — <https://developer.apple.com/documentation/xcode/certificates>
+- Certificates — <https://developer.apple.com/documentation/security/certificate-key-and-trust-services>
 - App Store Review Guidelines — <https://developer.apple.com/app-store/review/guidelines/>
 - App Privacy Details on the App Store — <https://developer.apple.com/app-store/app-privacy-details/>
 - App Tracking Transparency — <https://developer.apple.com/documentation/apptrackingtransparency>

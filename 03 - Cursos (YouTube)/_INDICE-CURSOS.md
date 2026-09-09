@@ -69,7 +69,7 @@ entender por qué se ve borrosa, cómo se hace zoom y qué pasa en pantalla comp
 ## Bloque 1 · Curso principal — Sky LaRell Anderson (2026)
 
 **Serie:** *The Only GameMaker Tutorial You Need in 2026*
-**Canal:** [Sky LaRell Anderson](https://www.youtube.com/@SkyLaRellAnderson)
+**Canal:** [Sky LaRell Anderson](https://www.youtube.com/results?search_query=Sky+LaRell+Anderson+GameMaker)
 **Autor:** Dr. Skyler Lel Anderson, profesor de artes mediáticas digitales y diseño de juegos
 en la Universidad de St. Thomas (St. Paul, Minesota).
 

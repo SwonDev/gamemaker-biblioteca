@@ -195,7 +195,7 @@ Todas siguen el mismo patrón, según sus README: *«repositorio creado para pre
 | [GMEXT-Bluetooth](https://github.com/YoYoGames/GMEXT-Bluetooth) | **Bluetooth** (winrt en Windows 10+) | Windows, macOS, iOS, Android | 2025-06-20 | 8 |
 | [GMEXT-WebView](https://github.com/YoYoGames/GMEXT-WebView) | Visor **web** incrustado | Android, iOS, Windows, macOS, Linux | 2026-08-04 | 7 |
 | [GMEXT-Interhaptics-Main](https://github.com/YoYoGames/GMEXT-Interhaptics-Main) | **Háptica** (Interhaptics). Apache-2.0 | Windows (más plataformas «más adelante») | 2026-04-24 | 5 |
-| [GMEXT-Medal](https://github.com/YoYoGames/GMEXT-Medal) | Reporta eventos a la app **Medal** para guardar clips. **Puro GML**, sin librerías nativas. **Nueva en 2026** | Todas | 2026-08-26 | 0 |
+| `GMEXT-Medal` ⚠️ **Retirada del repositorio oficial** (comprobado el 09-09-2026: el repo devuelve 404 y no aparece en la organización YoYoGames). | Reporta eventos a la app **Medal** para guardar clips. **Puro GML**, sin librerías nativas. **Nueva en 2026** | Todas | 2026-08-26 | 0 |
 | [GMEXT-Elements](https://github.com/YoYoGames/GMEXT-Elements) | Extensión **Elements** (multiplataforma). **Nueva en 2026** | Todas | 2026-08-26 | 7 |
 
 ### Monetización y publicidad

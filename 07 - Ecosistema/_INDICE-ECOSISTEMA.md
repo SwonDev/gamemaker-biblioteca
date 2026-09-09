@@ -66,7 +66,7 @@
 | **GMEXT-Photon** — multijugador (julio 2026) | [GMEXT-Photon](https://github.com/YoYoGames/GMEXT-Photon) |
 | **GMEXT-LevelPlay** — mediación de anuncios | [GMEXT-LevelPlay](https://github.com/YoYoGames/GMEXT-LevelPlay) |
 | **GMEXT-Elements** — multiplataforma | [GMEXT-Elements](https://github.com/YoYoGames/GMEXT-Elements) |
-| **GMEXT-Medal** — clips de vídeo (GML puro) | [GMEXT-Medal](https://github.com/YoYoGames/GMEXT-Medal) |
+| **GMEXT-Medal** — clips de vídeo (GML puro) | `GMEXT-Medal` ⚠️ **Retirada del repositorio oficial** (comprobado el 09-09-2026: el repo devuelve 404 y no aparece en la organización YoYoGames). |
 | **GM-OpenAPIGenerator** — cliente REST desde OpenAPI | [GM-OpenAPIGenerator](https://github.com/YoYoGames/GM-OpenAPIGenerator) |
 | **Prefabs oficiales** (UI, inventario, minimapa) | [pfb-UserInterface](https://github.com/YoYoGames/pfb-UserInterface) |
 | **ImGui sobre GMRT** | [ImGUI-Sample](https://github.com/YoYoGames/ImGUI-Sample) |
@@ -342,7 +342,7 @@ gm-cli init --no-interactive -n mi-juego -t "Space Rocks" --ai --actions --toolc
 | Juegos made with GameMaker | <https://itch.io/games/made-with-gamemaker> | ✅ |
 | Assets tag GameMaker | <https://itch.io/game-assets/tag-gamemaker> | ✅ |
 | Herramientas tag GameMaker | <https://itch.io/tools/tag-gamemaker> | ✅ |
-| ~~itch.io/jams/tag-gamemaker~~ | ~~<https://itch.io/jams/tag-gamemaker>~~ | ❌ **404** |
+| ~~itch.io/jams/tag-gamemaker~~ | ~~<https://itch.io/jams?tag=gamemaker>~~ | ❌ **404** |
 
 ### Sobre IA (veredicto del archivo 14)
 

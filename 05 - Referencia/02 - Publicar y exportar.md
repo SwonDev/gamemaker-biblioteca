@@ -110,9 +110,9 @@ compañía te ha aprobado como desarrollador:
 
 | Consola | Wiki privada |
 |---|---|
-| Microsoft Xbox One / Series | <https://github.com/GameMakerEnterprise/GMS2-Runner-Xbox/wiki/> |
+| Microsoft Xbox One / Series | <https://github.com/GameMakerEnterprise/GMS2-Runner-Xbox/wiki> |
 | Nintendo Switch | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch/wiki/> |
-| **Nintendo Switch 2** | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch2/wiki/> |
+| **Nintendo Switch 2** | <https://github.com/GameMakerEnterprise/GMS2-Runner-Switch2/wiki> | ⚠️ Devuelve **404 sin acceso**: el repositorio es privado y solo se ve con la aprobación de la plataforma (NDA). No está roto — está cerrado.
 | Sony PlayStation 4 | <https://github.com/GameMakerEnterprise/GMS2-Runner-PS4/wiki/> |
 | Sony PlayStation 5 | <https://github.com/GameMakerEnterprise/GMS2-Runner-PS5/wiki/> |
 

@@ -86,7 +86,7 @@ Es decir: **`extgen` es la vía oficial para envolver cualquier librería nativa
 | [GMEXT-Twitch](https://github.com/YoYoGames/GMEXT-Twitch) | Integración con **Twitch** (REST) | Todas vía REST | **Apache-2.0** | 2025-12-29 | 21 |
 | [GMEXT-GameJolt](https://github.com/YoYoGames/GMEXT-GameJolt) | API de **GameJolt** | Todas vía REST | **Apache-2.0** | 2025-11-20 | 7 |
 | [GMEXT-Interhaptics-Main](https://github.com/YoYoGames/GMEXT-Interhaptics-Main) | **Háptica** (Interhaptics) | Windows (más plataformas «más adelante») | **Apache-2.0** | 2026-04-24 | 5 |
-| [GMEXT-Medal](https://github.com/YoYoGames/GMEXT-Medal) | Envía eventos a la app **Medal** para guardar clips. **GML puro**, sin librerías nativas. **Nueva en 2026** | Todas | NOASSERTION | 2026-08-26 | 0 |
+| `GMEXT-Medal` ⚠️ **Retirada del repositorio oficial** (comprobado el 09-09-2026: el repo devuelve 404 y no aparece en la organización YoYoGames). | Envía eventos a la app **Medal** para guardar clips. **GML puro**, sin librerías nativas. **Nueva en 2026** | Todas | NOASSERTION | 2026-08-26 | 0 |
 | [GMEXT-Elements](https://github.com/YoYoGames/GMEXT-Elements) | Extensión **Elements**. **Nueva en 2026** | Todas | NOASSERTION | 2026-08-26 | 7 |
 
 > ℹ️ **Steam Workshop: existe, pero no en el runtime.** `steam_ugc_*` no aparece en
