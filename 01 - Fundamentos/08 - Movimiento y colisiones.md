@@ -309,10 +309,21 @@ más que el anterior a la hora de resolver colisiones.
 > instance**»*—: la caja **no gira**, pero **envuelve al sprite ya girado**. Y la caja alineada
 > a ejes de un cuadrado girado crece hasta **√2 ≈ 1,41 veces a 45°**:
 >
-> | Sprite | Hitbox a 0° | Hitbox a 45° |
-> |---|---|---|
-> | 18 × 18 px | 18 px | **25,46 px** |
-> | 24 × 24 px | 24 px | **33,94 px** |
+> **Y no crece: LATE.** Medido en ejecución sobre un sprite real de 18×18 con máscara
+> `Rectangle`, leyendo el `bbox` que reporta el motor a cada ángulo:
+>
+> | Ángulo | Ancho del bbox | Crecimiento |
+> |---:|---:|---:|
+> | 0° | 18,00 px | +0,0 % |
+> | 15° | 22,05 px | +22,5 % |
+> | 30° | 24,59 px | +36,6 % |
+> | **45°** | **25,46 px** | **+41,4 %** |
+> | 60° | 24,59 px | +36,6 % |
+> | **90°** | **18,00 px** | **+0,0 %** |
+>
+> Lo que la aritmética no da de golpe es la última fila: **vuelve a su tamaño a los 90°**. La
+> hitbox se ensancha y se estrecha **cuatro veces por vuelta**. Y eso es peor que una hitbox
+> grande y constante, porque **una grande se aprende y una que late no**.
 >
 > **Por qué importa más de lo que parece.** Un engranaje o una sierra que gire con
 > `image_angle` **mata hasta 3,7 px más lejos en unos ángulos que en otros**, y el dibujo no
@@ -322,15 +333,29 @@ más que el anterior a la hora de resolver colisiones.
 >
 > **Las tres salidas**, por orden de coste:
 >
-> 1. **`Rectangle With Rotation`** — la caja gira con la instancia, así que **conserva su
->    tamaño**. Es la más barata de las tres y la respuesta directa. Solo se elige en el Sprite
->    Editor o escribiendo el `.yy`: `sprite_collision_mask()` **no la admite** (ver abajo).
-> 2. **`Ellipse`** — una circunferencia inscrita es **invariante a la rotación**. Más cara que
->    la anterior, pero la mejor para piezas redondas, porque además quita los falsos positivos
->    de las esquinas.
-> 3. **No rotar la instancia**: deja `image_angle = 0` y pasa el ángulo solo al
->    `draw_sprite_ext()`. Así el dibujo gira y la colisión no se entera — y de paso `x`, el
->    `bbox` y cualquier registro de posición siguen diciendo lo mismo.
+> 1. **No rotar la instancia** — la más barata y la que no tiene letra pequeña. El ángulo va
+>    en una **variable propia**, `image_angle` se queda en 0, y el giro solo se dibuja:
+>
+>    ```gml
+>    giro += 2;                                     // variable propia, NO image_angle
+>    draw_sprite_ext(sprite_index, image_index, x + 9, y + 9, 1, 1, giro, c_white, 1);
+>    // image_angle se queda en 0: si rotara, la máscara rotaría con él.
+>    ```
+>
+>    🔴 **El detalle que decide, y es una sola línea**: si escribes ese `draw_sprite_ext` con
+>    `image_angle` en vez de una variable propia, **no has arreglado nada** — la instancia rota,
+>    la máscara con ella, y la caja vuelve a latir. Es el error exacto que se cometió al proponer
+>    esta salida por primera vez.
+>
+> 2. **`Ellipse`** — una circunferencia inscrita es invariante a la rotación, y además quita los
+>    falsos positivos de las esquinas en piezas redondas. Es campo del sprite, así que no
+>    depende de que nadie escriba bien un `Draw`.
+>
+> 3. **`Rectangle With Rotation`** — la caja gira con la instancia y conserva su tamaño. Es más
+>    barata que `Ellipse`… pero **descartada salvo que sepas lo que arrastra**: la comprobación
+>    alineada a ejes solo se hace **si AMBOS sprites tienen máscara `Rectangle`**, así que
+>    ponerla en el engranaje **cambia también cómo colisiona el jugador contra él**. Las dos
+>    anteriores desacoplan el problema; ésta mete al otro sprite en la ecuación.
 >
 > ⚠️ **Y ojo con la palabra «non-rotating»** que usa la tabla de constantes para
 > `bboxkind_rectangular`: habla de la **orientación** de la caja, no de su **tamaño**. Leerla

@@ -1957,7 +1957,25 @@ documenta (`screen_save()` de §7.3, el modo QA de §7.4, `gm-cli run`/`pkill` d
 lo que faltaba no era capacidad, era la disciplina de no aceptar «no dio ningún error» como
 sinónimo de «funciona». Los dos quedan en el checklist de §12.
 
-### 8.6 bis · Los TRES peldaños de una verificación, y los dos verdes que no valen
+### 8.6 bis · Enumerar desde la AUTORIDAD, no desde una copia
+
+Ésta es la regla madre, y las de abajo son casos suyos. Sale de tres fallos cometidos el mismo
+día por dos personas distintas, en tres sitios distintos, que resultaron ser **el mismo fallo**:
+
+| Se enumeraba desde… | La autoridad era… |
+|---|---|
+| una **lista de objetos escrita a mano** | los objetos que el sistema marca (`nivel_col`) |
+| un **manifiesto de assets** | los `.yy` que hay **en el disco** |
+| **el campo escrito** en el archivo | **el efecto** en el juego corriendo |
+
+Los tres dan verde. Los tres se lo dan a sí mismos, porque miden la copia que conocen y no lo
+que de verdad manda. Dicho así se reconoce el cuarto **antes** de cometerlo: cada vez que
+escribas una comprobación, pregúntate **de dónde sale la lista de cosas que va a mirar** — y si
+esa fuente puede quedarse desfasada, no es la autoridad.
+
+---
+
+### 8.6 ter · Los TRES peldaños de una verificación, y los dos verdes que no valen
 
 `§8.6` dice que compilar no es funcionar. Hay un peldaño más entre medias, y saltárselo es lo
 que produce la mayoría de los verdes falsos:
