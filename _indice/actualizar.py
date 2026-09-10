@@ -552,7 +552,13 @@ def main():
     r = subprocess.run([PY, os.path.join(IND, "validar-codigo-gml.py")],
                        capture_output=True, text=True)
     for l in r.stdout.splitlines():
-        if "INVENTADAS" in l or "no inventa" in l or l.strip().startswith("✗"):
+        # El `⚠` y su `→` también pasan: son la EXPLICACIÓN de la cifra. Sin ellos, en
+        # un clon sin corpus el informe enseñaba «2 posibles funciones INVENTADAS» y
+        # «el código no inventa funciones» seguidas, escondiendo la línea del medio que
+        # dice por qué. Dos líneas visibles que se contradicen enseñan a no creerse
+        # ninguna de las dos.
+        if ("INVENTADAS" in l or "no inventa" in l
+                or l.strip().startswith(("✗", "⚠", "→"))):
             print("  " + l.strip())
     if r.returncode != 0:
         # Igual que en el paso 2: sin _indice/simbolos.json, validar-codigo-gml.py no
@@ -651,5 +657,19 @@ def main():
     return 0
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from argumentos import exigir_sin_rutas  # noqa: E402
+
 if __name__ == "__main__":
+    # `actualizar.py` no tenía guardián: `--autoprueba` se ignoraba en silencio y
+    # lanzaba el mantenimiento ENTERO —medio minuto, y reescribe simbolos.json,
+    # documentos.json y MAPA.json—. Es la trampa perfecta para quien descubra las
+    # herramientas con el `grep '"--autoprueba"'` que la propia documentación sugiere:
+    # cree estar haciendo un self-test y está ejecutando el mantenimiento completo.
+    # Encontrado por un auditor externo, no por nosotros.
+    _sobra = exigir_sin_rutas(
+        "Es el mantenimiento completo de ESTA biblioteca y no toma argumentos. "
+        "Las autopruebas de las herramientas las ejecuta él solo, en su paso 0.", ())
+    if _sobra:
+        sys.exit(_sobra)
     sys.exit(main())

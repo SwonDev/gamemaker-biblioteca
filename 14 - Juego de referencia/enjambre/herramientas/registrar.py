@@ -50,6 +50,15 @@ def ev(orden, silencioso=True):
     return ok, r.stdout
 
 
+def glob_iconos(proy):
+    """PNG dentro de options/: la prueba de que el icono llegó de verdad."""
+    fuera = []
+    base = os.path.join(proy, "options")
+    for r, _d, fs in os.walk(base):
+        fuera += [os.path.join(r, f) for f in fs if f.lower().endswith(".png")]
+    return fuera
+
+
 def tam(png):
     from PIL import Image
     with Image.open(png) as im:
@@ -105,6 +114,21 @@ def main():
             fallos.append("la carpeta de glifos existe pero está vacía")
     else:
         fallos.append("falta la carpeta «%s»: genérala con generar_glifos.py" % GLIFOS)
+
+    # --- el icono del ejecutable -------------------------------------------------
+    # `auditar-juego-completo.py` lo exige (05/02 §4.4) y la receta no lo producía.
+    # OJO: el argumento es `property=`, no `name=` — con `name=` responde
+    # «Ignoring Argument: NAME» y no escribe nada (12 · 09 §0 trampa 16).
+    icono = os.path.join(PROY, "icono", "icono_1024.png")
+    if os.path.isfile(icono):
+        ev('options set platform=mac property=icon_png value="%s"' % icono)
+        hay_icono = bool(glob_iconos(PROY))
+        print("  icono  %-18s %s" % ("icon_png",
+                                     "en options/ ✓" if hay_icono else "✗ NO llegó"))
+        if not hay_icono:
+            fallos.append("el icono no llegó a options/")
+    else:
+        fallos.append("falta el icono: genéralo con generar_icono.py")
 
     print("\n--- verificación: se lee de vuelta lo escrito ---")
     for nombre, ficheros, _o in SPRITES:

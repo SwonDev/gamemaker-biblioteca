@@ -13,14 +13,14 @@
 
 ## 1 · Qué contiene, y qué NO
 
-Aquí viaja **solo la fuente**: 1 559 líneas en 33 archivos.
+Aquí viaja **solo la fuente**: unas 1 700 líneas en 34 archivos.
 
 | Carpeta | Qué es |
 |---|---|
 | `enjambre/ESPECIFICACION.md` | La especificación escrita **antes** de crear el proyecto, con las ocho preguntas de `13 · 28` y cada valor asumido marcado `[DEFAULT]` |
 | `enjambre/objects/` | Los nueve objetos, con su GML por evento |
 | `enjambre/scripts/` | `scr_enjambre.gml`: idiomas, guardado con versión y checksum, entrada unificada, sacudida y *hit-stop* |
-| `enjambre/herramientas/` | Los cuatro generadores: arte, sonido, registro de recursos y creación de objetos |
+| `enjambre/herramientas/` | Los cinco: generadores de arte, sonido e icono, y las dos herramientas que montan el proyecto (`crear_objetos.py`, `registrar.py`) |
 
 **No viajan el arte ni el sonido ni los `.yy`**, y es a propósito:
 
@@ -32,25 +32,79 @@ Aquí viaja **solo la fuente**: 1 559 líneas en 33 archivos.
 
 ## 2 · Cómo reconstruirlo entero
 
-```bash
+> Esta receta la ejecutó un auditor externo **siguiéndola al pie de la letra**, y encontró
+> siete cosas que no estaban dichas: `$BIB` sin definir, Pillow sin mencionar, los nombres
+> de carpeta que parecen libres y no lo son, y el icono que no se generaba —así que quien
+> la seguía sacaba un ✗ en el auditor de la propia biblioteca—. Están todas corregidas
+> aquí. Es la diferencia entre «funciona si ya sabes» y «funciona a ciegas».
+
+**Antes de empezar** — dos cosas que la receta necesita y no puede darte:
+
+```sh
+python3 -m pip install --user Pillow      # los generadores de arte y glifos lo exigen
+BIB="/ruta/donde/clonaste/gamemaker-biblioteca"   # esta biblioteca
+```
+
+`generar_glifos.py` además rasteriza los caracteres con una **tipografía del sistema** y
+busca, por este orden: *Verdana Bold*, *Arial Bold* y *DejaVuSans-Bold*. En macOS y en la
+mayoría de Linux hay alguna; si no, el script lo dice y no genera nada — no falla en
+silencio.
+
+```sh
+# 1 · el proyecto. `gm-cli init` crea la subcarpeta `enjambre/` DENTRO del directorio actual.
+cd ~                       # o donde quieras que viva el juego
 gm-cli init --no-interactive --name enjambre --template blank \
             --no-ai --no-actions --toolchain "GMS2@2026.0.0.23"
 cd enjambre
-cp -R <esta carpeta>/enjambre/{objects,scripts,herramientas,ESPECIFICACION.md} .
 
-python3 herramientas/generar_arte.py arte        # 30 PNG de pixel art
-python3 herramientas/generar_sonido.py sonido    # 8 WAV sintetizados
-python3 "$BIB/_indice/pruebas/generar_glifos.py" glifos   # 89 glifos con tildes
-python3 herramientas/crear_objetos.py .          # objetos, eventos y salas
-python3 herramientas/registrar.py .              # sprites y sonidos al .yyp
+# 2 · la fuente publicada
+cp -R "$BIB/14 - Juego de referencia/enjambre/"{objects,scripts,herramientas} .
+cp    "$BIB/14 - Juego de referencia/enjambre/ESPECIFICACION.md" .
 
-gm-cli compile        # exit 0
-gm-cli run            # se juega
+# 3 · generar arte, sonido, glifos e icono
+#     ⚠ Los nombres «arte», «sonido», «glifos» e «icono» NO son libres: `registrar.py`
+#     los tiene cableados y los espera DENTRO de la carpeta del proyecto. Generar en
+#     otro sitio hace que aborte diciendo qué falta.
+python3 herramientas/generar_arte.py arte
+python3 herramientas/generar_sonido.py sonido
+python3 "$BIB/_indice/pruebas/generar_glifos.py" glifos
+python3 herramientas/generar_icono.py arte icono
+
+# 4 · montar el proyecto (objetos, eventos, salas, sprites, sonidos, icono)
+python3 herramientas/crear_objetos.py .
+python3 herramientas/registrar.py .
+
+# 5 · comprobar
+gm-cli compile                                        # exit 0
+python3 "$BIB/_indice/validar-proyecto.py" .          # ninguna función inventada
+python3 "$BIB/_indice/auditar-juego-completo.py" .    # exit 0, envoltorio completo
+gm-cli run                                            # y se juega
 ```
 
-Los dos scripts de `herramientas/` que tocan el `.yyp` **verifican leyendo el disco**, no
-buscando «Success» en la salida — que es como se descubrió que `sound set` no existe y dejaba
-las carpetas de sonido vacías (`12 · 09 §0` trampa 16).
+Los dos scripts que tocan el `.yyp` **verifican leyendo el disco**, no buscando «Success»
+en la salida — que es como se descubrió que `sound set` no existe y dejaba las carpetas de
+sonido vacías (`12 · 09 §0` trampa 16). `registrar.py` cuenta los `.wav` que hay dentro de
+`sounds/`; `crear_objetos.py` lee el orden de salas del `.yyp` en crudo.
+
+### Lo que queda dentro y no estorba
+
+`gm-cli init` deja una sala `room1` del andamiaje que el juego no usa: es inalcanzable
+—solo hay `room_goto` explícitos a `rm_titulo` y `rm_juego`— pero viaja en el build. Puedes
+borrarla desde el IDE cuando publiques. Las carpetas `herramientas/`, `arte/`, `sonido/`,
+`glifos/` e `icono/` también se quedan: son el andamiaje que permite regenerar todo, y
+GameMaker no las empaqueta.
+
+### Si algo de esto deja de funcionar, saltará solo
+
+```sh
+bash "$BIB/_indice/validar-juego-referencia.sh"
+```
+
+Reconstruye el juego entero desde esta receta en una carpeta desechable y comprueba **en el
+disco** que están los 8 audios, los 89 glifos, los 30 sprites, el icono, que se entra por la
+portada, que la sala mide 683×384, que las salas tienen instancias, que el GML no inventa
+funciones, que compila y que el auditor lo da por bueno. Si alguien rompe la receta, esto lo
+dice antes de que lo descubra quien la siga.
 
 ## 3 · Qué enseña cada pieza
 

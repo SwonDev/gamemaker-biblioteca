@@ -87,10 +87,17 @@ def documentos_es():
             out.append({"ruta": f, "titulo": titulo_de(full), "carpeta": "(raíz)"})
 
     # documentos útiles que viven dentro de carpetas excluidas: se indexan a mano
-    # (la carpeta se excluye por su volumen, pero estos son puntos de entrada reales)
+    # (la carpeta se excluye por su volumen, pero estos son puntos de entrada reales).
+    #
+    # 🔴 **Solo los que VIAJAN en el repositorio.** `09 - Manual oficial/README.md`
+    # estaba aquí y está en el `.gitignore` —el manual es de YoYo Games y no se
+    # publica—, así que el MAPA.json publicado se generó en una máquina con el espejo
+    # puesto y contaba 256 documentos. Quien clonaba y ejecutaba `actualizar.py`, que es
+    # lo que manda el README, se encontraba MAPA.json modificado a 255 sin haber tocado
+    # nada: un `git status` sucio que no había escrito él. Encontrado por un auditor
+    # externo reconstruyendo desde un clon limpio.
     for rel in ("_indice/COMO-BUSCAR.md",
-                "_indice/traduccion/README.md",
-                "09 - Manual oficial/README.md"):
+                "_indice/traduccion/README.md"):
         full = os.path.join(RAIZ, rel)
         if os.path.exists(full):
             out.append({"ruta": rel, "titulo": titulo_de(full),
