@@ -116,6 +116,9 @@ IA = [
     ("Skills para otros CLI",     ["skills", "SKILL.md"], 2),
     ("Generación de sprites",     ["sprite-gen", "Retro Diffusion"], 1),
     ("Reparación de pixel art",   ["pixel-art-fixer", "pixeldetector"], 1),
+    # Saber que la generación existe no es saber llamarla. Esta API cobra por
+    # equivocarse, y su fallo más caro no da error: el POST no devuelve la imagen.
+    ("API de generación, bien llamada", ["X-RD-Token", "check_cost"], 1),
     ("Generación de audio",       ["stable-audio", "audiocraft", "audio por IA"], 1),
     ("Generación de imagen",      ["gpt-image", "codex exec"], 1),
     ("Traducción por IA",         ["traducción por IA", "traducir con IA"], 1),
