@@ -1263,7 +1263,7 @@ falla, y —siempre— con la tecla de «reportar bug» del modo QA.
 
 > ⚠️ **En Mac, el PNG que produce `screen_save()` puede salir invertido verticalmente aunque la
 > ventana real se vea bien** (Trampa 13 de
-> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invierte-la-imagen-verticalmente-en-el-runner-de-mac--la-ventana-real-no)).
+> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invirtió-la-imagen-una-vez--y-hoy-ya-no-no-la-voltees)).
 > No afecta a si algo aparece o no, solo a si arriba/abajo en el PNG es arriba/abajo de verdad
 > — relevante para §8.6 y el guion de humo de §8.7.
 
@@ -2366,9 +2366,14 @@ que la mitad del contenido esperado faltaba. No hay atajo nuevo aquí: esta secc
 *cómo llegar* al archivo; lo que se hace con él una vez abierto ya está en §8.6 — y esta sesión
 es la prueba de que ese paso no es opcional.
 
-> 🔴 **`screen_save()` invierte la imagen verticalmente en el runner de Mac — la ventana real
-> no.** Confirmado en vivo (Trampa 13 de
-> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invierte-la-imagen-verticalmente-en-el-runner-de-mac--la-ventana-real-no),
+> ⚠️ **`screen_save()` se midió invirtiendo la imagen, y HOY YA NO lo hace. No la voltees.**
+> Re-comprobado el **2026-09-10** sobre el runtime 2026.0.0.23 en macOS arm64: el PNG sale
+> derecho. Un agente se creyó el aviso anterior, volteó su captura para «corregirla» y le
+> quedó boca abajo. **Lo que sigue valiendo es el contraste**, porque es barato y cubre los dos
+> casos: una vez por sesión, compara una captura de `screen_save()` con una de `screencapture`
+> del sistema sobre el mismo fotograma. Si coinciden, ninguna trampa; si difieren solo en el
+> eje vertical, el volteo ha vuelto. La medición original (Trampa 13 de
+> [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invirtió-la-imagen-una-vez--y-hoy-ya-no-no-la-voltees),
 > contrastando el PNG contra una captura de pantalla real (`screencapture`) tomada mientras se
 > veía el mismo fotograma en la ventana del runner: la ventana se veía perfectamente, derecha;
 > el PNG de `screen_save()` salía boca abajo, con el orden vertical invertido. Si lo que estás
@@ -2536,9 +2541,11 @@ humanas.
 
 Y una tercera frontera, en Mac: **el paso 5 del guion completo de §8.7.6 (mirar
 `humo_captura.png`) no es fiable para juzgar POSICIÓN vertical sin contrastarlo antes con
-`screencapture`** — `screen_save()` invierte la imagen verticalmente en el runner de Mac,
-mientras la ventana real se ve bien (Trampa 13 de `12 · 09` §0, aviso completo en §8.7.3 de
-esta misma sección). El guion detecta igual de bien que «se ve algo» o que «hay texto»; lo que
+`screencapture`** — `screen_save()` se midió una vez invirtiendo la imagen verticalmente, y
+en el runtime 2026.0.0.23 **ya no lo hace** (re-comprobado el 2026-09-10; Trampa 13 de
+`12 · 09` §0, con la historia fechada, y aviso completo en §8.7.3 de esta misma sección). El
+contraste se mantiene no porque el volteo siga vivo, sino porque es lo único que distingue
+«ha vuelto» de «nunca pasó». El guion detecta igual de bien que «se ve algo» o que «hay texto»; lo que
 NO garantiza sin ese contraste es que arriba/abajo en el PNG signifique arriba/abajo de verdad.
 
 #### 8.7.6 El guion de humo completo, antes de decir que un juego está terminado

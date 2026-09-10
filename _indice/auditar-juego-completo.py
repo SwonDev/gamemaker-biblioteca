@@ -1005,8 +1005,12 @@ def main():
     n_sprites = len(tipos.get("sprites", []))
     debug, debug_infra = contar_trazas(ruta)
     sin_guarda, con_guarda = objetos_sin_guarda(ruta)
-    audio_pausa = audio_en_pausa(gml)
-    fugas = recursos_sin_liberar(gml)
+    # Con los comentarios FUERA, igual que las piezas. Lo pedía el mismo motivo y se
+    # quedó a medias: se arregló para `PIEZAS` y estos dos siguieron recibiendo el
+    # texto crudo, así que un `time_source_create` mencionado en un comentario
+    # contaba como fuga. Lo encontró el rol de jugador señalando la línea exacta.
+    audio_pausa = audio_en_pausa(gml_todo)
+    fugas = recursos_sin_liberar(gml_todo)
     icono, version = icono_y_version(ruta)
     reinv = reinventos(ruta)
     sin_mascara = objetos_sin_mascara(ruta)
@@ -1467,6 +1471,18 @@ def autoprueba():
             repr(sin_comentarios("/*\n\n*/\nx = 1;")))
     revisar("un comentario de bloque sin cerrar no se come lo de antes",
             sin_comentarios("x = 1;\n/* abierto").startswith("x = 1;"))
+
+    # Un recurso mencionado en un COMENTARIO no es una fuga. Mismo motivo que el
+    # falso verde de las piezas, y se quedó a medias: `recursos_sin_liberar` y
+    # `audio_en_pausa` seguían recibiendo el texto crudo cuando las piezas ya
+    # recibían el limpio. Un arreglo aplicado a un sitio y no a su hermano.
+    _en_comentario = sin_comentarios(
+        "// aqui iria un time_source_create(...) algun dia\nx = 1;")
+    revisar("un time_source_create citado en un comentario no cuenta",
+            recursos_sin_liberar(_en_comentario) == [],
+            str(recursos_sin_liberar(_en_comentario)))
+    revisar("pero uno de verdad sin destruir sí",
+            recursos_sin_liberar("time_source_create(a);\ntime_source_create(b);") != [])
 
     # ── Texto que llega a pantalla por el VALOR de una función, no por un literal.
     # Medido: `InputVerbGetBindingName()` devuelve «arrow left» y «space» en inglés,

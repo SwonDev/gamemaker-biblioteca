@@ -12,7 +12,7 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r34 · 2026-09-10 -->
+<!-- SKILL-VERSION: r35 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -170,10 +170,14 @@ el primer comando; el detalle y las tablas completas están en
     va en español, esto te afecta siempre. Solución verificada: una fuente propia con `font_add()`
     cargando un `.ttf` por *Included File* (trampa 8), o una fuente del proyecto con sus glifos
     horneados (trampa 5). Ver `01/11` y `12/09`.
-13. **`screen_save()` invierte la imagen verticalmente en el runner de Mac.** La ventana real se
-    ve bien; el archivo, del revés. Si verificas mirando capturas —y el guion de humo de `13/10`
-    se apoya en ellas—, contrasta al menos una vez con `screencapture` del sistema antes de sacar
-    conclusiones sobre dónde está cada cosa en pantalla.
+13. **`screen_save()` NO invierte la imagen — y esta advertencia, al revés, ya ha hecho daño.**
+    Se midió invertida en una sesión anterior; **re-comprobado el 2026-09-10 sobre el runtime
+    2026.0.0.23 en macOS arm64, sale derecha**. Un agente se creyó el aviso, volteó su captura
+    para «corregirla» y le quedó boca abajo. **No la voltees.** Lo que sí sigue valiendo, porque
+    es barato: contrasta **una vez por sesión** una captura de `screen_save()` contra una de
+    `screencapture` del sistema sobre el mismo fotograma. Si coinciden, ninguna trampa; si
+    difieren solo en el eje vertical, ha vuelto. Detalle y la historia fechada, en `12/09`
+    trampa 13.
 14. **Escribir un solo índice de `project.RoomOrderNodes` duplica una sala y tumba el
     compilador.** Reasignar `[i].roomId` sin recolocar la sala que estaba ahí deja el array con
     una repetida, y el `AssetCompiler` revienta con una excepción de .NET en bruto, sin decir la

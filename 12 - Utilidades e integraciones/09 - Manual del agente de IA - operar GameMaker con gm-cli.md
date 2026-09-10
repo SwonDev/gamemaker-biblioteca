@@ -1359,7 +1359,35 @@ y en [`13 · 05` §3.6](../13%20-%20Diseño%20y%20producción%20de%20videojuegos
 Detalle completo, con el hexdump de verificación y las capturas de antes y después, en
 [`_indice/auditorias/r7-prueba-movil.md` §2.5-1](../_indice/auditorias/r7-prueba-movil.md#25--sirvieron-las-once-trampas-o-tropecé-con-alguna-nueva).
 
-### Trampa 13 · `screen_save()` invierte la imagen verticalmente en el runner de Mac — la ventana real no
+### Trampa 13 · `screen_save()` invirtió la imagen una vez — y HOY YA NO. No la voltees
+
+> 🔴 **REVISADA el 2026-09-10, y el resultado invierte el consejo.** Sobre `gm-cli` 2.3.0,
+> runtime **2026.0.0.23**, macOS arm64, `screen_save()` **NO invierte nada**: el PNG sale
+> derecho, con el título arriba, el texto en su orden y el suelo abajo. Comprobado leyendo una
+> captura real de un juego en marcha.
+>
+> **Y esta advertencia ya ha hecho daño.** Un agente se la creyó, volteó su captura para
+> «corregirla», y le quedó boca abajo — perdió tiempo arreglando algo que funcionaba. Es
+> exactamente lo que avisa la cabecera de esta sección: *una advertencia falsa enseña a
+> desconfiar de las demás, y eso es peor que no advertir*.
+>
+> **Qué hacer hoy: NO voltees la imagen.** Guárdala tal cual y míralas.
+>
+> **Lo que sigue en pie**, porque es barato y cubre los dos casos: **contrasta una vez por
+> sesión** una captura de `screen_save()` contra una de `screencapture` del sistema tomada
+> sobre el mismo fotograma. Si coinciden, ninguna trampa. Si difieren solo en el eje vertical,
+> ha vuelto — y entonces esta nota vuelve a valer.
+>
+> Lo de abajo se conserva porque **fue una medición real en su momento**, no una suposición, y
+> borrarla escondería que esto puede depender de la versión. Léelo como historia fechada, no
+> como instrucción.
+>
+> 📌 **Y la lección de método**: de las veintiuna trampas, `verificar-trampas.sh` re-comprueba
+> siete solas. Ésta no era una de ellas, y es la que ha caducado. Una advertencia que no puede
+> volver a medirse sola es la que se pudre.
+
+#### Lo medido en su día (sesión anterior, conservado como historia)
+
 
 **El síntoma**: al comprobar una captura tomada con `screen_save()` (§7.3 de
 [`13 · 10`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md))
