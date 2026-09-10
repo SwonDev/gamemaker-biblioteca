@@ -5,8 +5,8 @@ description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego»,
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r22 · 2026-09-09 -->
-`r22 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r23 · 2026-09-09 -->
+`r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -422,6 +422,27 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    porque había una única puerta por la que inyectar la entrada simulada; con diez, no habría
    sido viable.
 
+3 quater. **Si el usuario te dice dónde tiene SUS assets, hay un método y no es «buscar
+   lo que encaje».** Es el encargo real —«tengo packs en este disco, úsalos»— y tiene una
+   trampa: los assets libres traen su licencia declarada, pero una biblioteca personal es
+   una mezcla de packs comprados, bundles y carpetas sin origen. Todo está en
+   `07 - Ecosistema/09 - Asset packs y recursos gráficos.md` §10 bis.
+   El resumen que no puedes saltarte:
+
+   - **Licencia primero, encaje después.** Si buscas por lo que te gusta, acabas
+     enamorado de un pack que no puedes tocar. Y **el índice de la biblioteca NO es la
+     licencia**: hay que abrirla pack a pack.
+   - **Tres filtros, no uno**: licencia · **estilo** (¿se dibuja como mi juego?) ·
+     **encaje** (¿mi tema y mi resolución?). Los dos últimos se subestiman siempre y son
+     los que hacen que un juego con arte comprado se vea peor que uno con arte propio:
+     un pack CC0 impecable de «naves» resultó ser aviones de la Segunda Guerra Mundial.
+   - **«Usarlo» y «redistribuirlo» no son lo mismo.** Muchas licencias permiten meterlo en
+     tu juego compilado y prohíben subir el archivo suelto a un repositorio público.
+   - **Tipografías: dos comprobaciones.** Que tenga `á é í ó ú ñ ¿ ¡` —GameMaker omite en
+     silencio el glifo que falta— y qué dice **el binario**, que puede contradecir al pack.
+   - **Si no encuentras la licencia, no entra — y lo dices.** Separando «lo prohíbe» de
+     «no la he encontrado»: lo segundo el usuario sí puede resolver buscando su factura, y
+     callarlo puede costarle el mejor arte de su juego.
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
    diálogos, audio, guardado y UI ya están resueltos por terceros.
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
