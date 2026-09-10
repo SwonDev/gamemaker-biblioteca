@@ -1797,6 +1797,61 @@ proyecto.** No solo para `resourcetool` — también para `compile`, `run` y `pa
 comparten la carpeta de compilación. Si dos agentes tienen que trabajar en paralelo sobre el
 mismo juego, o se turnan, o trabajan sobre copias distintas del proyecto.
 
+### Trampa 20 · CUALQUIER llamada a `resourcetool` guarda el proyecto — incluso `HELP`
+
+No hay consultas de solo lectura. `resourcetool` carga el proyecto, y al terminar **lo
+escribe**, haga lo que haga el subcomando.
+
+**Medido el 2026-09-10** sobre un proyecto recién creado, con el caso más extremo posible —un
+`HELP`, que no consulta ningún recurso:
+
+```bash
+stat -f "%m" ProbeRT.yyp        # 1789040544
+gm-cli resourcetool eval 'HELP'
+#   Core Resources : Info - +++ GMSC serialisation:  SUCCESSFUL LOAD AND LINK TIME: 141ms
+#   Saving..........Success          ← en un HELP
+stat -f "%m" ProbeRT.yyp        # 1789040548  ← el .yyp se reescribió
+```
+
+Lo mismo con `resource info`, que es la consulta de solo lectura por excelencia.
+
+> 🔴 **Y esto vuelve del revés un consejo de esta misma biblioteca.** «Verifica leyendo de
+> vuelta con `resource info`» es buen consejo con un solo agente y **se contradice a sí mismo
+> en cuanto hay dos**: la verificación ES una escritura, así que verificar es provocar la
+> carrera de la [trampa 19](#trampa-19--dos-procesos-creando-recursos-a-la-vez-el-que-pierde-no-se-entera).
+> Dos roles que creen estar solo *mirando* se están pisando el `.yyp`.
+
+**La verificación buena es leer el `.yy` con herramientas de archivo**: `cat`, `grep`, un
+`json` a mano. No arranca `npx`, no escribe nada, es más rápida, y mide el archivo que de
+verdad decide.
+
+---
+
+### Trampa 21 · `xorigin`, `yorigin` y `playbackSpeed` cuelgan de `sequence`, no del sprite
+
+Y lo que la hace traicionera: **el sprite SÍ tiene un miembro llamado `origin`** — pero es el
+enum (Automatic / Custom), no la coordenada. Un agente que liste los campos lo ve, se lo cree,
+y escribe en lo que no es.
+
+```bash
+gm-cli resourcetool eval 'resource set expr=spr_test.xorigin value=99'
+#   spr_test.xorigin: Member 'xorigin' not found on spr_test
+#   ResourceTool Failed
+
+gm-cli resourcetool eval 'resource set expr=spr_test.sequence.xorigin value=99'   # ← la buena
+```
+
+Y en el `.yy` se ve el porqué: el sprite tiene `"origin": 0` en su raíz y un bloque
+`"sequence"` aparte, que es donde viven de verdad las coordenadas del origen y la velocidad
+de reproducción.
+
+> ⚠️ **Aquí se cruzan dos trampas, y por eso cuesta verlo.** El intento fallido **también
+> imprime `Saving..........Success`** —es el guardado del proyecto de la trampa 20, no el
+> resultado del comando—, así que un `grep -i success` da verde sobre un comando que ha
+> fallado. La línea que importa es `ResourceTool Failed`, y la prueba definitiva es **leer el
+> `.yy`**. Es exactamente lo que ya avisa la [trampa 16](#trampa-16--los-subcomandos-que-un-agente-adivina-mal-sound-setfile-typecreate-sin-subtipo-y-options-set-property),
+> apareciendo en un sitio nuevo.
+
 ---
 
 ## 1 · El ciclo completo del agente

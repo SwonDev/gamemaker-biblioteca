@@ -68,6 +68,32 @@ PREF_EXT = ("steam_", "admob_", "gpb_", "appleiap_", "gamecenter_", "firebase_",
             "iap_", "ads_", "push_", "gxc_", "gpg_")
 
 
+# Asignar a una variable incorporada de SOLO LECTURA. Hay 102 en el índice del
+# runtime, y NO se comportan igual entre ellas: a unas el compilador las rechaza
+# —`"fps_real" is read-only`, medido— y a otras **la asignación simplemente no hace
+# nada**, sin error, sin aviso y sin efecto. Esa segunda clase es la peligrosa: el
+# código compila, arranca, y la variable sigue valiendo lo que valía.
+#
+# Solo cuenta la asignación SIN cualificar y al principio de una sentencia:
+# `s.id = 5` es un campo de un struct y es legítimo, y `var id = …` es una local
+# que ensombrece (mala idea, pero no es este fallo).
+PAT_ASIGNACION = re.compile(r"(?m)^[ \t]*([A-Za-z_]\w*)\s*=(?!=)")
+
+
+def asignaciones_a_solo_lectura(archivos, simbolos):
+    """[(archivo, nombre)] de asignaciones a una built-in de solo lectura."""
+    solo_lectura = {n for n, s in simbolos.items()
+                    if isinstance(s, dict) and s.get("solo_lectura")}
+    hallados = []
+    for rel, texto in archivos:
+        for m in PAT_ASIGNACION.finditer(texto):
+            nom = m.group(1)
+            if nom in solo_lectura:
+                linea = texto[:m.start()].count("\n") + 1
+                hallados.append((rel, nom, linea))
+    return hallados
+
+
 def cargar_simbolos():
     ruta = os.path.join(IND, "simbolos.json")
     if not os.path.exists(ruta):
@@ -185,6 +211,7 @@ def main():
     definidas = set()
     codigos = []
     crudos = {}          # fuente SIN limpiar, para el contraste de §desconocidas
+    _solo_lectura = []   # asignaciones a variables incorporadas que no admiten valor
     literales_rotos = [] # (archivo, líneas) con una cadena que no cierra
     for fp in archivos:
         try:
@@ -193,6 +220,10 @@ def main():
             continue
         cod = vcg.limpiar(txt)
         codigos.append((fp, cod))
+        _solo_lectura.extend(
+            (os.path.relpath(fp, proyecto), n, l)
+            for _, n, l in asignaciones_a_solo_lectura(
+                [(os.path.relpath(fp, proyecto), cod)], simb))
         crudos[fp] = txt
         _rotas = vcg.comillas_descuadradas(txt)
         if _rotas:
@@ -256,7 +287,8 @@ def main():
                                    for n, casos in problemas_aridad.items()},
             "desconocidas": {n: sorted(a) for n, a in desconocidas.items()},
         }, ensure_ascii=False, indent=1))
-        return 1 if (inventadas or problemas_aridad or inexistentes) else 0
+        return 1 if (inventadas or problemas_aridad or inexistentes
+                 or _solo_lectura) else 0
 
     print(f"{len(archivos)} archivos .gml · {total} llamadas analizadas · runtime del índice "
           f"{meta.get('runtime')}")
@@ -368,6 +400,16 @@ def main():
             familias[fam] = familias.get(fam, 0) + 1
         print("  " + " · ".join(f"{k}_*: {v}" for k, v in sorted(familias.items())))
 
+    if _solo_lectura:
+        print(f"\n\033[1m✗ {len(_solo_lectura)} asignación(es) a una variable incorporada de "
+              f"SOLO LECTURA:\033[0m")
+        print("  A unas el compilador las rechaza; a otras **la asignación no hace NADA** —sin")
+        print("  error, sin aviso y sin efecto—, y ésas son las que cuestan una tarde.")
+        for rel, nom, linea in _solo_lectura[:10]:
+            print(f"  {nom}  en {rel}:{linea}   →  python3 \"_indice/buscar.py\" {nom}")
+        if len(_solo_lectura) > 10:
+            print(f"  … y {len(_solo_lectura) - 10} más")
+
     if inexistentes:
         print(f"\n\033[1m✗ {len(inexistentes)} llamada(s) a un nombre que NO existe en ninguna "
               f"parte:\033[0m")
@@ -391,7 +433,8 @@ def main():
     elif desconocidas:
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
               f"(--todo para verlos): métodos de struct, funciones que faltan o extensiones sin instalar.")
-    return 1 if (inventadas or problemas_aridad or inexistentes) else 0
+    return 1 if (inventadas or problemas_aridad or inexistentes
+                 or _solo_lectura) else 0
 
 
 def autoprueba():
@@ -489,6 +532,24 @@ def autoprueba():
         r = subprocess.run([sys.executable, yo, os.path.join(tmp, "no_existe")],
                            capture_output=True, text=True)
         revisar("una carpeta inexistente NO sale con 0", r.returncode != 0, "exit %d" % r.returncode)
+
+    # ── Asignar a una variable incorporada de SOLO LECTURA.
+    #
+    # El índice del runtime marca 102. No se comportan igual: a `fps_real` el
+    # compilador la rechaza —medido, `"fps_real" is read-only`— y a otras **la
+    # asignación no hace nada**, sin error y sin efecto. Esa segunda clase es la
+    # que cuesta una tarde, porque el juego compila, arranca y no hace lo que crees.
+    with tempfile.TemporaryDirectory() as tmp:
+        c, o = proyecto(os.path.join(tmp, "solo_lectura"), {
+            "scr_ro": "function f() {\n  fps_real = 60;\n  instance_count = 5;\n}\n"})
+        revisar("asignar a una built-in de solo lectura hace FALLAR",
+                c == 1 and "SOLO LECTURA" in o, "exit %d" % c)
+        revisar("y nombra las dos", "fps_real" in o and "instance_count" in o, o[-200:])
+
+        c, o = proyecto(os.path.join(tmp, "legitimo"), {
+            "scr_ok": "function f(_s) {\n  _s.id = 5;\n  var fps_medido = 60;\n"
+                      "  mi_variable = 3;\n  if (instance_count == 0) { exit; }\n}\n"})
+        revisar("un campo de struct con ese nombre NO se marca", c == 0, o.strip()[-160:])
 
     # ── El nombre que no existe en ninguna parte.
     #
