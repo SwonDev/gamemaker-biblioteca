@@ -149,6 +149,53 @@ def cargar_proyecto(ruta):
     return {"yyp": yyps[0], "recursos": recursos, "orden_salas": orden}
 
 
+# Las carpetas que GameMaker usa para recursos. Lo demás —`datafiles`, `options`,
+# `notes`— no lo es, y meterlo aquí daría falsos positivos.
+CARPETAS_RECURSO = (
+    "sprites", "objects", "rooms", "scripts", "sounds", "fonts", "tilesets",
+    "shaders", "paths", "timelines", "sequences", "animcurves", "particles",
+)
+
+
+def recursos_huerfanos(ruta, nombres_en_yyp):
+    """Carpetas de recurso que existen en disco y NO están en el `.yyp`.
+
+    Esto detecta una pérdida de trabajo **silenciosa y medida**: `resourcetool`
+    reescribe el `.yyp` ENTERO, así que dos procesos creando recursos a la vez se
+    pisan. El que pierde no se entera de nada.
+
+    Reproducido en un proyecto limpio (2026-09-10): se crea `spr_del_rol_A`, otro
+    proceso escribe el `.yyp` que había leído antes, y crea `spr_del_rol_B`.
+    Resultado: **A desaparece del `.yyp` y su carpeta se queda en disco**. Y
+    `gm-cli compile` sale con **0 sin decir una palabra**.
+
+    Lo peligroso es la dirección del engaño. El consejo de siempre —«comprueba el
+    disco, no la salida del comando»— aquí da un FALSO VERDE: los PNG están donde
+    los dejaste. Para saber si un recurso está registrado hay que mirar el `.yyp`.
+    """
+    dentro = set(nombres_en_yyp)
+    huerfanos = []
+    for carpeta in CARPETAS_RECURSO:
+        base = os.path.join(ruta, carpeta)
+        if not os.path.isdir(base):
+            continue
+        try:
+            hijos = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for n in hijos:
+            d_hijo = os.path.join(base, n)
+            # Una carpeta de recurso de verdad lleva su propio `<nombre>.yy` dentro.
+            # Exigirlo descarta carpetas sueltas que no son recursos.
+            if not os.path.isdir(d_hijo):
+                continue
+            if not os.path.isfile(os.path.join(d_hijo, n + ".yy")):
+                continue
+            if n not in dentro:
+                huerfanos.append((carpeta, n))
+    return huerfanos
+
+
 def sin_comentarios(texto):
     """El GML con los comentarios fuera, respetando las cadenas.
 
@@ -507,7 +554,11 @@ def objetos_rectangulo(ruta):
     """
     dir_obj = os.path.join(ruta, "objects")
     if not os.path.isdir(dir_obj):
-        return []
+        # Dos listas, no una: el llamante desempaqueta `rect, rect_ui`. Devolver `[]`
+        # aquí reventaba con «not enough values to unpack» ante un proyecto recién
+        # creado, sin ningún objeto todavía — que es justo cuando más falta hace poder
+        # auditarlo. Encontrado auditando un proyecto de una sola prueba.
+        return [], []
     figuras = re.compile(r"\bdraw_(rectangle|circle|ellipse|roundrect|triangle)\w*\s*\(")
     # Un objeto de interfaz o de control dibuja figuras porque ese es su trabajo: paneles,
     # barras de vida, fundidos, cartelas. Meterlo en la misma lista que un personaje sin
@@ -974,8 +1025,24 @@ def main():
             print("  %s Versión del ejecutable: %s%s"
                   % ("✓" if version != "1.0.0.0" else "⚠", version,
                      "  ← la de fábrica; súbela antes de publicar" if version == "1.0.0.0" else ""))
+        # Recursos que existen en disco pero se cayeron del `.yyp`. Va aquí, con el
+        # resto del informe, porque no es un defecto de diseño: es trabajo perdido.
+        huerfanos = recursos_huerfanos(ruta, nombres)
+        if huerfanos:
+            print("  \033[1m✗ %d recurso(s) que están en DISCO pero NO en el .yyp:\033[0m"
+                  % len(huerfanos))
+            for carpeta, n in huerfanos[:12]:
+                print("      %s/%s" % (carpeta, n))
+            if len(huerfanos) > 12:
+                print("      … y %d más" % (len(huerfanos) - 12))
+            print("    Es trabajo perdido, no un aviso de estilo. `resourcetool` reescribe el")
+            print("    `.yyp` entero, así que dos procesos creando recursos a la vez se pisan y")
+            print("    el que pierde NO se entera: sus archivos siguen ahí y `gm-cli compile`")
+            print("    sale con 0 sin decir nada. Medido en un proyecto limpio.")
+            print("    Vuelve a registrarlos con `resourcetool`, de uno en uno y sin nadie más")
+            print("    escribiendo a la vez.")
         print()
-        if faltan or not arranque_ok:
+        if faltan or not arranque_ok or huerfanos:
             print("Faltan piezas del envoltorio: %s%s"
                   % (", ".join(faltan) if faltan else "",
                      (", " if faltan else "") + "arranque por portada" if not arranque_ok else ""))
@@ -1254,6 +1321,49 @@ def autoprueba():
             repr(sin_comentarios("/*\n\n*/\nx = 1;")))
     revisar("un comentario de bloque sin cerrar no se come lo de antes",
             sin_comentarios("x = 1;\n/* abierto").startswith("x = 1;"))
+
+    # ── El recurso que se cae del `.yyp` y se queda en disco.
+    #
+    # Reproducido en un proyecto limpio (2026-09-10): se crea `spr_del_rol_A`, otro
+    # proceso escribe el `.yyp` que había leído ANTES, y crea `spr_del_rol_B`. A
+    # desaparece del `.yyp`, su carpeta se queda en disco, y `gm-cli compile` sale
+    # con 0 sin decir una palabra. `resourcetool` reescribe el `.yyp` entero.
+    #
+    # Lo venenoso es la DIRECCIÓN del engaño: el consejo de siempre —«comprueba el
+    # disco, no la salida del comando»— aquí da un falso VERDE, porque los archivos
+    # están donde los dejaste. Lo que hay que mirar es el `.yyp`.
+    with tempfile.TemporaryDirectory() as tmp:
+        base = os.path.join(tmp, "huerfanos")
+        for carpeta, nombre in (("sprites", "spr_registrado"), ("sprites", "spr_perdido"),
+                                ("objects", "obj_registrado")):
+            dd = os.path.join(base, carpeta, nombre)
+            os.makedirs(dd, exist_ok=True)
+            with open(os.path.join(dd, nombre + ".yy"), "w", encoding="utf-8") as f:
+                f.write('{"resourceType":"GMSprite",}')
+        # Una carpeta suelta que NO es un recurso: no lleva su `.yy` dentro.
+        os.makedirs(os.path.join(base, "sprites", "_borradores"), exist_ok=True)
+        # Y una carpeta que no es de recursos en absoluto.
+        os.makedirs(os.path.join(base, "datafiles", "idiomas"), exist_ok=True)
+
+        h = recursos_huerfanos(base, ["spr_registrado", "obj_registrado"])
+        revisar("caza el recurso que está en disco y no en el .yyp",
+                h == [("sprites", "spr_perdido")], str(h))
+        revisar("y NO marca los que sí están registrados",
+                not any(n in ("spr_registrado", "obj_registrado") for _, n in h), str(h))
+        revisar("una carpeta sin su .yy dentro no cuenta como recurso",
+                not any(n == "_borradores" for _, n in h), str(h))
+        revisar("y `datafiles` no se mira siquiera",
+                not any(c == "datafiles" for c, _ in h), str(h))
+        revisar("con todo registrado, no hay huérfanos",
+                recursos_huerfanos(base, ["spr_registrado", "spr_perdido",
+                                          "obj_registrado"]) == [])
+        revisar("un proyecto sin carpetas de recurso no revienta",
+                recursos_huerfanos(os.path.join(tmp, "no-existe"), []) == [])
+
+        # Y el fallo que apareció al auditar un proyecto recién creado, sin objetos.
+        revisar("un proyecto sin carpeta objects devuelve DOS listas, no revienta",
+                objetos_rectangulo(os.path.join(tmp, "no-existe")) == ([], []),
+                str(objetos_rectangulo(os.path.join(tmp, "no-existe"))))
 
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))

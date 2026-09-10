@@ -1708,6 +1708,56 @@ comprobado recalculándolo fuera del juego.
 
 ---
 
+### Trampa 19 · Dos procesos creando recursos a la vez: el que pierde NO se entera
+
+`resourcetool` **reescribe el `.yyp` entero**, no añade líneas. Así que si dos procesos crean
+recursos al mismo tiempo, el segundo escribe encima de una copia que leyó antes del primero, y
+el primero desaparece del proyecto. **Sin error, sin conflicto, sin aviso.**
+
+**Reproducido en un proyecto limpio el 2026-09-10**, provocando la carrera a propósito:
+
+```bash
+gm-cli resourcetool eval 'RESOURCE CREATE TYPE=sprite NAME=spr_del_rol_A'   # rol A
+cp copia_anterior.yyp Proyecto.yyp                                          # el rol B tenía leída la de antes
+gm-cli resourcetool eval 'RESOURCE CREATE TYPE=sprite NAME=spr_del_rol_B'   # rol B
+```
+
+Resultado medido:
+
+| Qué | Después de la carrera |
+|---|---|
+| `spr_del_rol_A` en el `.yyp` | **0 apariciones — desapareció** |
+| `spr_del_rol_B` en el `.yyp` | 1 |
+| Carpeta `sprites/spr_del_rol_A` en disco | **sigue ahí, huérfana** |
+| `gm-cli compile --errors-only` | **exit 0, ni una palabra** |
+
+> 🔴 **Lo venenoso es la DIRECCIÓN del engaño.** El consejo que repite toda esta biblioteca
+> —«comprueba el disco, no la salida del comando»— **aquí da un falso verde**: los PNG están
+> exactamente donde los dejaste, el `.yy` del recurso también, y todo parece correcto. Lo único
+> que falta es la línea del `.yyp`, que es la que decide si el recurso existe para GameMaker.
+> **Para saber si un recurso está registrado hay que mirar el `.yyp`.**
+
+**Cómo se evita**, por orden de coste:
+
+1. **Un solo escritor de recursos a la vez.** En un equipo de agentes, un turno explícito: se
+   pide, se escribe, se avisa al terminar. Lo detectó un rol de arte al ver que el proyecto
+   pasaba de `sp=27, ob=4` a `sp=30, ob=11` a mitad de su trabajo.
+2. **Agrupa las escrituras.** Una tanda larga expone menos superficie que veinte llamadas
+   sueltas repartidas en el tiempo.
+3. **El `.gml` no tiene este problema**: son archivos independientes. El riesgo es solo de lo
+   que toca el `.yyp`.
+4. **Y compruébalo después**, que es lo que sí se puede automatizar:
+
+```sh
+python3 "$BIB/_indice/auditar-juego-completo.py" <proyecto>
+```
+
+Lista los recursos que están **en disco y no en el `.yyp`**, con su carpeta, y hace fallar el
+informe. Es trabajo perdido, no un aviso de estilo: se recupera volviendo a registrarlos con
+`resourcetool`, de uno en uno y sin nadie más escribiendo.
+
+---
+
 ## 1 · El ciclo completo del agente
 
 `AGENTS.md §5` ya documenta la secuencia y es correcta; esta tabla añade, para cada paso, **qué
