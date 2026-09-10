@@ -279,7 +279,8 @@ La instancia usa la máscara de colisión de su `sprite_index`, a menos que le a
 
 Esa máscara se:
 - **escala** por `image_xscale` e `image_yscale`,
-- **rota** por `image_angle`.
+- y **reacciona** a `image_angle` — pero **cómo** depende del tipo de máscara, y esa
+  diferencia decide si tu hitbox crece al girar. Está justo abajo, y no es un detalle.
 
 ### Elegir la forma de la máscara
 
@@ -300,6 +301,41 @@ más que el anterior a la hora de resolver colisiones.
 > tienen máscara válida, se comprueba **el cuadro delimitador Y la máscara** — y esa segunda
 > comprobación es la que cuesta. Usa **Rectangle** salvo que de verdad lo necesites.
 > 📘 [Sprites — el editor](../09%20-%20Manual%20oficial/manual-lts-2026-es/The_Asset_Editors/Sprites.md).
+
+> 🔴 **La trampa que esconde esa tabla: con `Rectangle`, girar el sprite AGRANDA la hitbox.**
+>
+> El manual lo dice con una precisión que se lee mal si vas deprisa —
+> *«**Rectangle**: always an **axis-aligned bounding box around the (rotated and scaled)
+> instance**»*—: la caja **no gira**, pero **envuelve al sprite ya girado**. Y la caja alineada
+> a ejes de un cuadrado girado crece hasta **√2 ≈ 1,41 veces a 45°**:
+>
+> | Sprite | Hitbox a 0° | Hitbox a 45° |
+> |---|---|---|
+> | 18 × 18 px | 18 px | **25,46 px** |
+> | 24 × 24 px | 24 px | **33,94 px** |
+>
+> **Por qué importa más de lo que parece.** Un engranaje o una sierra que gire con
+> `image_angle` **mata hasta 3,7 px más lejos en unos ángulos que en otros**, y el dibujo no
+> cambia. Es el peor tipo de injusticia en un juego de precisión: **la víctima no puede
+> aprenderlo, porque la hitbox se mueve sola.** Rompe por dentro la regla de que nada que mate
+> sea invisible ([`13 · 01`](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/01%20-%20Diseño%20de%20juego%20-%20core%20loop%2C%20mecánicas%2C%20balance%20y%20dificultad.md)).
+>
+> **Las tres salidas**, por orden de coste:
+>
+> 1. **`Rectangle With Rotation`** — la caja gira con la instancia, así que **conserva su
+>    tamaño**. Es la más barata de las tres y la respuesta directa. Solo se elige en el Sprite
+>    Editor o escribiendo el `.yy`: `sprite_collision_mask()` **no la admite** (ver abajo).
+> 2. **`Ellipse`** — una circunferencia inscrita es **invariante a la rotación**. Más cara que
+>    la anterior, pero la mejor para piezas redondas, porque además quita los falsos positivos
+>    de las esquinas.
+> 3. **No rotar la instancia**: deja `image_angle = 0` y pasa el ángulo solo al
+>    `draw_sprite_ext()`. Así el dibujo gira y la colisión no se entera — y de paso `x`, el
+>    `bbox` y cualquier registro de posición siguen diciendo lo mismo.
+>
+> ⚠️ **Y ojo con la palabra «non-rotating»** que usa la tabla de constantes para
+> `bboxkind_rectangular`: habla de la **orientación** de la caja, no de su **tamaño**. Leerla
+> como «entonces no cambia al girar» es un error fácil — casi cuesta descartar este hallazgo
+> cuando se encontró.
 
 **Fijar la máscara desde código: `sprite_collision_mask()`**
 
