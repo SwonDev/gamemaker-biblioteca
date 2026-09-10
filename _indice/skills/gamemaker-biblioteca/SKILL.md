@@ -370,10 +370,14 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    (alcance, vertical slice) — el material que alimenta la especificación del paso 0.
 2. **Proyecto**: `gm-cli init` (o el `.yyp` existente; `gm-mcp-setup .` si falta el MCP).
 3. **Arquitectura**: `13/06` (gestores, escenas, datos) + convenciones `05/04`.
-3 bis. **La fuente, ANTES de la primera línea de interfaz.** No es un detalle de pulido: es
-   una decisión de arquitectura que, tomada tarde, te obliga a reescribir cada `draw_text`.
-   `draw_set_font(-1)` compila limpio y **se come las tildes en silencio** — «Créditos» sale
-   «Crditos» (trampa 12). La salida buena para un agente es una **fuente de sprite**:
+3 bis. **Las cuatro decisiones que cuestan REESCRIBIR si las tomas tarde.** Las cuatro parecen
+   detalles de pulido y las cuatro son arquitectura. Todas se descubrieron cayendo en ellas al
+   construir «Enjambre» (`_indice/auditorias/r18-prueba-visual.md`) **con esta skill delante**:
+   documentar una trampa no basta si el flujo no obliga a esquivarla antes de que muerda.
+
+   **a · La fuente, antes de la primera línea de interfaz.** `draw_set_font(-1)` compila limpio
+   y **se come las tildes en silencio**: «Créditos» sale «Crditos» (trampa 12). La salida buena
+   para un agente es una fuente de sprite:
 
    ```sh
    python3 "$BIB/_indice/pruebas/generar_glifos.py" <carpeta>   # 89 PNG + mapa.txt
@@ -383,31 +387,34 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    draw_set_font(global.fnt);   // y NUNCA draw_set_font(-1) en un juego en español
    ```
 
-   > 🔴 **Este paso existe porque el propio autor de esta skill cayó en la trampa teniéndola
-   > escrita delante.** Construyendo «Enjambre» (`_indice/auditorias/r18-prueba-visual.md`)
-   > se usó `draw_set_font(-1)` por comodidad, y las tildes no aparecieron hasta mirar la
-   > primera captura. Documentar una trampa no basta: si el flujo no obliga a decidir antes
-   > de que muerda, se cae en ella igual. **Y ojo con los símbolos que no son letras**: el
-   > marcador de vidas usaba «▮», que tampoco está en la hoja de glifos, y salió vacío. Para
-   > iconos, dibuja un sprite; no dependas de un carácter.
+   Y lo mismo vale para **los símbolos que no son letras**: el marcador de vidas usaba «▮», que
+   tampoco está en la hoja, y salió vacío. Para iconos, dibuja un sprite.
 
-3 ter. **La resolución y la escala de cámara, también antes.** Decidir el tamaño de la sala
-   después de dibujar los sprites significa rehacerlos. Una sala del tamaño de la ventana
-   —1366×768— con naves de 24 px produce un juego que **parece vacío**: se ven motas de
-   color moviéndose. Lo normal en pixel art es una sala pequeña y una cámara que la estira:
+   **b · La resolución y la escala de cámara.** Una sala del tamaño de la ventana —1366×768—
+   con naves de 24 px produce un juego que **parece vacío**: se ven motas de color. Decidirlo
+   después de dibujar los sprites significa rehacerlos.
 
    ```gml
-   // sala de 683×384 en una ventana de 1366×768 = cada píxel del mundo ocupa cuatro
+   // sala de 683×384 en ventana de 1366×768 = cada píxel del mundo ocupa cuatro
    var _cam = camera_create_view(0, 0, room_width, room_height, 0, noone, -1, -1, 0, 0);
-   view_set_camera(0, _cam);
-   view_set_visible(0, true);
-   view_enabled = true;
+   view_set_camera(0, _cam); view_set_visible(0, true); view_enabled = true;
    ```
 
-   El HUD **no** se escala con eso: vive en Draw GUI, que va en coordenadas de pantalla. Es
-   justo lo que se quiere. Detalle en `13/03` (pixel art y resolución) y `04/24`/`13/19`
-   (cámaras). Mismo motivo que el paso anterior: se descubrió mirando la primera captura de
-   «Enjambre», con el juego ya escrito.
+   El HUD **no** se escala con eso —vive en Draw GUI, en coordenadas de pantalla— y es justo lo
+   que se quiere. Detalle en `13/03` y `04/24`.
+
+   **c · El texto, por clave desde el primer `draw_text`.** Escribir `draw_text(x, y, "Puntos")`
+   y traducir después significa tocar cada llamada de dibujo del juego. Con una función
+   `txt("puntos")` desde el principio, el segundo idioma cuesta una tabla y cero refactor —
+   y `auditar-juego-completo.py` lo comprueba, porque es un fallo que se repite.
+
+   **d · La entrada, en UNA función.** `keyboard_check` esparcido por diez objetos convierte
+   «que funcione con mando» en una reescritura. Una sola `entrada_leer()` que devuelva un
+   struct con las acciones —no con las teclas— lo hace gratis. **Y hay un segundo beneficio que
+   no es obvio**: con la entrada en un solo sitio, el juego se puede **conducir solo** para
+   probarlo. La prueba visual de `r18` —siete pantallas recorridas y fotografiadas— existe
+   porque había una única puerta por la que inyectar la entrada simulada; con diez, no habría
+   sido viable.
 
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
    diálogos, audio, guardado y UI ya están resueltos por terceros.
