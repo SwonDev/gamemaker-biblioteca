@@ -368,6 +368,183 @@ Elegir una paleta coherente **antes** de pintar ahorra rehacer sprites.
 
 ---
 
+## 10 bis. Cuando el usuario TE DA su propia biblioteca de assets
+
+Todo lo anterior responde a «¿dónde encuentro assets?». Esta sección responde a la otra
+pregunta, que es la que aparece de verdad en un encargo: **«tengo 300 GB de packs
+comprados en este disco, úsalos»**.
+
+Es un caso distinto y más peligroso. Los assets libres traen su licencia puesta y
+declarada; una biblioteca personal es una mezcla de packs comprados, bundles, cosas
+bajadas hace años y carpetas sin origen. **Usar uno sin licencia en un juego que se
+publica no es un descuido: es un problema legal del usuario, no tuyo.**
+
+Todo lo de esta sección está **medido** auditando una biblioteca real de 325 packs y
+1,68 millones de archivos el 2026-09-10.
+
+### 10 bis.1 · El orden correcto: licencia primero, encaje después
+
+La tentación es buscar «naves espaciales pixel art» y quedarse con lo que encaje. Hazlo
+al revés: **primero decide qué puedes usar, y solo entre eso, elige**. Si no, acabas
+enamorado de un pack que no puedes tocar — pasó en la auditoría: los dos packs que
+encajaban perfecto con el juego eran justo los que no tenían licencia localizable.
+
+```sh
+# 1 · el mapa: casi todas las bibliotecas traen un índice
+ls "<raíz>"; cat "<raíz>/INDICE.md" 2>/dev/null | head -40
+
+# 2 · los documentos de licencia, sin límite de profundidad
+find "<raíz>" -iname "*licen*" -o -iname "*eula*" -o -iname "*terms*" -o -iname "*readme*"
+
+# 3 · y LEE una muestra: la licencia no es el nombre del archivo
+```
+
+> 🔴 **El índice NO es la licencia.** En la biblioteca auditada, ni `INDICE.md` ni
+> `indice.json` tenían campo de licencia: había que localizarla pack a pack. Un agente que
+> se fíe del índice recomendará cosas que no se pueden usar.
+
+### 10 bis.2 · Qué dice cada procedencia, y por qué importa la diferencia
+
+| De dónde viene | Qué suele permitir | La trampa |
+|---|---|---|
+| **Kenney** | **CC0**: usar y **redistribuir**, comercial incluido. La cita literal es `License: (Creative Commons Zero, CC0)` | Su `Readme.html` pide no redistribuir **el bundle entero**, solo packs sueltos. No es licencia, es cortesía — pero respétala |
+| **Unity Asset Store** | Uso en tu juego, casi siempre | **Redistribuir el asset suelto está prohibido**: en un repositorio público no puedes subir el `.png` original |
+| **Humble Bundle** | Depende del pack: cada uno trae la suya | Que vinieran juntos no significa que compartan licencia |
+| **itch.io** | Muy variable, del CC0 al «solo uso personal» | Muchos packs solo declaran la licencia en la **página de compra**, no en el zip |
+| **Extraído de un juego** | **Nada.** Los derechos son de su autor | Aunque el archivo esté en tu disco |
+| **Tipografías** | Ver 10 bis.6: es el caso más traicionero | Los metadatos del binario pueden **contradecir** lo que diga el pack |
+
+### 10 bis.3 · Encontrar los CORRECTOS, no solo los usables
+
+Que puedas usarlo no significa que sirva. Un asset tiene que pasar **tres filtros**, y el
+de la licencia es solo el primero:
+
+| Filtro | La pregunta | Si falla |
+|---|---|---|
+| **1 · Licencia** | ¿Puedo usarlo, y puedo redistribuirlo? | Fuera, sin discusión |
+| **2 · Estilo** | ¿Se dibuja como el resto de mi juego? | Rompe la unidad visual: se nota más que un asset feo |
+| **3 · Encaje** | ¿Es de mi tema y de mi resolución? | Parece de otro juego |
+
+**El filtro 2 y el 3 se subestiman siempre**, y son los que hacen que un juego con arte
+comprado se vea peor que uno con arte propio modesto. Dos casos medidos en la auditoría,
+los dos con licencia CC0 impecable:
+
+- **Tema equivocado**: un pack de naves excelente resultó ser **aviones de hélice de la
+  Segunda Guerra Mundial vistos desde arriba**, con tileset de campo y tierra. En una
+  arena espacial no leen como naves y enemigos: leen como otro juego.
+- **Estilo equivocado**: otro pack sí era espacial, pero de **trazo suave y a 64×64 con
+  variante Retina**. Metido en un juego de píxel a 683×384, rompe la rejilla — los bordes
+  quedan borrosos entre píxeles del mundo.
+
+**Cómo se filtra de verdad, en este orden:**
+
+```sh
+# 1 · resolución: el número decide más que el nombre del pack
+find "<pack>" -name "*.png" -exec sips -g pixelWidth -g pixelHeight {} \; 2>/dev/null | head
+# ¿16, 32, 48 px? encaja en pixel art. ¿512, 1024? es para otro tipo de juego
+
+# 2 · tema: MIRA los archivos, no confíes en el nombre de la carpeta
+#     («Pixel Shmup» sonaba a naves y eran aviones de la IIGM)
+
+# 3 · consistencia: ¿todos los sprites que vas a mezclar tienen la misma paleta,
+#     el mismo grosor de contorno y la misma dirección de luz?
+```
+
+> 💡 **La regla práctica**: es mejor **mezclar poco y bien** que mucho y variado. Coger de
+> un pack lo **neutro de tema** —balas, explosiones, partículas, dígitos del marcador,
+> marcos de interfaz— y mantener propio lo que define la identidad —el personaje, los
+> enemigos— suele dar un resultado más coherente que sustituirlo todo. Lo neutro no
+> compite con tu estilo; un protagonista de otro pack, sí.
+
+### 10 bis.4 · Qué preguntar (o deducir) cuando te dicen «usa mis assets»
+
+Un encargo real es **«tengo assets en esta ruta, úsalos»**, y ahí falta casi todo. Antes
+de tocar nada, resuelve estas cinco cosas — preguntando si hay canal de vuelta, y
+**deduciéndolas del propio juego** si no lo hay:
+
+1. **Qué estilo tiene el juego** — pixel art, vectorial, pintado. Manda el juego, no los
+   assets: si el juego ya tiene arte, lo nuevo se adapta a él.
+2. **A qué resolución trabajas** — un sprite de 32 px y otro de 512 no conviven.
+3. **Qué hace falta de verdad** — haz la lista antes de mirar la biblioteca, o acabarás
+   metiendo lo que te guste en vez de lo que necesitas.
+4. **Si el juego se va a publicar y cómo** — decide si necesitas poder **redistribuir** el
+   archivo fuente (repositorio público) o solo usarlo (juego compilado). Cambia qué packs
+   valen.
+5. **Si hay atribución que respetar** — apúntala mientras eliges, no al final: reconstruir
+   de dónde salió cada sonido tres semanas después es una tarde perdida.
+
+### 10 bis.5 · «Usarlo» y «redistribuirlo» no son lo mismo
+
+Es la distinción que decide si un asset puede entrar en un repositorio público:
+
+- **Usarlo en el juego**: el asset acaba dentro de la página de texturas o del `.win`
+  compilado, mezclado y no extraíble como archivo original. Casi todas las licencias de
+  pack lo permiten.
+- **Redistribuir el archivo fuente**: el `.png`, el `.wav` o el `.ttf` sueltos, tal cual,
+  en un repositorio que otros clonan. **Esto lo prohíben muchas licencias que sí permiten
+  lo anterior.**
+
+Ejemplo real de la auditoría: `Casual GUI` permite literalmente *«You can sell and
+distribute games with this assets»* y a la vez *«Distribution of source files is NOT
+permitted»*. Sirve para tu juego cerrado; **no** para el repositorio de una demo.
+
+### 10 bis.6 · Tipografías: dos comprobaciones, no una
+
+Una fuente tiene que pasar **dos** filtros independientes, y fallar cualquiera la
+descarta:
+
+**1 · ¿Tiene los caracteres del español?** Muchas fuentes de píxel traen solo ASCII, y
+GameMaker **omite en silencio** el glifo que falta (`12 · 09 §0` trampa 12): «Créditos»
+sale «Crditos» y nadie avisa. Compruébalo **antes** de elegirla, leyendo su tabla `cmap`:
+
+```python
+from fontTools.ttLib import TTFont          # pip install fonttools
+cmap = TTFont(ruta).getBestCmap()
+faltan = [c for c in "áéíóúüñÁÉÍÓÚÜÑ¿¡" if ord(c) not in cmap]
+print("faltan:", faltan or "ninguno")
+```
+
+**2 · ¿Qué dice el binario, no el pack?** Las fuentes llevan la licencia **dentro**, en
+sus metadatos, y puede contradecir lo que declare el bundle. Caso medido: un bundle
+declaraba **CC0** para todo, y las 16 fuentes que incluía decían en su binario
+`Creative Commons Attribution Share Alike` con `fsType=4` (solo vista previa e
+impresión). Ante una contradicción así, **no la uses** hasta aclararla.
+
+```python
+for r in TTFont(ruta)["name"].names:
+    if r.nameID in (13, 14):      # 13 = licencia, 14 = URL de la licencia
+        print(r.nameID, r.toUnicode())
+```
+
+### 10 bis.7 · La regla, y cómo se escribe en el informe
+
+> **Si no encuentras la licencia, ese asset NO entra — y lo dices.**
+
+No es celo excesivo: es que el usuario no puede decidir sobre un riesgo que no conoce.
+Un informe honesto tiene dos listas, y la segunda es tan útil como la primera:
+
+1. **Lo que se puede usar**, con la cita literal de dónde lo leíste.
+2. **Lo que NO**, con el motivo — y separando «lo prohíbe» de «no he encontrado la
+   licencia», porque lo segundo el usuario **sí puede resolver**: a menudo basta con
+   recuperar la factura o la página de compra.
+
+Ese segundo caso pasó en la auditoría: los dos packs que mejor encajaban solo estaban
+descartados por no localizar su licencia. Decírselo al usuario le da la oportunidad de
+desbloquearlos; callarlo le habría costado el mejor arte de su juego.
+
+### 10 bis.8 · Y cuando ya sabes qué puedes usar
+
+Importar al proyecto es lo de siempre —`sprite addframe`, `sound setfile`— con la regla
+de oro de `12 · 09`: **verifica el disco, no la salida del comando**. Hay un ejemplo
+completo y funcionando en
+[`14 · Juego de referencia`](../14%20-%20Juego%20de%20referencia/README.md): su
+`herramientas/importar_audio_cc0.py` lee el `License.txt` de cada pack **antes** de
+copiar nada, solo usa los que dicen CC0, comprueba que el audio llegó a `sounds/`, y
+escribe un `CREDITOS-ASSETS.md`. La atribución no es obligatoria en CC0; se pone porque
+cuesta una línea y es lo que hace que la gente siga publicando assets libres.
+
+---
+
 ## 11. Qué formato importa GameMaker (bájalo ya correcto)
 
 Datos del **manual oficial LTS 2026** (Sprites / Sounds / Videos):
