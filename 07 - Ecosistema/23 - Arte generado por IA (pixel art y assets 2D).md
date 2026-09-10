@@ -583,6 +583,29 @@ python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>   # → gm-
   aplican igual, pase el material por esta cadena o no. Que el resultado sea técnicamente
   bueno no lo convierte en registrable ni en no declarable.
 
+### Antes de contar con la cadena: comprueba que las tres piezas están
+
+**Medido el 2026-09-10 en un equipo real: la cadena estaba 2 de 3.** `codex` en el `PATH`,
+`pixel-art-fixer` en el disco (sin instalar, pero el real), y **`sprite-gen` sencillamente no
+estaba** — ni en el `PATH`, ni en `pip`, ni en `pipx`. Había una carpeta con nombre parecido
+y **cero archivos dentro**. Un nombre de carpeta no es una herramienta.
+
+Y falta justo el eslabón que sostiene el argumento: **`sprite-gen` es el que parte de una base
+y bloquea la identidad**. Sin él, lo que queda es generación cruda — exactamente a lo que §5
+dice **no**. Los tres pasos no son intercambiables: quitar el tercero no deja una cadena más
+corta, deja la objeción original sin respuesta.
+
+```bash
+which codex && which sprite-gen        # los dos tienen que responder
+python3 -m venv .venv && source .venv/bin/activate && pip install -e .   # en el clon de sprite-gen
+```
+
+> 💡 **Un caso donde da igual que falte**, y conviene saberlo para no bloquearse: lo que
+> `sprite-gen` protege es **la identidad de un personaje entre fotogramas**. Un efecto sin
+> identidad —vapor, humo, polvo, chispas— no tiene nada que mantener coherente, así que cae en
+> la fila «textura genérica sin silueta → sí» de la tabla de §5 y se resuelve con partículas de
+> código, sin herramienta externa, sin licencia nueva y sin declaración de IA.
+
 ### Lo que aquí NO está verificado
 
 **Esta cadena no se ha ejecutado en esta sesión.** Lo comprobado el **2026-09-10** es que las
