@@ -70,6 +70,13 @@ y el de `05/02 §4.4`), y **tres** de esos cuatro (`04/41 §4`, `13/05 §4`, `13
 vuelta a él con el enlace `#el-checklist-de-juego-completo` — el enlace resuelve, comprobado
 contra el `slug` real del encabezado. Es exactamente el trabajo que pedía el encargo #2.
 
+> 📌 **Nota fechada el 2026-09-10.** Las cifras de esta auditoría eran ciertas en r5 y
+> han envejecido: `04/41 §4` tiene hoy **16** casillas y `13/02 §5`, **18**. Se dejan como
+> estaban porque una auditoría es un registro de un momento, no un documento vivo, y
+> reescribirla sería falsear la medida. La lección sí es viva: **un recuento escrito en
+> prosa sobre OTRO documento caduca en silencio**. Por eso la skill enlaza las listas y no
+> dice cuántas casillas tienen. Lo encontró un agente contándolas en una prueba a ciegas.
+
 Pero **ni `SKILL.md` ni `AGENTS.md`** — los dos ficheros que un agente lee para saber cómo operar
 esta biblioteca — mencionan esa lista en ningún punto:
 

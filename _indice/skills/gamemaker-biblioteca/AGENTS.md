@@ -12,7 +12,7 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r23 · 2026-09-09 -->
+<!-- SKILL-VERSION: r24 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -232,6 +232,7 @@ los errores de todo lo que venga después.
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
 | Tengo un dibujo y necesito la hoja de sprites animada | `sprite-gen` (Apache-2.0, skill de Codex/Claude + CLI) monta el atlas y su `manifest.json`; el paso a GameMaker, que él no trae, lo hace `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` → `gm-cli resourcetool script`. Receta en `12/09 §5.2` peldaño 2 ter |
 | ¿Este PNG hay que repararlo, o repararlo lo destruye? | `python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>` — **antes** de pasarle `pixel-art-fixer` a nada |
+| Voy a pedirle un sprite a **Retro Diffusion** y cuesta dinero | `python3 "$BIB/_indice/validar-peticion-retrodiffusion.py" peticion.json [--imagen inicio.png] [--presupuesto 0.50]` — **antes de mandarla**. Comprueba el estilo contra el catálogo, el tamaño contra los límites de ese estilo concreto (no los de la API), el lote, las referencias, los prefijos `data:`, y mide el fotograma de partida **en disco**. No usa red ni clave: no puede gastar. Las nueve trampas caras, en `07/23 §1 bis.1` — la primera es que **el POST de v2 no devuelve la imagen** y quien lea `base64_images` de esa respuesta se queda sin nada y con el cargo hecho |
 | ¿Las trampas del CLI siguen siendo ciertas hoy? | `bash "$BIB/_indice/verificar-trampas.sh"` — las reproduce contra el CLI instalado. Si alguna ya no se cumple, este documento está desfasado |
 | ¿El código reutilizable de la biblioteca hace lo que dice? | `bash "$BIB/_indice/validar-ejecucion.sh"` — monta un juego real y lo **ejecuta**: **192 comprobaciones** sobre los 13 scripts de `06`. Compilar no es ejecutar: sacó cuatro fallos que compilaban limpios |
 | Compilar (desde la carpeta del `.yyp`) | `gm-cli compile` · ejecutar: `gm-cli run` |
