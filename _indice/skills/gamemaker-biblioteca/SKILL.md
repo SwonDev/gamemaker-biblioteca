@@ -5,7 +5,7 @@ description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego»,
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r43 · 2026-09-10 -->
+<!-- SKILL-VERSION: r44 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -227,6 +227,7 @@ los errores de todo lo que venga después.
 | La página oficial completa | `gm-cli manual read "surface_create"` o el archivo `manual (es)` que da la ficha, bajo `$BIB/09 - Manual oficial/manual-lts-2026-es/` |
 | Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` — **sale con 1** si alguien llama a un nombre que no existe en ninguna parte, que es lo que compila limpio y revienta al arrancar. Distingue la función inventada del método de struct: si un nombre se llama y **no se le asigna nada** en todo el proyecto, no es un método. Las de plataforma (`steam_*`, `ps5_*`…) van aparte y no hacen fallar |
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
+| **Escribir una maqueta o simulación** | Una simulación es tan buena como su calibración, y **escribirla con cuidado NO es calibrarla**. La forma robusta: que **reproduzca al arrancar unas mediciones independientes** y, si no lo consigue, **se declare descalibrada y no analice nada**. Así deja de ser fiable «hoy porque alguien lo comprobó» y pasa a serlo cada vez que se ejecuta — si el balance cambia, se calla en vez de dar un APTO falso. Con controles que TIENEN que fallar. Y aun así su veredicto es el peldaño 2: decide el juego corriendo. `13/10 §8.6 quater` |
 | **Escribir código que otros van a copiar** | **Un ejemplo que ya hace lo correcto vale más que la nota que lo explica: la nota se salta, el código de al lado se copia.** Medido en esta biblioteca: `scr_ui_confirmar.gml` leía el teclado a pelo y rompía la doctrina de «toda la entrada por UNA función» en cuanto lo pegabas — un defecto del script, no del proyecto. Antes de escribir una regla, mira si puedes hacer que **el ejemplo más cercano ya la cumpla**; y si no se puede, que al menos **no la contradiga**. Criterio en `06 · README` |
 | **Cuando el resultado sale raro** | Sospecha del **instrumento** antes que de lo medido: cuatro veces en un día el fallo estaba en la herramienta. Los cuatro los cazó el mismo hábito — **saber qué número tiene que salir ANTES de ejecutar** — y la frase que los resume es *«un control que nunca toca no es un control»*. Mete siempre un caso que TIENE que fallar: una comprobación que solo mira casos buenos no distingue «todo bien» de «no estoy mirando». Y si una medición contradice a la documentación, **sospecha primero que miden variables distintas**. `13/10 §8.6 bis` |
 | **`place_meeting()` y compañía** | Usan **la máscara de QUIEN LLAMA**, no la del objeto que les pasas — la firma `place_meeting(x, y, obj)` invita a leerlo al revés. Medido: llamarla desde un objeto **sin sprite** devuelve `false` SIEMPRE, contra todo y en todos los ángulos. Para comprobar la colisión de otra instancia, `with (esa) { … }`. `01/08` |

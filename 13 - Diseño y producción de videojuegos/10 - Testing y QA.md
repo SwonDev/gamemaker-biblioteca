@@ -2057,6 +2057,36 @@ exista, sino que **coincide al píxel con el banco en el único caso que ven las
 en el caso contrastable es lo único que justifica creerle sobre los otros. Etiquétala como
 **maqueta**, no como captura: reproduce tu lectura del código, no el código.
 
+##### Y la versión fuerte: que la maqueta se niegue a funcionar si no está calibrada
+
+Coincidir en el caso contrastable es el mínimo. **La forma robusta es que la propia maqueta lo
+compruebe al arrancar y se apague si falla.**
+
+Medido en este proyecto: una herramienta que simula la física del juego para decidir si un nivel
+se puede terminar **arranca reproduciendo los cuatro extremos que se midieron en ejecución** —el
+abismo de 5 celdas se cruza y el de 6 no; el muro de 5 se sube y el de 6 no—. Si no los
+reproduce, **se declara descalibrada y no analiza nada**.
+
+La diferencia es enorme y no es de estilo:
+
+| Maqueta que solo coincide | Maqueta que se calibra sola |
+|---|---|
+| Es fiable **hoy**, porque alguien lo comprobó | Es fiable **cada vez que se ejecuta** |
+| Si el balance cambia, empieza a mentir en silencio | Si el balance cambia, **se calla** |
+| Su veredicto hay que contrastarlo | Su veredicto ya viene contrastado |
+
+Una simulación es tan buena como su calibración, y **casi todo el mundo la da por buena porque
+la escribió con cuidado**. Escribirla con cuidado no es una calibración: **reproducir una
+medición independiente, sí.**
+
+> 🧪 **El complemento, y no es opcional: controles que TIENEN que fallar.** Esa misma
+> herramienta lleva dos —un abismo de 9 celdas y un techo de una celda— que deben salir NO APTO.
+> Una comprobación que solo prueba casos buenos no puede distinguir «todo bien» de «no estoy
+> mirando», que es exactamente el verde por omisión de `§8.6 quater`.
+
+**Y aun así, el veredicto de una maqueta no cierra nada.** Sigue siendo el peldaño 2 con muy
+buena pinta: reproduce tu lectura del código, no el código. Lo que decide es el juego corriendo.
+
 ---
 
 ### 8.7 · El guion de humo: arrancar, capturar sola y verificar el guardado sin manos
