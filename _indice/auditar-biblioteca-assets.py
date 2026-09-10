@@ -132,6 +132,16 @@ def leer_fuente(ruta):
             datos = f.read(4 * 1024 * 1024)   # de sobra para las tablas de cabecera
     except OSError as e:
         return None, f"no se pudo abrir: {e}"
+    return leer_fuente_bytes(datos)
+
+
+def leer_fuente_bytes(datos):
+    """Lo mismo, pero desde memoria — para mirar una fuente comprimida.
+
+    Hacía falta porque el silencio sobre una fuente dentro de un `.zip` se leía
+    como un aprobado: así se escapó un `fsType = 4` que sí estaba ahí. Un punto
+    ciego de una herramienta es peor que no tenerla, porque tiene autoridad.
+    """
     tablas = _tablas_sfnt(datos)
     if not tablas:
         return None, "no parece una fuente sfnt (ttf/otf)"
@@ -364,6 +374,54 @@ def _leer_texto(ruta, tope=200000):
         return ""
 
 
+def _clave(nombre):
+    """El nombre reducido a letras y dígitos, para comparar «Pixel Font Megapack»
+    con «pixel-font-megapack-assets175 fuentes pixel art.zip»."""
+    return re.sub(r"[^a-z0-9]+", "", nombre.lower())
+
+
+def indice_de_zips(raiz, tope=6000):
+    """{clave normalizada: [rutas]} de todos los `.zip` de la biblioteca.
+
+    Existe por un fallo medido de esta herramienta: marcó «sin licencia» la
+    tipografía que el juego usaba, porque su `LICENSE.txt` vivía dentro de un
+    `.zip` **en otra carpeta**. Era literalmente cierto y era el mismo error que
+    ya había costado una jornada de trabajo — solo que ahora con la autoridad de
+    una máquina. Un punto ciego con autoridad es peor que no tener herramienta.
+    """
+    indice, vistos = {}, 0
+    for base, dirs, ficheros in os.walk(raiz):
+        dirs[:] = [x for x in dirs if not x.startswith(".")]
+        for n in ficheros:
+            if not n.lower().endswith(".zip"):
+                continue
+            vistos += 1
+            if vistos > tope:
+                return indice
+            indice.setdefault(_clave(os.path.splitext(n)[0]), []).append(
+                os.path.join(base, n))
+    return indice
+
+
+def zips_hermanos(nombre_pack, indice):
+    """Los `.zip` de cualquier carpeta cuyo nombre encaje con el del pack.
+
+    Devuelve CANDIDATOS, nunca un veredicto: hay un caso medido de dos packs
+    distintos con el mismo nombre y licencias diferentes, así que emparejar por
+    nombre es exactamente lo que no se debe hacer a ciegas. Se señala para que
+    alguien lo abra.
+    """
+    clave = _clave(nombre_pack)
+    if len(clave) < 6:
+        return []
+    salida = []
+    for otra, rutas in indice.items():
+        if clave in otra or otra in clave:
+            salida.extend(rutas)
+    return list(dict.fromkeys(salida))[:5]      # sin repetidos: el mismo zip puede
+                                                # encajar por más de una clave
+
+
 def licencias_heredadas(raiz, tope):
     """Las licencias que cubren `raiz` desde arriba, hasta `tope` inclusive.
 
@@ -397,12 +455,13 @@ def licencias_heredadas(raiz, tope):
     return encontradas, familias
 
 
-def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None):
+def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None, indice_zips=None):
     """Devuelve el diagnóstico de un pack. Solo lectura, y con tope de entradas."""
     d = {"ruta": raiz, "licencias": [], "readmes": [], "familias": set(),
          "marcas_build": {}, "extractores": [], "medios": 0, "fuentes": [],
          "zips_con_licencia": [], "zips": 0, "truncado": False,
-         "readmes_lista": [], "runtime": [], "heredadas": [], "hojas": []}
+         "readmes_lista": [], "runtime": [], "heredadas": [], "hojas": [],
+         "fuentes_zip": [], "candidatos_zip": []}
     vistas = 0
     for base, dirs, ficheros in os.walk(raiz):
         dirs[:] = [x for x in dirs if not x.startswith(".")]
@@ -444,10 +503,14 @@ def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None):
             if ext == ".zip":
                 d["zips"] += 1
                 try:
-                    with zipfile.ZipFile(ruta) as z:      # solo el índice central
+                    with zipfile.ZipFile(ruta) as z:
+                        visto_licencia = False
                         for nombre in z.namelist():
                             hoja = os.path.basename(nombre)
-                            if hoja and PAT_LICENCIA.match(hoja):
+                            if not hoja:
+                                continue
+                            if not visto_licencia and PAT_LICENCIA.match(hoja):
+                                visto_licencia = True
                                 d["zips_con_licencia"].append(f"{ruta}!{nombre}")
                                 try:
                                     with z.open(nombre) as fz:
@@ -456,11 +519,33 @@ def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None):
                                         d["familias"].add(familia_licencia(t))
                                 except (KeyError, OSError, zipfile.BadZipFile, RuntimeError):
                                     pass
-                                break
+                            # Y las fuentes comprimidas, que antes no se miraban.
+                            if (os.path.splitext(hoja)[1].lower() in EXT_FUENTE
+                                    and len(d["fuentes_zip"]) < 40):
+                                try:
+                                    with z.open(nombre) as fz:
+                                        crudo = fz.read(4 * 1024 * 1024)
+                                    d["fuentes_zip"].append(
+                                        (f"{os.path.basename(ruta)}!{hoja}", crudo))
+                                except (KeyError, OSError, zipfile.BadZipFile, RuntimeError):
+                                    pass
                 except (zipfile.BadZipFile, OSError, RuntimeError):
                     pass
         if d["truncado"]:
             break
+    if (indice_zips and d["medios"] and not d["licencias"]
+            and not d["zips_con_licencia"]):
+        for candidato in zips_hermanos(os.path.basename(raiz), indice_zips):
+            if os.path.dirname(os.path.abspath(candidato)) == os.path.abspath(raiz):
+                continue
+            try:
+                with zipfile.ZipFile(candidato) as z:
+                    if any(PAT_LICENCIA.match(os.path.basename(x) or "")
+                           for x in z.namelist()):
+                        d["candidatos_zip"].append(candidato)
+            except (zipfile.BadZipFile, OSError, RuntimeError):
+                pass
+
     if raiz_biblioteca:
         arriba, familias_arriba = licencias_heredadas(raiz, raiz_biblioteca)
         d["heredadas"] = arriba
@@ -505,6 +590,23 @@ def dictaminar(d, solo_fuentes=False):
                 f"«{nombre}» tiene {d['medios']} archivos de medios {que}. "
                 "Sin licencia no entra — y esto es distinto de «la licencia lo prohíbe»: "
                 "el cliente puede resolverlo enseñando la factura.")
+            if d["candidatos_zip"]:
+                bloqueos.append(
+                    "   PERO hay un `.zip` con licencia y nombre parecido en otra carpeta: "
+                    + ", ".join(os.path.basename(x) for x in d["candidatos_zip"])
+                    + ". ÁBRELO antes de dar este pack por perdido. Es candidato, NO "
+                    "veredicto: hay un caso medido de dos packs distintos con el mismo "
+                    "nombre y licencias diferentes, así que empareja licencia con archivo, "
+                    "no con nombre.")
+
+        if d["familias"] == {"sin clasificar"} and (d["licencias"] or d["zips_con_licencia"]):
+            avisos.append(
+                f"«{nombre}» tiene documento de licencia pero NO se reconoce ninguna "
+                "licencia en su texto. Medido: bajo ese nombre han aparecido un aviso sobre "
+                "baneos de otra plataforma, la descripción de un pack distinto, y un resumen "
+                "de Creative Commons truncado que no nombra ni la licencia ni al autor — "
+                "quien lo lea solo concluirá que puede usarlo sin acreditar a nadie. "
+                "Léelo entero y busca el autor en el README.")
 
         if len(d["familias"]) > 1:
             avisos.append(
@@ -517,9 +619,10 @@ def dictaminar(d, solo_fuentes=False):
             notas.append(f"«{nombre}» es enorme: se paró de contar en el tope de entradas. "
                          "Lo dicho de él es un mínimo, no un recuento.")
 
-    for ruta in d["fuentes"]:
-        info, motivo = leer_fuente(ruta)
-        base = os.path.basename(ruta)
+    candidatas = [(os.path.basename(x), leer_fuente(x)) for x in d["fuentes"]]
+    candidatas += [(etiqueta, leer_fuente_bytes(crudo))
+                   for etiqueta, crudo in d["fuentes_zip"]]
+    for base, (info, motivo) in candidatas:
         if info is None:
             avisos.append(f"«{base}»: {motivo}")
             continue
@@ -540,7 +643,8 @@ def dictaminar(d, solo_fuentes=False):
                 f"«{base}» no tiene los glifos {info['glifos_faltan']}. En español eso no "
                 "da error: el glifo ausente mide cero y la palabra sale mutilada.")
         elif info["glifos_faltan"] == "":
-            notas.append(f"«{base}»: el .ttf cubre {GLIFOS_ES} completo.")
+            notas.append(f"«{base}»: la fuente cubre {GLIFOS_ES} completo. Ojo: esto "
+                         "habla del binario, no de la hoja de glifos que quizá publiques.")
 
     for ruta, mapa in d["hojas"]:
         base = os.path.basename(ruta)
@@ -626,10 +730,12 @@ def main():
         print(f"⚠ No hay ninguna carpeta bajo «{raiz}» a profundidad {profundidad}.")
         return 2
 
+    indice_zips = indice_de_zips(raiz)
     total_bloqueos, total_avisos, informe = 0, 0, []
-    print(f"── {len(lista)} carpetas tratadas como pack, bajo «{raiz}»\n")
+    print(f"── {len(lista)} carpetas tratadas como pack, bajo «{raiz}» "
+          f"· {sum(len(v) for v in indice_zips.values())} `.zip` indexados\n")
     for ruta in lista:
-        d = revisar_pack(ruta, raiz_biblioteca=raiz)
+        d = revisar_pack(ruta, raiz_biblioteca=raiz, indice_zips=indice_zips)
         b, a, n = dictaminar(d, solo_fuentes)
         if not (b or a):
             continue
@@ -941,6 +1047,49 @@ def autoprueba():
         _, _, n = juzgar(d)
         caso("si hay .ttf Y hoja, dice que el veredicto del .ttf no aplica",
              any("no aplica" in x for x in n), str(n))
+
+        # El fallo que encontró el rol de licencias: la licencia vive en un `.zip`
+        # de OTRA carpeta, y la herramienta marcaba el pack como perdido.
+        raiz = os.path.join(tmp, "biblioteca")
+        os.makedirs(os.path.join(raiz, "Mi Pack Bonito"), exist_ok=True)
+        os.makedirs(os.path.join(raiz, "comprimidos"), exist_ok=True)
+        with open(os.path.join(raiz, "Mi Pack Bonito", "arte.png"), "wb") as f:
+            f.write(b"x")
+        with zipfile.ZipFile(os.path.join(raiz, "comprimidos",
+                                          "mi-pack-bonito-assets.zip"), "w") as z:
+            z.writestr("LICENSE.txt", "CC0 1.0 Universal")
+        idx = indice_de_zips(raiz)
+        pack = os.path.join(raiz, "Mi Pack Bonito")
+        b, _, _ = dictaminar(revisar_pack(pack, raiz_biblioteca=raiz, indice_zips=idx))
+        caso("señala el .zip con licencia de otra carpeta",
+             any("ÁBRELO antes de dar este pack por perdido" in x for x in b), str(b))
+        caso("pero NO lo da por resuelto: sigue bloqueado",
+             any("Sin licencia no entra" in x for x in b), str(b))
+        b2, _, _ = dictaminar(revisar_pack(pack, raiz_biblioteca=raiz))
+        caso("sin índice de zips no señala nada (no adivina)",
+             not any("ÁBRELO" in x for x in b2), str(b2))
+
+        # Una fuente DENTRO de un zip: el silencio sobre ella se leía como aprobado.
+        d = montar(tmp, "fuente-comprimida", {"LICENSE.txt": "CC0", "muestra.png": b"x"})
+        with zipfile.ZipFile(os.path.join(d, "fuentes.zip"), "w") as z:
+            z.writestr("tipo.ttf", _fuente_sintetica(fstype=4))
+        b, _, _ = juzgar(d)
+        caso("una fuente dentro de un .zip también se lee, y su fsType bloquea",
+             any("fsType=4" in x for x in b), str(b))
+
+        # Un «documento de licencia» que no nombra ninguna licencia.
+        d = montar(tmp, "licencia-que-no-dice-nada", {
+            "arte.png": b"x",
+            "LICENSE.txt": "You are free to share and adapt this material."})
+        b, a, _ = juzgar(d)
+        caso("un documento que no nombra licencia ni autor avisa",
+             any("NO se reconoce ninguna licencia" in x for x in a), str(a))
+
+        d = montar(tmp, "licencia-que-si-dice", {
+            "arte.png": b"x", "LICENSE.txt": "Creative Commons Zero (CC0 1.0)"})
+        _, a, _ = juzgar(d)
+        caso("y una que sí la nombra no avisa",
+             not any("NO se reconoce" in x for x in a), str(a))
 
         d = montar(tmp, "solo-fuentes-modo", {"heroe.png": b"x",
                                               "tipo.ttf": _fuente_sintetica(fstype=4)})
