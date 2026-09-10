@@ -479,16 +479,126 @@ riesgo de propiedad intelectual sobre el resultado final que no depende de ningu
 | Ideación y moodboard iniciales | **Sí** | Nunca se publica; el coste de estar mal es cero |
 | Hoja de referencia de un personaje nuevo | **Sí, con cautela** | Solo como guion visual que un artista humano redibuja después — no como fuente del sprite final |
 | Concept art de un fondo o splash no jugable | **Sí, si el juego lo declara** (§4.2, §4.3) | Menor exigencia de consistencia entre fotogramas que un personaje animado |
-| Sprite final animado y jugable | **No** | Consistencia entre fotogramas y pixel art real no resueltos hoy (§2, §3) |
+| Sprite final animado y jugable, por **generación cruda** | **No** | Consistencia entre fotogramas y pixel art real no resueltos así (§2, §3) |
+| Sprite final animado y jugable, por **la cadena de [§5 bis](#5-bis--la-cadena-que-sí-llega-al-sprite-final-animado)** | **Sí** | Base única con identidad bloqueada, rejilla reparada y atlas con manifiesto — las dos objeciones de arriba tienen respuesta específica |
 | Icono o pieza de UI puntual sin animar | **Depende — declarar siempre** | Si es una pieza central de identidad de marca (logo, icono de tienda), pesa el riesgo de propiedad intelectual del §4.1 |
 | Textura de material genérico sin silueta (roca, tierra, tela), retocada a mano después | **Sí** | No hay forma reconocible que deba mantenerse coherente entre usos |
 | *Upscaling* de un asset comprado que la licencia permite modificar | **Sí, si la licencia lo permite** | Verifica primero la licencia concreta — ver [07 · 09 §1](./09%20-%20Asset%20packs%20y%20recursos%20gráficos.md#1-regla-número-uno-la-licencia) |
 
-La recomendación corta: **usa IA generativa para todo lo que nunca llega al jugador tal
-cual, y para nada que sí lo hace sin que un humano lo reelabore.** Es exactamente el mismo
+La recomendación corta: **usa IA generativa cruda para todo lo que nunca llega al jugador
+tal cual, y para nada que sí lo hace sin pasar por la cadena de
+[§5 bis](#5-bis--la-cadena-que-sí-llega-al-sprite-final-animado) o por las manos de una
+persona.** Es exactamente el mismo
 criterio que ya aplica esta biblioteca a sus propias herramientas de imagen —`gpt-image-2`
 para hojas de modelado 3D o iconos de marca (ver `img2threejs` y los flujos de diseño del
 propio repositorio de herramientas del usuario), nunca como sustituto del sprite final.
+
+---
+
+## 5 bis · La cadena que SÍ llega al sprite final animado
+
+La tabla de §5 decía **«no»** al sprite final animado, y lo justificaba en la consistencia
+entre fotogramas y en que un modelo de imagen no produce pixel art de verdad. **Las dos
+objeciones eran ciertas de la generación CRUDA, y las dos tienen hoy una respuesta
+específica.** Esta sección la documenta; §2 y §3 siguen en pie para todo lo que no pase por
+aquí.
+
+### La cadena, en tres pasos y un puente
+
+```
+codex + gpt-imagegen-2.5  →  pixel-art-fixer  →  sprite-gen  →  atlas-a-gamemaker.py  →  .yyp
+      genera                  vuelve a la           anima             registra
+   CUALQUIER asset             rejilla real      desde UNA base       el recurso
+```
+
+**1 · Generar — `codex` con `gpt-imagegen-2.5`.** Es el paso que produce material de
+cualquier tipo: un sprite suelto, una hoja, un *iconset*, con fondo o sin él. En Claude Code
+se delega con `codex exec`, porque `imagegen` es una *skill* de sistema propia de Codex:
+
+```bash
+codex exec -C <dir> --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \
+  -o <scratch>/codex_last.txt \
+  "Usa tu herramienta de generación de imágenes (gpt-imagegen-2.5) para crear <descripción:
+   silueta, paleta, estilo>. Fondo plano que contraste con el sujeto, sin texto ni marcas de
+   agua. Guarda los PNG en <ruta>. Genera 2-3 variantes. Al terminar lista las rutas."
+```
+
+**2 · Reparar — [`pixel-art-fixer`](https://github.com/Retro-Diffusion/pixel-art-fixer)
+(MIT).** Lo que sale de un modelo de imagen **no es pixel art de verdad**, aunque lo
+parezca, y esto no es opinión: su propio README enumera por qué —celdas fuera de rejilla,
+tamaño de celda no entero (6,38 px, no 6), antialias, un sprite de 32×32 entregado como PNG
+de 1024×1024 con miles de colores casi iguales—. Ninguna de esas imágenes se puede *tilear*,
+cambiar de paleta, animar ni editar píxel a píxel hasta que se convierte de vuelta. Es
+**procesamiento de imagen, sin modelo**, y lo mantiene la propia Retro Diffusion.
+
+> 🚪 **Y antes de repararlo, la puerta.** `python3 "$BIB/_indice/puerta-pixel-art.py" <PNG>`
+> decide si esa imagen necesita reparación o si repararla la destruiría — un sprite dibujado
+> a 1:1 no tiene rejilla oculta que reconstruir, y pasarlo por el reparador lo tritura
+> (medido: 16×20 px se convirtieron en 4×10). Lo que sale de `imagegen` siempre pide
+> reparación; lo que dibujó una persona, casi nunca. La puerta distingue los dos casos sin
+> heurística blanda y **no toca ningún archivo**: solo dictamina.
+
+**3 · Animar — [`sprite-gen`](https://github.com/aldegad/sprite-gen) (Apache-2.0).** Aquí es
+donde se cae la objeción de la consistencia. Su README abre citando el problema exacto que
+§2 describe —*«pídele una hoja de sprites a un modelo de imagen y ya sabes lo que sale: un
+personaje al que le cambia la cara en cada fotograma… demo mona, asset inútil»*— y su
+respuesta es estructural: **parte de UNA imagen base y bloquea la identidad del personaje**,
+dirigiendo la generación fila por fila en vez de pedir la hoja entera de una vez.
+
+```bash
+sprite-gen prepare      --out-dir <run> --character-id <id> --base-image base.png
+sprite-gen gen-set      --run-dir <run> --provider codex     # cada fila de estado, de 4 en 4
+sprite-gen extract      --run-dir <run>                      # croma → fotogramas transparentes
+sprite-gen compose-atlas --run-dir <run>                     # sprite-sheet-alpha.png + manifest.json
+sprite-gen curation     --run-dir <run>                      # (opcional) elegir, ajustar, ver el bucle
+```
+
+**Su proveedor de generación ES `codex`**, así que la cadena no es un apaño de tres
+herramientas ajenas: el paso 1 y el paso 3 usan el mismo motor. Lo que entrega:
+
+- `sprite-sheet-alpha.png` con **alfa real**, sin fleco de croma;
+- `manifest.json` con `frame_layout`: rectángulos absolutos por fotograma, *fps* por estado y
+  banderas de bucle. **Tu motor muestrea rectángulos; no adivina una rejilla.**
+- **Backbone Lattice**: mide una sola rejilla para todo el sujeto y mantiene en ella cada
+  corte — que es por lo que el pixel art no se desalinea entre fotogramas.
+
+**4 · El puente al proyecto — `atlas-a-gamemaker.py`.** Copiar PNG a la carpeta del proyecto
+**no registra nada**. Este script convierte el atlas y su `manifest.json` en recursos de
+verdad vía `resourcetool`:
+
+```bash
+python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>   # → gm-cli resourcetool script
+```
+
+### Qué cambia de la tabla de §5, y qué no
+
+- **Cambia**: «sprite final animado y jugable» deja de ser un **no** absoluto. Pasando por
+  esta cadena —base única, rejilla reparada, identidad bloqueada, atlas con manifiesto— es
+  una vía legítima.
+- **No cambia**: la **generación cruda** sigue sin servir para eso, y por el mismo motivo de
+  §2. Pedirle «una hoja de sprites» a un modelo y meterla en el juego produce lo que el
+  propio `sprite-gen` describe: una demo mona y un asset inútil.
+- **No cambia nada del §4.** El estado legal es idéntico: la postura de la U.S. Copyright
+  Office sobre lo generado por IA y la obligación de declararlo en Steam y en itch.io se
+  aplican igual, pase el material por esta cadena o no. Que el resultado sea técnicamente
+  bueno no lo convierte en registrable ni en no declarable.
+
+### Lo que aquí NO está verificado
+
+**Esta cadena no se ha ejecutado en esta sesión.** Lo comprobado el **2026-09-10** es que las
+tres piezas existen, con qué licencia y en qué estado: `pixel-art-fixer` (MIT, 388 estrellas,
+último empuje 2026-07-15) y `sprite-gen` (Apache-2.0, 965 estrellas, **empujado ese mismo
+día**), y lo que sus propias documentaciones afirman, citado arriba. El orden de los tres
+pasos y su eficacia **los reporta el usuario desde su práctica**, no una medición de esta
+biblioteca. `sprite-gen` avisa además de que la locomoción cíclica (andar, correr) **sigue
+siendo experimental** salvo que su control de calidad de movimiento pase, y su tubería de
+vídeo necesita credencial propia (`grok` o `XAI_API_KEY`) y `ffmpeg`.
+
+> ⚠️ **El nombre del modelo.** Aquí se escribe **`gpt-imagegen-2.5`**, que es el que indica el
+> usuario. El `CLAUDE.md` global de este equipo todavía dice `gpt-image-2` en sus reglas de
+> iconos y de `img2threejs`: si la versión buena es la 2.5, esa regla está desfasada y conviene
+> corregirla allí. **No se cambia desde aquí**: el modelo lo elige el usuario, y esta
+> biblioteca no toca su configuración.
 
 ---
 

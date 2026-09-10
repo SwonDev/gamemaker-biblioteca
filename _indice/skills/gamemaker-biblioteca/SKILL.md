@@ -5,7 +5,7 @@ description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego»,
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r29 · 2026-09-10 -->
+<!-- SKILL-VERSION: r30 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -223,6 +223,7 @@ los errores de todo lo que venga después.
 | La página oficial completa | `gm-cli manual read "surface_create"` o el archivo `manual (es)` que da la ficha, bajo `$BIB/09 - Manual oficial/manual-lts-2026-es/` |
 | Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` — **sale con 1** si alguien llama a un nombre que no existe en ninguna parte, que es lo que compila limpio y revienta al arrancar. Distingue la función inventada del método de struct: si un nombre se llama y **no se le asigna nada** en todo el proyecto, no es un método. Las de plataforma (`steam_*`, `ps5_*`…) van aparte y no hacen fallar |
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
+| **Necesito el sprite FINAL, animado y de producción** | La cadena de `07/23 §5 bis`, en este orden: **`codex` con `gpt-imagegen-2.5`** genera cualquier asset (hoja, iconset, con fondo o sin él) → **`puerta-pixel-art.py`** dictamina → **`pixel-art-fixer`** (MIT) lo devuelve a una rejilla real, porque lo que sale de un modelo **no es pixel art** aunque lo parezca → **`sprite-gen`** (Apache-2.0) anima desde **UNA base con la identidad bloqueada** y entrega atlas + `manifest.json` con rectángulos y fps por estado → `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` lo registra. Pedirle «una hoja de sprites» a un modelo en crudo sigue sin servir, y `07/23 §2` dice por qué |
 | Tengo un dibujo y necesito la hoja de sprites animada | `sprite-gen` (Apache-2.0, skill de Codex/Claude + CLI) monta el atlas y su `manifest.json`; el paso a GameMaker, que él no trae, lo hace `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` → `gm-cli resourcetool script`. Receta en `12/09 §5.2` peldaño 2 ter |
 | ¿Este PNG hay que repararlo, o repararlo lo destruye? | `python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>` — **antes** de pasarle `pixel-art-fixer` a nada |
 | **El usuario me dice dónde tiene sus assets** | `python3 "$BIB/_indice/auditar-biblioteca-assets.py" "<la RAÍZ de su biblioteca>" [--profundidad 3] [--json informe.json] [--solo-fuentes]` — **antes de copiar nada**. Es de solo lectura. Busca cinco señales estructurales, no corazonadas: medios sin licencia (ni heredada ni dentro del `.zip`), varias **familias** de licencia bajo un solo nombre, el **runtime del motor** (un pack no trae `UnityEngine.*.dll`: eso es un juego descompilado), un **extractor guardado junto a los medios**, y el binario de cada tipografía (`fsType`, licencia embebida y los glifos `áéíóúüñ¿¡`, que si faltan **no dan error**: miden cero). **Un bloqueo suyo no es un veredicto y su silencio no es un aprobado**, y apúntala a la RAÍZ: si le das una subcarpeta no puede ver el `.zip` con la licencia que está en otra. Criterio y casos medidos en `07/09 §10 bis.9` |

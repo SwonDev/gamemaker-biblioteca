@@ -119,6 +119,9 @@ IA = [
     # Saber que la generación existe no es saber llamarla. Esta API cobra por
     # equivocarse, y su fallo más caro no da error: el POST no devuelve la imagen.
     ("API de generación, bien llamada", ["X-RD-Token", "check_cost"], 1),
+    # Generar, reparar y animar son tres problemas distintos con tres respuestas
+    # distintas. Documentar solo uno deja el pipeline a medias justo donde se rompe.
+    ("Cadena de arte de producción", ["gpt-imagegen-2.5", "pixel-art-fixer"], 1),
     ("Generación de audio",       ["stable-audio", "audiocraft", "audio por IA"], 1),
     ("Generación de imagen",      ["gpt-image", "codex exec"], 1),
     ("Traducción por IA",         ["traducción por IA", "traducir con IA"], 1),
