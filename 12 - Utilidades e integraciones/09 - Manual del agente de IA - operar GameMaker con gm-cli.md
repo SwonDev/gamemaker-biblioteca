@@ -1902,6 +1902,27 @@ molestia. En una sesión de agente **la ejecución no termina jamás**.
 > 🔴 **La consecuencia operativa**: un agente que espere a que `gm-cli run` termine puede
 > esperar para siempre, y lo que verá su supervisor es «sigue trabajando», no «ha fallado».
 
+> 🧟 **Y se ACUMULAN en silencio, que es la mitad que no se ve venir.** Un `gm-cli run` colgado
+> no muere solo: se queda ahí y **envenena todas las ejecuciones siguientes**, porque comparten
+> la carpeta de compilación (`.gmcache`) — la [trampa 19](#trampa-19--dos-procesos-creando-recursos-a-la-vez-el-que-pierde-no-se-entera)
+> un piso más abajo.
+>
+> **Medido**: en una sesión de equipo aparecieron **dos procesos de 47 y 36 minutos** que nadie
+> sabía que existían, y estaban provocando fallos de `Mac_Runner` en cada ejecución nueva. El
+> síntoma que se veía era «GameMaker da error otra vez»; la causa llevaba tres cuartos de hora
+> sentada ahí.
+>
+> **Cómo se detecta, en una línea** — una ejecución sana dura **segundos**, así que cualquier
+> edad en minutos es un zombi:
+>
+> ```bash
+> ps -eo pid,etime,command | grep "gm-cli run" | grep -v grep
+> ```
+>
+> Y se mata **por PID**, junto con sus hijos: `pkill -P <pid>` y `kill <pid>`. **Nunca
+> `pkill -f "gm-cli run"`**, que se lleva por delante la ejecución legítima de otro rol — eso ya
+> pasó en esta biblioteca y está contado en la trampa 19.
+
 **La mitigación, y no es opcional: tope de tiempo.** macOS no trae `timeout`, así que se hace
 a mano — lanzar en segundo plano, sondear, y matar **solo el proceso que lanzaste tú**:
 
