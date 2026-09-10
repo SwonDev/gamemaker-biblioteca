@@ -2592,10 +2592,33 @@ diseño real si luego se redibuja a mano. **Para dónde encaja esto en el pipeli
 propiedad intelectual ni incumplir la política de una tienda**, la tabla ya está resuelta en
 [`07 · 23` §5](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#5--dónde-encaja-en-un-pipeline-real--recomendación-práctica):
 sí para referencia, moodboard y concept; sí, declarándolo, para un icono o pieza de UI puntual
-sin animar; **no** para el sprite final animado y jugable (§2-§3 de ese mismo documento explican
-por qué es estructural, no una cuestión de calidad del modelo). Sigue el checklist de
+sin animar; **no** para el sprite final animado y jugable **si lo pides en crudo** (§2-§3 de ese
+mismo documento explican por qué). Sigue el checklist de
 [`07 · 23` §6](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#6--checklist-antes-de-usar-ia-generativa-en-tu-arte)
 antes de dar por bueno cualquier resultado.
+
+> 🎬 **Y para el sprite final animado hay una cadena que sí sirve, que es otra cosa que pedir
+> una hoja en crudo.** Está en
+> [`07 · 23` §5 bis](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#5-bis--la-cadena-que-sí-llega-al-sprite-final-animado):
+>
+> ```
+> codex + gpt-imagegen-2.5 → pixel-art-fixer → sprite-gen → atlas-a-gamemaker.py → .yyp
+> ```
+>
+> Los tres pasos atacan las tres objeciones, cada uno la suya: **`imagegen` genera cualquier
+> asset** (hoja, iconset, con fondo o sin él); **`pixel-art-fixer` (MIT) devuelve la imagen a
+> una rejilla real**, porque lo que sale de un modelo no es pixel art aunque lo parezca; y
+> **`sprite-gen` (Apache-2.0) anima a partir de UNA base con la identidad bloqueada**, que es
+> justo lo que no consigue pedir la hoja entera de golpe. Su proveedor de generación **es
+> `codex`**, así que el primer paso y el tercero comparten motor.
+>
+> Entre el paso 1 y el 2 va **la puerta**: `puerta-pixel-art.py` decide si esa imagen pide
+> reparación o si repararla la destruiría. Lo de `imagegen` siempre pide; lo dibujado a mano,
+> casi nunca.
+>
+> Y el peldaño 3 **sigue siendo el peldaño 3 para un placeholder**: esta cadena es para arte de
+> producción, cuesta tiempo y credenciales, y no es lo que haces cuando necesitas un sprite
+> dentro de dos minutos.
 
 Lístalo en `PLACEHOLDERS.md` si va a convivir con el proyecto más de una sesión, igual que
 cualquier otro asset provisional de §5.1 y de este mismo peldaño 1.
