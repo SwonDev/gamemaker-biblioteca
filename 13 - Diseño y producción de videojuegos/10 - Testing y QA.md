@@ -1957,7 +1957,41 @@ documenta (`screen_save()` de §7.3, el modo QA de §7.4, `gm-cli run`/`pkill` d
 lo que faltaba no era capacidad, era la disciplina de no aceptar «no dio ningún error» como
 sinónimo de «funciona». Los dos quedan en el checklist de §12.
 
-### 8.6 bis · Enumerar desde la AUTORIDAD, no desde una copia
+### 8.6 bis · Saber qué tiene que salir ANTES de ejecutar
+
+Es el hábito más barato de todos y el que más ha cazado. **Cuatro fallos en un solo día, todos
+en el instrumento y no en lo medido, y los cuatro los delató lo mismo**: alguien sabía qué
+número tenía que aparecer, y apareció otro.
+
+| Lo que salió | Lo que era |
+|---|---|
+| Una comprobación que **no imprimía nada**, ni ✓ ni ✗ | la guarda era `is_struct()` sobre un id de instancia: salía por la puerta de atrás |
+| **Ceros** a 60°, 75° y 90° | el instrumento fijaba el centro una vez a 0°, y la instancia rotaba alrededor de su esquina: medía donde el objeto ya no estaba |
+| **«No toca» en los siete ángulos, también el control** | `place_meeting()` usa la máscara de quien llama, y quien llamaba no tenía sprite |
+| Un `✓ todos` que no decía **cuántos** | un ✓ sobre cero se lee igual que un ✓ sobre cuatro |
+
+**La frase que los resume**: *un control que nunca toca no es un control*. Si tu caso de control
+—el que TIENE que fallar, o el que TIENE que dar un número concreto— se comporta como el caso
+bueno, lo que está roto es el instrumento.
+
+> 🔬 **Cómo se aplica, en dos gestos:**
+>
+> 1. **Escribe el número esperado antes de ejecutar**, aunque sea en un comentario. «Aquí tienen
+>    que salir 4», «a 45° tiene que tocar por fuerza». Una expectativa escrita convierte un
+>    resultado raro en una alarma; sin ella, se lee como un dato.
+> 2. **Mete siempre un control que tiene que fallar.** Una comprobación que solo mira casos
+>    buenos no puede distinguir «todo bien» de «no estoy mirando».
+>
+> Y un tercero que sale de lo mismo: **una desconfianza sana cuando dos fuentes fiables se
+> contradicen.** Una medición dijo que la elipse no servía y la documentación decía que sí. No
+> podían ser las dos ciertas — y no lo eran: **estaban hablando de cosas distintas** (la caja
+> envolvente y la forma de colisión). Quien midió siguió buscando en vez de creer a la medición,
+> y por eso no se deshizo un arreglo correcto. **Cuando la medición y la documentación chocan,
+> lo primero que hay que sospechar es que miden variables distintas.**
+
+---
+
+### 8.6 ter · Enumerar desde la AUTORIDAD, no desde una copia
 
 Ésta es la regla madre, y las de abajo son casos suyos. Sale de tres fallos cometidos el mismo
 día por dos personas distintas, en tres sitios distintos, que resultaron ser **el mismo fallo**:
@@ -1975,7 +2009,7 @@ esa fuente puede quedarse desfasada, no es la autoridad.
 
 ---
 
-### 8.6 ter · Los TRES peldaños de una verificación, y los dos verdes que no valen
+### 8.6 quater · Los TRES peldaños de una verificación, y los dos verdes que no valen
 
 `§8.6` dice que compilar no es funcionar. Hay un peldaño más entre medias, y saltárselo es lo
 que produce la mayoría de los verdes falsos:

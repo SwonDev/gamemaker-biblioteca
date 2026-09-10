@@ -364,11 +364,33 @@ más que el anterior a la hora de resolver colisiones.
 >    `bbox_bottom` de una instancia que gire está leyendo una caja que late**, tenga la máscara
 >    que tenga.
 >
->    Lo que la elipse sí cambia es la **segunda fase** de la comprobación: GameMaker mira
->    primero el solape de cajas y **después** la máscara. Que la caja crecida deje pasar un
->    candidato no significa que la colisión se resuelva a favor — eso lo decide la máscara. **Lo
->    medido aquí es la caja, no el golpe**; si tu juego depende de que el golpe sea justo,
->    mídelo con `place_meeting()` a 0°, 45° y 90° antes de fiarte.
+>    **Y el golpe SÍ queda protegido — medido, ya no supuesto.** Poniendo un segundo cuerpo con
+>    su borde a 11 px del centro del giratorio (fuera de la silueta a cualquier ángulo, pero
+>    **dentro** de la caja crecida a 45°) y preguntando por la colisión real en siete ángulos:
+>
+>    | Máscara del giratorio | 0° | 15° | 30° | 45° | 60° | 75° | 90° |
+>    |---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+>    | `Rectangle` (control) | no | **TOCA** | **TOCA** | **TOCA** | **TOCA** | **TOCA** | no |
+>    | **`Ellipse`** | no | no | no | no | no | no | no |
+>
+>    El control late exactamente como predice la caja, y **la elipse no toca en ninguno**: la
+>    segunda fase rechaza lo que la caja crecida había dejado pasar. Y el alcance real, medido
+>    punto a punto: el rectángulo mata **un 42,9 % más lejos a 45°** (8,75 → 12,50 px) y la
+>    elipse se queda en el ruido del barrido (7,75 → 8,25 px, con paso de 0,25).
+>
+>    ⚖️ **El precio, dicho y no omitido**: en los ejes la elipse alcanza **un píxel menos** que
+>    el rectángulo (7,75 frente a 8,75). La zona letal encoge. Para un peligro eso es perdonar,
+>    que es la dirección correcta — pero se dice.
+>
+>    ❓ **Y una tensión con el manual que se deja abierta en vez de resolverla inventando.** El
+>    manual de `place_meeting()` dice: *«this will work for precise collisions, but only if
+>    **both** the instance and the object being checked for have precise collision masks
+>    selected. **Otherwise, only bounding box collisions are applied**»*. Leído al pie de la
+>    letra, con `Ellipse` —que no es `Precise`— solo debería contar la caja, y entonces la
+>    elipse tendría que comportarse igual que el rectángulo. **La medición dice que no.** Lo más
+>    probable es que esa frase hable de la comprobación *por píxel* y no de la forma de la
+>    máscara, pero **no está comprobado**: lo que aquí consta es lo medido, y que el manual
+>    admite otra lectura.
 >
 > 3. **`Rectangle With Rotation`** — la caja gira con la instancia y conserva su tamaño. Es más
 >    barata que `Ellipse`… pero **descartada salvo que sepas lo que arrastra**: la comprobación
@@ -380,6 +402,19 @@ más que el anterior a la hora de resolver colisiones.
 > `bboxkind_rectangular`: habla de la **orientación** de la caja, no de su **tamaño**. Leerla
 > como «entonces no cambia al girar» es un error fácil — casi cuesta descartar este hallazgo
 > cuando se encontró.
+
+> 🎯 **`place_meeting()` usa la máscara de QUIEN LLAMA, no la del objeto que le pasas.** El
+> manual lo dice —*«using the collision mask of the instance that runs the code»*— y la firma
+> invita a leerlo al revés: en `place_meeting(x, y, obj)`, `obj` **no** es el sujeto de la
+> comprobación, es el objetivo.
+>
+> **La consecuencia medida**: una función de prueba que llamaba a `place_meeting()` desde un
+> objeto **sin sprite** —y por tanto sin máscara— devolvía `false` **siempre**, en todos los
+> ángulos y contra todos los objetivos. No es que no hubiera colisión: es que no había con qué
+> comprobarla. Lo delató que el **control** tampoco tocaba, y un control que nunca toca no es un
+> control.
+>
+> Si necesitas comprobar la colisión de otra instancia, envuélvelo: `with (esa) { … }`.
 
 **Fijar la máscara desde código: `sprite_collision_mask()`**
 
