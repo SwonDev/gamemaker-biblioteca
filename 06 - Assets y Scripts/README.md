@@ -529,6 +529,40 @@ Todas las funciones nativas usadas en estos scripts se han comprobado contra el 
 con `gm-cli manual read "<función>"`. El manual que consulta el CLI es el **monthly**, accesible
 offline.
 
+### Por qué estos scripts tienen que cumplir las reglas que la biblioteca predica
+
+Estos archivos no son solo código reutilizable: son **el ejemplo que alguien va a copiar**. Y
+ahí hay una asimetría que conviene tener presente al tocarlos:
+
+> **Un ejemplo que ya hace lo correcto vale más que la nota que lo explica. La nota se salta;
+> el código de al lado se copia.**
+
+**Medido, y en esta misma biblioteca.** `scr_ui_confirmar.gml` leía el teclado y el mando
+directamente. Es código válido y funciona solo — pero la biblioteca predica en cuatro sitios
+que **toda la entrada pasa por una sola función**, y este script la rompía en cuanto lo pegabas
+en un proyecto que aplicara esa regla. Lo encontró un agente que sí la aplicaba, y su frase fue
+exacta: *«es un defecto del script de la biblioteca: le pasará a cualquier juego que aplique
+D4»*. Se corrigió haciendo el lector **inyectable**, con el comportamiento de siempre por
+defecto — así el script sigue funcionando solo y deja de enseñar lo contrario de lo que
+predicamos.
+
+**El corolario práctico**, y sirve para cualquier código de referencia:
+
+- **Lo que hay que documentar para que funcione, fallará.** Si una pieza necesita una nota al
+  pie para usarse bien, la nota se perderá antes que el código.
+- **Antes de escribir una regla, mira si puedes hacer que el ejemplo más cercano ya la cumpla.**
+  Es más barato y no depende de que nadie lea nada.
+- Y cuando no se pueda —hay reglas que no caben en un ejemplo—, **que el ejemplo al menos no la
+  contradiga**. Un ejemplo que hace lo contrario de la regla enseña el doble de rápido que la
+  regla.
+
+Otro caso del mismo día, esta vez sin arreglo necesario: la regla «el ángulo va en una variable
+propia, `image_angle` se queda en 0» no hizo falta escribirla en ningún sitio visible, porque el
+único objeto que dibujaba ya pasaba un `0` literal en ese argumento. **El siguiente que copie
+ese `draw_sprite_ext` heredará la regla sin saber que existe.**
+
+---
+
 ### `scr_nivel_mapa.gml` — y la regla del origen que no está en el código
 
 `nivel_mapa_construir()` crea cada instancia en la **esquina** de su casilla. Eso significa
