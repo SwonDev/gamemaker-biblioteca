@@ -58,7 +58,13 @@ if (global.captura) {
 // una vez (compilación + ejecución), y sin prefijo las dos tandas se pisaban los
 // archivos: salían capturas con nombre de una pantalla y contenido de otra. Un fallo
 // de la prueba, no del juego, pero que invalidaba la prueba entera.
-global.sello = string(date_get_hour(date_current_datetime())) + "_" +
+// El prefijo del juego va DELANTE de todo. La carpeta de guardado del runner
+// (`com.yoyogames.macyoyorunner`) la comparten **todos** los proyectos que se ejecutan
+// con `gm-cli run`: allí conviven las capturas de este juego con los archivos de
+// cualquier otro que esté corriendo en la misma máquina. Sin prefijo, dos juegos se
+// pisan los nombres — y peor, limpiar «mis» archivos con un comodín se lleva los del
+// vecino. Medido: mientras se probaba esto había otra sesión escribiendo ahí.
+global.sello = "enjambre_" + string(date_get_hour(date_current_datetime())) + "_" +
                string(date_get_minute(date_current_datetime())) + "_" +
                string(date_get_second(date_current_datetime()));
 paso_captura = 0;

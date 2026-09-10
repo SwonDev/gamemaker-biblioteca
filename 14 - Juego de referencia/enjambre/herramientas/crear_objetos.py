@@ -34,6 +34,30 @@ OBJETOS = {
 }
 SALAS = ["rm_titulo", "rm_juego"]
 
+# 🔴 Los SCRIPTS también son recursos y hay que registrarlos. Que el `.gml` esté en
+# `scripts/scr_enjambre/` NO basta: si no está en el `.yyp`, GameMaker **compila
+# igual** —exit 0, sin un aviso— y el juego revienta en el primer fotograma con
+# «Variable obj_control.cargar_datos(...) not set before reading it», porque para el
+# runtime esa función nunca existió.
+#
+# Es la trampa 4 de `12 · 09` en su forma más pura: el compilador no detecta funciones
+# que no existen. Y se coló aquí porque la garantía que escribí para evitarlo **solo
+# compilaba**. «Compilar no es ejecutar» es la doctrina de esta biblioteca, y aun así
+# el guardián la incumplía.
+SCRIPTS = ["scr_enjambre"]
+
+
+def yyp_texto(proy):
+    """El .yyp en crudo. Se BUSCA por extensión: con `PROY = "."` deducirlo del nombre
+    de la carpeta da "." y no aparece nunca."""
+    try:
+        for f in os.listdir(proy):
+            if f.endswith(".yyp"):
+                return open(os.path.join(proy, f), encoding="utf-8", errors="replace").read()
+    except OSError:
+        pass
+    return ""
+
 
 def ev(orden):
     r = subprocess.run(["gm-cli", "resourcetool", "eval", orden], cwd=PROY,
@@ -53,6 +77,10 @@ def main():
                 orden += " subtype=%s" % subtipo
             ev(orden)
         print("  objeto %-16s %d evento(s)" % (obj, len(eventos)))
+
+    for sc in SCRIPTS:
+        ev("resource create type=script name=%s" % sc)
+        print("  script %s" % sc)
 
     for sala in SALAS:
         ev("resource create type=room name=%s" % sala)
@@ -96,6 +124,11 @@ def main():
     for sala in SALAS:
         if not os.path.isdir(os.path.join(PROY, "rooms", sala)):
             fallos.append("falta la sala %s" % sala)
+    # El script, en el .yyp: es lo que separa «el archivo está» de «el juego lo ve».
+    for sc in SCRIPTS:
+        if ('"name":"%s"' % sc) not in yyp_texto(PROY):
+            fallos.append("el script %s NO está registrado en el .yyp (compila igual y "
+                          "revienta al arrancar)" % sc)
     # El orden de salas se lee del .yyp en crudo: es la única forma de comprobar que
     # se entra por la portada, y «Saved successfully» no lo demuestra.
     # El .yyp se BUSCA, no se deduce del nombre de la carpeta: con `PROY = "."`
