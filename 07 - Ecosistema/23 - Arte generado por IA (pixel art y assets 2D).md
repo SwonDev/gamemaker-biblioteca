@@ -151,6 +151,164 @@ tamaño real**, no confiar a ciegas. Hoy no sustituyen redibujar a mano.
 
 ---
 
+### 1 bis.1 · La API de Retro Diffusion, llamada correctamente
+
+Todo lo de arriba dice *qué* es Retro Diffusion. Esta sección dice **cómo se llama sin
+equivocarse**, que es lo que hace falta cuando quien la llama es un agente y cada llamada
+cuesta dinero. Sale de la documentación que la propia Retro Diffusion publica para agentes
+—`llms.txt`, `README.md` y `V2_MIGRATION.md` de
+[`Retro-Diffusion/api-examples`](https://github.com/Retro-Diffusion/api-examples)— leída el
+**2026-09-10**.
+
+> ⚖️ **Ese repositorio no declara licencia.** Por la regla de
+> [`07 · 09 §10 bis`](09%20-%20Asset%20packs%20y%20recursos%20gráficos.md#10-bis-cuando-el-usuario-te-da-su-propia-biblioteca-de-assets):
+> sin licencia no se copia. Aquí no hay ni una línea de su texto ni de su código — están los
+> **hechos** (rutas, campos, límites, precios), que no son suyos, redactados de cero y con la
+> fuente citada. Su referencia viva es <https://www.retrodiffusion.ai/app/guide/api>, y manda
+> ella sobre cualquier cifra de esta página.
+
+#### El contrato, en seis líneas
+
+| Qué | Valor |
+|---|---|
+| Base | `https://api.retrodiffusion.ai/v2` para integraciones nuevas. **v1 sigue funcionando** y no tiene fecha de retirada: nadie está obligado a migrar |
+| Autenticación | cabecera `X-RD-Token: <clave>` en **todas** las peticiones. Las claves empiezan por `rdpk-`, máximo 5 por cuenta |
+| Saldo | USD prepago. Se cobra **antes** de generar y **se devuelve solo** si la generación falla |
+| Generar | `POST /v2/inferences` |
+| Recoger | `GET /v2/inferences/tasks/{task_id}` — sondeando |
+| Estado | `GET /v2/status`, sin autenticación. Míralo antes de una tanda grande |
+
+> 🔐 **La clave no se escribe en ningún sitio.** Va en una variable de entorno
+> (`RD_API_KEY`), y en este equipo el secreto vive en `~/.config/swon/secrets.env`. No entra
+> en el repositorio, ni en un `.json` de configuración, ni en el prompt, ni en un ejemplo de
+> esta biblioteca. Una clave commiteada es una clave quemada.
+
+#### Los tres pasos, y por qué son tres
+
+1. **`"check_cost": true`** sobre la petición exacta que vas a mandar. Devuelve el precio,
+   **no genera nada y no cobra nada**. Es la única forma honesta de saber lo que va a costar.
+2. **`POST /v2/inferences`**. Responde `{"status": "accepted", "task_id": …}`.
+3. **Sondea `GET /v2/inferences/tasks/{task_id}`** cada ~2 s hasta `succeeded` o `failed`.
+   El resultado viene dentro de `result`.
+
+#### Las nueve trampas que cuestan dinero
+
+**1 · El POST no devuelve la imagen.** En v2 *toda* generación es asíncrona: el POST
+devuelve una tarea aceptada. Un cliente escrito contra v1 que lea `base64_images` de la
+respuesta del POST encuentra la clave ausente, **no ve ningún error**, y se le ha cobrado
+igual. Es el fallo más caro porque no deja rastro. El campo `"async": true` sigue aceptándose,
+pero solo para no romper código viejo: no cambia nada.
+
+**2 · `base64_images` puede venir vacío y la imagen llegar por URL.** Los resultados grandes
+—animaciones de varios fotogramas— se entregan en `output_urls`. Y en las herramientas de
+edición `image_edit`, `inpainting` y `outpainting` eso es **lo normal, no la excepción**.
+Código que solo lee `base64_images[0]` pierde el resultado en silencio con el cargo hecho.
+**Mira siempre los dos campos**, en ese orden. Pasa `"upload_outputs": true` si prefieres URL
+siempre en vez de base64.
+
+**3 · El tamaño lo manda el estilo, no la API.** La API valida 12–512 px, pero cada estilo
+aprieta más: los públicos de hoy no pasan de 384, y varios de RD Pro bajan hasta 12. Mandar
+512 a `rd_plus__default` es un 400. La lista viva está en `GET /v2/styles/selector`.
+
+**4 · No escribas «pixel art» en el prompt.** El prompt describe **el sujeto**; el pixel art
+lo pone `prompt_style`. Y descripciones concretas ganan a las escuetas: *«un frasco rechoncho
+y redondo de líquido carmesí luminoso, tapón de corcho, brillo en el borde superior
+izquierdo»* rinde mucho más que *«una poción»*.
+
+**5 · El fondo transparente no se pide en el prompt.** Es trabajo de `remove_bg: true`. Lo
+que sí va en el prompt es **de qué color es el fondo, y que contraste con el sujeto** («on a
+plain white background»). Dejarlo sin decir es peor que decirlo mal: deriva a un gris oscuro
+apagado que mata el contraste y estropea el recorte. En una escena es al revés — describe el
+entorno y deja `remove_bg` en falso.
+
+**6 · `negative` existe y los modelos lo ignoran.** Es un hueco del esquema. Si contabas con
+él para quitar algo, no va a pasar y nada te lo va a decir.
+
+**7 · El base64 va crudo.** Sin `data:image/png;base64,` delante. Ni en `input_image`, ni en
+`reference_images`, ni en `input_palette`.
+
+**8 · El fotograma de partida de una animación tiene que MEDIR lo que dice la petición.**
+`input_image` debe coincidir exactamente con `width`/`height`, y caer dentro del rango del
+estilo (32–256 en las animaciones avanzadas). El fallo clásico: mandar el PNG exportado a ×4
+para verlo en pantalla — un sprite de 96 px exportado a ×4 son 384 px y lo rechaza. Y dale
+sitio al movimiento: si los píxeles opacos llegan a ~3 px del borde, la animación sale mal;
+pega el sprite en un lienzo transparente mayor primero (48×48 dentro de 64×64).
+
+**9 · Si pierdes la respuesta del POST, NO reenvíes.** La tarea ya fue aceptada y cobrada.
+Recupérala con `GET /v2/inferences/tasks?limit=20`, que devuelve las recientes de la más
+nueva a la más vieja. Reenviar es pagar dos veces. Reintenta **solo** tras un `failed`
+confirmado, que se devuelve solo.
+
+#### Lo que cuesta y lo que es gratis
+
+| Familia | Precio |
+|---|---|
+| `rd_fast` | `máx(0,015 · (w·h+100000)/6000000) × nº` |
+| `rd_plus` | `máx(0,025 · (w·h+50000)/2000000) × nº` |
+| Baja resolución (`mc_*`, `low_res`, `classic`, `skill_icon`, `topdown_item`, tiles) | `máx(0,02 · (w·h+13700)/600000) × nº` |
+| `rd_pro` | **0,18 $ por imagen** |
+| Animación avanzada | 0,14 $ · (0,25 $ en `custom_action` y `subtle_motion`) |
+| Animación por prompt | 0,07 $ · (0,25 $ en `any_animation` y `8_dir_rotation`) |
+| Tileset | 0,10 $ |
+
+**Gratis del todo**, y por eso conviene conocerlo: `check_cost`, el **Pixel Fixer**
+(`POST /v2/pixel-fixer/standard` y `/neural`, 10 peticiones por minuto), y cuatro
+herramientas de edición — `color_reducer`, `palette_converter`, `k_centroid_downscale` y
+`pixel_correction`. `background_remover` y `color_style_transfer` cuestan 0,01 $.
+
+> 💡 **`k_centroid_downscale` y `pixel_correction` son gratis y hacen justo lo que hace falta
+> aquí**: devolver una imagen a su rejilla nativa. Es la misma operación que vigila
+> [`_indice/puerta-pixel-art.py`](../_indice/puerta-pixel-art.py) — con la diferencia de que
+> la puerta **no toca el archivo**, solo dictamina. Pásalo por la puerta antes y después.
+
+#### Del generador al `.yyp`, sin saltarse pasos
+
+Un PNG generado **no es un sprite del proyecto**. El camino completo:
+
+```
+petición → validar-peticion-retrodiffusion.py → API → puerta-pixel-art.py → atlas-a-gamemaker.py → .yyp
+```
+
+- **`_indice/validar-peticion-retrodiffusion.py`** revisa la petición **antes de mandarla**:
+  estilo, tamaños contra los límites de ese estilo, lote, referencias, prefijos `data:`,
+  `frames_duration`, y —con `--imagen`— mide el PNG **en disco** y lo compara con la petición.
+  No usa red ni clave: no puede gastar. Sale con 0/1/2 como el resto de la biblioteca.
+- **`_indice/puerta-pixel-art.py`** decide si lo que ha llegado necesita reparación de rejilla
+  o si tocarlo lo destruiría.
+- **`_indice/atlas-a-gamemaker.py`** registra los fotogramas como recurso de verdad con
+  `resourcetool`. Copiar PNG a la carpeta del proyecto **no registra nada**.
+
+Y dos detalles que ahorran una tarde:
+
+- **Consistencia de personaje**: genera una vez con RD Pro y pasa **esa salida** como
+  `reference_images` en las siguientes. Una descripción de texto no sustituye a la imagen
+  (y sigue en pie el límite de §3: consistente no es idéntico).
+- **`rd_animation__8_dir_rotation` gira 45° por fotograma**, así que los fotogramas 1, 3, 5 y 7
+  (contando desde 1) son las cuatro direcciones cardinales. Extráelos y ya tienes las cuatro
+  vistas para las animaciones de caminar por dirección.
+- **Convertir una imagen que ya tienes en pixel art** es `rd_pro__pixelate` con `input_image`.
+  Generar con `reference_images` **reimagina**, no convierte.
+- **Variantes de una misma imagen** (estaciones, día/noche, dañado/intacto): genera la base una
+  vez y deriva cada variante con `image_edit`. Generar N veces «la misma» escena da N escenas
+  distintas.
+
+#### Qué NO está verificado aquí
+
+**Ninguna de estas llamadas se ha ejecutado.** La API es de pago y requiere una clave que esta
+biblioteca no tiene ni debe tener. Lo que está comprobado es lo que se puede comprobar sin
+gastar: que el catálogo de estilos, los límites y las fórmulas de precio son los que publica
+la fuente, y que el validador local los aplica —37 comprobaciones en su `--autoprueba`—. El
+día que alguien ponga una clave, el primer paso es un `check_cost`, que es gratis, y comparar
+su cifra con la que estima el validador.
+
+Alternativa sin escribir HTTP: existe un **servidor MCP oficial**
+(`https://mcp.retrodiffusion.ai/mcp`, cabecera `Authorization: Bearer <clave>`) con 18
+herramientas, entre ellas `estimate_inference_cost` y `fix_pixel_art`, las dos gratis. Es la
+vía natural para un agente — con la salvedad ya dicha en el recuadro de §1 bis: es de
+septiembre de 2026 y no está rodado.
+
+---
+
 ### 1 bis.2 · `sprite-gen`: la tubería que un agente puede conducir entera
 
 [`sprite-gen`](https://github.com/aldegad/sprite-gen) (817 ★, **Apache-2.0**, tocado el
@@ -384,6 +542,11 @@ Todas consultadas el **7 de septiembre de 2026**.
   Content»* (Registro Federal, 16 de marzo de 2023), citada desde la misma página anterior
 - Steamworks — documentación oficial del *Content Survey*, sección de divulgación de IA
   generativa — <https://partner.steamgames.com/doc/gettingstarted/contentsurvey>
+- Retro Diffusion — documentación de su API para agentes (`llms.txt`, `README.md`,
+  `V2_MIGRATION.md`) en <https://github.com/Retro-Diffusion/api-examples>, **leída el
+  2026-09-10**. Ese repositorio **no declara licencia**: de él se toman hechos (rutas,
+  campos, límites, precios) y no texto. Referencia viva y autoritativa:
+  <https://www.retrodiffusion.ai/app/guide/api>
 - itch.io — *«Content creator quality guidelines»*, sección de divulgación de IA —
   <https://itch.io/docs/creators/quality-guidelines>
 

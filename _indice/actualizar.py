@@ -361,6 +361,10 @@ def main():
         # no se ha podido buscar— es lo que separa «no lo escribas» de «no lo sé».
         ("buscar.py",                "contrato de códigos de salida del buscador"),
         ("auditar-cobertura.py",     "cobertura de géneros, recursos y herramientas"),
+        # La API de Retro Diffusion cobra por generación, y casi todos sus errores
+        # caros se ven sin red y sin clave. Si este metro se estropea, el aviso deja
+        # de saltar justo donde cuesta dinero.
+        ("validar-peticion-retrodiffusion.py", "petición a la API de Retro Diffusion"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
