@@ -1756,6 +1756,47 @@ Lista los recursos que están **en disco y no en el `.yyp`**, con su carpeta, y 
 informe. Es trabajo perdido, no un aviso de estilo: se recupera volviendo a registrarlos con
 `resourcetool`, de uno en uno y sin nadie más escribiendo.
 
+#### Y un piso más abajo: dos `gm-cli run` a la vez REVIENTAN el runner
+
+La trampa de arriba es del `.yyp`. Hay otra con la misma raíz —**dos procesos, un solo
+recurso compartido**— que no se manifiesta como pérdida silenciosa sino como un fallo
+aparatoso que parece un bug de GameMaker.
+
+`gm-cli compile` y `gm-cli run` escriben en `.gmcache/build-gms2-mac-VM/output/`, que es
+**una sola carpeta por proyecto**. Dos ejecuciones simultáneas se pisan ahí, y una de ellas
+lee un `options.ini` que la otra está reescribiendo.
+
+**Medido el 2026-09-10**, con dos agentes trabajando sobre el mismo proyecto: **tres informes
+de fallo de `Mac_Runner` en dos minutos**, todos con la misma traza:
+
+```
+EXC_BAD_ACCESS (SIGSEGV)
+  Mac_Runner  IniFile::GetSection(char const*)
+  Mac_Runner  IniFile::GetKey(char const*, char const*)
+  Mac_Runner  IniFile::ReadInt(char const*, char const*, int)
+  Mac_Runner  IO_SetupM(IniFile*)
+  Mac_Runner  RunnerLoadGame()
+```
+
+El runner **segfaultea leyendo `options.ini`**, y macOS levanta su diálogo de informe de
+fallo en cada intento. Desde fuera parece que GameMaker está roto. No lo está: el archivo
+estaba a medio escribir.
+
+**El contraste que lo demuestra**, y es lo que convierte la sospecha en diagnóstico: en
+cuanto queda **un solo proceso**, el juego arranca y termina con `Game exited` **sin generar
+ni un informe de fallo nuevo**. El `options.ini` vuelve a estar íntegro. La corrupción es
+transitoria y solo existe mientras los dos escriben.
+
+> 🩺 **Cómo se reconoce sin adivinar.** Los informes están en
+> `~/Library/Logs/DiagnosticReports/Mac_Runner-*.ips`. Si hay varios seguidos y la traza pasa
+> por `IniFile::` o `RunnerLoadGame()`, no busques el fallo en tu GML: busca quién más estaba
+> compilando.
+
+**La regla, entonces, es una sola y cubre las dos trampas: un escritor a la vez por
+proyecto.** No solo para `resourcetool` — también para `compile`, `run` y `package`, que
+comparten la carpeta de compilación. Si dos agentes tienen que trabajar en paralelo sobre el
+mismo juego, o se turnan, o trabajan sobre copias distintas del proyecto.
+
 ---
 
 ## 1 · El ciclo completo del agente

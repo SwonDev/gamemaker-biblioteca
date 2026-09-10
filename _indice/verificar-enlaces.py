@@ -370,7 +370,8 @@ def documentos_propios_en_excluidas(destino):
 def recorrer_documentacion(destino, excluidas):
     """os.walk podando las carpetas excluidas, MÁS las excepciones propias."""
     for raiz, dirs, files in os.walk(destino):
-        dirs[:] = [d for d in dirs if d not in excluidas]
+        dirs[:] = [d for d in dirs
+                   if d not in excluidas and not _es_privada(d)]
         yield raiz, files
     for ruta, ficheros in documentos_propios_en_excluidas(destino):
         yield ruta, ficheros
@@ -382,6 +383,15 @@ EXCLUIDAS = {".git", "node_modules", "11 - Código descargado",
              # documentación. Los informes de «auditorias» tampoco: sus rutas son
              # relativas a la raíz, no a su carpeta.
              "Lumbre", "GameMaker_Fuentes", "auditorias"}
+
+# Y cualquier variante del juego personal, no solo el nombre exacto: apareció una
+# carpeta `.lumbre-canonica/` que no encajaba con ninguna entrada de arriba y metió
+# 46 «enlaces rotos» que no eran nuestros. Lo que no es documentación de esta
+# biblioteca no se recorre — y lo de Lumbre, además, ni se cita.
+def _es_privada(nombre):
+    n = nombre.lower()
+    return "lumbre" in n or "gamemaker_fuentes" in n
+
 
 for raiz, files in recorrer_documentacion(DEST, EXCLUIDAS):
     for f in files:

@@ -88,6 +88,16 @@ DRAW_GUI = "Draw_64.gml"      # número real verificado en 12/09 §2.3
 # pierde nada: si la pantalla existe sin objeto ni sala, su código la delata igual por el
 # patrón de GML.
 PANTALLA = ("objects", "rooms")
+
+# Qué piezas son PANTALLAS y cuáles son CAPACIDADES, porque la prueba no es la misma.
+#
+# Una pantalla la tiene que haber escrito el proyecto: un fragmento dentro de una
+# librería empotrada no demuestra que el juego tenga un menú. Una capacidad es al
+# revés — **usar una librería ES la respuesta correcta**: quien guarda la partida
+# con `scr_save_load` tiene guardado, y quien lee el mando a través de `Input`
+# tiene mando. Exigirle código propio marcaría como ausente justo lo que está
+# bien resuelto, y ése es el aviso que se aprende a ignorar.
+CAPACIDADES = {"guardado", "sonido", "mando"}
 PIEZAS = [
     ("menu",      "Menú principal",
      r"menu|men[uú]|titulo|t[ií]tulo|title|portada|inicio",
@@ -194,6 +204,52 @@ def recursos_huerfanos(ruta, nombres_en_yyp):
             if n not in dentro:
                 huerfanos.append((carpeta, n))
     return huerfanos
+
+
+def sala_vacia(ruta, nombre):
+    """True si esa sala no tiene ni una instancia.
+
+    Una sala que existe pero está vacía es una RESERVA, no una pantalla. Medido
+    sobre un proyecto real: `rm_menu` existía y ponía «Menú principal» en verde
+    con la sala sin una sola instancia dentro.
+    """
+    p = os.path.join(ruta, "rooms", nombre, nombre + ".yy")
+    if not os.path.isfile(p):
+        return False
+    return '"resourceType":"GMRInstance"' not in leer(p).replace(" ", "")
+
+
+def scripts_de_libreria(ruta, minimo=20, largo_prefijo=4):
+    """Nombres de script que pertenecen a una librería empotrada, no al proyecto.
+
+    Se reconocen sin lista blanca: **decenas de carpetas que comparten prefijo**.
+    `Input` trae ~300 scripts que empiezan por `Input`/`__Input`, y un fragmento
+    dentro de cualquiera de ellos ponía piezas en verde en proyectos que no las
+    tenían — «Se juega con mando» lo daba `__gamepadArray = array_create(…)`,
+    que es código de la librería, no del juego.
+
+    Un proyecto no escribe veinte scripts con el mismo prefijo de cuatro letras;
+    una librería sí. Y lo que empieza por `__` es interno por convención.
+    """
+    base = os.path.join(ruta, "scripts")
+    if not os.path.isdir(base):
+        return set()
+    try:
+        nombres = [n for n in os.listdir(base) if os.path.isdir(os.path.join(base, n))]
+    except OSError:
+        return set()
+    cuenta = {}
+    for n in nombres:
+        limpio = n.lstrip("_")
+        if len(limpio) >= largo_prefijo:
+            cuenta.setdefault(limpio[:largo_prefijo].lower(), []).append(n)
+    fuera = set()
+    for _, lista in cuenta.items():
+        if len(lista) >= minimo:
+            fuera.update(lista)
+    fuera.update(n for n in nombres if n.startswith("__"))
+    fuera.update(n for n in nombres if n in SCRIPTS_BIBLIOTECA)
+    return fuera
 
 
 def sin_comentarios(texto):
@@ -354,7 +410,14 @@ def reinventos(ruta):
     """
     avisos = []
     vistos = set()
+    # Una librería empotrada no ha reinventado nada: ELLA es lo que se sugiere usar.
+    # Sin esto, un proyecto que hace lo correcto —usar `Input`— recibía 201 avisos
+    # diciéndole que usara `Input`, y una sección con 201 avisos falsos no se lee:
+    # enseña a ignorar el informe entero.
+    libreria = scripts_de_libreria(ruta)
     for fp in gml_del_proyecto(ruta):
+        if os.path.basename(os.path.dirname(fp)) in libreria:
+            continue
         nombre = os.path.splitext(os.path.basename(fp))[0]
         # Los eventos de un objeto se llaman Create_0, Step_0…: el nombre útil es la carpeta.
         if re.match(r"^(Create|Step|Draw|Alarm|Other|Collision|Key|Mouse|Clean)", nombre):
@@ -481,6 +544,43 @@ def textos_sin_traducir(ruta):
             if LITERAL_TECNICO.match(crudo):
                 continue
             hallados.append((os.path.relpath(fp, ruta), crudo[:40]))
+    return hallados
+
+
+# El otro camino por el que llega texto sin traducir a la pantalla, y que el patrón
+# de arriba NO ve: una FUNCIÓN que devuelve el texto ya hecho, en su idioma.
+#
+# Medido: `InputVerbGetBindingName()` de la librería Input devuelve los nombres de
+# tecla en inglés — «arrow left», «space», «escape»— y eso acaba dibujado en medio
+# de una frase en español. No es una cadena literal, así que el `grep` de arriba no
+# lo ve, compila limpio y se ve perfectamente… en inglés. Se descubrió mirando una
+# captura del juego corriendo, no leyendo código.
+TEXTO_DE_FUNCION = re.compile(
+    r'\bdraw_text\w*\s*\([^)]*?,\s*([A-Za-z_]\w*)\s*\(', re.S)
+# Funciones cuyo valor NO hay que traducir: la de traducción misma, y las que
+# convierten números o componen a partir de algo ya traducido.
+FUNCION_SEGURA = re.compile(
+    r"^(txt|txt_\w+|string|string_format|string_repeat|string_upper|string_lower|"
+    r"chr|real|ord|json_stringify|date_\w+|room_get_name)$", re.I)
+
+
+def texto_de_funcion_sin_traducir(ruta):
+    """`draw_text(..., alguna_funcion())` donde la función no es de traducción.
+
+    Devuelve [(archivo, funcion)]. Es un AVISO, no un error: componer texto con una
+    función propia que ya devuelve algo traducido es correcto. Lo que persigue es el
+    caso en que esa función devuelve texto en otro idioma y nadie se entera.
+    """
+    hallados = []
+    for fp in gml_del_proyecto(ruta):
+        nombre = os.path.basename(os.path.dirname(fp))
+        if nombre in SCRIPTS_BIBLIOTECA:
+            continue
+        for m in TEXTO_DE_FUNCION.finditer(leer(fp)):
+            fn = m.group(1)
+            if FUNCION_SEGURA.match(fn):
+                continue
+            hallados.append((os.path.relpath(fp, ruta), fn))
     return hallados
 
 
@@ -821,10 +921,31 @@ def main():
     for n, p in proy["recursos"]:
         tipos.setdefault(p.split("/", 1)[0], []).append(n)
 
-    gml = "\n".join(leer(f) for f in gml_del_proyecto(ruta))
+    ficheros = gml_del_proyecto(ruta)
+    gml = "\n".join(leer(f) for f in ficheros)
+
+    # Para buscar las PIEZAS del envoltorio solo vale el código que escribió el
+    # proyecto: un fragmento dentro de una librería empotrada no demuestra que el
+    # juego tenga esa pieza. Medido: `__gamepadArray = array_create(…)`, que vive
+    # dentro de `Input`, ponía «Se juega también con mando» en verde en cualquier
+    # proyecto que llevara esa librería, la usara o no.
+    _libreria = scripts_de_libreria(ruta)
+    _propios = [f for f in ficheros
+                if os.path.basename(os.path.dirname(f)) not in _libreria]
+    gml_propio = "\n".join(leer(f) for f in _propios)
+
+    # Y una PANTALLA dibuja. Si la única prueba de que hay «pantalla de opciones»
+    # es una asignación dentro de un script que no pinta nada, eso es el SISTEMA de
+    # ajustes, no la pantalla donde se tocan. Medido: `global.ajustes.idioma =
+    # idioma_actual();` ponía la casilla en verde en un proyecto sin ninguna
+    # pantalla. Se exige que la prueba viva en un archivo que además dibuje.
+    _pinta = re.compile(r"\bdraw_\w+\s*\(")
+    gml_pantalla = "\n".join(t for t in (leer(f) for f in _propios) if _pinta.search(t))
 
     # Las piezas se buscan en el CÓDIGO, no en lo que el código dice de sí mismo.
-    gml_codigo = sin_comentarios(gml)
+    gml_codigo = sin_comentarios(gml_propio)
+    gml_todo = sin_comentarios(gml)
+    gml_pantallas = sin_comentarios(gml_pantalla)
 
     # Cada ✓ dice QUÉ lo puso en verde. Sin eso, un tick es una afirmación que nadie
     # puede comprobar — y este script ya ha dado por existentes pantallas que no
@@ -840,15 +961,22 @@ def main():
             candidatos = ([n for t in tipos_ok for n in tipos.get(t, [])]
                           if tipos_ok else nombres)
             casan = [n for n in candidatos if r.search(n)]
+            # Una sala vacía es una reserva, no una pantalla.
+            vacias = [n for n in casan if sala_vacia(ruta, n)]
+            casan = [n for n in casan if n not in vacias]
+            if not casan and vacias:
+                pruebas[clave] = ("la sala «%s» existe pero está VACÍA: es una reserva, "
+                                  "no una pantalla" % vacias[0])
             if casan:
                 hay = True
                 pruebas[clave] = "recurso " + ", ".join(sorted(casan)[:3])
         if not hay and pat_gml:
-            m = re.search(pat_gml, gml_codigo, re.I)
+            fuente = gml_todo if clave in CAPACIDADES else gml_pantallas
+            m = re.search(pat_gml, fuente, re.I)
             if m:
                 hay = True
-                linea = gml_codigo[:m.start()].count("\n") + 1
-                fragmento = gml_codigo.splitlines()[linea - 1].strip()[:64]
+                linea = fuente[:m.start()].count("\n") + 1
+                fragmento = fuente.splitlines()[linea - 1].strip()[:64]
                 pruebas[clave] = "código «%s»" % fragmento
         res[clave] = hay
         if not hay:
@@ -983,6 +1111,24 @@ def main():
                 print("      %-34s «%s»" % (f, t))
             if len(literales) > 6:
                 print("      … y %d más" % (len(literales) - 6))
+        por_funcion = texto_de_funcion_sin_traducir(ruta)
+        if por_funcion:
+            vistos, unicos = set(), []
+            for f, fn in por_funcion:
+                if fn not in vistos:
+                    vistos.add(fn)
+                    unicos.append((f, fn))
+            print("  ⚠ %d función(es) cuyo valor se dibuja tal cual en un `draw_text`:"
+                  % len(unicos))
+            print("    No es un literal, así que el aviso de arriba NO las ve — y si esa")
+            print("    función devuelve texto en otro idioma, acaba en pantalla sin que nada")
+            print("    lo detecte. Medido: `InputVerbGetBindingName()` devuelve «arrow left»,")
+            print("    «space» y «escape» EN INGLÉS, en medio de una frase en español.")
+            for f, fn in unicos[:8]:
+                print("      %-34s %s()" % (f, fn))
+            if len(unicos) > 8:
+                print("      … y %d más" % (len(unicos) - 8))
+
         if no_saltables:
             print("  ⚠ %d pantalla(s) de paso obligado sin forma de saltarlas: %s"
                   % (len(no_saltables), ", ".join(no_saltables)))
@@ -1322,7 +1468,66 @@ def autoprueba():
     revisar("un comentario de bloque sin cerrar no se come lo de antes",
             sin_comentarios("x = 1;\n/* abierto").startswith("x = 1;"))
 
-    # ── El recurso que se cae del `.yyp` y se queda en disco.
+    # ── Texto que llega a pantalla por el VALOR de una función, no por un literal.
+    # Medido: `InputVerbGetBindingName()` devuelve «arrow left» y «space» en inglés,
+    # y el aviso de literales no lo ve porque no hay ninguna cadena escrita.
+    with tempfile.TemporaryDirectory() as tmp:
+        base = os.path.join(tmp, "porfuncion")
+        for nombre, codigo in (
+                ("scr_mal", 'draw_text(8, 8, InputVerbGetBindingName(0));'),
+                ("scr_bien", 'draw_text(8, 8, txt("pausa"));'),
+                ("scr_numero", 'draw_text(8, 8, string(puntos));'),
+                ("scr_propia", 'draw_text(8, 8, txt_con_valor("vidas", n));')):
+            dd = os.path.join(base, "scripts", nombre)
+            os.makedirs(dd, exist_ok=True)
+            with open(os.path.join(dd, nombre + ".gml"), "w", encoding="utf-8") as f:
+                f.write(codigo)
+        h = {fn for _, fn in texto_de_funcion_sin_traducir(base)}
+        revisar("caza el texto que llega por el valor de una función",
+                "InputVerbGetBindingName" in h, str(h))
+        revisar("`txt()` no se marca", "txt" not in h, str(h))
+        revisar("`string()` de un número tampoco", "string" not in h, str(h))
+        revisar("y una función propia con prefijo txt_ tampoco",
+                "txt_con_valor" not in h, str(h))
+
+    # ── Los tres verdes flojos, medidos sobre un proyecto real que NO tenía menú,
+    # ni opciones, ni créditos, y los tenía los tres en verde.
+    with tempfile.TemporaryDirectory() as tmp:
+        base = os.path.join(tmp, "salas")
+        os.makedirs(os.path.join(base, "rooms", "rm_menu"), exist_ok=True)
+        os.makedirs(os.path.join(base, "rooms", "rm_juego"), exist_ok=True)
+        with open(os.path.join(base, "rooms", "rm_menu", "rm_menu.yy"), "w",
+                  encoding="utf-8") as f:
+            f.write('{"resourceType":"GMRoom","layers":['
+                    '{"resourceType":"GMRInstanceLayer","instances":[],},],}')
+        with open(os.path.join(base, "rooms", "rm_juego", "rm_juego.yy"), "w",
+                  encoding="utf-8") as f:
+            f.write('{"resourceType":"GMRoom","layers":[{"resourceType":'
+                    '"GMRInstanceLayer","instances":[{"resourceType":"GMRInstance",'
+                    '"name":"inst_1",},],},],}')
+        revisar("una sala sin ni una instancia es una sala VACÍA",
+                sala_vacia(base, "rm_menu"))
+        revisar("y una con instancias no lo es", not sala_vacia(base, "rm_juego"))
+        revisar("una sala que no existe no cuenta como vacía",
+                not sala_vacia(base, "rm_que_no_hay"))
+
+        # Una librería empotrada se reconoce sin lista blanca: decenas de scripts
+        # con el mismo prefijo. `Input` trae ~300 y su código ponía piezas en verde.
+        lib = os.path.join(tmp, "lib")
+        for i in range(25):
+            os.makedirs(os.path.join(lib, "scripts", "Input%02d" % i), exist_ok=True)
+        for n in ("scr_mio", "scr_otro", "__InputInterno"):
+            os.makedirs(os.path.join(lib, "scripts", n), exist_ok=True)
+        fuera = scripts_de_libreria(lib)
+        revisar("25 scripts con el mismo prefijo se marcan como librería",
+                "Input07" in fuera, str(sorted(fuera)[:3]))
+        revisar("lo que empieza por __ también", "__InputInterno" in fuera)
+        revisar("y los scripts del proyecto NO",
+                "scr_mio" not in fuera and "scr_otro" not in fuera, str(sorted(fuera)[:5]))
+        revisar("un proyecto con pocos scripts no marca ninguno como librería",
+                scripts_de_libreria(os.path.join(tmp, "salas")) == set())
+
+        # ── El recurso que se cae del `.yyp` y se queda en disco.
     #
     # Reproducido en un proyecto limpio (2026-09-10): se crea `spr_del_rol_A`, otro
     # proceso escribe el `.yyp` que había leído ANTES, y crea `spr_del_rol_B`. A

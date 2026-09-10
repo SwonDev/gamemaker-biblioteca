@@ -391,6 +391,48 @@ avisa de que ese número está forzado y no es lo que hará GameMaker hoy.
 
 ---
 
+## 4 ter · El texto que NO es un literal, y por eso no lo caza nadie
+
+La regla de oro de este documento —«ni un texto suelto en el código»— se comprueba buscando
+cadenas escritas a pelo dentro de un `draw_text`. **Hay un segundo camino que ese `grep` no
+ve**: una **función** que devuelve el texto ya hecho, en su idioma.
+
+**Medido, y encontrado mirando una captura del juego corriendo — no leyendo código ni logs.**
+`InputVerbGetBindingName()`, de la librería **Input 10.2.2**, devuelve los nombres de tecla en
+inglés: `arrow left`, `arrow up`, `space`, `escape`, `backspace`. Las teclas de un solo carácter
+(`A`, `Z`, `X`) salen bien, que es lo que hace que el problema se vea tarde.
+
+En un juego en español eso es **el único texto que llega a pantalla sin pasar por `txt()`**, y
+no lo detecta nada:
+
+- el `grep` de literales no lo ve — **no hay ninguna cadena escrita**, es un valor devuelto;
+- el compilador no dice nada, porque no hay ningún error;
+- y se ve perfectamente… en inglés, en medio de una frase en español.
+
+La propia documentación de esa función lo avisa: la recomienda solo *«for debugging or
+alpha-quality games»* y remite al complemento **Binding Icons** para lo demás.
+
+### Cómo se comprueba
+
+```sh
+python3 "$BIB/_indice/auditar-juego-completo.py" <proyecto>
+```
+
+Lista las funciones cuyo valor se dibuja tal cual en un `draw_text`, saltándose las que sí son
+seguras: `txt()` y cualquier `txt_*` propia, y las que convierten números (`string`,
+`string_format`, `real`, `chr`…). Es un **aviso**, no un error: componer con una función propia
+que ya devuelve algo traducido es correcto. Lo que persigue es el caso en que esa función
+devuelve texto en otro idioma **y nadie se entera**.
+
+### Qué hacer si tu juego enseña asignaciones de teclas
+
+Una pantalla de reasignación o el panel recordatorio de
+[`04 · 27` §6](./27%20-%20Accesibilidad.md) necesitan **una tabla de claves `tecla_*` propia**
+—`tecla_flecha_izquierda`, `tecla_espacio`, `tecla_escape`— o el complemento de iconos de la
+propia librería. Nunca el nombre que devuelve la función, tal cual, dentro de una frase.
+
+---
+
 ## 5 · Traducción asistida por IA — el flujo moderno
 
 Aquí está lo que hace 2026 distinto de 2010: **no contratas diez traductores para el borrador,
