@@ -122,11 +122,52 @@ else
   mal "faltan piezas del envoltorio"
 fi
 
+# --- Y AHORA lo que de verdad decide: EJECUTARLO -----------------------------------
+#
+# 🔴 Este bloque existe porque su ausencia dejó pasar el peor fallo de todos. La primera
+# versión de este guión compilaba y daba diez ✓ sobre un juego que **reventaba en el
+# primer fotograma**: `crear_objetos.py` no registraba el script `scr_enjambre` en el
+# `.yyp`, así que para el runtime `cargar_datos()` no existía. El compilador no dice
+# nada de eso (trampa 4) y el archivo estaba en su carpeta, así que todo «parecía» bien.
+#
+# «Compilar no es ejecutar» es la doctrina de esta biblioteca, y el guardián escrito
+# para hacerla cumplir era el primero que se la saltaba.
+paso "ARRANCA sin reventar (el juego se ejecuta de verdad)"
+GUARDADO="$HOME/Library/Application Support/com.yoyogames.macyoyorunner"
+mkdir -p "$GUARDADO"
+# Esa carpeta la comparten TODOS los juegos del runner: nunca se borra con comodines,
+# solo lo propio y por nombre exacto.
+rm -f "$GUARDADO"/enjambre_*_05_juego.png
+printf "05_juego" > "$GUARDADO/modo_captura.txt"
+
+salida_run="$(gm-cli run 2>&1)"
+if echo "$salida_run" | grep -q "###CAPTURA###"; then
+  bien "llegó a la pantalla de juego y se fotografió"
+elif echo "$salida_run" | grep -qE "ERROR in action|not set before reading"; then
+  mal "REVIENTA al arrancar (compilaba limpio)"
+  echo "$salida_run" | grep -A 3 "ERROR in action" | head -6 | sed 's/^/        /'
+else
+  mal "no llegó a la captura y no dio un error reconocible"
+  echo "$salida_run" | tail -4 | sed 's/^/        /'
+fi
+
+paso "y la captura tiene contenido, no un PNG negro"
+foto="$(ls -t "$GUARDADO"/enjambre_*_05_juego.png 2>/dev/null | head -1)"
+if [ -n "$foto" ] && [ -f "$foto" ]; then
+  tam=$(wc -c < "$foto" | tr -d ' ')
+  # Un fotograma negro de 1366×768 comprime a ~6 KB; uno con juego dentro pasa de 20 KB.
+  if [ "$tam" -gt 15000 ]; then bien "$tam bytes"; else mal "$tam bytes (parece negro)"; fi
+  rm -f "$foto"
+else
+  mal "no se escribió ninguna captura"
+fi
+rm -f "$GUARDADO/modo_captura.txt"
+
 echo
 if [ "$fallos" -gt 0 ]; then
   echo "✗ $fallos comprobación(es) fallan: la receta de «14 - Juego de referencia» ya no"
   echo "  reconstruye el juego. Arréglala ahí, no aquí — el juego es el entregable."
   exit 1
 fi
-echo "✓ El juego de referencia se reconstruye entero desde su receta y compila."
+echo "✓ El juego de referencia se reconstruye entero desde su receta, compila Y SE EJECUTA."
 exit 0
