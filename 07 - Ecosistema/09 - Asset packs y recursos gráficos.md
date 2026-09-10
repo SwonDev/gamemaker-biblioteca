@@ -545,6 +545,82 @@ cuesta una línea y es lo que hace que la gente siga publicando assets libres.
 
 ---
 
+### 10 bis.9 · Y todo esto lo comprueba una herramienta, en vez de tu paciencia
+
+Las ocho secciones anteriores son el criterio. Aplicarlo a mano sobre una biblioteca
+real —325 packs, 1,68 millones de archivos, 313 GB en el caso medido— no es realista, y
+lo que no es realista no se hace. Por eso:
+
+```sh
+python3 "$BIB/_indice/auditar-biblioteca-assets.py" "/ruta/a/tu Biblioteca de Assets"
+python3 "$BIB/_indice/auditar-biblioteca-assets.py" <ruta> --profundidad 3 --json informe.json
+python3 "$BIB/_indice/auditar-biblioteca-assets.py" <ruta> --solo-fuentes
+```
+
+**Es de solo lectura**: no escribe, no mueve, no extrae, y de un `.zip` solo lee el
+índice. Sale con `0` si nada bloquea, `1` si hay material que no puede entrar tal cual y
+`2` si no ha podido mirar.
+
+#### Las cinco señales que busca, y por qué son señales y no corazonadas
+
+Ninguna se basa en que un nombre «suene» a algo. Las cinco son estructurales y contables
+—esa es la diferencia entre un aviso que se atiende y uno que se aprende a ignorar—, y
+las cinco salen de casos **medidos** sobre bibliotecas reales:
+
+| Señal | Qué la delata | El caso que la originó |
+|---|---|---|
+| **Medios sin licencia** | archivos de imagen/audio/fuente y ningún documento de licencia, ni en la carpeta, ni dentro de sus `.zip`, ni heredada de un pack padre | ~141 packs de una biblioteca real |
+| **Varias familias bajo un nombre** | dos o más **familias** de licencia distintas bajo una sola etiqueta | «Time Fantasy - surtido 01-12»: dentro había cuatro autores con cuatro licencias, y ninguno era Time Fantasy |
+| **El runtime del motor** | tres o más `UnityEngine.*.dll`, `Assembly-CSharp.dll`, `libgodot`… | `MakeRoom`, `AssetsForge` y `Dungero`: 40 bibliotecas del runtime cada uno |
+| **El extractor junto a los medios** | una herramienta de conversión o extracción guardada en la misma carpeta que los archivos | `BCSTM to Wav Converter GUI.exe` junto a 860 pistas sacadas de un juego de Nintendo |
+| **El binario de la fuente** | `fsType` distinto de 0 y 8, licencia embebida restrictiva, o glifos del español ausentes | ver abajo |
+
+> ⚠️ **Un README no es una licencia**, y la herramienta los cuenta por separado a
+> propósito. «Gracias por comprar este pack» no concede ningún derecho. Cuando solo hay
+> README, el informe lo dice con esas palabras.
+
+#### La diferencia que hay que mantener en el informe
+
+La herramienta separa **«la licencia lo prohíbe»** de **«no encuentro la licencia»**, y
+tú también tienes que separarlo al escribir. Lo segundo el cliente lo resuelve enseñando
+una factura; lo primero, no. Confundirlos hace perder packs comprados y pagados.
+
+#### Las dos comprobaciones de una tipografía, ejecutadas
+
+`§10 bis.6` pide dos comprobaciones y no una. Esto las hace: lee la tabla `OS/2` para el
+`fsType`, las entradas 0, 13 y 14 de la tabla `name` para la licencia embebida, y la
+`cmap` (formatos 4 y 12) para saber si los glifos `áéíóúüñÁÉÍÓÚÜÑ¿¡` **existen de
+verdad**. Sin dependencias: analiza el `sfnt` directamente.
+
+Los tres resultados medidos el 2026-09-10 sobre una biblioteca real, que son también la
+mejor demostración de por qué la regla es «gana el binario»:
+
+- **Las tipografías de Kenney**: el bundle dice CC0; sus binarios dicen `Creative Commons
+  Attribution Share Alike 3.0` con `fsType=4`, que prohíbe empotrarlas. **21 archivos.**
+- **«Pixel Font Pack 01»**: 34 archivos con `fsType=4` y, embebido, `FontStruct
+  Non-Commercial License` o `All Rights Reserved`. Su README solo trae instrucciones
+  técnicas; leerlo y parar ahí habría metido las 34 en el juego.
+- **«Pixel Font Megapack»**: licencia comercial válida, y de sus 176 variantes **una
+  sola** falla — a `huevo_wide_bold.ttf` le falta la `ü`. Un glifo ausente **no da
+  error**: mide cero y la palabra sale mutilada en pantalla.
+
+> 🔬 **Este resultado está confirmado por tres métodos independientes.** El caso de las
+> fuentes se encontró primero leyendo los binarios a mano, después otro equipo lo
+> reprodujo con `strings` sobre los `.ttf`, y esta herramienta lo obtiene analizando el
+> `sfnt`. Los tres coinciden hasta en el número: **175 de 176**.
+
+#### Lo que la herramienta NO puede ver, y por eso no la creas del todo
+
+- **Si el pack es de quien dice ser.** Un `LICENSE.txt` que diga CC0 se lee como CC0,
+  aunque lo haya escrito quien no podía.
+- **Si la factura existe.** «No encuentro la licencia» es una pregunta para el cliente.
+- **Si el estilo encaja.** Eso es `§10 bis.3`, y sigue siendo criterio tuyo.
+- **Las carpetas enormes se cuentan hasta un tope** y el informe lo dice: ahí lo que
+  afirma es un mínimo, no un recuento.
+
+---
+
+
 ## 11. Qué formato importa GameMaker (bájalo ya correcto)
 
 Datos del **manual oficial LTS 2026** (Sprites / Sounds / Videos):

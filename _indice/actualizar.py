@@ -365,6 +365,9 @@ def main():
         # caros se ven sin red y sin clave. Si este metro se estropea, el aviso deja
         # de saltar justo donde cuesta dinero.
         ("validar-peticion-retrodiffusion.py", "petición a la API de Retro Diffusion"),
+        # Las cinco señales que separan un pack usable de uno que no puede entrar.
+        # Si este metro se descalibra, se publican assets sin derechos.
+        ("auditar-biblioteca-assets.py", "licencias, rips y tipografías de una biblioteca"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
