@@ -3,6 +3,10 @@
 
 # El juego personal del autor. No forma parte de la biblioteca.
 Lumbre/
+# Cualquier variante: apareció `.lumbre-canonica/` sin estar contemplada, y como
+# los commits se hacen con `git add -A`, habría acabado publicada.
+*lumbre*/
+.*lumbre*/
 
 # Almacén crudo de clones de terceros (14 GB). Se reconstruye, no se distribuye.
 GameMaker_Fuentes/

@@ -335,6 +335,30 @@ def revisar_mapa():
 def main():
     problemas = []
 
+    # Paso 0 cero: nada del material privado del usuario puede quedar publicable.
+    #
+    # `Lumbre/` y `GameMaker_Fuentes/` nunca se tocan, se citan ni se publican. El
+    # `.gitignore` los cubría por nombre exacto — y el 2026-09-10 apareció en la raíz
+    # una carpeta `.lumbre-canonica/` que NO encajaba con ningún patrón. Como cada
+    # commit de esta sesión se hace con `git add -A`, el siguiente la habría subido a
+    # un repositorio público. No llegó a pasar, y esta comprobación existe para que
+    # tampoco pase con la siguiente carpeta que alguien deje ahí.
+    _prohibido = re.compile(r"lumbre|gamemaker_fuentes|secrets?\.env|\.env$", re.I)
+    try:
+        _sin_seguir = subprocess.run(["git", "status", "--porcelain"], cwd=RAIZ,
+                                     capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        _sin_seguir = ""
+    _fugas = [l[3:].strip() for l in _sin_seguir.splitlines()
+              if l.startswith("??") and _prohibido.search(l[3:])]
+    if _fugas:
+        print("\n\033[1m✗ Material privado sin ignorar, y `git add -A` lo publicaría:\033[0m")
+        for f in _fugas:
+            print("    " + f)
+        print("  Añádelo al `.gitignore` ANTES de volver a commitear. `Lumbre/` y")
+        print("  `GameMaker_Fuentes/` no se tocan, no se citan y no se publican.")
+        problemas.append("material privado publicable: " + ", ".join(_fugas))
+
     paso(0, "Las herramientas, antes de fiarse de lo que digan")
     # Un validador que deja de validar no falla: calla. Y un aviso que no salta se
     # lee igual que «está todo bien». Cada uno de los tres se autocomprueba con los
