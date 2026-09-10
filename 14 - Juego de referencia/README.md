@@ -20,7 +20,7 @@ Aquí viaja **solo la fuente**: unas 1 700 líneas en 34 archivos.
 | `enjambre/ESPECIFICACION.md` | La especificación escrita **antes** de crear el proyecto, con las ocho preguntas de `13 · 28` y cada valor asumido marcado `[DEFAULT]` |
 | `enjambre/objects/` | Los nueve objetos, con su GML por evento |
 | `enjambre/scripts/` | `scr_enjambre.gml`: idiomas, guardado con versión y checksum, entrada unificada, sacudida y *hit-stop* |
-| `enjambre/herramientas/` | Los cinco: generadores de arte, sonido e icono, y las dos herramientas que montan el proyecto (`crear_objetos.py`, `registrar.py`) |
+| `enjambre/herramientas/` | Los seis: generadores de arte, sonido e icono, las dos herramientas que montan el proyecto (`crear_objetos.py`, `registrar.py`) y el importador opcional de audio CC0 |
 
 **No viajan el arte ni el sonido ni los `.yy`**, y es a propósito:
 
@@ -85,6 +85,40 @@ Los dos scripts que tocan el `.yyp` **verifican leyendo el disco**, no buscando 
 en la salida — que es como se descubrió que `sound set` no existe y dejaba las carpetas de
 sonido vacías (`12 · 09 §0` trampa 16). `registrar.py` cuenta los `.wav` que hay dentro de
 `sounds/`; `crear_objetos.py` lee el orden de salas del `.yyp` en crudo.
+
+### Peldaño opcional: sonido CC0 de verdad
+
+El sonido por defecto está **sintetizado con el módulo `wave` de Python**: ondas cuadradas
+con envolvente. Suena a lo que es. Si tienes una biblioteca de assets a mano, hay un peldaño
+más:
+
+```sh
+python3 herramientas/importar_audio_cc0.py . "/ruta/a/tu/Biblioteca de Assets"
+```
+
+Sustituye los ocho sonidos por audio de **Kenney**, y hace tres cosas que importan más que
+la sustitución en sí:
+
+1. **Comprueba la licencia pack a pack antes de copiar nada.** Lee el `License.txt` de cada
+   pack y solo usa los que dicen CC0. No se fía del nombre de la carpeta ni de un índice.
+   El texto que busca está literal en los packs de Kenney: *«License: (Creative Commons Zero,
+   CC0) — This content is free to use in personal, educational and commercial projects»*.
+2. **Verifica en el disco** que el audio llegó a `sounds/<nombre>/`, no que el comando dijera
+   «Success» (trampa 16 otra vez).
+3. **Escribe `CREDITOS-ASSETS.md`.** La atribución no es obligatoria en CC0; se pone porque
+   cuesta una línea y es lo que hace que la gente siga publicando assets libres.
+
+**Y si no tienes esa biblioteca, no pasa nada**: el script lo dice, sale con **2** —«no se ha
+podido», no «ha fallado»— y el juego se queda con su sonido generado, que funciona. Esa es la
+razón de que el sonido por defecto se genere: un juego de referencia que solo se reconstruye
+en el disco de una persona no es una referencia.
+
+> ⚠️ **Lo que NO se sustituye, y por qué.** Los sprites se quedan como están aunque la
+> biblioteca tenga naves de sobra. Las que son CC0 (`Pixel Shmup`) son **aviones de hélice de
+> la Segunda Guerra Mundial**: metidos en una arena espacial no leen como nave y enemigos,
+> leen como otro juego. Y las que sí son sci-fi pixel art a la resolución exacta son
+> justamente las que **no tienen licencia localizable** — así que no se usan. Un asset sin
+> licencia no entra por muy bien que encaje.
 
 ### Lo que queda dentro y no estorba
 
