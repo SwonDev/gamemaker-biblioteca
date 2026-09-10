@@ -26,6 +26,10 @@ GameMaker_Fuentes/
 _indice/simbolos.json
 _indice/documentos.json
 _indice/enlaces-externos-muertos.txt
+# Rastro del último fallo de la puerta de compilación. Es estado de ESTA máquina
+# —lo escribe actualizar.py cuando el paso 10 falla— y existe para poder perseguir
+# un fallo intermitente, no para viajar en el repositorio.
+_indice/ultimo-fallo-compilacion.txt
 
 # ─── Basura ──────────────────────────────────────────────────────────────────
 __pycache__/
