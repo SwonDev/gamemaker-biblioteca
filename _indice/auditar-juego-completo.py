@@ -73,15 +73,30 @@ for _flujo in (sys.stdout, sys.stderr):
 
 DRAW_GUI = "Draw_64.gml"      # número real verificado en 12/09 §2.3
 
-# Cada pieza: (clave, título, patrón sobre nombres de recurso, patrón sobre el GML)
-# Un recurso cuenta si su NOMBRE casa; el GML cuenta si alguna línea casa. Basta uno.
+# Cada pieza: (clave, título, patrón sobre nombres de recurso, patrón sobre el GML,
+#              tipos de recurso cuyo nombre vale como prueba)
+# Un recurso cuenta si su NOMBRE casa Y es de un tipo válido; el GML cuenta si alguna
+# línea casa. Basta uno.
+#
+# El quinto campo existe por un falso VERDE medido: «Pantalla de opciones» salía en ✓
+# sobre un proyecto que no tenía ninguna, porque la librería de entrada de terceros
+# incluye `__InputConfig`, `__InputCursorConfig`, `__InputIconConfigXbox`… Diez scripts
+# ajenos con «config» en el nombre bastaban para dar por hecha una pantalla.
+#
+# En GameMaker una pantalla es un OBJETO o una SALA. Un script llamado `scr_ajustes` es
+# el sitio donde viven los ajustes, no la pantalla donde se tocan. Restringir el tipo no
+# pierde nada: si la pantalla existe sin objeto ni sala, su código la delata igual por el
+# patrón de GML.
+PANTALLA = ("objects", "rooms")
 PIEZAS = [
     ("menu",      "Menú principal",
      r"menu|men[uú]|titulo|t[ií]tulo|title|portada|inicio",
-     r"\b(men[uú]_|obj_menu|rm_menu|estado_menu)\w*"),
+     r"\b(men[uú]_|obj_menu|rm_menu|estado_menu)\w*",
+     PANTALLA),
     ("opciones",  "Pantalla de opciones",
      r"opcion|option|ajuste|setting|config",
-     r"\b(opciones|ajustes|settings)\w*\s*[=\(\.]"),
+     r"\b(opciones|ajustes|settings)\w*\s*[=\(\.]",
+     PANTALLA),
     # La pausa casi nunca es `global.pausa`: en un juego con gestor de escenas es un
     # estado dentro de la máquina del nivel (`estado = "pausa"`, `menu_pausa`). La primera
     # versión de este patrón solo miraba la global y daba un falso NEGATIVO sobre un juego
@@ -89,22 +104,28 @@ PIEZAS = [
     ("pausa",     "Pausa que congela el mundo",
      r"pausa|pause",
      r"instance_deactivate_all|\bpausad[oa]\b|\bis_paused\b"
-     r"|[\"']paus[ae][\"']|\bmenu_paus[ae]\b|\b\w*_paus[ae]\b|\bpaus[ae]_\w+"),
+     r"|[\"']paus[ae][\"']|\bmenu_paus[ae]\b|\b\w*_paus[ae]\b|\bpaus[ae]_\w+",
+     PANTALLA),
     ("guardado",  "Guardar y cargar la partida",
      r"save|guardar|partida",
-     r"\b(game_save|file_text_open_write|buffer_save|json_stringify)\s*\("),
+     r"\b(game_save|file_text_open_write|buffer_save|json_stringify)\s*\(",
+     PANTALLA),
     ("creditos",  "Créditos",
      r"credito|cr[eé]dito|credit",
-     r"\bcr[eé]ditos?\b"),
+     r"\bcr[eé]ditos?\b",
+     PANTALLA),
     ("game_over", "Muerte / Game Over / cierre",
      r"gameover|game_over|derrota|muerte|final|ending",
-     r"\b(game_over|derrota|has_muerto|reintentar)\w*"),
+     r"\b(game_over|derrota|has_muerto|reintentar)\w*",
+     PANTALLA),
     ("sonido",    "Sonido en el juego",
      r"^snd_|^mus_|^sfx_",
-     r"\baudio_play_sound\s*\("),
+     r"\baudio_play_sound\s*\(",
+     ("sounds",)),
     ("mando",     "Se juega también con mando",
      r"",
-     r"\bgamepad_\w+\s*\("),
+     r"\bgamepad_\w+\s*\(",
+     ()),
 ]
 
 
@@ -126,6 +147,58 @@ def cargar_proyecto(ruta):
     recursos = re.findall(r'"id":\{"name":"([^"]+)","path":"([^"]+)"', txt)
     orden    = re.findall(r'"roomId":\{"name":"([^"]+)"', txt)
     return {"yyp": yyps[0], "recursos": recursos, "orden_salas": orden}
+
+
+def sin_comentarios(texto):
+    """El GML con los comentarios fuera, respetando las cadenas.
+
+    Nace de un falso VERDE medido. Este script daba por existentes «Menú
+    principal», «Opciones», «Pausa» y «Créditos» sobre un proyecto que no tenía
+    ninguna de las cuatro pantallas, porque un comentario decía:
+
+        // arco (splash → menu → intro → juego → final → creditos) con un fundido
+
+    Una palabra en un comentario es documentación, no implementación. Y este es el
+    fallo más caro de un auditor: un ✗ se investiga, un ✓ falso se cree y se
+    publica. Lo encontró un agente que desconfió de sus propios ticks.
+
+    No basta con partir por «//»: una cadena puede contener «//» (una URL) y
+    cortarla ahí destruiría código de verdad. Por eso se recorre carácter a
+    carácter llevando la cuenta de si estamos dentro de una cadena.
+    """
+    salida = []
+    i, n = 0, len(texto)
+    comilla = None
+    while i < n:
+        c = texto[i]
+        if comilla:
+            salida.append(c)
+            if c == "\\" and i + 1 < n:
+                salida.append(texto[i + 1])
+                i += 2
+                continue
+            if c == comilla:
+                comilla = None
+            i += 1
+            continue
+        if c in ('"', "'"):
+            comilla = c
+            salida.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and texto[i + 1] == "/":
+            while i < n and texto[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and texto[i + 1] == "*":
+            fin = texto.find("*/", i + 2)
+            trozo = texto[i:fin] if fin != -1 else texto[i:]
+            salida.append("\n" * trozo.count("\n"))   # conservar los números de línea
+            i = (fin + 2) if fin != -1 else n
+            continue
+        salida.append(c)
+        i += 1
+    return "".join(salida)
 
 
 def gml_del_proyecto(ruta):
@@ -699,14 +772,33 @@ def main():
 
     gml = "\n".join(leer(f) for f in gml_del_proyecto(ruta))
 
-    res, faltan = {}, []
-    for clave, titulo, pat_nom, pat_gml in PIEZAS:
+    # Las piezas se buscan en el CÓDIGO, no en lo que el código dice de sí mismo.
+    gml_codigo = sin_comentarios(gml)
+
+    # Cada ✓ dice QUÉ lo puso en verde. Sin eso, un tick es una afirmación que nadie
+    # puede comprobar — y este script ya ha dado por existentes pantallas que no
+    # estaban. Un ✗ es una pregunta; un ✓ mudo es una respuesta que no se puede
+    # contrastar. Enseñar la prueba convierte las dos cosas en revisables.
+    res, faltan, pruebas = {}, [], {}
+    for clave, titulo, pat_nom, pat_gml, tipos_ok in PIEZAS:
         hay = False
         if pat_nom:
             r = re.compile(pat_nom, re.I)
-            hay = any(r.search(n) for n in nombres)
+            # Solo cuentan los recursos del tipo adecuado: un script con «config» en el
+            # nombre no es una pantalla de opciones, y una librería de terceros trae diez.
+            candidatos = ([n for t in tipos_ok for n in tipos.get(t, [])]
+                          if tipos_ok else nombres)
+            casan = [n for n in candidatos if r.search(n)]
+            if casan:
+                hay = True
+                pruebas[clave] = "recurso " + ", ".join(sorted(casan)[:3])
         if not hay and pat_gml:
-            hay = bool(re.search(pat_gml, gml, re.I))
+            m = re.search(pat_gml, gml_codigo, re.I)
+            if m:
+                hay = True
+                linea = gml_codigo[:m.start()].count("\n") + 1
+                fragmento = gml_codigo.splitlines()[linea - 1].strip()[:64]
+                pruebas[clave] = "código «%s»" % fragmento
         res[clave] = hay
         if not hay:
             faltan.append(titulo)
@@ -769,8 +861,10 @@ def main():
         print("Recursos: " + " · ".join("%s %d" % (t, len(v)) for t, v in sorted(tipos.items())))
         print()
         print("Envoltorio (lista maestra de 04/00):")
-        for clave, titulo, _, _ in PIEZAS:
+        for clave, titulo, _, _, _ in PIEZAS:
             print("  %s %s" % ("✓" if res[clave] else "✗", titulo))
+            if res[clave] and clave in pruebas:
+                print("      lo pone en verde: %s" % pruebas[clave])
         print("  %s El jugador entra por una sala de portada, no por el nivel"
               % ("✓" if arranque_ok else "✗"))
         if primera:
@@ -938,8 +1032,12 @@ def _proyecto_falso(base, objetos=None, scripts=None):
 def autoprueba():
     import tempfile
     fallos = []
+    # Contadas, no escritas a mano: un número fijo en el mensaje deja de coincidir
+    # en cuanto alguien añade un caso, y entonces el propio informe miente.
+    _hechas = [0]
 
     def revisar(nombre, condicion, detalle=""):
+        _hechas[0] += 1
         if condicion:
             print("  ✓ " + nombre)
         else:
@@ -1139,10 +1237,28 @@ def autoprueba():
     revisar("un proyecto sin recursos manuales no genera aviso",
             recursos_sin_liberar("x += 1;\ndraw_self();") == [])
 
+    # sin_comentarios: el falso VERDE que encontró un agente desconfiando de sus ticks.
+    revisar("una palabra en un comentario de línea NO cuenta como código",
+            "creditos" not in sin_comentarios("// arco: menu -> final -> creditos\nx = 1;"))
+    revisar("ni en un comentario de bloque",
+            "pausa" not in sin_comentarios("/* aqui ira la pausa */\nvar _a = 1;"))
+    revisar("pero la MISMA palabra en codigo si cuenta",
+            "creditos" in sin_comentarios("estado = creditos;"))
+    revisar("y dentro de una cadena tambien, que es evidencia legitima",
+            '"pausa"' in sin_comentarios('estado = "pausa";'))
+    revisar("una // dentro de una cadena NO parte la linea",
+            "https://ejemplo.com" in sin_comentarios('var _u = "https://ejemplo.com"; x = 1;')
+            and "x = 1" in sin_comentarios('var _u = "https://ejemplo.com"; x = 1;'))
+    revisar("un comentario de bloque conserva los saltos de linea",
+            sin_comentarios("/*\n\n*/\nx = 1;").count("\n") == 3,
+            repr(sin_comentarios("/*\n\n*/\nx = 1;")))
+    revisar("un comentario de bloque sin cerrar no se come lo de antes",
+            sin_comentarios("x = 1;\n/* abierto").startswith("x = 1;"))
+
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 31 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las %d comprobaciones de la autoprueba pasan." % _hechas[0])
     return 0
 
 

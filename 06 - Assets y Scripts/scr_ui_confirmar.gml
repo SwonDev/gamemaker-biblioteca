@@ -58,7 +58,63 @@ global.confirmar = {
     // «¿salir?» reabría el diálogo indefinidamente. Fallo real encontrado al usar
     // este script en un juego (_indice/auditorias/r13-prueba-rpg.md, F-8).
     recien_cerrado : false,
+
+    // El lector de entrada, inyectable. Por defecto lee el teclado y el mando
+    // directamente, así que este script sigue funcionando solo, sin configurar nada.
+    //
+    // Por qué existe: si tu juego canaliza TODA la entrada por una sola función
+    // —que es lo que recomienda la biblioteca, y lo que un agente comprueba con
+    // `grep`—, un script reutilizable que lea el teclado por su cuenta rompe esa
+    // regla en cuanto lo pegas. Lo encontró un agente aplicando esa disciplina en
+    // un proyecto real: el script pasaba todas las pruebas y aun así incumplía la
+    // única regla de entrada del juego.
+    //
+    // Inyéctalo con confirmar_configurar_entrada(). Tiene que devolver un struct
+    // con las cuatro marcas de flanco: { izquierda, derecha, aceptar, cancelar }.
+    leer_entrada : undefined,
 };
+
+
+/// @func    confirmar_entrada_por_defecto()
+/// @desc    Lee teclado y mando directamente. Es lo que se usa si no inyectas nada.
+/// @returns {Struct} { izquierda, derecha, aceptar, cancelar }
+function confirmar_entrada_por_defecto() {
+    var _hay_mando = gamepad_is_connected(0);
+    return {
+        izquierda : keyboard_check_pressed(vk_left)
+                  || (_hay_mando && gamepad_button_check_pressed(0, gp_padl)),
+        derecha   : keyboard_check_pressed(vk_right)
+                  || (_hay_mando && gamepad_button_check_pressed(0, gp_padr)),
+        aceptar   : keyboard_check_pressed(vk_enter)
+                  || (_hay_mando && gamepad_button_check_pressed(0, gp_face1)),
+        cancelar  : keyboard_check_pressed(vk_escape)
+                  || (_hay_mando && gamepad_button_check_pressed(0, gp_face2)),
+    };
+}
+
+
+/// @func    confirmar_configurar_entrada(_lector)
+/// @desc    Hace que el diálogo lea la entrada por TU función y no por su cuenta.
+///
+///          Llámalo una vez al arrancar, después de crear tu sistema de entrada:
+///
+///          ```gml
+///          confirmar_configurar_entrada(function() {
+///              return {
+///                  izquierda : entrada_leer("izquierda", true),
+///                  derecha   : entrada_leer("derecha",   true),
+///                  aceptar   : entrada_leer("aceptar",   true),
+///                  cancelar  : entrada_leer("cancelar",  true),
+///              };
+///          });
+///          ```
+///
+///          Pásale `undefined` para volver al lector por defecto.
+/// @param   {Function} _lector  Devuelve { izquierda, derecha, aceptar, cancelar }.
+/// @returns {Undefined}
+function confirmar_configurar_entrada(_lector) {
+    global.confirmar.leer_entrada = _lector;
+}
 
 /// @function confirmar_configurar_textos(_texto_si, _texto_no)
 /// @desc    Fija los rótulos de los dos botones para TODOS los diálogos de confirmación
@@ -112,16 +168,14 @@ function confirmar_step() {
 
     if (!global.confirmar.activo) { return; }
 
-    var _hay_mando = gamepad_is_connected(0);
+    // Un único punto de lectura: el tuyo si lo inyectaste, el de por defecto si no.
+    var _lector = global.confirmar.leer_entrada;
+    var _e = is_callable(_lector) ? _lector() : confirmar_entrada_por_defecto();
 
-    var _izquierda = keyboard_check_pressed(vk_left)
-                   || (_hay_mando && gamepad_button_check_pressed(0, gp_padl));
-    var _derecha   = keyboard_check_pressed(vk_right)
-                   || (_hay_mando && gamepad_button_check_pressed(0, gp_padr));
-    var _aceptar   = keyboard_check_pressed(vk_enter)
-                   || (_hay_mando && gamepad_button_check_pressed(0, gp_face1));
-    var _cancelar  = keyboard_check_pressed(vk_escape)
-                   || (_hay_mando && gamepad_button_check_pressed(0, gp_face2));
+    var _izquierda = _e.izquierda;
+    var _derecha   = _e.derecha;
+    var _aceptar   = _e.aceptar;
+    var _cancelar  = _e.cancelar;
 
     if (_izquierda || _derecha) {
         global.confirmar.foco = 1 - global.confirmar.foco;

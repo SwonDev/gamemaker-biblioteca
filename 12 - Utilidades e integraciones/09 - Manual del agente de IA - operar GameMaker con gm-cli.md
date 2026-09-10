@@ -395,6 +395,29 @@ Variable obj_test_invento.funcion_que_no_existe_de_verdad(100003, -2147483648) n
  at gml_Object_obj_test_invento_Create_0 (line 2) - funcion_que_no_existe_de_verdad(5, "hola");
 ```
 
+> 🛡️ **Y ahora hay una red que lo caza antes de ejecutar.**
+> `python3 "$BIB/_indice/validar-proyecto.py" <proyecto>` **sale con 1** cuando encuentra una
+> llamada a un nombre que no existe en ninguna parte, con la regla precisa que lo distingue de
+> un método de struct: **si un nombre se llama y no se le asigna nada en todo el proyecto, no
+> puede ser un método** — un método siempre nace de algo (`foo: function(){}`, `foo = …`,
+> `static foo = …`, `var _f = method(…)`, un parámetro, o un `#macro`).
+>
+> Esto nació de caer en la trampa **dentro de esta misma biblioteca**: se escribió
+> `confirmar_cerrar()` de memoria en un banco de pruebas, compiló con exit 0, y el juego se
+> colgó al arrancar sin decir nada. El nombre aparecía en la lista informativa de «nombres
+> desconocidos», mezclado con métodos de struct legítimos — y ahí no lo vio nadie. Una lista
+> que mezcla lo cierto con lo dudoso enseña a desconfiar de ella entera.
+>
+> **Dos calibraciones, las dos medidas sobre proyectos reales de 3 668 llamadas:**
+>
+> - Una **`#macro` cuyo cuerpo empieza por paréntesis** —`#macro vk_period (…)`— parece una
+>   llamada. Así entraban ocho constantes de una librería de entrada real.
+> - Las funciones de **plataforma o extensión** (`steam_*`, `ps4_*`, `ps5_*`, `switch_*`,
+>   `admob_*`…) existen, pero no en el índice del runtime de escritorio. Van a **una categoría
+>   aparte**, agrupadas por familia, y **no hacen fallar**: un proyecto con Steam y mando de
+>   consola trae decenas y todas son correctas. Meterlas entre los errores convertiría la
+>   lista en ruido.
+
 El mensaje dice **«variable»**, no «función inexistente» — GML resuelve los identificadores en
 tiempo de ejecución y una llamada a algo que no existe se comporta, a efectos del compilador,
 como leer una variable global no inicializada. Un agente que solo mire el `exit code` de

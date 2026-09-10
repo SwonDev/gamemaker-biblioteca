@@ -12,7 +12,7 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r28 · 2026-09-10 -->
+<!-- SKILL-VERSION: r29 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -228,7 +228,7 @@ los errores de todo lo que venga después.
 | Un concepto en la biblioteca | `python3 "$BIB/_indice/buscar.py" --texto "delta_time"` |
 | Cómo lo resuelve código real | `python3 "$BIB/_indice/buscar.py" --codigo "state machine"` |
 | La página oficial completa | `gm-cli manual read "surface_create"` o el archivo `manual (es)` que da la ficha, bajo `$BIB/09 - Manual oficial/manual-lts-2026-es/` |
-| Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` |
+| Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` — **sale con 1** si alguien llama a un nombre que no existe en ninguna parte, que es lo que compila limpio y revienta al arrancar. Distingue la función inventada del método de struct: si un nombre se llama y **no se le asigna nada** en todo el proyecto, no es un método. Las de plataforma (`steam_*`, `ps5_*`…) van aparte y no hacen fallar |
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
 | Tengo un dibujo y necesito la hoja de sprites animada | `sprite-gen` (Apache-2.0, skill de Codex/Claude + CLI) monta el atlas y su `manifest.json`; el paso a GameMaker, que él no trae, lo hace `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` → `gm-cli resourcetool script`. Receta en `12/09 §5.2` peldaño 2 ter |
 | ¿Este PNG hay que repararlo, o repararlo lo destruye? | `python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>` — **antes** de pasarle `pixel-art-fixer` a nada |
@@ -236,7 +236,7 @@ los errores de todo lo que venga después.
 | **¿Cabe el texto traducido?** | `python3 "$BIB/_indice/medir-caja-de-texto.py" idiomas/*.json --hoja fuente.png --celda 8x11 --mapa-archivo mapa.txt --caja 356 --sep 1 [--espacio 4] [--escala 1.5]` — reproduce `font_add_sprite_ext` y mide **cadena a cadena**. «Diseña con el idioma más largo» NO se aplica en bloque: medido, el español era un 9,1 % más largo en total y aun así **el inglés ganaba en 23 de 79 cadenas**. Caza además los caracteres que faltan en el mapa —**miden cero**, así que mutilan la palabra Y falsean la cuenta— y el espacio sin celda, que GameMaker sustituye por **la anchura del carácter más ancho**. Criterio en `04/21 §4 bis` |
 | Voy a pedirle un sprite a **Retro Diffusion** y cuesta dinero | `python3 "$BIB/_indice/validar-peticion-retrodiffusion.py" peticion.json [--imagen inicio.png] [--presupuesto 0.50]` — **antes de mandarla**. Comprueba el estilo contra el catálogo, el tamaño contra los límites de ese estilo concreto (no los de la API), el lote, las referencias, los prefijos `data:`, y mide el fotograma de partida **en disco**. No usa red ni clave: no puede gastar. Las nueve trampas caras, en `07/23 §1 bis.1` — la primera es que **el POST de v2 no devuelve la imagen** y quien lea `base64_images` de esa respuesta se queda sin nada y con el cargo hecho |
 | ¿Las trampas del CLI siguen siendo ciertas hoy? | `bash "$BIB/_indice/verificar-trampas.sh"` — las reproduce contra el CLI instalado. Si alguna ya no se cumple, este documento está desfasado |
-| ¿El código reutilizable de la biblioteca hace lo que dice? | `bash "$BIB/_indice/validar-ejecucion.sh"` — monta un juego real y lo **ejecuta**: **192 comprobaciones** sobre los 13 scripts de `06`. Compilar no es ejecutar: sacó cuatro fallos que compilaban limpios |
+| ¿El código reutilizable de la biblioteca hace lo que dice? | `bash "$BIB/_indice/validar-ejecucion.sh"` — monta un juego real y lo **ejecuta**: **200 comprobaciones** sobre los 13 scripts de `06`. Compilar no es ejecutar: sacó cuatro fallos que compilaban limpios. **Valida el banco antes de arrancarlo**, porque un nombre inventado ahí dentro compila con exit 0 y CUELGA la ejecución sin decir nada |
 | Compilar (desde la carpeta del `.yyp`) | `gm-cli compile` · ejecutar: `gm-cli run` |
 | Crear o editar recursos (objetos, sprites, rooms, eventos) | `gm-cli resourcetool eval "<comando>"` o el MCP `gamemaker-resource-tool` del proyecto |
 | Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "<plantilla>" --ai --toolchain GMS2@2026.0.0.23` — el `-n` **solo admite letras, números, guiones y guiones bajos**: «Cripta de las Placas» falla con `Use only letters, numbers, dashes, and underscores`. El nombre bonito del juego se pone luego en `options set … property=display_name value="Cripta de las Placas"`, entrecomillado |

@@ -403,6 +403,24 @@ def indice_de_zips(raiz, tope=6000):
     return indice
 
 
+# Nombres de estructura, no de pack. Una carpeta que se llama «Assets» o «FUENTES»
+# se parece a todo, y esa semejanza no significa nada.
+#
+# Medido, y era peligroso: a profundidad 3 la herramienta llegó a insinuar que la
+# licencia del Pixel Font Megapack o la de un pack de Kenney podría amparar
+# `7-extraidos-de-juegos/Faeria/FUENTES`, `Hero Quest/Assets` y `Luckyland/Assets`
+# — es decir, sugería que un rip tenía dueño. Una pista falsa que apunta a material
+# prohibido es mucho peor que ninguna pista.
+GENERICOS = {
+    "assets", "asset", "fuentes", "fonts", "font", "sheets", "sheet", "ttf", "otf",
+    "packed", "samples", "sample", "sprites", "sprite", "audio", "sound", "sounds",
+    "music", "musica", "images", "imagenes", "textures", "texturas", "ui", "gui",
+    "icons", "iconos", "data", "src", "source", "content", "resources", "recursos",
+    "pack", "packs", "extras", "misc", "otros", "new", "old", "temp", "tmp", "png",
+}
+MIN_CLAVE = 10          # «assets» son 6 y no dice nada; «pixelfontmegapack», 17
+
+
 def zips_hermanos(nombre_pack, indice):
     """Los `.zip` de cualquier carpeta cuyo nombre encaje con el del pack.
 
@@ -411,8 +429,10 @@ def zips_hermanos(nombre_pack, indice):
     nombre es exactamente lo que no se debe hacer a ciegas. Se señala para que
     alguien lo abra.
     """
+    if nombre_pack.strip().lower() in GENERICOS:
+        return []
     clave = _clave(nombre_pack)
-    if len(clave) < 6:
+    if len(clave) < MIN_CLAVE or clave in GENERICOS:
         return []
     salida = []
     for otra, rutas in indice.items():
@@ -590,14 +610,42 @@ def dictaminar(d, solo_fuentes=False):
                 f"«{nombre}» tiene {d['medios']} archivos de medios {que}. "
                 "Sin licencia no entra — y esto es distinto de «la licencia lo prohíbe»: "
                 "el cliente puede resolverlo enseñando la factura.")
+            if not d["candidatos_zip"] and len(_clave(nombre)) < MIN_CLAVE:
+                notas.append(
+                    f"«{nombre}» tiene un nombre demasiado genérico para buscarle un `.zip` "
+                    "hermano. Apunta la herramienta a la RAÍZ de la biblioteca con "
+                    "`--profundidad 2`: así el pack se llama como el pack, y no como la "
+                    "subcarpeta donde guarda las hojas.")
             if d["candidatos_zip"]:
                 bloqueos.append(
                     "   PERO hay un `.zip` con licencia y nombre parecido en otra carpeta: "
-                    + ", ".join(os.path.basename(x) for x in d["candidatos_zip"])
+                    # Con la carpeta delante, porque dos copias del mismo `.zip` en sitios
+                    # distintos se ven idénticas si solo enseñas el nombre — y entonces el
+                    # informe parece repetirse cuando en realidad son dos archivos.
+                    + ", ".join(os.path.join(os.path.basename(os.path.dirname(x)),
+                                             os.path.basename(x))
+                                for x in d["candidatos_zip"])
                     + ". ÁBRELO antes de dar este pack por perdido. Es candidato, NO "
                     "veredicto: hay un caso medido de dos packs distintos con el mismo "
                     "nombre y licencias diferentes, así que empareja licencia con archivo, "
                     "no con nombre.")
+
+        # La mitad peligrosa del caso anterior: un archivo que SÍ se llama `LICENCE.txt`
+        # y cuyo texto es un resumen de Creative Commons recortado — reconoce «Creative
+        # Commons» y por eso pasaba la comprobación de abajo, pero no dice CUÁL ni de
+        # QUIÉN. Quien lo lea concluirá que puede usarlo sin acreditar a nadie, cuando el
+        # README del mismo pack exige crédito y prohíbe NFT. Un archivo con nombre de
+        # licencia parece autoridad, y ahí está el daño.
+        if any(f.startswith("CC ") for f in d["familias"]):
+            textos = [_leer_texto(x) for x in d["licencias"]]
+            crudo = " ".join(textos)
+            if crudo and not re.search(r"creativecommons\.org|\b[1-4]\.0\b|"
+                                       r"\bversion\s*[1-4]\b", crudo, re.I):
+                avisos.append(
+                    f"«{nombre}» dice «Creative Commons» pero NO nombra la versión ni "
+                    "enlaza la licencia: parece un resumen recortado. Un resumen de CC no "
+                    "dice a quién hay que acreditar, y CC BY sin atribución es "
+                    "incumplimiento. Busca el autor en el README antes de usarlo.")
 
         if d["familias"] == {"sin clasificar"} and (d["licencias"] or d["zips_con_licencia"]):
             avisos.append(
