@@ -347,9 +347,28 @@ más que el anterior a la hora de resolver colisiones.
 >    la máscara con ella, y la caja vuelve a latir. Es el error exacto que se cometió al proponer
 >    esta salida por primera vez.
 >
-> 2. **`Ellipse`** — una circunferencia inscrita es invariante a la rotación, y además quita los
->    falsos positivos de las esquinas en piezas redondas. Es campo del sprite, así que no
->    depende de que nadie escriba bien un `Draw`.
+> 2. **`Ellipse`** — quita los falsos positivos de las esquinas en piezas redondas, y es campo
+>    del sprite, así que no depende de que nadie escriba bien un `Draw`.
+>
+>    ⚠️ **Pero NO impide que el bbox crezca**, y eso hay que decirlo porque es contraintuitivo:
+>    una circunferencia es invariante a la rotación, sí — pero la **caja que reporta el motor**
+>    no lo es. Medido en ejecución, con el mismo instrumento y el mismo ángulo:
+>
+>    | Sprite | Máscara | Ancho a 45° |
+>    |---|---|---:|
+>    | 18 × 18 px | `Rectangle` (control) | 25,46 px (+41,4 %) |
+>    | 18 × 18 px | **`Ellipse`** | **25,46 px (+41,4 %)** |
+>    | 24 × 24 px | **`Ellipse`** | **33,94 px (+41,4 %)** |
+>
+>    Idéntico. Así que **cualquier código que lea `bbox_left`, `bbox_right`, `bbox_top` o
+>    `bbox_bottom` de una instancia que gire está leyendo una caja que late**, tenga la máscara
+>    que tenga.
+>
+>    Lo que la elipse sí cambia es la **segunda fase** de la comprobación: GameMaker mira
+>    primero el solape de cajas y **después** la máscara. Que la caja crecida deje pasar un
+>    candidato no significa que la colisión se resuelva a favor — eso lo decide la máscara. **Lo
+>    medido aquí es la caja, no el golpe**; si tu juego depende de que el golpe sea justo,
+>    mídelo con `place_meeting()` a 0°, 45° y 90° antes de fiarte.
 >
 > 3. **`Rectangle With Rotation`** — la caja gira con la instancia y conserva su tamaño. Es más
 >    barata que `Ellipse`… pero **descartada salvo que sepas lo que arrastra**: la comprobación
