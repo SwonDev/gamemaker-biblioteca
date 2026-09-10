@@ -159,7 +159,7 @@ versión instalada y el fallo persiste idéntico.
 | Endless Runner Template | 🔴 igual | En esta sesión |
 | Idle Game Template | 🔴 igual | En esta sesión |
 | Twin Stick Shooter Template | 🔴 igual | En esta sesión |
-| Match 3 Template | 🔴 igual | Auditoría r4 |
+| Match 3 Template | 🔴 falla, pero **por otra causa**: `Error: invalid zip data`, no `PREFABS RESTORE` (reverificado 2026-09-10, 2 de 2 veces). **El rodeo A no le sirve**: sustituir el `gmpm.dll` no arregla un zip corrupto | Auditoría r4 · reverificado r20 |
 | Card Game Template | 🔴 igual | Auditoría r4 |
 | Cover Assault | 🔴 igual | Auditoría r4 |
 | Hero's Trail Base - GML Visual | ⚠️ `Template not found` (ni nombre completo ni parcial) | Auditoría r4 — puede haberse retirado del catálogo |
@@ -1557,7 +1557,7 @@ existe**, y el error no siempre lo dice.
 | Lo que un agente escribe | Qué pasa | Lo que hay que escribir |
 |---|---|---|
 | `sound set name=X path=…`<br>`sound import name=X path=…` | La carpeta `sounds/X/` se crea **vacía**: ni un `.wav` dentro. Y como el proyecto se guarda igual, la salida contiene «Success» — un script que busque esa palabra da el import por bueno | `sound setfile name=X path="…"` |
-| `object event findorcreate name=X type=create subtype=create` | **No crea nada** y no da error legible. El `Create_0.gml` sencillamente no aparece | `object event findorcreate name=X type=create` — **sin `subtype`**. Los eventos que no tienen subtipo (Create, CleanUp, Destroy) hay que pedirlos sin el argumento |
+| `object event findorcreate name=X type=create subtype=create` | **No crea nada.** Y sí dice por qué —`Event type 'create' does not have subtypes, but subtype 'create' was given.`— pero el mensaje se pierde si filtras la salida buscando «Success» o «error», que es como se cayó aquí la primera vez | `object event findorcreate name=X type=create` — **sin `subtype`**. Los eventos que no tienen subtipo (Create, CleanUp, Destroy) hay que pedirlos sin el argumento |
 | `options set platform=mac name=icon_png value=…` | `Ignoring Argument: NAME` · `Missing Argument: PROPERTY` | `options set platform=mac property=icon_png value="…"` |
 
 **La lección, más allá de los tres nombres**: el único modo fiable de saber qué acepta un
@@ -1603,6 +1603,17 @@ agente sin manos ejerce el juego que acaba de construir —lo que convierte «co
 navega»—. Si el guion suelta la tecla, cada pulsación cuenta doble y el recorrido se sale por
 donde no debe, y el síntoma es una captura equivocada, no un error.
 
+> ⚠️ **Reverificación del 2026-09-10: NO se reproduce aislada.** Un auditor la probó en
+> **siete configuraciones** —mismo objeto, emisor en Begin Step con receptor en Step, con
+> `ord("P")` y con `vk_escape`, soltando en el mismo fotograma, al siguiente y cinco después,
+> y sin soltar— y midió **siempre un solo borde**. La observación original es real y está
+> arriba con su salida, pero se dio en un juego concreto —un objeto persistente leyendo la
+> entrada junto a otros dos en el mismo fotograma— y **no se ha aislado qué la provocaba**.
+>
+> Así que trátala como lo que es: **un síntoma medido una vez, no una regla del motor**. Si
+> tu menú se come una pulsación de cada dos, esta es la primera hipótesis que probar —quitar
+> el `release` cuesta una línea—; pero no supongas que pasa siempre.
+
 **Qué hacer**: en un guion de prueba, **pulsa y no sueltes** si el juego se cierra poco después;
 si necesitas varias pulsaciones de la misma tecla, suelta y deja pasar al menos un fotograma
 antes de contar el siguiente borde. Y sobre todo, **elige teclas sin doble significado**: `ESC`
@@ -1630,7 +1641,11 @@ de la **API de Windows**. En macOS esa DLL no existe y no puede existir. Es el *
 empaquetado, no el primero.
 
 **Lo que sí tienes cuando eso falla** — y esto es lo que nadie dice: el `.exe` de Windows **ya
-está construido**. Medido el 2026-09-09 con el juego de [`r18`](../_indice/auditorias/r18-prueba-visual.md):
+está construido**. Ojo al orden, que se midió mal la primera vez y lo corrigió una
+reverificación: **`compile` a secas deja solo `<proyecto>.win` y `options.ini`, sin `.exe`**.
+El `.exe` y el `data.win` los produce el **`package`**, justo antes de morir en el sellado de
+la versión. Es decir: hay que lanzar el `package` que falla para quedarse con el ejecutable.
+Medido el 2026-09-09 con el juego de [`r18`](../_indice/auditorias/r18-prueba-visual.md):
 
 ```console
 $ ls .gmcache/build-gms2-windows-VM/output/

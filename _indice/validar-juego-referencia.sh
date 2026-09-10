@@ -67,6 +67,7 @@ cd "$PROY" || exit 2
 python3 herramientas/generar_arte.py arte    >/dev/null 2>&1 || fallos=$((fallos + 1))
 python3 herramientas/generar_sonido.py sonido >/dev/null 2>&1 || fallos=$((fallos + 1))
 python3 "$RAIZ/_indice/pruebas/generar_glifos.py" glifos >/dev/null 2>&1 || fallos=$((fallos + 1))
+python3 herramientas/generar_icono.py arte icono >/dev/null 2>&1 || fallos=$((fallos + 1))
 python3 herramientas/crear_objetos.py . >/dev/null 2>&1 || fallos=$((fallos + 1))
 python3 herramientas/registrar.py .      >/dev/null 2>&1 || fallos=$((fallos + 1))
 
@@ -98,6 +99,10 @@ n_inst=$(grep -c '"%Name":"inst_' rooms/rm_titulo/rm_titulo.yy rooms/rm_juego/rm
 [ "$n_inst" -ge 4 ] 2>/dev/null && bien "$n_inst" || mal "$n_inst (sin instancias la sala está vacía)"
 
 echo
+paso "el icono llegó a options/ (lo exige el auditor)"
+n_ico=$(find options -name "*.png" 2>/dev/null | wc -l | tr -d ' ')
+[ "$n_ico" -ge 1 ] 2>/dev/null && bien "$n_ico" || mal "ninguno (`property=`, no `name=`)"
+
 paso "el GML no inventa ninguna función"
 if python3 "$RAIZ/_indice/validar-proyecto.py" "$PROY" >/dev/null 2>&1; then bien "limpio"; else mal "hay funciones inventadas o aridades mal"; fi
 

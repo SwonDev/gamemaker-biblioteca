@@ -491,9 +491,13 @@ def main():
 
     print(f"runtime: {len(runtime)} símbolos · propias definidas: {len(definidas)} · "
           f"extensiones/librerías: {len(externas) if corpus_instalado else 'sin instalar'}")
-    print(f"{len(propias)} funciones propias de ejemplo (informativo) · "
-          f"{len(graves)} posibles funciones del runtime INVENTADAS")
 
+    # La cifra se imprime DESPUÉS de descontar lo que el corpus ausente impide juzgar.
+    # Antes iba delante, y en un clon recién bajado el informe se contradecía a sí mismo:
+    # decía «2 posibles funciones INVENTADAS» arriba y «el código no inventa funciones»
+    # abajo, con la explicación de en medio oculta por el filtro de `actualizar.py`.
+    # Dos líneas visibles diciendo lo contrario la una de la otra enseñan a no creerse
+    # ninguna de las dos.
     if graves and not corpus_instalado:
         # Sin el corpus de `11 - Código descargado` no se puede distinguir una función
         # inventada de una de extensión (steam_*, scribble_*, input_*…). Se informa, pero
@@ -506,6 +510,10 @@ def main():
         print("  Pueden ser funciones de extensión perfectamente válidas. Para comprobarlo,")
         print("  trae el corpus con `./reconstruir.sh codigo` y vuelve a ejecutar.")
         graves = {}
+        print("  → sin corpus NO se acusa a nadie: cuentan como 0 inventadas.")
+
+    print(f"{len(propias)} funciones propias de ejemplo (informativo) · "
+          f"{len(graves)} posibles funciones del runtime INVENTADAS")
 
     # Un documento que YA avisa de que ese nombre no es del runtime está haciendo lo
     # correcto: dejarlo en la lista para siempre sería ruido, y el ruido enseña a
