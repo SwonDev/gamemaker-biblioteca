@@ -1957,6 +1957,56 @@ documenta (`screen_save()` de §7.3, el modo QA de §7.4, `gm-cli run`/`pkill` d
 lo que faltaba no era capacidad, era la disciplina de no aceptar «no dio ningún error» como
 sinónimo de «funciona». Los dos quedan en el checklist de §12.
 
+### 8.6 bis · Los TRES peldaños de una verificación, y los dos verdes que no valen
+
+`§8.6` dice que compilar no es funcionar. Hay un peldaño más entre medias, y saltárselo es lo
+que produce la mayoría de los verdes falsos:
+
+| Peldaño | Qué prueba | Qué NO prueba |
+|---|---|---|
+| 1 · **El comando dice que sí** | que la herramienta no devolvió error | nada más — y `Saving...Success` puede ser el guardado del proyecto, no tu comando |
+| 2 · **El archivo dice que sí** | que el valor quedó escrito en el `.yy` | que ese valor haga lo que crees |
+| 3 · **El juego corriendo dice que sí** | el efecto real | — |
+
+**Los dos primeros son baratos, y por eso se usan; el que importa es el tercero.**
+
+> 📌 **Un caso medido que lo resume.** Un rol cambió nueve velocidades de reproducción y
+> verificó leyendo los `.yy` de vuelta: `fallos = 0`. Correcto y honesto — peldaño 2. Pero **en
+> esa misma línea de salida iba impreso el `yorigin = 18`** que desplazaba cuatro piezas una
+> celda entera, y el ✓ no lo estaba mirando. Lo tuvo delante y no lo vio, porque estaba
+> comprobando **la escritura, no el efecto**.
+
+#### El verde por omisión: cuando la comprobación no mira lo que hace falta
+
+Es la otra mitad, y se cuela igual de fácil. Dos formas medidas en la misma sesión:
+
+- **Una lista escrita a mano.** Una comprobación de encaje recorría los cuatro objetos que
+  existían el día que se escribió. En cuanto alguien añadiera un quinto, habría dicho `✓` **sin
+  haberlo mirado**. Se arregla enumerando por una **marca que el propio sistema pone** —«toda
+  instancia que lleve `nivel_col`»— en vez de por una lista que hay que acordarse de ampliar.
+- **Una guarda que sale callando.** `if (!is_struct(gestor)) { exit; }` sobre un id de
+  instancia salía por la puerta de atrás **sin imprimir ni un ✓ ni un ✗**. La comprobación
+  existía, se llamaba, y no comprobaba nada.
+
+> 🔴 **La regla que sale de las dos: una comprobación que no se ejecuta, o que no mira todo lo
+> que dice mirar, es PEOR que no tenerla** — porque su silencio se lee como aprobado. Haz que
+> cada comprobación diga **cuántas cosas ha mirado**, no solo si le han gustado. Un
+> «`PAPELES ✓ 0 piezas`» informa; un `✓` a secas, no.
+
+#### Y cuando una herramienta no puede ver todo el problema, dilo
+
+Una comprobación en ejecución solo ve **objetos que existen y están en la sala**. Si vas a
+cambiar diez recursos y solo uno tiene objeto, tu banco validará uno y los otros nueve viajarán
+sin mirar.
+
+La salida que funcionó, medida: una **maqueta fuera del motor** que reproduce la aritmética del
+constructor y cubre los once recursos sin necesitar objetos. Y lo que la hace fiable no es que
+exista, sino que **coincide al píxel con el banco en el único caso que ven las dos**. Acertar
+en el caso contrastable es lo único que justifica creerle sobre los otros. Etiquétala como
+**maqueta**, no como captura: reproduce tu lectura del código, no el código.
+
+---
+
 ### 8.7 · El guion de humo: arrancar, capturar sola y verificar el guardado sin manos
 
 §8.6 dice **qué** comprobar. Esta sección es el **cómo**, reproducible por un agente sin manos

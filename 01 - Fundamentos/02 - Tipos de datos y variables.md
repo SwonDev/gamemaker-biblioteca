@@ -515,6 +515,24 @@ llamadas de cero argumentos pese a como se suelen citar por su nombre:
 `is_method(v)` · `is_callable(v)` · `is_ptr(v)` · `is_int32(v)` · `is_int64(v)` ·
 `is_undefined(v)` · `is_nan(v)` · `is_infinity(v)` · `is_handle(v)`
 
+> ⚠️ **`is_struct()` devuelve `false` para una instancia de objeto.** Lo dice el manual —*«object
+> instances will return false»*— y es fácil de olvidar porque una instancia se usa con la misma
+> sintaxis de punto que un struct. Un `id` de instancia es un **handle**, no un struct.
+>
+> **Lo caro no es el dato, es cómo se manifiesta.** Medido en un proyecto real: una función de
+> comprobación empezaba con `if (!is_struct(gestor)) { exit; }` sobre un id de instancia, así
+> que **salía por la puerta de atrás sin imprimir nada** — ni un ✓, ni un ✗, ni un aviso. La
+> comprobación existía, se llamaba, y no comprobaba nada.
+>
+> **Una comprobación que no se ejecuta y no lo dice es peor que no tenerla**, porque su
+> silencio se lee como aprobado. Solo se descubrió porque quien la escribió esperaba una línea
+> concreta en la salida y no apareció.
+>
+> Para una instancia, la guarda es **`instance_exists()`**. Y si una función puede recibir las
+> dos cosas, compruébalas por separado y **haz que el caso «no era ninguna de las dos» diga
+> algo**, en vez de salir callando.
+
+
 ```gml
 // Ejemplo: validar la entrada de un archivo de guardado
 function cargar_guardado(_ruta)
