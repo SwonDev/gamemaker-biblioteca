@@ -1,0 +1,9 @@
+if (!variable_instance_exists(id, "escala")) escala = 1;
+if (!variable_instance_exists(id, "tono")) tono = c_white;
+sprite_index = spr_explosion;
+image_speed = 0;
+cuadro = 0;
+dir = random(360);
+rapidez = random_range(0.6, 3.2);
+giro = random_range(-6, 6);
+ang = random(360);

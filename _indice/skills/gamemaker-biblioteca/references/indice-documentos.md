@@ -403,3 +403,15 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md` — 27 · Formatos de producción especiales
 - `13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md` — 28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice
+
+
+## `14 - Juego de referencia` — Un juego completo, montado y funcionando
+
+«Enjambre», un juego entero construido con esta biblioteca que compila y se ejecuta: especificación previa, arte y sonido generados por código, el arco completo de pantallas de 04/00, guardado con versión y checksum, dos idiomas y mando. Viaja solo la FUENTE: el arte y el sonido se regeneran con los generadores de su carpeta `herramientas/`.
+
+**Usar cuando:** quieres ver cómo encajan entre sí las piezas que las recetas enseñan por separado · necesitas un ejemplo real de envoltorio completo: portada, menú, opciones, pausa, derrota · buscas cómo se hace una fuente con tildes sin .ttf, o una cámara a escala 2 · quieres un juego que se conduce solo para poder fotografiarlo y probarlo
+
+**No usar para:** aprender diseño de juego: para eso están las recetas de 04 y los documentos de 13 · copiar sistemas sueltos: los reutilizables están en 06 - Assets y Scripts · buscar un juego bonito: es correcto y completo, no una demostración de arte
+
+- `14 - Juego de referencia/README.md` — 14 · Juego de referencia — «Enjambre»
+- `14 - Juego de referencia/enjambre/ESPECIFICACION.md` — «Enjambre» — especificación

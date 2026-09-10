@@ -45,7 +45,7 @@ alguno de ellos, cada script lo dice explícitamente en vez de fallar con un tra
 
 ## Qué hay dentro
 
-**270 documentos en español**, del `if` a cómo se firma una build para Steam. No solo el motor:
+**272 documentos en español**, del `if` a cómo se firma una build para Steam. No solo el motor:
 diseño de juego y GDD, niveles, pixel art, animación, VFX y shaders, UI y accesibilidad, cámaras,
 arquitectura, generación procedural, físicas y fluidos, combate, IA, pathfinding, progresión,
 sonido, narrativa, testing, producción y negocio. Y **59 recetas por género**, de plataformas a
@@ -83,7 +83,7 @@ Proyecto independiente, sin relación con YoYo Games.
 # Biblioteca de conocimiento · GameMaker LTS 2026
 
 > **Puerta de entrada única** a toda la base de conocimiento de GameMaker de este repositorio.
-> Última ampliación: **1 de septiembre de 2026** · **270 documentos propios en español**,
+> Última ampliación: **1 de septiembre de 2026** · **272 documentos propios en español**,
 > **6 152 páginas de manual oficial espejado**, **la API completa del runtime** y
 > **635 repositorios con 61 959 archivos `.gml`**. 3,8 GB · UTF-8.
 > Versión de referencia: **GameMaker LTS 2026.0** (IDE 2026.0.0.16 · GMS2 Runtime 2026.0.0.23) ·
@@ -167,7 +167,7 @@ respetan **en inglés** (son la API real). Las explicaciones y los comentarios e
 | 🆕 [13 - Diseño y producción de videojuegos](./13%20-%20Dise%C3%B1o%20y%20producci%C3%B3n%20de%20videojuegos/_INDICE-DISENO.md) | 28 | Diseño de juego (core loop, balance, dificultad, GDD), niveles, pixel art y resolución, animación (Sequences, Animation Curves), UI/UX, arquitectura del proyecto, generación procedural avanzada, físicas a mano y fluidos, sonido y mezcla, testing y QA, producción y lanzamiento, narrativa, matemáticas aplicadas, 🆕 formatos de producción especiales (kiosco, educativo, publicitario, infantil, *streaming*) | **El oficio de hacer juegos, no solo el motor.** Lo que va antes y alrededor del código, con GML verificado |
 | 🆕 [_indice](./_indice/) | 5 + skill + memoria | `buscar.py` (buscador offline), `validar-proyecto.py` (valida el GML de un proyecto real), `actualizar.py` (mantenimiento en un comando), `simbolos.json` (3 486 símbolos), `documentos.json`, la skill [`skills/gamemaker-biblioteca/`](./_indice/skills/gamemaker-biblioteca/SKILL.md) — instalable en nueve CLI de IA distintos, ver [«Qué CLI están soportados»](#qué-cli-de-ia-están-soportados) —, y [`traduccion/`](./_indice/traduccion/README.md) (memoria de 4 503 frases y 2 009 celdas con la que se completó el manual en español) | **La forma rápida de encontrar cualquier cosa, desde aquí o desde otro proyecto** |
 
-**Total: 270 documentos propios en español + 6 152 páginas de manual + 635 repositorios.**
+**Total: 272 documentos propios en español + 6 152 páginas de manual + 635 repositorios.**
 
 ### El buscador: úsalo antes que nada
 
