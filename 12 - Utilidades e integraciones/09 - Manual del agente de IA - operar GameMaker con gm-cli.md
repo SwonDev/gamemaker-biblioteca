@@ -1652,6 +1652,14 @@ comprobado recalculándolo fuera del juego.
 | Probarlo de verdad | ✅ coge `enjambre.exe` + `data.win` de `.gmcache/build-gms2-windows-VM/output/` |
 | Un `.zip` distribuible, con versión sellada | ❌ hace falta Windows: una máquina o un *runner* de CI |
 
+> 🔵 **Y el sitio desde donde se llama a `screen_save()` importa, en contra de lo que parece.**
+> Llamarlo desde el **Step** funciona: captura el fotograma anterior, que es justo lo que hace
+> falta. Se probó a moverlo al evento **Post-Draw** —donde `application_surface` está viva y
+> parecía el sitio «correcto»— y **las dos capturas salieron negras**, también la de
+> `screen_save()` que llevaba toda una sesión funcionando. Medido y revertido el 2026-09-10.
+> Si tu captura sale negra, mira desde qué evento la pides antes de buscar culpables más
+> exóticos.
+>
 > ⚠️ **Y una advertencia sobre `screen_save()` bajo Wine**: el juego se ve corriendo en el log
 > —DirectX11 por hardware, `Run_Start`, menús respondiendo— pero el PNG que produce
 > `screen_save()` sale **completamente negro**. No se ha podido distinguir si es cosa de la
