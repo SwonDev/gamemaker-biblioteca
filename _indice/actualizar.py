@@ -368,6 +368,9 @@ def main():
         # Las cinco señales que separan un pack usable de uno que no puede entrar.
         # Si este metro se descalibra, se publican assets sin derechos.
         ("auditar-biblioteca-assets.py", "licencias, rips y tipografías de una biblioteca"),
+        # El texto que no cabe no da error: sale en pantalla, y solo en el idioma que
+        # nadie probó. Este metro mide la caja antes de que se vea.
+        ("medir-caja-de-texto.py",    "anchura real del texto de cada idioma"),
     ]
     _aplazadas = []       # las que necesitan algo que aún no existe en este clon
 
