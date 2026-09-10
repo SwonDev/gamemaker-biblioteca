@@ -295,7 +295,20 @@ def sincronizar_mapa(docs, n_simbolos):
         # Además de los .md, estas carpetas guardan scripts .gml listos para usar
         # (máquina de estados, tween, pathfinding…). Son contenido, no ruido:
         # si no se indexan aquí, ningún LLM los encuentra.
+        #
+        # **Excepción: el juego de referencia.** Sus ~30 `.gml` son eventos de objeto
+        # —`Create_0`, `Step_0`, uno por objeto— y no son piezas reutilizables: un
+        # `Create_0.gml` suelto no le sirve a nadie fuera de su juego. Indexarlos uno a
+        # uno metía 31 «documentos» donde solo hay 2, dejaba el juego como la segunda
+        # carpeta más grande de la biblioteca y llenaba las búsquedas de texto de
+        # fragmentos sin contexto. Se indexan su README y su especificación, que es lo
+        # que explica el conjunto — mismo criterio que `11 - Código descargado`, que
+        # tiene catálogo en vez de entrada por archivo.
+        _juego_ref = os.path.join(RAIZ, carpeta, "enjambre")
         for r, _dirs, fs in os.walk(os.path.join(RAIZ, carpeta)):
+            if os.path.commonpath([os.path.abspath(r), os.path.abspath(_juego_ref)]) == \
+                    os.path.abspath(_juego_ref):
+                continue
             for f in sorted(fs):
                 if not f.endswith(".gml"):
                     continue

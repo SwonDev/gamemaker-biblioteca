@@ -39,7 +39,7 @@ que un agente interpreta como «la herramienta está rota» en vez de «la bibli
 - **`✓`** → todo lo de abajo funciona tal cual.
 - **`⚠`** → la biblioteca está, pero le falta el índice de símbolos, que se genera del
   **runtime instalado** (un clon recién bajado de GitHub sin GameMaker en la máquina está así).
-  Los 270 documentos, las recetas y los validadores funcionan; lo que no funciona es
+  Los 272 documentos, las recetas y los validadores funcionan; lo que no funciona es
   `buscar.py <símbolo>`. Para verificar una firma usa `gm-cli manual read "<símbolo>"`, y si
   hay GameMaker instalado arréglalo de una vez con `python3 "$BIB/_indice/actualizar.py"`.
 - **`✗`** → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de
@@ -285,6 +285,12 @@ documentos, generado del disco, en [`references/indice-documentos.md`](reference
 | Qué cambió en 2026, qué versión usar | `02 - Novedades 2026/01 - Resumen LTS 2026.0.md` → `README.md` §2 |
 | Enseñar a alguien que aprende | `RUTA.md`: sitúa el nivel por lo que sabe hacer y da solo material de su nivel y el siguiente |
 | No sé por dónde empezar | `_indice/COMO-BUSCAR.md` |
+
+> 🎮 **Y si lo que quieres es ver un juego ENTERO montado**, no una pieza suelta:
+> `14 - Juego de referencia/` trae «Enjambre» completo —especificación previa, arte y
+> sonido generados por código, portada, menú, opciones, pausa, derrota, guardado con
+> versión y checksum, dos idiomas y mando—, con la fuente entera y los generadores
+> para reconstruirlo. Compila y se ejecuta. Su README dice qué mirar para cada cosa.
 
 ## Orden de autoridad cuando las fuentes se contradicen
 
