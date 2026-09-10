@@ -26,7 +26,7 @@ Hace, en orden y parando al primer fallo real:
 Sale con 0 solo si todo está correcto. Cualquier otra cosa es trabajo pendiente
 y lo dice explícitamente.
 """
-import os, re, subprocess, sys, json
+import os, re, subprocess, sys, json, time
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
 # propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
@@ -577,8 +577,26 @@ def main():
         problemas.append("no se pudo comprobar la compilación de los bloques ```gml "
                           "(python3 _indice/validar-compilacion-docs.py para ver por qué)")
     elif r.returncode != 0:
+        # Un fallo que no deja rastro no se puede perseguir. Este paso ya falló una vez
+        # de forma intermitente —exit 1 en un clon, y al repetirlo pasó— y no quedó ni
+        # una línea del error: `actualizar.py` filtra la salida del hijo a las líneas
+        # que empiezan por ✓/✗, y un fallo del compilador no empieza por ninguna de las
+        # dos. Ahora la salida completa se guarda, y el mensaje dice dónde.
+        _reg = os.path.join(IND, "ultimo-fallo-compilacion.txt")
+        try:
+            with open(_reg, "w", encoding="utf-8") as _f:
+                _f.write("# Salida completa de validar-compilacion-docs.py (exit %d)\n"
+                         "# Guardada por actualizar.py el %s\n\n"
+                         % (r.returncode, time.strftime("%Y-%m-%d %H:%M")))
+                _f.write(r.stdout or "")
+                if r.stderr:
+                    _f.write("\n--- stderr ---\n" + r.stderr)
+            _donde = " · salida completa en _indice/ultimo-fallo-compilacion.txt"
+        except OSError:
+            _donde = ""
         problemas.append("hay bloques ```gml de la documentación que no compilan "
-                          "(python3 _indice/validar-compilacion-docs.py para el detalle)")
+                          "(python3 _indice/validar-compilacion-docs.py para el detalle)"
+                          + _donde)
 
     paso(11, "Integración entre documentos (¿dos recetas definen lo mismo distinto?)")
     r = subprocess.run([PY, os.path.join(IND, "validar-integracion.py")],
