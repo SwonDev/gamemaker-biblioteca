@@ -321,6 +321,76 @@ fnt_cirilico = font_add("NotoSans.ttf", 24, false, false, 0x0400, 0x04FF);
 
 ---
 
+## 4 bis · ¿Cabe? — la regla del «idioma más largo» no se puede aplicar en bloque
+
+Todo el mundo repite la misma regla: *diseña la caja con el idioma más largo y los demás
+caben solos*. Aplicada en bloque, esa regla **deja texto fuera de pantalla**, y lo hace en
+silencio: no hay error, no hay excepción, no aparece en las pruebas del idioma en que se
+escribió el juego. Aparece en una captura, ya publicado.
+
+**Medido sobre una tabla real de 79 claves, español e inglés, con una fuente de sprite:**
+
+| Qué | Resultado |
+|---|---|
+| El español, **en total** | un 9,1 % más largo que el inglés |
+| Pero **cadena a cadena** | **el inglés gana en 23 de las 79**, hasta 26 px más |
+| Con la caja diseñada «para el español» | tres cadenas se salían igual |
+
+La media no protege a la cadena concreta. `menu_options` puede ser más corto en español y
+`pause_resume` más largo, y basta una para que el menú se vea roto. **La regla es correcta;
+lo que está mal es aplicarla al idioma en vez de a cada cadena.**
+
+### La herramienta que lo mide
+
+```sh
+python3 "$BIB/_indice/medir-caja-de-texto.py" idiomas/es.json idiomas/en.json \
+    --hoja fuente.png --celda 8x11 --mapa-archivo mapa.txt --caja 356 --sep 1
+```
+
+Reproduce exactamente lo que hace `font_add_sprite_ext(spr, mapa, prop, sep)`: parte la
+hoja en celdas iguales, cada celda es el glifo del carácter que ocupa esa posición en el
+mapa, y con `prop = true` el avance es **la anchura pintada + `sep`**. No aplica kerning,
+porque esa función tampoco. Lee el PNG él mismo, sin depender de Pillow. Sale con 0, 1 o 2
+y **no escribe nada**.
+
+Devuelve cuatro cosas, y las cuatro son fallos que no dan error en ejecución:
+
+1. **Qué cadenas no caben**, con su anchura y en qué idioma.
+2. **Qué palabra suelta es más ancha que la caja** — ahí partir la línea no arregla nada.
+3. **Qué caracteres no están en el mapa de la fuente.** Cada uno **mide cero**: la palabra
+   sale mutilada *y la propia cuenta de anchura se queda corta*, mintiendo a tu favor.
+4. **Qué idioma gana cadena a cadena**, con el reparto. Si no gana siempre el mismo, la
+   regla de oro no se puede aplicar en bloque y te lo dice.
+
+> ✅ **Verificado contra una verdad de referencia.** El «Pixel Font Megapack» publica en su
+> `.json` el avance (`adv`) de cada glifo. La medida de esta herramienta coincidió con la
+> suya en **177 de 177**, lo que confirma de paso que `adv = anchura pintada + 1`.
+
+### El espacio es el caso peor, y hay que mirarlo siempre
+
+Si la hoja **no trae celda para el espacio**, `font_add_sprite_ext` no usa la anchura del
+espacio: usa **la del carácter más ancho** ([`08 · 03`](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md#font_add_sprite_extspr-string_map-prop-sep)).
+En la fuente medida eso convierte un espacio de 3 px en 9, y una frase de ocho palabras se
+ensancha 48 px de golpe.
+
+Medido sobre esa misma tabla de 79 claves:
+
+- **Sin la celda del espacio: tres cadenas desbordan.**
+- **Con la celda añadida: cabe todo, cero problemas.**
+
+No es un detalle cosmético: es la diferencia entre publicar con texto cortado o no. La
+opción `--espacio N` responde a «¿y si la añadimos?» antes de dibujarla, y el informe
+avisa de que ese número está forzado y no es lo que hará GameMaker hoy.
+
+> ⚠️ **Y una tercera trampa del español que no tiene que ver con la caja:** `string_upper()`
+> y `string_lower()` **solo cubren de la A a la Z** — el manual lo dice literalmente.
+> `string_upper("La Última Raíz")` devuelve `"LA úLTIMA RAíZ"`. Si un título va en
+> mayúsculas, va escrito así **en la clave**, no convertido en tiempo de ejecución. El
+> aviso completo y las tres salidas están en
+> [`08 · 12`](../08%20-%20Referencia%20GML%20completa/12%20-%20Strings.md#string_upperstring).
+
+---
+
 ## 5 · Traducción asistida por IA — el flujo moderno
 
 Aquí está lo que hace 2026 distinto de 2010: **no contratas diez traductores para el borrador,

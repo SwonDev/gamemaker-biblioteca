@@ -436,6 +436,7 @@ str2 = string_insert(username, "Hello, , how are you?", 8);
 
 - **Devuelve:** String
 - **Qué hace:** Devuelve una copia del string con todas las letras en **minúsculas**.
+- ⚠️ **Solo de la A a la Z**, igual que `string_upper`: `string_lower("EL AÑO")` devuelve `"el AÑo"`. El aviso completo y las tres salidas están en [`string_upper`](#string_upperstring).
 - **Ejemplo:**
 
 ```gml
@@ -453,6 +454,34 @@ str2 = string_lower(str1);
 str1 = "Hello World";
 str2 = string_upper(str1);
 ```
+
+> ⚠️ **En español esto corrompe el texto sin dar error.** El manual oficial lo dice con
+> todas las letras: *«This function only detects the 26 letter English alphabet from
+> A - Z»*. Las tildes, las eñes y las diéresis **se quedan como están**:
+>
+> ```gml
+> string_upper("La Última Raíz");   // → "LA úLTIMA RAíZ"   ← no es un error, es la salida
+> string_lower("EL AÑO");           // → "el AÑo"
+> ```
+>
+> No hay excepción, ni aviso, ni valor de retorno que lo delate: la cadena sale mezclada y
+> se dibuja tal cual en pantalla. Es de los fallos más caros de esta biblioteca porque
+> sobrevive a todas las pruebas hechas en inglés.
+>
+> **Las tres salidas, por orden de preferencia:**
+>
+> 1. **Escribe la clave ya en mayúsculas** en la tabla de idiomas y no llames a la
+>    función. Es lo que hace el texto localizado bien hecho: el traductor decide cómo se
+>    escribe su idioma, no una función de la A a la Z.
+> 2. **`Unic`**, del catálogo de `11 · Código descargado` — resuelve mayúsculas y orden
+>    alfabético con ñ. Está fichada en
+>    [`12 · 05` §8](../12%20-%20Utilidades%20e%20integraciones/05%20-%20Pipeline%20de%20arte%2C%20audio%20y%20niveles.md#8-localización).
+> 3. Una tabla de sustitución propia, solo si lo anterior no encaja — y sabiendo que
+>    tendrás que mantenerla para cada idioma que añadas.
+>
+> Y no lo arregla dibujar: una fuente de sprite sin la `Ú` en su mapa **tampoco** avisa —
+> el glifo ausente mide cero (`13 · 24` y `07 · 09 §10 bis.6`).
+
 
 ### `string_repeat(str, count)`
 
