@@ -251,6 +251,94 @@ function confirmar_prueba_no_se_reabre()
     keyboard_key_press(vk_right);      // mover el foco de "No" a "Sí"
 }
 
+// El lector inyectable, que es lo que permite cumplir «toda la entrada por UNA
+// función». Sin estas comprobaciones, el gancho compilaba y nadie sabía si de
+// verdad se usaba: `confirmar_step()` podía seguir leyendo el teclado por su
+// cuenta y las pruebas de arriba habrían pasado igual, porque simulan teclas.
+//
+// Corren al FINAL, después de `confirmar_prueba_cerrar()`, y dejan el diálogo
+// cerrado. La primera versión se metió en medio de la secuencia y dejó uno
+// abierto: reventó una prueba ajena que llevaba meses en verde. Una prueba que
+// no devuelve el estado como lo encontró rompe a la siguiente, no a sí misma.
+function confirmar_prueba_lector_inyectado()
+{
+    global.res_lector = { veces: 0, mover: false };
+    confirmar_configurar_entrada(method(global.res_lector, function() {
+        veces++;
+        return { izquierda: false, derecha: mover, aceptar: !mover, cancelar: false };
+    }));
+
+    global.res_confirmar = { si: 0, no: 0 };
+    confirmar_abrir("¿Seguro?",
+        method(global.res_confirmar, function() { si++; }),
+        method(global.res_confirmar, function() { no++; }));
+    confirmar_step();
+
+    comprobar("el lector inyectado SE LLAMA", global.res_lector.veces == 1,
+              global.res_lector.veces);
+    // El foco arranca en «No» a PROPÓSITO: aceptar sin moverlo tiene que ejecutar
+    // la acción segura. No es un fallo del lector — es la salvaguarda del script,
+    // y esta prueba existe para que nadie la quite sin enterarse.
+    comprobar("aceptar sin mover el foco ejecuta 'No' (la salvaguarda)",
+              global.res_confirmar.no == 1 && global.res_confirmar.si == 0,
+              "si=" + string(global.res_confirmar.si) + " no=" + string(global.res_confirmar.no));
+}
+
+function confirmar_prueba_lector_elige_si()
+{
+    confirmar_step();                       // limpia el «recién cerrado»
+    global.res_confirmar = { si: 0, no: 0 };
+    confirmar_abrir("¿Seguro?",
+        method(global.res_confirmar, function() { si++; }),
+        method(global.res_confirmar, function() { no++; }));
+
+    global.res_lector.mover = true;         // el lector pide «derecha»
+    confirmar_step();
+    global.res_lector.mover = false;        // y ahora «aceptar»
+    confirmar_step();
+
+    comprobar("moviendo el foco por el lector inyectado, 'Sí' SÍ se elige",
+              global.res_confirmar.si == 1 && global.res_confirmar.no == 0,
+              "si=" + string(global.res_confirmar.si) + " no=" + string(global.res_confirmar.no));
+}
+
+function confirmar_prueba_lector_por_defecto()
+{
+    confirmar_step();                       // limpia el «recién cerrado»
+    confirmar_configurar_entrada(undefined);
+
+    var _e = confirmar_entrada_por_defecto();
+    comprobar("el lector por defecto devuelve las cuatro marcas",
+              is_struct(_e) && variable_struct_exists(_e, "izquierda")
+              && variable_struct_exists(_e, "derecha")
+              && variable_struct_exists(_e, "aceptar")
+              && variable_struct_exists(_e, "cancelar"));
+    comprobar("y sin ninguna tecla pulsada, las cuatro son falsas",
+              !_e.izquierda && !_e.derecha && !_e.aceptar && !_e.cancelar);
+
+    global.res_lector.veces = 0;
+    global.res_confirmar = { si: 0, no: 0 };
+    confirmar_abrir("¿Seguro?",
+        method(global.res_confirmar, function() { si++; }),
+        method(global.res_confirmar, function() { no++; }));
+    confirmar_step();
+    comprobar("tras quitar la inyeccion, el lector viejo YA NO se llama",
+              global.res_lector.veces == 0, global.res_lector.veces);
+    comprobar("y sin teclas no pasa nada",
+              global.res_confirmar.si == 0 && global.res_confirmar.no == 0);
+
+    // Se devuelve el estado como estaba: cancelar cierra el diálogo.
+    keyboard_key_press(vk_escape);
+}
+
+function confirmar_prueba_lector_limpiar()
+{
+    confirmar_step();
+    keyboard_key_release(vk_escape);
+    confirmar_step();
+    comprobar("el banco del lector deja el dialogo CERRADO", !confirmar_activo());
+}
+
 function confirmar_prueba_mover_foco()
 {
     confirmar_step();

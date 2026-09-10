@@ -135,6 +135,14 @@ def extensiones_del_proyecto(ruta):
     return nombres
 
 
+# Familias de funciones que existen solo en su plataforma o con su extensión
+# instalada. La biblioteca ya lo documenta: `steam_*` y `admob_*` no están en
+# `buscar.py` y se verifican contra el código descargado.
+PAT_PLATAFORMA = re.compile(
+    r"^(ps4|ps5|psvita|xboxone|xboxseries|xboxlive|switch|nx|steam|steamworks|"
+    r"admob|iap|facebook|gpg|amazon|ovr|oculus|winrt|uwp|android|ios|tvos)_", re.I)
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     todo = "--todo" in sys.argv
@@ -248,7 +256,7 @@ def main():
                                    for n, casos in problemas_aridad.items()},
             "desconocidas": {n: sorted(a) for n, a in desconocidas.items()},
         }, ensure_ascii=False, indent=1))
-        return 1 if (inventadas or problemas_aridad) else 0
+        return 1 if (inventadas or problemas_aridad or inexistentes) else 0
 
     print(f"{len(archivos)} archivos .gml · {total} llamadas analizadas · runtime del índice "
           f"{meta.get('runtime')}")
@@ -303,6 +311,72 @@ def main():
         for nom in desconocidas:
             if re.search(r"function\s+" + re.escape(nom) + r"\s*\(", crudo_todo):
                 fantasmas.add(nom)
+    # ── La distinción que separa un método de struct de una función inventada.
+    #
+    # La lista de «desconocidas» es informativa a propósito: mezcla métodos de
+    # struct, extensiones sin instalar y funciones que de verdad no existen. Pero
+    # esa mezcla escondía el fallo nº 2 de todo este proyecto — el compilador NO
+    # detecta funciones inventadas: compila con exit 0 y revienta al ejecutar.
+    #
+    # Medido sobre este mismo repositorio: se escribió `confirmar_cerrar()` de
+    # memoria en un banco de pruebas, compiló limpio, y el juego se colgó al
+    # arrancar. El nombre salía en esta lista como una nota informativa más.
+    #
+    # La regla que sí discrimina: un nombre que se LLAMA y no se ASIGNA en ninguna
+    # parte del proyecto no puede ser un método de struct. Un método siempre nace
+    # de algo — `foo: function(){}` en un literal, `foo = function(){}`, un
+    # `var _f = method(...)`. Si no hay ni una asignación en todo el árbol, no es
+    # un método: es un nombre que no existe.
+    inexistentes, plataforma = {}, {}
+    if desconocidas:
+        crudo_todo = "\n".join(crudos.values())
+        for nom, donde in desconocidas.items():
+            if nom in fantasmas:
+                continue
+            # ¿Se asigna en algún sitio? `nom =`, `nom:`, `var nom`, o llega como
+            # parámetro / se declara con `static`.
+            asignado = re.search(
+                r"(^|[^\w.])" + re.escape(nom) + r"\s*(=[^=]|:)"
+                r"|\bvar\s+" + re.escape(nom) + r"\b"
+                r"|\bstatic\s+" + re.escape(nom) + r"\b"
+                r"|\bglobalvar\s+" + re.escape(nom) + r"\b"
+                # `#macro NOMBRE (…)` — y ojo: cuando el cuerpo de la macro empieza
+                # por paréntesis, la propia declaración PARECE una llamada. Así
+                # entraban aquí ocho constantes `vk_*` que la librería de entrada
+                # define exactamente así. Medido sobre un proyecto real.
+                r"|#macro\s+" + re.escape(nom) + r"\b"
+                r"|\benum\s+\w+\s*\{[^}]*\b" + re.escape(nom) + r"\b"
+                r"|\bfunction\s*\([^)]*\b" + re.escape(nom) + r"\b",
+                crudo_todo, re.M | re.S)
+            if asignado:
+                continue
+            if PAT_PLATAFORMA.match(nom):
+                plataforma[nom] = donde
+            else:
+                inexistentes[nom] = donde
+    # Las de plataforma y extensión existen — pero no aquí. Van aparte porque
+    # meterlas en la lista de arriba la volvería ruido: un proyecto que soporta
+    # Steam y mando de consola trae decenas, y todas son correctas.
+    if plataforma:
+        print(f"\n· {len(plataforma)} función(es) de PLATAFORMA o EXTENSIÓN: existen al "
+              "compilar para esa consola o con esa extensión instalada, no en este índice.")
+        print("  No son un error aquí; sí lo serían si llamas a una sin guardarla tras la "
+              "comprobación de plataforma correspondiente.")
+        familias = {}
+        for nom in plataforma:
+            fam = nom.split("_")[0]
+            familias[fam] = familias.get(fam, 0) + 1
+        print("  " + " · ".join(f"{k}_*: {v}" for k, v in sorted(familias.items())))
+
+    if inexistentes:
+        print(f"\n\033[1m✗ {len(inexistentes)} llamada(s) a un nombre que NO existe en ninguna "
+              f"parte:\033[0m")
+        print("  Ni lo define el proyecto, ni lo declara el runtime, ni se le asigna nada en")
+        print("  ningún sitio — así que tampoco es un método de struct. **Esto compila con")
+        print("  exit 0 y revienta al ejecutar**, que es el fallo más caro de GameMaker.")
+        for nom, donde in sorted(inexistentes.items()):
+            print(f"  {nom}()  en {', '.join(sorted(donde)[:3])}")
+
     if fantasmas:
         print(f"\n⚠ {len(fantasmas)} de esos nombres SÍ están definidos en el proyecto y el")
         print("  analizador no los vio — no los persigas, arregla el archivo que los contiene:")
@@ -317,7 +391,7 @@ def main():
     elif desconocidas:
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
               f"(--todo para verlos): métodos de struct, funciones que faltan o extensiones sin instalar.")
-    return 1 if (inventadas or problemas_aridad) else 0
+    return 1 if (inventadas or problemas_aridad or inexistentes) else 0
 
 
 def autoprueba():
@@ -341,7 +415,12 @@ def autoprueba():
         print("  y entonces esta autoprueba sí puede correr.")
         return 2
 
+    # Contadas, no escritas a mano: un número fijo deja de coincidir en cuanto
+    # alguien añade un caso, y entonces el propio informe miente.
+    _hechas = [0]
+
     def revisar(nombre, condicion, detalle=""):
+        _hechas[0] += 1
         if condicion:
             print("  ✓ " + nombre)
         else:
@@ -411,10 +490,63 @@ def autoprueba():
                            capture_output=True, text=True)
         revisar("una carpeta inexistente NO sale con 0", r.returncode != 0, "exit %d" % r.returncode)
 
+    # ── El nombre que no existe en ninguna parte.
+    #
+    # Es el fallo nº 2 de cualquier proyecto de GameMaker: el compilador NO detecta
+    # funciones inventadas — compila con exit 0 y revienta al ejecutar. Medido en
+    # este mismo repositorio: se escribió `confirmar_cerrar()` de memoria en un
+    # banco de pruebas, compiló limpio, y el juego se colgó al arrancar sin decir
+    # nada. Salía en la lista informativa de «desconocidas», mezclado con métodos
+    # de struct legítimos, y ahí no lo vio nadie.
+    with tempfile.TemporaryDirectory() as tmp:
+        c, o = proyecto(os.path.join(tmp, "fantasma"), {
+            "scr_f": "function usar() {\n  funcion_que_me_invente();\n}\n"})
+        revisar("un nombre que no existe en ninguna parte hace FALLAR",
+                c == 1 and "NO existe en ninguna parte" in o, "exit %d" % c)
+
+        # Y los cinco patrones legítimos que NO puede confundir con eso. Cada uno
+        # es una forma real de tener una función sin declararla con `function`.
+        c, o = proyecto(os.path.join(tmp, "struct"), {
+            "scr_s": 'function f() {\n  var _s = { saludar: function() { return 1; } };\n'
+                     '  with (_s) { saludar(); }\n}\n'})
+        revisar("un método de un literal de struct NO se marca", c == 0, o.strip()[-150:])
+
+        c, o = proyecto(os.path.join(tmp, "metodo"), {
+            "scr_m": "function f() {\n  var _g = method(undefined, function() { return 1; });\n"
+                     "  return _g();\n}\n"})
+        revisar("un método guardado en una local NO se marca", c == 0, o.strip()[-150:])
+
+        c, o = proyecto(os.path.join(tmp, "estatico"), {
+            "scr_e": "function C() constructor {\n  static avanzar = function() { return 1; };\n"
+                     "  avanzar();\n}\n"})
+        revisar("un static NO se marca", c == 0, o.strip()[-150:])
+
+        c, o = proyecto(os.path.join(tmp, "parametro"), {
+            "scr_p": "function f(_al_terminar) {\n  _al_terminar();\n}\n"})
+        revisar("un parámetro que es función NO se marca", c == 0, o.strip()[-150:])
+
+        # La macro cuyo cuerpo empieza por paréntesis: su propia declaración PARECE
+        # una llamada. Así entraban ocho constantes `vk_*` de una librería real.
+        c, o = proyecto(os.path.join(tmp, "macro"), {
+            "scr_k": "#macro vk_punto       (os_type == os_windows ? 0xBE : 0x6E)\n"
+                     "function f() { return vk_punto; }\n"})
+        revisar("una #macro con cuerpo entre paréntesis NO se marca",
+                c == 0, o.strip()[-150:])
+
+        # Y las de plataforma o extensión: existen, pero no en este índice. Meterlas
+        # en la lista de errores la convertiría en ruido y se dejaría de leer.
+        c, o = proyecto(os.path.join(tmp, "plataforma"), {
+            "scr_c": "function f() {\n  steam_input_init();\n  ps5_gamepad_reset_color(0);\n}\n"})
+        revisar("las funciones de plataforma o extensión NO hacen fallar",
+                c == 0 and "PLATAFORMA o EXTENSIÓN" in o, "exit %d" % c)
+        revisar("y se agrupan por familia para poder leerlas",
+                "steam_*" in o and "ps5_*" in o, o.strip()[-200:])
+
+
     if fallos:
         print("\n✗ %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n✓ Las 10 comprobaciones de la autoprueba pasan.")
+    print("\n✓ Las %d comprobaciones de la autoprueba pasan." % _hechas[0])
     return 0
 
 

@@ -219,6 +219,20 @@ gm-cli resourcetool eval \
 grep -q "inst_test" "$PROY/rooms/room1/room1.yy" \
   || { echo "✗ la instancia de prueba no llegó a la sala"; exit 2; }
 
+# Antes de arrancar, el banco se valida a sí mismo. Un nombre inventado en el propio
+# banco compila con exit 0 y CUELGA la ejecución sin decir nada — pasó de verdad aquí,
+# con un `confirmar_cerrar()` escrito de memoria: el juego se quedó colgado y el script
+# se agotó por tiempo, sin una sola línea que dijera por qué. Diez segundos de
+# comprobación se ahorran diez minutos de silencio.
+echo "Validando el banco antes de arrancarlo…"
+if ! python3 "$RAIZ/_indice/validar-proyecto.py" "$PROY" > /tmp/validar_banco.txt 2>&1; then
+  echo "✗ El banco de pruebas NO pasa su propia validación. NO se ejecuta:"
+  sed -n '/NO existe en ninguna parte/,/^$/p' /tmp/validar_banco.txt | head -12
+  grep -E "✗" /tmp/validar_banco.txt | head -6
+  exit 1
+fi
+echo "  ✓ ninguna llamada a un nombre que no exista"
+
 echo "Ejecutando…"
 SALIDA="$(cd "$PROY" && gm-cli run --toolchain "GMS2@2026.0.0.23" 2>&1)"
 LINEA="$(echo "$SALIDA" | grep -o "RESULTADO: [0-9]* correctas, [0-9]* fallidas" | tail -1)"

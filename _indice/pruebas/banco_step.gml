@@ -28,6 +28,11 @@ if (paso == 9)
 
 // Los tweens avanzan con `delta_time`, así que hay que dejarles frames de verdad.
 // 0,1 s a 60 fps son ~6 frames; se les dan 12 para que no dependa del ritmo exacto.
+if (paso == 10) confirmar_prueba_lector_inyectado();
+if (paso == 11) confirmar_prueba_lector_elige_si();
+if (paso == 12) confirmar_prueba_lector_por_defecto();
+if (paso == 13) confirmar_prueba_lector_limpiar();
+
 if (paso >= 10) { tween_update(); audio_step(); }
 
 if (paso == 22)
