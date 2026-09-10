@@ -12,7 +12,7 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r37 · 2026-09-10 -->
+<!-- SKILL-VERSION: r38 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
@@ -234,6 +234,7 @@ los errores de todo lo que venga después.
 | La página oficial completa | `gm-cli manual read "surface_create"` o el archivo `manual (es)` que da la ficha, bajo `$BIB/09 - Manual oficial/manual-lts-2026-es/` |
 | Validar todo el GML de un proyecto | `python3 "$BIB/_indice/validar-proyecto.py" /ruta/al/proyecto` — **sale con 1** si alguien llama a un nombre que no existe en ninguna parte, que es lo que compila limpio y revienta al arrancar. Distingue la función inventada del método de struct: si un nombre se llama y **no se le asigna nada** en todo el proyecto, no es un método. Las de plataforma (`steam_*`, `ps5_*`…) van aparte y no hacen fallar |
 | **¿Es un juego o solo un bucle de juego?** | `python3 "$BIB/_indice/auditar-juego-completo.py" /ruta/al/proyecto` |
+| **Cómo se verifica de verdad** | **Tres peldaños, y los dos primeros son los baratos**: el comando dice que sí → el archivo dice que sí → **el juego corriendo dice que sí**. Medido: alguien verificó nueve valores leyendo los `.yy` (`fallos = 0`, honesto) y en esa misma línea iba impreso el origen que desplazaba cuatro piezas una celda — comprobó la escritura, no el efecto. Y cuidado con el **verde por omisión**: una lista de objetos escrita a mano da ✓ sin mirar los nuevos, y una guarda mal elegida (`is_struct` sobre un id de instancia) sale callando. **Una comprobación que no dice cuántas cosas ha mirado no vale.** `13/10 §8.6 bis` |
 | **`gm-cli run` que no termina** | Un error de EJECUCIÓN abre un **diálogo modal** en el runner de Mac y la ejecución **no acaba jamás** — en una sesión sin manos no es «falla», es «no termina». Observado dos veces: 600 s sin una línea de salida, y dos runners zombis. **Pon SIEMPRE un tope de tiempo** (macOS no trae `timeout`: lánzalo en segundo plano, sondea, y mata **solo tu proceso** — `pkill -f` se lleva los de otro rol). Y antes de ejecutar, `validar-proyecto.py`, que caza la causa más común. `12/09` trampa 22 |
 | **`other` dentro de un `with`** | **No ve las `var` locales** de la función de fuera: `other._local` revienta con «not set before reading it» — y al ser error de ejecución, **cuelga la sesión** (trampa 22). Usa una variable de instancia, o un struct, que sí viaja por referencia. `12/09` trampa 23 |
 | **Colocar piezas por casilla** | `nivel_mapa_construir()` crea cada instancia en la **esquina** de su casilla, así que **todo sprite de rejilla lleva el origen en (0,0)**. Medido: un origen centrado-abajo (9,18) desplazó la pieza media celda a la izquierda y una entera arriba, **sin un solo error** — el nivel parece mal diseñado en vez de mal montado. Y muerde en lote: tres piezas más lo habrían hecho el día que alguien montara el primer nivel. Criterio en `06 · README` |
