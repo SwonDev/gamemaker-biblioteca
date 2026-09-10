@@ -529,6 +529,30 @@ Todas las funciones nativas usadas en estos scripts se han comprobado contra el 
 con `gm-cli manual read "<función>"`. El manual que consulta el CLI es el **monthly**, accesible
 offline.
 
+### `scr_nivel_mapa.gml` — y la regla del origen que no está en el código
+
+`nivel_mapa_construir()` crea cada instancia en la **esquina** de su casilla. Eso significa
+que **todo sprite que se coloque por rejilla tiene que llevar el origen en (0,0)**.
+
+**Medido sobre un proyecto real**: un sprite de 18×18 con origen (9,18) —centrado abajo, que
+es lo correcto para un personaje— salió desplazado **9 px a la izquierda y 18 arriba**, es
+decir media celda y una celda entera. Sin un solo error: la pieza simplemente está donde no
+toca, y el nivel parece mal diseñado en vez de mal montado.
+
+| Cómo se coloca la pieza | Origen |
+|---|---|
+| **Por casilla**, con el constructor de mapa (suelo, escalera, palanca, esqueje, punto de control) | **(0,0)** |
+| **Por su centro**, colocada a mano o por código (el personaje, un proyectil) | el que necesite — centrado abajo para un personaje que pisa el suelo |
+
+> ⚠️ **Y muerde en lote.** En el caso medido, cuatro sprites de rejilla compartían el mismo
+> origen heredado del personaje. Uno se detectó porque su objeto se probaba; los otros tres
+> eran piezas que todavía no había colocado nadie, y habrían salido desplazadas igual **el día
+> que se montara el primer nivel** — cuando ya cuesta mucho más relacionar el síntoma con la
+> causa.
+
+Se comprueba en la sala de pruebas comparando el `bbox` de cada instancia con la casilla que
+debería ocupar; una comprobación de dos líneas que se queda puesta para siempre.
+
 ### ✅ Confirmadas como nativas (se usan, no se reimplementan)
 
 `lerp` · `clamp` · `angle_difference` · `dsin` · `dcos` · `abs` · `sign` · `min` · `max` ·

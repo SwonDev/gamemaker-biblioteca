@@ -1880,6 +1880,88 @@ de reproducción.
 > `.yy`**. Es exactamente lo que ya avisa la [trampa 16](#trampa-16--los-subcomandos-que-un-agente-adivina-mal-sound-setfile-typecreate-sin-subtipo-y-options-set-property),
 > apareciendo en un sitio nuevo.
 
+### Trampa 22 · Un error de ejecución no «falla»: NO TERMINA NUNCA
+
+Esto cambia cómo hay que llamar a `gm-cli run` desde un agente, y es la trampa más cara de
+todas en una sesión sin manos.
+
+Cuando el juego se topa con un error de **ejecución** —una función que no existe (trampa 4),
+un `other._local` dentro de un `with` (abajo)— el runner de Mac **abre un diálogo modal** y se
+queda ahí, esperando a que alguien lo cierre. En una sesión con una persona delante eso es una
+molestia. En una sesión de agente **la ejecución no termina jamás**.
+
+**Observado dos veces, de forma independiente:**
+
+- En el banco de pruebas de esta misma biblioteca: un `confirmar_cerrar()` escrito de memoria
+  —una función que no existe— dejó `validar-ejecucion.sh` **más de 600 s sin una sola línea de
+  salida**, hasta que se agotó el tiempo del proceso que lo llamaba. No hubo error, no hubo
+  traza: hubo silencio.
+- En un proyecto real, con un `other._malos += 1` sobre una variable local: **dos runners
+  zombis** que hubo que matar a mano.
+
+> 🔴 **La consecuencia operativa**: un agente que espere a que `gm-cli run` termine puede
+> esperar para siempre, y lo que verá su supervisor es «sigue trabajando», no «ha fallado».
+
+**La mitigación, y no es opcional: tope de tiempo.** macOS no trae `timeout`, así que se hace
+a mano — lanzar en segundo plano, sondear, y matar **solo el proceso que lanzaste tú**:
+
+```bash
+TOPE=240
+( cd "$PROY" && gm-cli run > salida.log 2>&1 ) &
+pid=$!
+esperado=0
+while kill -0 "$pid" 2>/dev/null; do
+  sleep 2; esperado=$((esperado + 2))
+  if [ "$esperado" -ge "$TOPE" ]; then
+    echo "✗ lleva ${TOPE}s sin terminar — casi seguro un error de ejecución con diálogo modal"
+    tail -12 salida.log
+    kill "$pid" 2>/dev/null; sleep 1; kill -9 "$pid" 2>/dev/null
+    pkill -P "$pid" 2>/dev/null       # sus hijos, NO `pkill -f`: eso mata los de otro rol
+    exit 1
+  fi
+done
+```
+
+`_indice/validar-ejecucion.sh` ya lo lleva puesto (`TOPE_SEGUNDOS`, 240 por defecto), y está
+**probado disparando**: con el tope a 4 s corta con exit 1, enseña las últimas líneas del log y
+no deja ningún runner vivo.
+
+**Y la red de delante**: `validar-proyecto.py` sale con 1 ante una llamada a un nombre que no
+existe, que es la causa más común de este cuelgue. Diez segundos de comprobación contra un
+tiempo de espera infinito.
+
+---
+
+### Trampa 23 · Dentro de un `with`, `other` NO ve las variables locales de fuera
+
+```gml
+var _malos = 0;
+with (obj_enemigo) {
+    other._malos += 1;      // ✗ «Variable ... not set before reading it»
+}
+```
+
+`other` da acceso a la instancia que llamó al `with` — a sus **variables de instancia**, no a
+las `var` locales de la función donde está escrito el bloque. La local existe en el ámbito
+léxico, no en la instancia, así que `other._malos` busca una variable de instancia que nadie
+ha creado.
+
+**Lo caro no es el error, es cómo se manifiesta**: es un error de ejecución, así que dispara
+la [trampa 22](#trampa-22--un-error-de-ejecución-no-falla-no-termina-nunca) y **cuelga la
+sesión**.
+
+Las dos salidas:
+
+```gml
+// a) una variable de instancia, no una local
+malos = 0;
+with (obj_enemigo) { other.malos += 1; }
+
+// b) o un contenedor que se captura por referencia
+var _cuenta = { n: 0 };
+with (obj_enemigo) { _cuenta.n += 1; }     // el struct SÍ viaja
+```
+
 ---
 
 ## 1 · El ciclo completo del agente
