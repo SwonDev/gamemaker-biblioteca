@@ -1962,6 +1962,47 @@ var _cuenta = { n: 0 };
 with (obj_enemigo) { _cuenta.n += 1; }     // el struct SÍ viaja
 ```
 
+### Trampa 24 · El truco de «pasar un valor inventado para que te liste los válidos» NO es universal
+
+Varios subcomandos de `resourcetool`, ante un valor que no reconocen, imprimen la lista de los
+que aceptan. Es el atajo que usa un agente para averiguar el vocabulario de un campo sin
+documentación.
+
+**No funciona en todos.** Medido el 2026-09-10 sobre `collisionKind`:
+
+```bash
+gm-cli resourcetool eval 'resource set expr=spr_x.collisionKind value=ZZZ_INVENTADO'
+#   Requested value 'ZZZ_INVENTADO' was not found.        ← y NADA más: no lista nada
+```
+
+Quien confíe en ese truco **como método general** se queda sin salida y concluye que el campo
+no se puede escribir. La forma que sí funcionó: **probar el nombre que usa el Sprite Editor**
+(`Rectangle`, `Ellipse`, `Diamond`…) y **verificarlo leyendo el `.yy`**.
+
+---
+
+### Trampa 25 · El `.yy` guarda un NÚMERO y `resourcetool` acepta un NOMBRE
+
+Dos vocabularios para el mismo campo, y nadie avisa:
+
+```bash
+gm-cli resourcetool eval 'resource set expr=spr_engranaje.collisionKind value=Ellipse'   # se escribe así
+grep collisionKind sprites/spr_engranaje/spr_engranaje.yy
+#   "collisionKind":2                                                                     # se lee así
+```
+
+**La consecuencia práctica es un falso rojo.** Un agente que escriba `Ellipse`, vaya a
+verificar y busque `"collisionKind":"Ellipse"` en el `.yy` **no lo encuentra**, y concluye que
+la escritura falló — cuando ha funcionado perfectamente. Al verificar hay que **traducir entre
+los dos vocabularios**, no comparar la cadena que escribiste.
+
+Mapa medido de `collisionKind`: `1` = **Rectangle** · `2` = **Ellipse**. Comprueba el resto
+contra tu `.yy` antes de fiarte de un número que no hayas visto.
+
+> 📌 Y es la misma familia que la [trampa 21](#trampa-21--xorigin-yorigin-y-playbackspeed-cuelgan-de-sequence-no-del-sprite):
+> el nombre que ves en un sitio no es el que vale en el otro. La regla que las cubre las dos:
+> **verifica leyendo el `.yy`, pero sabiendo que el `.yy` habla otro idioma.**
+
 ---
 
 ## 1 · El ciclo completo del agente
