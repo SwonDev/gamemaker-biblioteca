@@ -12,7 +12,7 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r26 · 2026-09-10 -->
+<!-- SKILL-VERSION: r27 · 2026-09-10 -->
 `r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe

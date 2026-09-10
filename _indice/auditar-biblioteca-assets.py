@@ -235,6 +235,71 @@ def _glifos_ausentes(datos, tabla):
     return "".join(c for c in GLIFOS_ES if ord(c) not in cubiertos)
 
 
+# Una hoja de glifos NO es el `.ttf`. Si el juego construye la fuente desde el PNG
+# con `font_add_sprite_ext`, lo que se publica es el mapa de la hoja — y el `cmap`
+# del `.ttf` que viene en el mismo pack puede cubrir el español mientras la hoja no.
+# Comprobar el `.ttf` y dar el pack por bueno es un verde ajeno: mide otra cosa.
+# Lo señaló R1 recorriendo el array `glyphs` de las hojas, y tenía razón.
+EXT_HOJA = {".json", ".fnt", ".xml"}
+PAT_CHAR_FNT = re.compile(r"\bchar\s+id=(\d+)", re.I)
+PAT_CHAR_XML = re.compile(r'\bid="(\d+)"')
+
+
+def mapa_de_hoja(ruta):
+    """El conjunto de caracteres que declara una hoja de glifos, o None.
+
+    Devuelve None cuando el archivo no es metadatos de una hoja — que es el caso
+    de la inmensa mayoría de los `.json` de un pack. No adivina: o encuentra la
+    estructura, o dice que no.
+    """
+    ext = os.path.splitext(ruta)[1].lower()
+    if ext not in EXT_HOJA:
+        return None
+    texto = _leer_texto(ruta, 2000000)
+    if not texto:
+        return None
+    if ext == ".json":
+        try:
+            datos = json.loads(texto)
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(datos, dict):
+            return None
+        for clave in ("glyphs", "chars", "characters", "glifos"):
+            lista = datos.get(clave)
+            if isinstance(lista, list) and lista:
+                salida = set()
+                for g in lista:
+                    if isinstance(g, dict):
+                        for k in ("chr", "char", "character", "c"):
+                            v = g.get(k)
+                            if isinstance(v, str) and len(v) == 1:
+                                salida.add(v)
+                                break
+                        else:
+                            cp = g.get("id") if isinstance(g.get("id"), int) else None
+                            if cp is not None and 0 <= cp <= 0x10FFFF:
+                                salida.add(chr(cp))
+                    elif isinstance(g, str) and len(g) == 1:
+                        salida.add(g)
+                if salida:
+                    return salida
+        return None
+    patron = PAT_CHAR_FNT if ext == ".fnt" else PAT_CHAR_XML
+    puntos = patron.findall(texto)
+    if len(puntos) < 16:          # menos de 16 «char id=» no es una hoja de fuente
+        return None
+    salida = set()
+    for p in puntos:
+        try:
+            cp = int(p)
+        except ValueError:
+            continue
+        if 0 <= cp <= 0x10FFFF:
+            salida.add(chr(cp))
+    return salida or None
+
+
 # ─────────────────────────────── recorrido ────────────────────────────────────
 def _normalizar(texto):
     return re.sub(r"\s+", " ", texto.strip().lower())[:4000]
@@ -337,7 +402,7 @@ def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None):
     d = {"ruta": raiz, "licencias": [], "readmes": [], "familias": set(),
          "marcas_build": {}, "extractores": [], "medios": 0, "fuentes": [],
          "zips_con_licencia": [], "zips": 0, "truncado": False,
-         "readmes_lista": [], "runtime": [], "heredadas": []}
+         "readmes_lista": [], "runtime": [], "heredadas": [], "hojas": []}
     vistas = 0
     for base, dirs, ficheros in os.walk(raiz):
         dirs[:] = [x for x in dirs if not x.startswith(".")]
@@ -370,6 +435,11 @@ def revisar_pack(raiz, tope_entradas=40000, raiz_biblioteca=None):
                     d["fuentes"].append(ruta)
             if PAT_EXTRACTOR.search(n) and ext not in EXT_MEDIOS:
                 d["extractores"].append(ruta)
+
+            if ext in EXT_HOJA and len(d["hojas"]) < 60:
+                mapa = mapa_de_hoja(ruta)
+                if mapa:
+                    d["hojas"].append((ruta, mapa))
 
             if ext == ".zip":
                 d["zips"] += 1
@@ -470,7 +540,29 @@ def dictaminar(d, solo_fuentes=False):
                 f"«{base}» no tiene los glifos {info['glifos_faltan']}. En español eso no "
                 "da error: el glifo ausente mide cero y la palabra sale mutilada.")
         elif info["glifos_faltan"] == "":
-            notas.append(f"«{base}»: cubre {GLIFOS_ES} completo.")
+            notas.append(f"«{base}»: el .ttf cubre {GLIFOS_ES} completo.")
+
+    for ruta, mapa in d["hojas"]:
+        base = os.path.basename(ruta)
+        faltan = "".join(c for c in GLIFOS_ES if c not in mapa)
+        if faltan:
+            bloqueos.append(
+                f"la hoja de glifos «{base}» ({len(mapa)} caracteres) NO declara {faltan}. "
+                "Si la fuente se construye desde la hoja con `font_add_sprite_ext`, esto es "
+                "lo que se publica: el `cmap` del `.ttf` del mismo pack no lo cubre.")
+        else:
+            notas.append(f"la hoja «{base}» declara {len(mapa)} caracteres y cubre el "
+                         "español entero.")
+        if " " not in mapa:
+            avisos.append(
+                f"la hoja «{base}» NO trae celda para el espacio. `font_add_sprite_ext` "
+                "usará entonces la anchura del CARÁCTER MÁS ANCHO, no la del espacio, y "
+                "toda la aritmética de la caja se cae sin dar error "
+                "(`04 · 21 §4 bis` y `_indice/medir-caja-de-texto.py`).")
+
+    if d["fuentes"] and d["hojas"] and not solo_fuentes:
+        notas.append("este pack trae `.ttf` Y hojas de glifos. Lo que se publica es lo que "
+                     "el juego carga: si usa la hoja, el veredicto del `.ttf` no aplica.")
     return bloqueos, avisos, notas
 
 
@@ -803,6 +895,52 @@ def autoprueba():
         b, a, _ = juzgar(d)
         caso("un .ttf que no es una fuente avisa, no revienta",
              any("no parece una fuente" in x for x in a), str(a))
+
+        # La hoja de glifos: lo que de verdad se publica cuando la fuente se
+        # construye con font_add_sprite_ext.
+        completo = json.dumps({"tile_w": 8, "tile_h": 11, "glyphs":
+                               [{"chr": c, "adv": 4} for c in GLIFOS_ES + "abc "]})
+        d = montar(tmp, "hoja-completa", {"LICENSE.txt": "CC0", "f.png": b"x",
+                                          "f.json": completo})
+        b, a, n = juzgar(d)
+        caso("una hoja que declara el español entero no bloquea",
+             not b, str(b))
+        caso("y no avisa del espacio, porque lo trae",
+             not any("espacio" in x for x in a), str(a))
+
+        sin_ene = json.dumps({"glyphs": [{"chr": c} for c in GLIFOS_ES.replace("ñ", "")
+                                         + "abc "]})
+        d = montar(tmp, "hoja-sin-ene", {"LICENSE.txt": "CC0", "f.png": b"x",
+                                         "f.json": sin_ene})
+        b, _, _ = juzgar(d)
+        caso("una hoja sin ñ bloquea aunque el pack tenga licencia",
+             any("ñ" in x and "hoja de glifos" in x for x in b), str(b))
+
+        sin_espacio = json.dumps({"glyphs": [{"chr": c} for c in GLIFOS_ES + "abc"]})
+        d = montar(tmp, "hoja-sin-espacio", {"LICENSE.txt": "CC0", "f.png": b"x",
+                                             "f.json": sin_espacio})
+        b, a, _ = juzgar(d)
+        caso("una hoja sin celda de espacio avisa",
+             any("CARÁCTER MÁS ANCHO" in x for x in a), str(a))
+
+        d = montar(tmp, "json-cualquiera", {"LICENSE.txt": "CC0", "arte.png": b"x",
+                                            "config.json": '{"volumen": 0.8}'})
+        b, a, n = juzgar(d)
+        caso("un .json que NO es una hoja se ignora, no se inventa un mapa",
+             not any("hoja" in x for x in b + a + n), str(b + a + n))
+
+        fnt = "\n".join(f"char id={ord(c)} x=0 y=0" for c in GLIFOS_ES + "abcdefghijk ")
+        d = montar(tmp, "hoja-bmfont", {"LICENSE.txt": "CC0", "f.png": b"x", "f.fnt": fnt})
+        b, _, n = juzgar(d)
+        caso("una hoja en formato BMFont también se lee",
+             any("cubre el español entero" in x for x in n), str(n))
+
+        d = montar(tmp, "ttf-y-hoja", {
+            "LICENSE.txt": "CC0", "f.png": b"x", "f.json": completo,
+            "f.ttf": _fuente_sintetica(fstype=0)})
+        _, _, n = juzgar(d)
+        caso("si hay .ttf Y hoja, dice que el veredicto del .ttf no aplica",
+             any("no aplica" in x for x in n), str(n))
 
         d = montar(tmp, "solo-fuentes-modo", {"heroe.png": b"x",
                                               "tipo.ttf": _fuente_sintetica(fstype=4)})

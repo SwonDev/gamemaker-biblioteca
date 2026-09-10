@@ -516,6 +516,28 @@ for r in TTFont(ruta)["name"].names:
         print(r.nameID, r.toUnicode())
 ```
 
+#### La tercera comprobación, cuando lo que publicas es una hoja de glifos
+
+Las dos de arriba miran el `.ttf`. **Si el juego construye la fuente desde un PNG con
+`font_add_sprite_ext`, el `.ttf` no se publica** — y su `cmap` puede cubrir el español
+perfectamente mientras la hoja no lo cubre. Comprobar el archivo que no se usa y dar el pack
+por bueno es un verde ajeno: mide otra cosa.
+
+**Lo que hay que mirar es el mapa de la hoja**: el array de glifos de su `.json`, los
+`char id=` de un `.fnt` de BMFont, o el `.xml` equivalente. `auditar-biblioteca-assets.py`
+lee los tres, y cuando un pack trae **`.ttf` y hoja a la vez** lo dice explícitamente: lo
+que vale es lo que el juego cargue.
+
+Y en la hoja hay un caso que no está en el `.ttf` y hunde toda la maquetación:
+
+> ⚠️ **Si la hoja no trae celda para el espacio**, `font_add_sprite_ext` usa **la anchura
+> del carácter más ancho** en su lugar ([`08 · 03`](../08%20-%20Referencia%20GML%20completa/03%20-%20Texto%20y%20fuentes.md#font_add_sprite_extspr-string_map-prop-sep)).
+> Medido sobre una hoja real: 3 px se convierten en 9, y de una tabla de 79 cadenas pasan a
+> desbordar tres. Con la celda añadida, cabe todo. La cuenta la hace
+> [`_indice/medir-caja-de-texto.py`](../_indice/medir-caja-de-texto.py), y el criterio está
+> en [`04 · 21 §4 bis`](<../04 - Recetas por género/21 - Localización e idiomas (con traducción por IA).md#4-bis--cabe--la-regla-del-idioma-más-largo-no-se-puede-aplicar-en-bloque>).
+
+
 ### 10 bis.7 · La regla, y cómo se escribe en el informe
 
 > **Si no encuentras la licencia, ese asset NO entra — y lo dices.**
@@ -620,6 +642,45 @@ mejor demostración de por qué la regla es «gana el binario»:
 
 ---
 
+
+
+### 10 bis.10 · Dos casos que el criterio de arriba no cubría
+
+#### A · Cuando los assets los generó el propio usuario con IA
+
+Aparece más de lo que parece, y se reconoce por señales concretas dentro del pack: un
+`prompt.md`, un archivo de configuración de una herramienta de IA, o un `.zip` cuyo nombre
+**es literalmente el prompt**.
+
+Aquí **la pregunta cambia de destinatario**. No es «¿tienes la factura?»: no hay vendedor.
+Es **qué dicen las condiciones de servicio de la herramienta con la que se generó** —quién
+posee la salida, si el uso comercial está permitido, y si hay obligación de declararlo. Eso
+lo sabe el usuario y no está en el disco.
+
+Y no exime de nada de lo demás: sigue en pie
+[`07 · 23 §4`](<./23 - Arte generado por IA (pixel art y assets 2D).md>) entero —la
+postura de la U.S. Copyright Office sobre lo generado por IA, y la obligación de declararlo
+en Steam e itch.io—. Que lo generara el propio usuario no cambia ninguna de las dos cosas.
+
+> 📌 **Dilo como suposición.** «Este pack parece generado con IA por las señales X e Y» es
+> una observación útil; «este pack es generado por IA» es una acusación que no puedes probar
+> desde el disco. La diferencia importa cuando el usuario lee tu informe.
+
+#### B · Dos packs distintos con el mismo nombre
+
+`§10 bis` ya dice que el nombre de una carpeta no es una fuente. Hay una variante peor,
+medida: **una carpeta y un `.zip` que se llaman igual y son de autores distintos**. En un
+caso real, `Taverns - Medieval Inn`:
+
+- la **carpeta** era de un estudio y **no llevaba licencia**;
+- el **`.zip` homónimo** era de otro autor y **sí la llevaba**.
+
+Quien encontró la licencia en el `.zip` y la aplicó a la carpeta habría publicado material
+sin derechos, con una cita literal delante que parecía respaldarlo. **Empareja licencia con
+archivo, no con nombre.** Si dos cosas se llaman igual, son dos cosas hasta que demuestres
+lo contrario.
+
+---
 
 ## 11. Qué formato importa GameMaker (bájalo ya correcto)
 
