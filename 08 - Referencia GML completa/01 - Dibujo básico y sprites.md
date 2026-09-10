@@ -69,6 +69,54 @@ draw_sprite(spr_halo, 0, x, y - 32);
 
 ---
 
+## `image_index` como ESTADO: la trampa que no está en el código ni en el sprite
+
+El manual describe dos usos de `image_index` y los presenta como intercambiables: seguir una
+animación, o **elegir un «estado» en un sprite estático** —encendido/apagado, abierto/cerrado,
+como los botones de una ventana—. Lo que no dice es que **mezclarlos no funciona**.
+
+Si el sprite tiene `playbackSpeed` distinto de 0 y más de un fotograma, **la animación
+reescribe `image_index` en cada paso**. El estado que asignas dura un fotograma y desaparece.
+
+**Medido sobre un proyecto real**: un punto de control con dos sub-imágenes y
+`playbackSpeed = 60` perdía su estado «encendido» **30 veces por segundo**. No era «a veces»:
+ese estado no existía visualmente.
+
+> 🔍 **Y es de los peores de diagnosticar, por una razón concreta: no está en ningún archivo.**
+> Lees el objeto y la asignación es correcta. Lees el sprite y la velocidad es plausible. El
+> fallo **solo existe en la combinación de los dos**, así que revisar cualquiera de ellos por
+> separado —que es como se revisa— lo da por bueno.
+
+**Las dos salidas**, y basta con una:
+
+```gml
+image_speed = 0;          // en el objeto, antes de asignar el estado
+image_index = encendido;
+```
+
+o poner el `playbackSpeed` del sprite a 0, que es lo correcto cuando sus fotogramas **no son
+un ciclo** sino variantes que elige el código. Distinguir las dos clases al importar ahorra
+este fallo entero:
+
+| El sprite es… | `playbackSpeed` |
+|---|---|
+| Un **ciclo** (caminar, trepar, una baliza que parpadea) | el de la animación (10, 4…) |
+| **Variantes de estado** que elige el código (palanca, punto de control, puerta) | **0** |
+
+> ⚠️ **Ojo al importar en lote**: el valor por defecto de la tubería de importación puede ser
+> `playbackSpeed = 60`, y entonces le toca a **todos** los sprites a la vez. En el caso medido
+> estaban los nueve mal, no los cuatro que se habían detectado leyendo el código.
+
+**Se comprueba solo:**
+
+```sh
+python3 "$BIB/_indice/auditar-juego-completo.py" <proyecto>
+```
+
+Lista los objetos que asignan `image_index` sin poner `image_speed = 0` cuyo sprite además se
+anima, y **hace fallar el informe**. No se queja de un objeto que ya para la animación, ni de
+un sprite de un solo fotograma, ni de una asignación comentada.
+
 ## Familia `draw_sprite`
 
 ### `draw_sprite(sprite, subimg, x, y)`

@@ -77,7 +77,10 @@ PREF_EXT = ("steam_", "admob_", "gpb_", "appleiap_", "gamecenter_", "firebase_",
 # Solo cuenta la asignación SIN cualificar y al principio de una sentencia:
 # `s.id = 5` es un campo de un struct y es legítimo, y `var id = …` es una local
 # que ensombrece (mala idea, pero no es este fallo).
-PAT_ASIGNACION = re.compile(r"(?m)^[ \t]*([A-Za-z_]\w*)\s*=(?!=)")
+# No se ancla al principio de línea: `if (x) { fps_real = 1; }` es código real
+# y el patrón anclado no lo veía. `(?<![\w.])` descarta el campo de un struct
+# (`s.id = 5`) y una variable que solo contenga el nombre (`mi_id = 5`).
+PAT_ASIGNACION = re.compile(r"(?<![\w.])([A-Za-z_]\w*)\s*=(?!=)")
 
 
 def asignaciones_a_solo_lectura(archivos, simbolos):
