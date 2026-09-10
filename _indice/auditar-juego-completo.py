@@ -206,6 +206,63 @@ def recursos_huerfanos(ruta, nombres_en_yyp):
     return huerfanos
 
 
+PAT_SPRITE_DE_OBJETO = re.compile(r'"spriteId"\s*:\s*\{[^}]*?"name"\s*:\s*"([^"]+)"', re.S)
+# Sin exigir principio de línea: el caso real venía dentro de un `if` en la
+# misma línea, y el patrón anclado no lo veía. `(?<![\w.])` sigue descartando
+# `s.image_index` (campo de un struct) y `mi_image_index` (otra variable).
+PAT_ASIGNA_INDEX = re.compile(r"(?<![\w.])image_index\s*=(?!=)")
+PAT_PARA_ANIMACION = re.compile(r"(?<![\w.])image_speed\s*=\s*0")
+
+
+def index_pisado_por_la_animacion(ruta):
+    """Objetos que usan `image_index` como ESTADO sobre un sprite que se anima solo.
+
+    El manual describe los dos usos de `image_index` —seguir una animación, o
+    elegir un «estado» en un sprite **estático**— y no avisa de que mezclarlos no
+    funciona: si el sprite tiene `playbackSpeed` distinto de 0, la animación
+    reescribe `image_index` en cada paso y el estado que asignaste dura un
+    fotograma.
+
+    **Medido**: un punto de control con dos sub-imágenes y `playbackSpeed = 60`
+    perdía su estado «encendido» **30 veces por segundo**. No era «una vez de vez
+    en cuando»: no existía visualmente. Y es de los fallos peores de diagnosticar,
+    porque **no está en el código ni en el sprite por separado** — solo en la
+    combinación de los dos. Leyendo el objeto, la asignación es correcta; leyendo
+    el sprite, la velocidad es plausible.
+
+    La salida es una de dos: `image_speed = 0` en el objeto, o `playbackSpeed = 0`
+    en el sprite. Si el objeto ya hace lo primero, aquí no se dice nada.
+    """
+    dir_obj = os.path.join(ruta, "objects")
+    if not os.path.isdir(dir_obj):
+        return []
+    hallados = []
+    for nom in sorted(os.listdir(dir_obj)):
+        carpeta = os.path.join(dir_obj, nom)
+        yy = os.path.join(carpeta, nom + ".yy")
+        if not os.path.isfile(yy):
+            continue
+        gml = "\n".join(leer(os.path.join(carpeta, f))
+                        for f in sorted(os.listdir(carpeta)) if f.endswith(".gml"))
+        if not PAT_ASIGNA_INDEX.search(sin_comentarios(gml)):
+            continue
+        if PAT_PARA_ANIMACION.search(sin_comentarios(gml)):
+            continue                      # ya para la animación: correcto
+        m = PAT_SPRITE_DE_OBJETO.search(leer(yy))
+        if not m:
+            continue
+        spr = m.group(1)
+        spr_yy = os.path.join(ruta, "sprites", spr, spr + ".yy")
+        if not os.path.isfile(spr_yy):
+            continue
+        t = leer(spr_yy)
+        vel = re.search(r'"playbackSpeed"\s*:\s*([\d.]+)', t)
+        fotogramas = len(re.findall(r'"resourceType"\s*:\s*"GMSpriteFrame"', t))
+        if vel and float(vel.group(1)) > 0 and fotogramas > 1:
+            hallados.append((nom, spr, float(vel.group(1)), fotogramas))
+    return hallados
+
+
 def sala_vacia(ruta, nombre):
     """True si esa sala no tiene ni una instancia.
 
@@ -1177,6 +1234,18 @@ def main():
                      "  ← la de fábrica; súbela antes de publicar" if version == "1.0.0.0" else ""))
         # Recursos que existen en disco pero se cayeron del `.yyp`. Va aquí, con el
         # resto del informe, porque no es un defecto de diseño: es trabajo perdido.
+        pisados = index_pisado_por_la_animacion(ruta)
+        if pisados:
+            print("  \033[1m✗ %d objeto(s) cuyo `image_index` lo PISA la animación del "
+                  "sprite:\033[0m" % len(pisados))
+            for obj, spr, vel, n in pisados:
+                print("      %-22s usa %s (playbackSpeed=%g, %d fotogramas)"
+                      % (obj, spr, vel, n))
+            print("    El estado que asignas dura un fotograma: la animación reescribe")
+            print("    `image_index` cada paso. Medido: un estado perdido 30 veces por segundo.")
+            print("    Salida: `image_speed = 0` en el objeto, o `playbackSpeed = 0` en el")
+            print("    sprite. No se ve leyendo el código ni el sprite por separado.")
+
         huerfanos = recursos_huerfanos(ruta, nombres)
         if huerfanos:
             print("  \033[1m✗ %d recurso(s) que están en DISCO pero NO en el .yyp:\033[0m"
@@ -1192,7 +1261,7 @@ def main():
             print("    Vuelve a registrarlos con `resourcetool`, de uno en uno y sin nadie más")
             print("    escribiendo a la vez.")
         print()
-        if faltan or not arranque_ok or huerfanos:
+        if faltan or not arranque_ok or huerfanos or pisados:
             print("Faltan piezas del envoltorio: %s%s"
                   % (", ".join(faltan) if faltan else "",
                      (", " if faltan else "") + "arranque por portada" if not arranque_ok else ""))
@@ -1471,6 +1540,50 @@ def autoprueba():
             repr(sin_comentarios("/*\n\n*/\nx = 1;")))
     revisar("un comentario de bloque sin cerrar no se come lo de antes",
             sin_comentarios("x = 1;\n/* abierto").startswith("x = 1;"))
+
+    # ── `image_index` como estado, pisado por la animación del sprite.
+    #
+    # Medido sobre un proyecto real: un punto de control con dos sub-imágenes y
+    # `playbackSpeed = 60` perdía su estado «encendido» 30 veces por segundo. No
+    # existía visualmente. Es de los peores de diagnosticar porque no está en el
+    # código ni en el sprite por separado, solo en la combinación de los dos.
+    with tempfile.TemporaryDirectory() as tmp:
+        def montar_par(base, obj, spr, velocidad, fotogramas, codigo):
+            do = os.path.join(base, "objects", obj)
+            ds = os.path.join(base, "sprites", spr)
+            os.makedirs(do, exist_ok=True)
+            os.makedirs(ds, exist_ok=True)
+            with open(os.path.join(do, obj + ".yy"), "w", encoding="utf-8") as f:
+                f.write('{"resourceType":"GMObject","spriteId":{\n  "name": "%s",\n'
+                        '  "path": "sprites/%s/%s.yy",\n},}' % (spr, spr, spr))
+            with open(os.path.join(do, "Step_0.gml"), "w", encoding="utf-8") as f:
+                f.write(codigo)
+            marcos = ",".join(['{"resourceType":"GMSpriteFrame",}'] * fotogramas)
+            with open(os.path.join(ds, spr + ".yy"), "w", encoding="utf-8") as f:
+                f.write('{"resourceType":"GMSprite","playbackSpeed": %g,'
+                        '"frames":[%s],}' % (velocidad, marcos))
+
+        base = os.path.join(tmp, "pisado")
+        montar_par(base, "obj_malo", "spr_anima", 60, 2,
+                   "if (encendido) { image_index = 1; } else { image_index = 0; }\n")
+        montar_par(base, "obj_bien_speed", "spr_anima2", 60, 2,
+                   "image_speed = 0;\nimage_index = 1;\n")
+        montar_par(base, "obj_bien_sprite", "spr_estatico", 0, 2,
+                   "image_index = 1;\n")
+        montar_par(base, "obj_una_imagen", "spr_uno", 60, 1,
+                   "image_index = 0;\n")
+        montar_par(base, "obj_comentado", "spr_anima3", 60, 2,
+                   "// image_index = 1;  <- esto es un comentario\nx += 1;\n")
+
+        p = {o for o, _, _, _ in index_pisado_por_la_animacion(base)}
+        revisar("caza el image_index pisado por la animación", "obj_malo" in p, str(p))
+        revisar("un `image_speed = 0` en el objeto lo resuelve",
+                "obj_bien_speed" not in p, str(p))
+        revisar("un sprite con playbackSpeed 0 tampoco es problema",
+                "obj_bien_sprite" not in p, str(p))
+        revisar("un sprite de UN solo fotograma no puede animarse",
+                "obj_una_imagen" not in p, str(p))
+        revisar("y una asignación comentada no cuenta", "obj_comentado" not in p, str(p))
 
     # Un recurso mencionado en un COMENTARIO no es una fuga. Mismo motivo que el
     # falso verde de las piezas, y se quedó a medias: `recursos_sin_liberar` y
