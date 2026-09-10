@@ -618,18 +618,43 @@ Los tres resultados medidos el 2026-09-10 sobre una biblioteca real, que son tam
 mejor demostración de por qué la regla es «gana el binario»:
 
 - **Las tipografías de Kenney**: el bundle dice CC0; sus binarios dicen `Creative Commons
-  Attribution Share Alike 3.0` con `fsType=4`, que prohíbe empotrarlas. **21 archivos.**
+  Attribution Share Alike 3.0` con `fsType=4`, que prohíbe empotrarlas. **18 nombres
+  distintos** (22 instancias, contadas en disco). Diecisiete declaran CC-BY-SA; el que
+  falta, `Kenney Space.ttf`, lleva `fsType=4` y **no declara licencia ninguna**.
 - **«Pixel Font Pack 01»**: 34 archivos con `fsType=4` y, embebido, `FontStruct
   Non-Commercial License` o `All Rights Reserved`. Su README solo trae instrucciones
   técnicas; leerlo y parar ahí habría metido las 34 en el juego.
-- **«Pixel Font Megapack»**: licencia comercial válida, y de sus 176 variantes **una
-  sola** falla — a `huevo_wide_bold.ttf` le falta la `ü`. Un glifo ausente **no da
+- **«Pixel Font Megapack»**: licencia comercial válida, y de sus **175** variantes
+  (contadas en disco; el recuento de 176 que circulaba estaba de más) **una sola** falla — a `huevo_wide_bold.ttf` le falta la `ü`. Un glifo ausente **no da
   error**: mide cero y la palabra sale mutilada en pantalla.
 
 > 🔬 **Este resultado está confirmado por tres métodos independientes.** El caso de las
 > fuentes se encontró primero leyendo los binarios a mano, después otro equipo lo
 > reprodujo con `strings` sobre los `.ttf`, y esta herramienta lo obtiene analizando el
 > `sfnt`. Los tres coinciden hasta en el número: **175 de 176**.
+
+#### Cómo se lee su salida — esto antes que la lista de arriba
+
+> 🧭 **Un bloqueo suyo no es un veredicto, y su silencio no es un aprobado.**
+> Es la forma correcta de leer cualquier herramienta de éstas, y aquí no es teoría: las
+> dos frases nacen de dos fallos medidos de esta misma herramienta.
+
+**El primero, y es el caro.** Marcó «sin licencia» la tipografía que el juego estaba
+usando, porque su `LICENSE.txt` vivía dentro de un `.zip` **en otra carpeta**. Era
+literalmente cierto — y era exactamente el mismo error que ya había costado una jornada de
+trabajo de artista cuando lo cometió una persona. Ahora lo habría cometido una máquina, que
+además parece autoridad. Hoy la herramienta **indexa los `.zip` de toda la biblioteca** y,
+cuando un pack se queda sin licencia, señala los comprimidos de nombre parecido para que los
+abras — **como candidatos, nunca como resueltos**, porque emparejar por nombre es justo lo
+que advierte `§10 bis.10 B`.
+
+> ⚠️ **Por eso hay que apuntarla a la RAÍZ de la biblioteca**, no a una subcarpeta. Si le
+> das solo `4-tipografias`, no puede ver un `.zip` que esté en `5-bundles`, y volverá a
+> decir «sin licencia» sobre algo que sí la tiene.
+
+**El segundo**: no miraba dentro de los `.zip` más que para buscar licencias, así que una
+tipografía comprimida pasaba sin examen — y su silencio se leía como un aprobado. Se le
+escapó un `fsType = 4` real. Hoy lee también las fuentes que van dentro del comprimido.
 
 #### Lo que la herramienta NO puede ver, y por eso no la creas del todo
 
@@ -665,6 +690,23 @@ en Steam e itch.io—. Que lo generara el propio usuario no cambia ninguna de la
 > 📌 **Dilo como suposición.** «Este pack parece generado con IA por las señales X e Y» es
 > una observación útil; «este pack es generado por IA» es una acusación que no puedes probar
 > desde el disco. La diferencia importa cuando el usuario lee tu informe.
+
+#### C · Un archivo de licencia leído solo tampoco basta
+
+`§10 bis` dice «cita literal de la licencia». Hace falta una condición más: **que el
+documento diga de qué licencia se trata y de quién es la obra.** Bajo el nombre
+`LICENSE.txt` han aparecido, medidos en una biblioteca real:
+
+- un aviso sobre **baneos de otra plataforma**, que no es una licencia;
+- **la descripción de un pack distinto** del que lo contiene;
+- y el peor: un **resumen de Creative Commons truncado que no nombra ni la licencia ni al
+  autor**. Quien lo lea y pare ahí concluirá que puede usarlo sin acreditar a nadie —
+  cuando el `README` del mismo pack identifica al autor, exige crédito y prohíbe NFT.
+
+Los tres pasan la prueba de «existe un archivo de licencia» y los tres engañan. La
+comprobación que sí sirve: **si no puedes nombrar la licencia y al autor después de leerlo,
+no lo has leído todavía.** `auditar-biblioteca-assets.py` avisa cuando hay documento pero
+no reconoce ninguna licencia en su texto.
 
 #### B · Dos packs distintos con el mismo nombre
 
