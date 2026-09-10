@@ -234,7 +234,43 @@ fi
 echo "  ✓ ninguna llamada a un nombre que no exista"
 
 echo "Ejecutando…"
-SALIDA="$(cd "$PROY" && gm-cli run --toolchain "GMS2@2026.0.0.23" 2>&1)"
+# Con TOPE DE TIEMPO, y no es una precaución: es la diferencia entre «falla» y
+# «no termina nunca».
+#
+# Un error de EJECUCIÓN de GML —una función que no existe, un `other._local`
+# dentro de un `with`— abre en el runner de Mac un **diálogo modal** y la
+# ejecución se queda ahí, esperando a un humano que en una sesión de agente no
+# existe. Observado dos veces: una en este mismo banco (un `confirmar_cerrar()`
+# escrito de memoria colgó el script más de 600 s sin una sola línea de salida) y
+# otra en un proyecto real, que dejó dos runners zombis que hubo que matar a mano.
+#
+# macOS no trae `timeout`, así que se hace a mano: lanzar, sondear, y matar SOLO
+# el proceso que lanzamos nosotros — nada de `pkill -f`, que se lleva por delante
+# los runners de otro rol (pasó, y está documentado).
+TOPE_SEGUNDOS=${TOPE_SEGUNDOS:-240}
+_tmp_salida="$(mktemp)"
+( cd "$PROY" && gm-cli run --toolchain "GMS2@2026.0.0.23" > "$_tmp_salida" 2>&1 ) &
+_pid_run=$!
+_esperado=0
+while kill -0 "$_pid_run" 2>/dev/null; do
+    sleep 2
+    _esperado=$((_esperado + 2))
+    if [ "$_esperado" -ge "$TOPE_SEGUNDOS" ]; then
+        echo "✗ El juego lleva ${TOPE_SEGUNDOS}s sin terminar. Casi seguro hay un ERROR DE"
+        echo "  EJECUCIÓN abriendo un diálogo modal que nadie va a cerrar. Últimas líneas:"
+        tail -12 "$_tmp_salida" | sed "s/^/    /"
+        kill "$_pid_run" 2>/dev/null
+        sleep 1
+        kill -9 "$_pid_run" 2>/dev/null
+        # Y sus hijos: el runner que lanzó ESTE proceso, no los de nadie más.
+        pkill -P "$_pid_run" 2>/dev/null
+        rm -f "$_tmp_salida"
+        exit 1
+    fi
+done
+wait "$_pid_run" 2>/dev/null
+SALIDA="$(cat "$_tmp_salida")"
+rm -f "$_tmp_salida"
 LINEA="$(echo "$SALIDA" | grep -o "RESULTADO: [0-9]* correctas, [0-9]* fallidas" | tail -1)"
 
 if [ -z "$LINEA" ]; then
