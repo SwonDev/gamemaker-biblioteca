@@ -5,8 +5,8 @@ description: "Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego»,
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r21 · 2026-09-09 -->
-`r21 · 2026-09-09` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r22 · 2026-09-09 -->
+`r22 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -370,6 +370,45 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
    (alcance, vertical slice) — el material que alimenta la especificación del paso 0.
 2. **Proyecto**: `gm-cli init` (o el `.yyp` existente; `gm-mcp-setup .` si falta el MCP).
 3. **Arquitectura**: `13/06` (gestores, escenas, datos) + convenciones `05/04`.
+3 bis. **La fuente, ANTES de la primera línea de interfaz.** No es un detalle de pulido: es
+   una decisión de arquitectura que, tomada tarde, te obliga a reescribir cada `draw_text`.
+   `draw_set_font(-1)` compila limpio y **se come las tildes en silencio** — «Créditos» sale
+   «Crditos» (trampa 12). La salida buena para un agente es una **fuente de sprite**:
+
+   ```sh
+   python3 "$BIB/_indice/pruebas/generar_glifos.py" <carpeta>   # 89 PNG + mapa.txt
+   ```
+   ```gml
+   global.fnt = font_add_sprite_ext(spr_glifos, "<el contenido de mapa.txt>", true, 1);
+   draw_set_font(global.fnt);   // y NUNCA draw_set_font(-1) en un juego en español
+   ```
+
+   > 🔴 **Este paso existe porque el propio autor de esta skill cayó en la trampa teniéndola
+   > escrita delante.** Construyendo «Enjambre» (`_indice/auditorias/r18-prueba-visual.md`)
+   > se usó `draw_set_font(-1)` por comodidad, y las tildes no aparecieron hasta mirar la
+   > primera captura. Documentar una trampa no basta: si el flujo no obliga a decidir antes
+   > de que muerda, se cae en ella igual. **Y ojo con los símbolos que no son letras**: el
+   > marcador de vidas usaba «▮», que tampoco está en la hoja de glifos, y salió vacío. Para
+   > iconos, dibuja un sprite; no dependas de un carácter.
+
+3 ter. **La resolución y la escala de cámara, también antes.** Decidir el tamaño de la sala
+   después de dibujar los sprites significa rehacerlos. Una sala del tamaño de la ventana
+   —1366×768— con naves de 24 px produce un juego que **parece vacío**: se ven motas de
+   color moviéndose. Lo normal en pixel art es una sala pequeña y una cámara que la estira:
+
+   ```gml
+   // sala de 683×384 en una ventana de 1366×768 = cada píxel del mundo ocupa cuatro
+   var _cam = camera_create_view(0, 0, room_width, room_height, 0, noone, -1, -1, 0, 0);
+   view_set_camera(0, _cam);
+   view_set_visible(0, true);
+   view_enabled = true;
+   ```
+
+   El HUD **no** se escala con eso: vive en Draw GUI, que va en coordenadas de pantalla. Es
+   justo lo que se quiere. Detalle en `13/03` (pixel art y resolución) y `04/24`/`13/19`
+   (cámaras). Mismo motivo que el paso anterior: se descubrió mirando la primera captura de
+   «Enjambre», con el juego ya escrito.
+
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
    diálogos, audio, guardado y UI ya están resueltos por terceros.
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
