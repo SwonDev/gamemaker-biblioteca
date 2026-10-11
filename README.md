@@ -62,7 +62,7 @@ Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rend
 
 ## Conocimiento que se puede comprobar
 
-Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Pruebas y límites de esta revisión](./_indice/auditorias/r22-publicacion.md).
+Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Pruebas y límites de esta revisión](./_indice/auditorias/r23-validacion.md) · [Método y material visual incorporados](./_indice/auditorias/r22-publicacion.md).
 
 **Referencia documental:** GameMaker LTS 2026.0. El manual oficial y el código de terceros se reconstruyen aparte, con sus licencias. La instalación de la skill no instala GameMaker, EmbeddingGemma ni cambia tu modelo. [Qué se distribuye](PUBLICAR.md).
 

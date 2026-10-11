@@ -135,13 +135,20 @@ buena una tarea que no lo está.
 > dentro del juego (`validar-ejecucion.sh`); y **la 15 no se comprueba a propósito**, porque
 > comprobarla destruiría la caché compartida del usuario.
 
-### Trampa 1 · 9 de las 18 plantillas de `gm-cli init` fallan hoy en macOS
+### Trampa 1 · Fallo histórico de 9 plantillas en gm-cli 2.3.0, macOS
+
+**Actualización documental, 11-10-2026:** CLI 2.4.0 recupera Prefabs descargados por
+el IDE y Beta Release 8 anuncia corregido el fallo de proyectos con Prefabs.
+[Fuentes y alcance](<../_indice/auditorias/r23-investigacion-versiones.md>).
+La matriz siguiente se conserva como reproducción de 2.3.0, **no** como resultado
+de 2.4.1 ni de todas las combinaciones de ProjectTool/GMPM/paquetes. Comprueba esas
+revisiones, los paquetes disponibles y una restauración real antes de diagnosticar hoy.
 
 `gm-cli init` con una plantilla que trae *prefabs* falla con `PREFABS RESTORE exited with code
 1`. **No es solo Platformer Template** (la única que ya avisaba `07 · 06`): de las 18
 plantillas de juego, **9 fallan y 9 funcionan**, siete de las que funcionan con *prefabs* y sin
 ningún aviso previo en la biblioteca. **Actualizar a `gm-cli` 2.3.0 no arregla nada**: ya es la
-versión instalada y el fallo persiste idéntico.
+versión instalada cuando se realizó esta matriz y el fallo persistía idéntico.
 
 | Plantilla | Resultado | Verificado |
 |---|---|---|

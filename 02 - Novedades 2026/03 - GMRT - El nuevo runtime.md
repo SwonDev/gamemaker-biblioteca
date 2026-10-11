@@ -1,6 +1,6 @@
 # GMRT — El nuevo runtime de GameMaker (codename Cronus)
 
-> Estado en agosto de 2026: **Beta pública**. Última versión publicada: **GMRT 0.21.0** (julio 2026).
+> Estado consultado el **11-10-2026**: **Beta pública**, GMRT **0.22.0**.
 > Se instala desde el **Package Manager** y se actualiza por ahí también, no con la IDE.
 
 ---
@@ -275,9 +275,22 @@ GMRT ha adoptado referencias, igual que el runtime de GMS2 está migrando a refe
 
 ---
 
-## 7. Estado actual: GMRT 0.21.0 (julio 2026)
+## 7. Estado actual: GMRT 0.22.0
 
-### Novedades
+Las [notas oficiales de 0.22](https://releases.gamemaker.io/release-notes/2026/GMRT_MS_22)
+añaden física 3D con **Jolt** (colisiones, triggers, cuerpos rígidos y vehículos) y
+sombras direccionales para mallas estáticas, animadas e instanciadas. Son funciones
+experimentales sin ayuda de sintaxis del IDE. Esta biblioteca ha contrastado las fuentes;
+no ha ejecutado esas demos ni acredita su paridad en los targets.
+
+La documentación está en el archivo del recurso Note
+[GM3D_API.md.txt, revisión bfe720b](https://github.com/YoYoGames/GM3D-Samples/blob/bfe720b1c6025b406fcefd4a4562b954053af44b/notes/GM3D_API.md/GM3D_API.md.txt).
+`notes/GM3D_API.md` es un **directorio**: no construyas una URL de archivo inexistente.
+El índice de GMS2 LTS no cubre esta API; una ausencia allí no la invalida. Para integrarla,
+fija ejemplo/runtime/target, consulta las firmas y ejecuta una matriz de capacidades.
+Recibo y límites en [la investigación r23](<../_indice/auditorias/r23-investigacion-versiones.md>).
+
+### Novedades anteriores de 0.21
 
 - **Suite ImGUI basada en ImGM**, una mejora enorme de la implementación de Dear IMGui:
   - Ventanas **dockables**
@@ -291,7 +304,7 @@ GMRT ha adoptado referencias, igual que el runtime de GMS2 está migrando a refe
   - Proyecto de ejemplo y documentación: https://github.com/YoYoGames/ImGUI-Sample
   - ⚠️ Sin ayuda de sintaxis en la IDE (sin autocompletado ni ayuda de parámetros)
 
-### Incompatibilidades conocidas con GMS2 (lista de 0.21.0)
+### Incompatibilidades conocidas con GMS2 (lista de 0.22.0)
 
 - **Prefabs**
 - Reproducción de vídeo (en plataformas que no sean Windows)

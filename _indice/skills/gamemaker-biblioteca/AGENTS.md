@@ -13,8 +13,8 @@
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r47 · 2026-10-11 -->
-`r47 · 2026-10-11`. Biblioteca local en español; referencia histórica LTS 2026.0
+<!-- SKILL-VERSION: r48 · 2026-10-11 -->
+`r48 · 2026-10-11`. Biblioteca local en español; referencia histórica LTS 2026.0
 (IDE 2026.0.0.16 · GMS2 2026.0.0.23). **Manda la versión real del proyecto.**
 
 ## Antes de actuar

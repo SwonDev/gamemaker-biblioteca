@@ -10,7 +10,9 @@ de GameMaker.
 Resumen de lo imprescindible:
 
 1. **Nunca inventes una función de GML.** Compruébala primero:
-   `python3 "_indice/buscar.py" <símbolo>`. Si no aparece, no existe.
+   `python3 "_indice/buscar.py" <símbolo>`. Una ausencia describe la versión y cobertura
+   consultadas: comprueba runtime, `fnames`, extensiones y funciones propias antes de
+   concluir. Un fallo de búsqueda no demuestra ausencia.
 2. **Nunca edites `.yy` ni `.yyp` a mano.** Usa `gm-cli resourcetool eval` o el MCP
    `gamemaker-resource-tool`.
 3. **Versión de referencia:** GameMaker LTS 2026.0 (IDE `2026.0.0.16`, runtime `2026.0.0.23`).

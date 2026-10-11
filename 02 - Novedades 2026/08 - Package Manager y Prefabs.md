@@ -241,6 +241,11 @@ Al exportar como **.yyz**, GameMaker pregunta si quieres incluir las Collections
 
 ### 2.12 Novedades de Prefabs en la Beta 2026.100
 
+- **R8, consulta 11-10-2026:** añade dependencias con rangos y versión mínima de IDE;
+  anuncia corregidos los proyectos con Prefabs en GM-CLI. El seed del CLI 2.4.0 copia
+  paquetes que ya tenga el IDE, sin acreditar restauración offline universal.
+  [Notas Beta](https://releases.gamemaker.io/release-notes/2026/100.html) y
+  [recibo de fuentes/componentes](<../_indice/auditorias/r23-investigacion-versiones.md>).
 - **Prefab Builder ya disponible (R5)**: por fin puedes **crear tus propios Prefabs**. Si habías creado Local Packages o publicado en el Marketplace en versiones anteriores, te resultará familiar. Es una primera versión: hay problemas de UI ya reportados, búscalos antes de reportar otros nuevos.
 - **R5**: la Prefab Library ya puede **eliminar enlaces a Collections que ya no existen** (si una Collection se despublica y tu proyecto depende de ella, antes quedabas bloqueado sin poder abrir el proyecto).
 - **R1**: al abrir un proyecto que usa una versión de Prefab que ya no está disponible, se muestra un **diálogo para elegir** entre quitar el enlace o apuntar a la última versión.

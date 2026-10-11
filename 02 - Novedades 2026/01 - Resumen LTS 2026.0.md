@@ -5,6 +5,22 @@
 > Beta más reciente consultada: **2026.100.0 Release 5** (IDE 1139 / GMS2 RT 1090, 27/08/2026).
 > GMRT más reciente: **0.21.0** (julio 2026).
 
+**Actualización del 11-10-2026.** La instantánea anterior se conserva como histórica.
+LTS mantiene IDE 16/runtime 23. [Beta Release 9](https://releases.gamemaker.io/release-notes/2026/100.html)
+publica IDE 1171/runtime 1116; [GMRT 0.22](https://releases.gamemaker.io/release-notes/2026/GMRT_MS_22)
+añade Jolt 3D y sombras. Las novedades Beta recientes incluyen workspaces divididos,
+arreglos de Prefabs y cambios de fuentes/arranque Android. Consulta los capítulos 03,
+06, 08 y 09 antes de decidir una migración; no se atribuyen esos arreglos a LTS.
+El CLI publicado es 2.4.1, mientras las pruebas locales siguen usando 2.4.0:
+[detalle y fuentes](<../_indice/auditorias/r23-investigacion-versiones.md>).
+
+Para SDKs de esta Beta, usa la [guía 2026.1](https://github.com/YoYoGames/GameMaker-Bugs/wiki/2026.1),
+que documenta Xcode 27, no la guía LTS por semejanza del nombre. R9 también optimiza
+el arranque Android frente a ANRs al pausar o rotar durante la preparación de scripts:
+[incidencia 16078](https://github.com/YoYoGames/GameMaker-Bugs/issues/16078).
+El QA debe interrumpir el arranque en el dispositivo objetivo; ese cambio no acredita
+ausencia de ANRs ni sustituye una medición real de dispositivos lentos.
+
 ---
 
 ## 1. Qué es LTS y por qué cambia el modelo

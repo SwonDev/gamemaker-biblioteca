@@ -1,0 +1,125 @@
+{
+  "fecha": "2026-10-11",
+  "skill_revision": "r48",
+  "manifest": {
+    "SKILL.md": "5fa5f92b0ee3f5388873073b9b3b84956526071306fba717e6b85dd80c518707",
+    "AGENTS.md": "a0e2bf8f292a4044560f8945a2c61e8e23873903853a3d022e10646f9c73aeef",
+    "references/consulta-api.md": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+    "references/assets-y-texto.md": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+    "references/indice-documentos.md": "4e651b800c1a7882ca698f02b18fc53d8c75708757d3cf49a35f8be93641244b",
+    "references/rutas-de-consulta.md": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34",
+    "references/entorno-y-fuentes.md": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074",
+    "references/qa-y-entrega.md": "081449a68750ad231ee5f0e2fbc0700bce74fc64b7b69e6db9b79481396f0229",
+    "references/mapa-disciplinas.md": "2e3c699b673fcfa728cb5deeb6fa556402a0a624e2b09b9f750d68af0bc17828",
+    "references/contexto-y-recursos.md": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+    "references/operar-gamemaker.md": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+    "references/desarrollo-y-evidencia.md": "5bfcedef530561014c5031df2ccea55e65ee33d435d40dab1fe6ba4001309372"
+  },
+  "pi": {
+    "harness": "pi",
+    "version": "1.1.0",
+    "platform": "darwin",
+    "runtime": {
+      "node": "v26.7.0"
+    },
+    "checks": 76,
+    "findings": {
+      "userAndProject": true,
+      "nativeAncestor": false,
+      "agentsExplicitPaths": true,
+      "recursive": true,
+      "symlinkDedup": true,
+      "enabledFieldIgnored": true,
+      "hiddenExcludedFromPrompt": true
+    },
+    "fingerprint": {
+      "dist/core/skills.js": "0e20ec500ed9783d5b01b5399e6600134fc3fdd10e6dc46c9113bc01565c9aa5",
+      "dist/config.js": "b53418ca3bc54b70e18ccb192eb471696f5211c5aa2e80d68fe6fe3851ff23ae",
+      "dist/core/package-manager.js": "cfd718348caadc3b74df206e9af417afb9f409cdd7b508891eb7608c21fade80"
+    },
+    "packetFiles": [
+      "AGENTS.md",
+      "SKILL.md",
+      "references/assets-y-texto.md",
+      "references/consulta-api.md",
+      "references/contexto-y-recursos.md",
+      "references/desarrollo-y-evidencia.md",
+      "references/entorno-y-fuentes.md",
+      "references/indice-documentos.md",
+      "references/mapa-disciplinas.md",
+      "references/operar-gamemaker.md",
+      "references/qa-y-entrega.md",
+      "references/rutas-de-consulta.md"
+    ]
+  },
+  "omp": {
+    "harness": "omp",
+    "version": "18.8.7",
+    "platform": "darwin",
+    "runtime": {
+      "bun": "1.3.14",
+      "nodeCompatibility": "v24.3.0"
+    },
+    "checks": 74,
+    "findings": {
+      "userAndProject": true,
+      "nativeAncestor": true,
+      "agentsUserAndProject": true,
+      "singularAgentAlias": true,
+      "recursive": false,
+      "symlinksFollowedBeforeDedup": true,
+      "enabledFalseExcluded": true,
+      "malformedScalarAccepted": true
+    },
+    "fingerprint": {
+      "src/discovery/builtin.ts": "957a5a641b602917cdb817139c3926ca9a533bd39375801f026c84bf10900ed5",
+      "src/discovery/agents.ts": "976360027cee582030f2ec4871544821d8b66c25e8687ea461f4bee56aacb92e",
+      "src/discovery/helpers.ts": "889ce596b0245d50a92ebca18deafaf6fc35e070b2de4d8cd928b7fb3ebccff4",
+      "../pi-utils/src/dirs.ts": "2fcd846203851bbc3e52a63c93a7d6cb87e8d1e1111fcd7dec55faf41d5dbb24",
+      "../pi-utils/src/frontmatter.ts": "f1da3fcc7d458248ec772ccc85e4f1235583fd33d01737598164e2671f1b0415"
+    },
+    "packetFiles": [
+      "AGENTS.md",
+      "SKILL.md",
+      "references/assets-y-texto.md",
+      "references/consulta-api.md",
+      "references/contexto-y-recursos.md",
+      "references/desarrollo-y-evidencia.md",
+      "references/entorno-y-fuentes.md",
+      "references/indice-documentos.md",
+      "references/mapa-disciplinas.md",
+      "references/operar-gamemaker.md",
+      "references/qa-y-entrega.md",
+      "references/rutas-de-consulta.md"
+    ]
+  },
+  "dsh": {
+    "loader": "@deepseek-ai/dsh-skill-filesystem",
+    "version": "0.2.0-rc.2",
+    "plataforma": "darwin",
+    "node": "v26.7.0",
+    "archivos": 12,
+    "cuerpoExacto": true,
+    "referenciasAccesibles": true,
+    "avisos": 0,
+    "peticionesLLM": 0,
+    "raicesGlobalesConsultadas": false
+  },
+  "minimax_hermes_gentle": {
+    "exit": 0,
+    "versiones": {
+      "minimax": "0.6.5",
+      "hermes": "0.21.5",
+      "gentle_pi": "4.0.0"
+    },
+    "archivos_por_fixture": 12,
+    "pi_catalogo_prompt_expansion_exactos": true,
+    "minimax_catalogo_cuerpo_exacto": true,
+    "hermes_catalogo_cuerpo_exacto": true,
+    "hermes_sondas_plugins_bloqueadas": 6,
+    "gentle_selecciones": 5,
+    "gentle_propaga_directorio_a_pi": true
+  },
+  "peticiones_llm": 0,
+  "limite": "Lectura, catálogo, expansión y selección de directorios; sin conversación ni autoactivación por un modelo."
+}

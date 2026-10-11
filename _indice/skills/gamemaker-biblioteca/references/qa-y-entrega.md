@@ -83,8 +83,8 @@ Contenido: instrumentos y alcance · cierre de un juego · límites de portabili
 
 > 🖥️ **Y lo que NO está verificado, dicho por delante para que no lo descubras tú.**
 > El desarrollo de juegos de esta skill se ha ejecutado entero en **macOS arm64**. Las
-> **herramientas de `_indice/` sí se han ejecutado en Windows** (Python 3.12.7 de Windows
-> sobre Wine): 12 de 14 pasan y las otras 2 dicen «falta Pillow, no he mirado nada», que es
+> **14 herramientas de `_indice/` identificadas en la auditoría r19 se ejecutaron en Windows**
+> (Python 3.12.7 de Windows sobre Wine): 12 pasan y las otras 2 dicen «falta Pillow, no he mirado nada», que es
 > la respuesta correcta. Por el camino salieron cuatro fallos —`os.kill` en Windows no
 > pregunta, **mata**; un proceso muerto parece vivo si solo miras `OpenProcess`; sin `grep`
 > las búsquedas decían «no existe» en vez de «no he mirado»; y seis herramientas reventaban
@@ -96,3 +96,8 @@ Contenido: instrumentos y alcance · cierre de un juego · límites de portabili
 > solo está comprobado que reciben la skill íntegra, no que la activen — Qwen, además,
 > declara `~/.claude/skills` y no `~/.qwen/skills` en su `settings.json`.
 > Detalle en `_indice/auditorias/r19-cobertura-y-portabilidad.md`.
+>
+> Ese resultado es histórico y no acredita herramientas añadidas o cambiadas después.
+> Consulta el recibo de cada revisión: la ejecución de contratos r47 y HTTP r48 se limita
+> a macOS VM; una autoprueba Python o una revisión de PowerShell tampoco demuestra
+> ejecución del runner ni empaquetado en Windows nativo.

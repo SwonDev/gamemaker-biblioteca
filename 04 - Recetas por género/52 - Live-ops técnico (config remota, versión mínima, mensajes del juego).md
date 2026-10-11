@@ -179,17 +179,20 @@ function liveops_refrescar()
     var _headers = ds_map_create();
     global.liveops_peticion_id = http_request(LIVEOPS_ENDPOINT, "GET", _headers, "");
     ds_map_destroy(_headers);
+    if (global.liveops_peticion_id == -1) global.liveops_ultimo_refresco = get_timer();
 }
 ```
 
 ```gml
 /// obj_control · Async - HTTP
-if (async_load[? "id"] == global.liveops_peticion_id)
+var _respuesta = clasificar_respuesta_http(async_load, global.liveops_peticion_id);
+if (_respuesta.coincide && _respuesta.terminal)
 {
     global.liveops_peticion_id     = -1;
     global.liveops_ultimo_refresco = get_timer();
 
-    if (async_load[? "status"] == 0)
+    if (_respuesta.exito_http && _respuesta.codigo == 200
+        && ds_map_exists(async_load, "result") && is_string(async_load[? "result"]))
     {
         var _texto = async_load[? "result"];
         if (__liveops_aplicar_json(_texto))
@@ -200,11 +203,16 @@ if (async_load[? "id"] == global.liveops_peticion_id)
             file_text_close(_f);
         }
     }
-    // status < 0 (sin red, servidor caído...): global.liveops se queda como estaba —
-    // la caché local o, en el primer arranque sin caché, los valores por defecto.
-    // liveops_refrescar() ya reintentará solo en el próximo momento en que se llame.
+    // Fallo de transporte, HTTP no aceptado o JSON inválido: se conserva la config.
+    // Un progreso no entra en esta rama y mantiene el ID para el resultado final.
 }
 ```
+
+Incluye antes el helper `clasificar_respuesta_http` de
+[12 · 12 §1.1](<../12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md>).
+Este GET exige **200 con JSON válido**. No aplica 204 ni 304 sin un contrato de caché
+condicional. Añade un plazo local para un intento sin respuesta y descarta su ID al
+caducar, como explica 12 · 12 §3; el plazo no cancela la operación del servidor.
 
 > 💡 **Llama a `liveops_cargar_cache()` una vez en el arranque y a `liveops_refrescar()` en
 > cada cambio de sala o cada pocos minutos**, nunca en el Step. No es distinto del criterio de
