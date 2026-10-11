@@ -31,7 +31,7 @@ cuando no está disponible la biblioteca completa.
 | GML documental | **3.477** bloques compilables sin errores de sintaxis; **306** exclusiones declaradas. El análisis no encuentra prefijos del runtime sin resolver. Compilación no equivale a ejecución de todos los ejemplos |
 | Manual opcional completo | **3.119** páginas EN/ES comparadas, **0** ausentes, **0** incompletas, **0** literales traducidos. El espejo completo se reconstruye aparte y no forma parte del repositorio público |
 | Skill | Paquete **r48**, entrada de **86** líneas y **12** archivos; `quick_validate.py`: `Skill is valid!`. Los doce archivos coinciden por SHA-256 entre fuente pública, raíz y **11** destinos instalados |
-| Revisión independiente | Ejes de requisitos y normas; corregidas cabecera de evidencia, nombre propio que podía confundirse con la API precisión de una descripción de control negativo y atribución de la cobertura completa/pública. **0** hallazgos pendientes en la implementación revisada |
+| Revisión independiente | Ejes de requisitos y normas; corregidas cabecera de evidencia, nombre propio que podía confundirse con la API, precisión de una descripción de control negativo y atribución de la cobertura completa/pública. **0** hallazgos pendientes en la implementación revisada |
 
 Los recuentos pertenecen a las entradas de esta pasada. Los resultados previos de r47
 y sus plataformas se mantienen como evidencia histórica, con su alcance original.
@@ -70,3 +70,6 @@ publicación; esta se prepara desde la historia pública de r47.
 No se ejecutaron Beta/GMRT, otros targets, TLS/CORS, backend remoto, una cola multisesión
 ni mandos físicos. Los detalles están en los recibos enlazados. Esta ronda no demuestra
 ausencia absoluta de errores; documenta resultados reproducibles y sus límites.
+
+El [recibo de publicación e instalación desde un clon de GitHub](./r23-publicacion.md)
+añade la comprobación del paquete remoto sin atribuir al clon el manual opcional completo.
