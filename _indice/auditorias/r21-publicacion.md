@@ -62,6 +62,11 @@ La publicación parte de la historia pública anterior. Los inventarios y recibo
 se excluyen, y las rutas personales de los ejemplos y registros propios se anonimizan.
 Se conserva la atribución legal existente. Esto no reescribe publicaciones históricas.
 
+Se comprobó el paquete en un directorio limpio: entorno virtual nuevo, dependencias
+declaradas, instalación en un destino aislado y derivación de índices del runtime.
+Después de publicar, se clonó el repositorio real de GitHub y se repitieron los pasos
+de instalación; los cuatro archivos de la skill coinciden byte a byte con el paquete.
+
 ## Límites
 
 Las pruebas finitas acreditan sus casos y entradas. No certifican ausencia universal de
