@@ -2,11 +2,11 @@
   "proyecto": "Biblioteca de conocimiento de GameMaker en español",
   "version_referencia": {
     "lts": "2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23)",
-    "beta": "2026.100.0 (IDE 1139 / runtime 1090)",
+    "beta": "2026.100.0 (snapshot 07-09-2026: IDE 1142 / runtime 1093)",
     "gmrt": "0.21",
     "monthly": "discontinuado (último 2024.14.4)"
   },
-  "regla_de_oro": "Antes de escribir cualquier función de GML, verificarla con: python3 \"_indice/buscar.py\" <simbolo>. Si no aparece, no existe en este runtime.",
+  "regla_de_oro": "Verificar cada símbolo con _indice/buscar.py contra el runtime del proyecto; ausencia en un índice de otra versión, una extensión o un fallo de lectura no demuestran inexistencia.",
   "herramientas": {
     "_indice/buscar.py": {
       "que_hace": "Buscador offline. Ficha de un símbolo (firma, obsoleta, manual es/en, dónde se explica, dónde se usa de verdad) y búsqueda de texto en la biblioteca, el manual y 53569 archivos .gml.",
@@ -18,7 +18,7 @@
         "--codigo <frase>": "busca en el código GML descargado",
         "--todo <frase>": "busca en TODO a la vez (símbolos, biblioteca, manual y código real), agrupado y priorizado por autoridad. El punto de entrada cuando no sabes de qué tipo es lo que buscas"
       },
-      "aviso_de_caducidad": "En cada consulta compara el runtime instalado con el que generó el índice. Si no coinciden, avisa de que la ficha puede estar desfasada antes de darla. No confíes en una respuesta que venga precedida de «ÍNDICE CADUCADO»."
+      "aviso_de_caducidad": "Compara el índice con GM_BIBLIOTECA_RUNTIME o, sin selector, la última versión numérica disponible en caché. No acredita el runtime activo del proyecto; coteja meta.runtime. Una selección inválida falla."
     },
     "_indice/verificar-enlaces.py": {
       "que_hace": "Comprueba que todas las rutas internas citadas en los documentos existen. Lo llama actualizar.py; solo hace falta a mano para comprobar un cambio suelto."
@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 264 documentos con su título",
+    "_indice/documentos.json": "los 266 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -1434,9 +1434,13 @@
         {
           "ruta": "assets/readme/README.md",
           "titulo": "Ilustraciones de la portada"
+        },
+        {
+          "ruta": "assets/readme/prompts-metodología.md",
+          "titulo": "Prompts de las ilustraciones metodológicas"
         }
       ],
-      "n_documentos": 1
+      "n_documentos": 2
     }
   ],
   "puntos_de_entrada": {
@@ -1517,9 +1521,19 @@
       "no_usar_para": [
         "verificar firmas de GML sin el índice"
       ]
+    },
+    "Método visual.md": {
+      "titulo": "Cómo trabaja tu IA con la biblioteca",
+      "proposito": "Explicación ilustrada de la aportación de la skill, el trabajo guiado por especificación y la selección de contexto.",
+      "usar_cuando": [
+        "comprender el método antes de consultar sus contratos completos"
+      ],
+      "no_usar_para": [
+        "verificar una firma de GML o acreditar un juego sin ejecutarlo"
+      ]
     }
   },
-  "total_documentos": 264,
+  "total_documentos": 266,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

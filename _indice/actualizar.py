@@ -142,10 +142,16 @@ def revisar_ortografia():
             if "_API del runtime" in fp:
                 continue
             try:
-                txt = open(fp, encoding="utf-8", errors="replace").read()
+                with open(fp, encoding="utf-8", errors="replace") as archivo:
+                    txt = archivo.read()
             except OSError:
                 continue
             limpio = CITA.sub(" ", COD.sub(" ", txt))
+            # Las rutas de atributos son técnicas; alt/title siguen siendo prosa.
+            def texto_del_tag(coincidencia):
+                return " ".join(valor for _, valor in re.findall(
+                    r'''\b(?:alt|title)\s*=\s*(["'])(.*?)\1''', coincidencia[0], re.I | re.S))
+            limpio = re.sub(r"</?[A-Za-z][^>]*>", texto_del_tag, limpio)
             hits = sorted({m.group(0) for m in PAT_TILDE.finditer(limpio)})
             if hits:
                 malos.append((os.path.relpath(fp, RAIZ), hits[:6]))
@@ -358,6 +364,9 @@ def main():
         ("ambito.py", "ámbito público y repositorios anidados"),
         ("pruebas/probar-ambito.py", "consumidores del ámbito y corpus opcional"),
         ("pruebas/probar-instalacion.py", "instalación aislada y conservación de copias"),
+        ("pruebas/probar-runtime.py", "selección y lectura íntegra de la fuente de API"),
+        ("pruebas/probar-ortografia.py", "prosa visible y atributos HTML técnicos"),
+        ("pruebas/probar-topes.py", "salidas y terminación del grupo propio del runner"),
         ("verificar-enlaces.py",      "enlaces y anclas"),
         ("validar-codigo-gml.py",     "cadenas sin cerrar"),
         ("auditar-juego-completo.py", "auditor de juego completo"),
@@ -441,7 +450,7 @@ def main():
         print(f"  ✓ ninguna herramienta con autoprueba se queda fuera "
               f"({len(_autopruebas)} ejecutadas).")
 
-    # 0 ter · ¿Sobrevive cada herramienta a una consola de Windows?
+    # 0 ter · Protección de codificación, por inspección del código actual.
     # En Windows, `sys.stdout` usa la página de códigos ANSI en cuanto la salida no es
     # una consola interactiva, y un `✓` la revienta con UnicodeEncodeError. **Medido**
     # el 2026-09-09 ejecutando las autopruebas con un Python 3.12.7 de Windows bajo
@@ -459,10 +468,10 @@ def main():
             _sin_guarda.append(_f)
     if _sin_guarda:
         print("  ⚠ sin protección de codificación para Windows: " + ", ".join(_sin_guarda))
-        problemas.append("estas herramientas revientan en una consola de Windows: "
+        problemas.append("estas herramientas carecen de la protección UTF-8 exigida: "
                          + ", ".join(_sin_guarda))
     else:
-        print("  ✓ todas resisten una consola de Windows (medido con Python de Windows).")
+        print("  ✓ las herramientas declaran protección UTF-8 (inspección estática; no es una prueba nativa de Windows).")
 
     paso(1, "Enlaces internos")
     if correr("verificar-enlaces.py") != 0:

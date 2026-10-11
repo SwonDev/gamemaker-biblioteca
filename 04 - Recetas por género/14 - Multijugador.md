@@ -207,7 +207,7 @@ buffer_seek(buffer, base, offset);        // base: buffer_seek_start | _relative
 buffer_write(buffer, type, value);        // escribe en la posición de búsqueda actual
 buffer_read(buffer, type);                // lee desde la posición actual
 buffer_tell(buffer);                      // posición actual
-buffer_delete(buffer);                    // liberar SIEMPRE
+buffer_delete(buffer);                    // liberar los buffers que creas tú
 network_send_packet(socket, bufferid, size);
 ```
 
@@ -222,6 +222,57 @@ más simple y la que mejor escala.
 [0]      → tipo de mensaje (u8)
 [1..]    → payload según el tipo
 ```
+
+**Propiedad del buffer.** El buffer que tú creas para enviar es tuyo: libéralo también si
+el envío falla. El de `async_load[? "buffer"]` pertenece al evento Networking: el motor
+lo libera al terminar ese evento. No lo borres ni guardes su handle para otro Step. Si
+necesitas conservar bytes recibidos, cópialos durante el evento a un buffer propio y libera
+esa copia cuando termine su uso. Esto es distinto de la vida del socket.
+
+### 4.2 bis · TCP raw: separar mensajes y acotar lo recibido
+
+La §5 usa `network_connect` con `network_send_packet`: GameMaker añade una cabecera y
+recompone los mensajes TCP. Un servidor externo necesita la pareja `network_connect_raw`
+y `network_send_raw`; no mezcles ambas familias en una conexión. Con TCP raw, un evento
+puede traer medio mensaje, varios mensajes juntos o el final de uno y el inicio de otro.
+El tamaño recibido no es la longitud de un mensaje de tu protocolo. UDP y WebSocket
+conservan sus límites de mensaje; no les apliques automáticamente un acumulador TCP.
+
+Para interoperar, define una cabecera propia: versión, tipo y longitud del cuerpo,
+con tipos y orden de bytes acordados con el servidor. El estado de recepción es **por
+socket**, en un buffer propio, y sigue esta secuencia:
+
+1. Copia los bytes del evento antes de que el motor libere su buffer.
+2. Si falta la cabecera completa, conserva los bytes y espera el siguiente evento.
+3. Valida versión, tipo y longitud declarada antes de reservar memoria o leer el cuerpo.
+4. Si falta cuerpo, conserva el mensaje parcial; si está completo, procesa exactamente
+   su longitud y continúa con el siguiente mensaje acumulado.
+5. Conserva solo la cola incompleta. Al desconectar, libera el acumulador y descarta esa
+   cola; no la reutilices para una nueva sesión del mismo jugador.
+
+Acota tamaño de mensaje, bytes acumulados por conexión, elementos de arrays y longitud
+de texto. Un límite de frecuencia HTTP (§14.7 de 13 · 10) no limita estos bytes. Cada lector
+debe comprobar los bytes restantes **antes** de `buffer_read`: una cadena sin terminador
+o un contador mayor que los registros presentes no se convierten en datos válidos por
+estar dentro de un buffer. También necesitas un plazo para mensajes incompletos y un
+presupuesto de mensajes procesados por Step para que una conexión no monopolice el juego.
+
+El retorno de `network_send_raw` indica bytes enviados o fallo: si tu transporte admite
+envíos parciales, conserva la parte pendiente en la cola de salida y no reenvíes lo ya
+aceptado. Un timeout de conexión tampoco detecta por sí solo la pérdida posterior del
+servidor: el manual advierte que el cliente no recibe `network_type_disconnect` al perderlo.
+Usa mensajes de latido y un plazo sin respuesta, con limpieza y reconexión explícitas.
+
+**Pruebas del protocolo, antes de llamarlo completo:** cabecera dividida entre eventos,
+dos mensajes unidos, cierre a mitad del cuerpo, longitud inválida o excesiva, texto sin
+terminador, versión desconocida, envío fallido y servidor desaparecido. El framing de
+GameMaker resuelve la separación TCP de §5; no valida los campos de tu juego. Estas son
+condiciones de aceptación, no resultados de una nueva ejecución de red.
+
+Fuentes primarias: [Networking, Raw Functions y Packet Separation](https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Networking/Networking.htm),
+[evento Networking](https://manual.gamemaker.io/lts/en/The_Asset_Editors/Object_Properties/Async_Events/Networking.htm)
+y [network_send_raw](https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Networking/network_send_raw.htm),
+consultadas el 11-10-2026.
 
 ### 4.3 Cadencia de envío y ancho de banda
 
@@ -532,7 +583,16 @@ enum NetMsg {
 #macro NET_TICK_RATE 20         // snapshots por segundo
 #macro NET_SEND_EVERY 3         // 60 fps / 20 Hz = 3 frames por snapshot
 #macro NET_MAX_CLIENTS 4
+#macro NET_MAX_ENTIDADES 1024
 ```
+
+El registro de entidad ocupa **19 bytes**: `net_id` y `propietario` son `u32`, tipo,
+vida y equipo son `u8`, y posiciones/velocidades escaladas son `s16`. Propiedad y equipo
+son campos distintos: pertenecer al mismo equipo no concede control. El juego asigna
+`propietario` desde el servidor al crear la entidad; `0` representa una entidad del host.
+Valida los rangos antes de serializar: este formato no representa mundos fuera de
+`s16` ni vida/equipos por encima de `u8`. Cambiar rangos exige cambiar emisor y lector.
+Los contadores `u32` de sesión tampoco incorporan aquí una política de vuelta a cero.
 
 ### 5.1 `objNetManager`
 
@@ -543,6 +603,7 @@ enum NetMsg {
 rol        = "ninguno";      // "servidor" | "cliente" | "ninguno"
 socket     = -1;
 conectado  = false;
+tick_local = 0;             // reloj de esta sesión; avanza una vez por Step
 
 // --- Identidad ---
 mi_id      = -1;             // ID que me asigna el servidor
@@ -564,7 +625,9 @@ historial_prediccion = [];      // [{ sec, x, y, vel_x, vel_y }]
 ultima_sec_confirmada = 0;
 
 // --- Servidor: clientes conectados ---------------------------------------------------
-clientes = {};                  // socket → { id, ip, ultimo_input }
+clientes = {};                  // socket → identidad, intención y secuencias
+siguiente_cliente_id = 1;
+aplicar_intencion = undefined;   // callback del juego: (id_cliente, intencion) → Bool
 
 // --- Ping --------------------------------------------------------------------------
 ping_enviado_en = 0;
@@ -654,26 +717,33 @@ function servidor_enviar_snapshot()
     var _b = net_buffer_nuevo(NetMsg.server_snapshot);
 
     // Timestamp del servidor (para la interpolación del cliente)
-    buffer_write(_b, buffer_u32, global.frame_count);
+    buffer_write(_b, buffer_u32, _nm.tick_local);
 
-    // --- Cuántas entidades -----------------------------------------------------------
+    // --- Filtrar antes de escribir el contador ---------------------------------------
     var _ids = variable_struct_get_names(_nm.entidades);
-    buffer_write(_b, buffer_u16, array_length(_ids));
-
-    // --- Cada entidad ------------------------------------------------------------------
+    var _vivas = [];
     for (var _i = 0; _i < array_length(_ids); _i++)
     {
         var _clave = _ids[_i];
+        if (instance_exists(_nm.entidades[$ _clave])) array_push(_vivas, _clave);
+        else variable_struct_remove(_nm.entidades, _clave);
+    }
+    if (array_length(_vivas) > NET_MAX_ENTIDADES)
+    {
+        show_debug_message("Snapshot rechazado: demasiadas entidades");
+        buffer_delete(_b);
+        return;
+    }
+    buffer_write(_b, buffer_u16, array_length(_vivas));
+
+    // --- Cada entidad ------------------------------------------------------------------
+    for (var _i = 0; _i < array_length(_vivas); _i++)
+    {
+        var _clave = _vivas[_i];
         var _ent = _nm.entidades[$ _clave];
 
-        if (!instance_exists(_ent))
-        {
-            // Entidad muerta: lo notificamos aparte y la limpiamos
-            variable_struct_remove(_nm.entidades, _clave);
-            continue;
-        }
-
         buffer_write(_b, buffer_u32, real(_clave));     // net_id
+        buffer_write(_b, buffer_u32, _ent.propietario); // cliente asignado por el servidor
         buffer_write(_b, buffer_u8,  _ent.tipo_entidad); // tipo (para spawnear)
         buffer_write(_b, buffer_s16, round(_ent.x));
         buffer_write(_b, buffer_s16, round(_ent.y));
@@ -684,12 +754,16 @@ function servidor_enviar_snapshot()
     }
 
     // --- Enviar a todos los clientes -----------------------------------------------------
+    var _bytes_estado = buffer_tell(_b);
     var _sockets = variable_struct_get_names(_nm.clientes);
     for (var _i = 0; _i < array_length(_sockets); _i++)
     {
         // network_send_packet NO consume el buffer, así que podemos reenviarlo.
         // Solo hay que borrarlo una vez, al final.
         var _sock = real(_sockets[_i]);
+        // El acuse es por cliente y solo confirma input aplicado por el servidor.
+        buffer_seek(_b, buffer_seek_start, _bytes_estado);
+        buffer_write(_b, buffer_u32, _nm.clientes[$ _sockets[_i]].ultimo_input_aplicado);
         network_send_packet(_sock, _b, buffer_tell(_b));
     }
 
@@ -723,6 +797,8 @@ function net_join(_ip)
     if (_resultado < 0)
     {
         show_debug_message("ERROR: no se pudo conectar a " + _ip);
+        network_destroy(_nm.socket);
+        _nm.socket = -1;
         return false;
     }
 
@@ -797,6 +873,8 @@ switch (_tipo)
         var _port   = async_load[? "port"];
 
         if (_buffer == undefined || !buffer_exists(_buffer)) break;
+        if (_size < 1 || _size > 65536 || _size > buffer_get_size(_buffer)) break;
+        var _emisor = async_load[? "id"];
 
         // Leer el buffer COMPLETO
         buffer_seek(_buffer, buffer_seek_start, 0);
@@ -808,7 +886,28 @@ switch (_tipo)
             switch (_msg)
             {
                 case NetMsg.server_snapshot:
-                    recibir_snapshot(_buffer);
+                    if (rol != "cliente" || !recibir_snapshot(_buffer, _size))
+                        buffer_seek(_buffer, buffer_seek_start, _size);
+                    break;
+
+                case NetMsg.client_input:
+                    // u32 secuencia + s8 horizontal + s8 vertical + bool disparar.
+                    if (rol != "servidor" || _size - buffer_tell(_buffer) < 7)
+                    {
+                        buffer_seek(_buffer, buffer_seek_start, _size);
+                        break;
+                    }
+                    var _sec = buffer_read(_buffer, buffer_u32);
+                    var _ix = buffer_read(_buffer, buffer_s8);
+                    var _iy = buffer_read(_buffer, buffer_s8);
+                    var _disparar = buffer_read(_buffer, buffer_bool);
+                    var _clave_cliente = string(_emisor);
+                    if (!variable_struct_exists(clientes, _clave_cliente)) break;
+                    var _cliente = clientes[$ _clave_cliente];
+                    if (_ix < -1 || _ix > 1 || _iy < -1 || _iy > 1) break;
+                    if (_sec <= _cliente.ultimo_input_recibido) break;
+                    _cliente.ultimo_input_recibido = _sec;
+                    _cliente.intencion = { sec: _sec, ix: _ix, iy: _iy, disparar: _disparar };
                     break;
 
                 case NetMsg.spawn_entity:
@@ -821,17 +920,32 @@ switch (_tipo)
 
                 case NetMsg.ping:
                     // Contestamos con un pong
+                    if (_size - buffer_tell(_buffer) < 4)
+                    {
+                        buffer_seek(_buffer, buffer_seek_start, _size);
+                        break;
+                    }
                     var _b = net_buffer_nuevo(NetMsg.pong);
                     buffer_write(_b, buffer_u32, buffer_read(_buffer, buffer_u32));
-                    net_enviar(socket, _b);
+                    net_enviar(_emisor, _b);
                     break;
 
                 case NetMsg.pong:
+                    if (_size - buffer_tell(_buffer) < 4)
+                    {
+                        buffer_seek(_buffer, buffer_seek_start, _size);
+                        break;
+                    }
                     var _enviado_en = buffer_read(_buffer, buffer_u32);
                     ping_ms = (current_time - _enviado_en);
                     break;
 
                 case NetMsg.server_welcome:
+                    if (rol != "cliente" || _size - buffer_tell(_buffer) < 4)
+                    {
+                        buffer_seek(_buffer, buffer_seek_start, _size);
+                        break;
+                    }
                     mi_id = buffer_read(_buffer, buffer_u32);
                     show_debug_message("El servidor me asignó el id " +
                                        string(mi_id));
@@ -860,11 +974,13 @@ switch (_tipo)
         show_debug_message("Cliente conectado: " + string(_ip));
 
         // Registrar
-        var _nuevo_id = struct_names_count(clientes) + 1;
+        var _nuevo_id = siguiente_cliente_id++;
         clientes[$ string(_sock)] = {
             id: _nuevo_id,
             ip: _ip,
-            ultimo_input_sec: 0
+            ultimo_input_recibido: 0,
+            ultimo_input_aplicado: 0,
+            intencion: undefined
         };
 
         // Darle la bienvenida con su ID
@@ -887,24 +1003,47 @@ switch (_tipo)
 
     // --- Modo no bloqueante: la conexión terminó -----------------------------------------
     case network_type_non_blocking_connect:
-        show_debug_message("Conexión establecida");
-        conectado = true;
+        conectado = (async_load[? "succeeded"] == 1);
+        if (conectado)
+        {
+            show_debug_message("Conexión establecida");
+        }
+        else
+        {
+            show_debug_message("La conexión falló o agotó su plazo");
+            if (socket >= 0) network_destroy(socket);
+            socket = -1;
+            rol = "ninguno";
+        }
         break;
 }
 ```
+
+`network_type_non_blocking_connect` informa tanto de éxito como de fallo: consulta
+`succeeded`, no la mera llegada del evento. El buffer entrante se consume aquí y no
+se destruye manualmente. La identidad del input se obtiene del socket, no de un ID que
+declare el cliente. La §5.8 aplica la intención a través de un callback del juego y
+solo entonces confirma su secuencia. Para completar el juego siguen siendo necesarios
+los lectores de spawn/kill, los límites del chat, la política de timeout y la simulación
+compartida de predicción. Compilar estos fragmentos no demuestra esos comportamientos.
 
 ### 5.5 Recibir el snapshot e interpolar
 
 ```gml
 // ---------------------------------------------------------------------------
-// objNetManager — recibir_snapshot(_buffer)
+// objNetManager — recibir_snapshot(_buffer, _limite)
 // ---------------------------------------------------------------------------
-function recibir_snapshot(_buffer)
+function recibir_snapshot(_buffer, _limite)
 {
     var _nm = objNetManager;
 
+    if (_limite - buffer_tell(_buffer) < 6) return false;
+
     var _tick = buffer_read(_buffer, buffer_u32);
     var _count = buffer_read(_buffer, buffer_u16);
+    // Cada registro ocupa 19 bytes con alineación 1; el acuse final ocupa 4.
+    if (_count > NET_MAX_ENTIDADES || _limite - buffer_tell(_buffer) < _count * 19 + 4) return false;
+    if (_nm.snapshot_reciente != noone && _tick <= _nm.snapshot_reciente.tick) return false;
 
     // --- Nuevo snapshot -----------------------------------------------------------------
     var _snap = { tick: _tick, entidades: {} };
@@ -912,6 +1051,7 @@ function recibir_snapshot(_buffer)
     for (var _i = 0; _i < _count; _i++)
     {
         var _net_id  = buffer_read(_buffer, buffer_u32);
+        var _propietario = buffer_read(_buffer, buffer_u32);
         var _tipo    = buffer_read(_buffer, buffer_u8);
         var _x       = buffer_read(_buffer, buffer_s16);
         var _y       = buffer_read(_buffer, buffer_s16);
@@ -921,10 +1061,19 @@ function recibir_snapshot(_buffer)
         var _equipo  = buffer_read(_buffer, buffer_u8);
 
         _snap.entidades[$ string(_net_id)] = {
-            tipo: _tipo, x: _x, y: _y,
+            propietario: _propietario, tipo: _tipo, x: _x, y: _y,
             vel_x: _vel_x, vel_y: _vel_y,
             hp: _hp, equipo: _equipo
         };
+    }
+
+    var _ack_input = buffer_read(_buffer, buffer_u32);
+    if (_ack_input > _nm.secuencia_input || _ack_input < _nm.ultima_sec_confirmada) return false;
+    _nm.ultima_sec_confirmada = _ack_input;
+    while (array_length(_nm.historial_prediccion) > 0
+           && _nm.historial_prediccion[0].sec <= _ack_input)
+    {
+        array_delete(_nm.historial_prediccion, 0, 1);
     }
 
     // --- Rotar los snapshots para la interpolación ------------------------------------
@@ -959,7 +1108,7 @@ function recibir_snapshot(_buffer)
 
         // --- ¿Es MÍA? Entonces NO la interpolo: la predicción local manda. --------------
         //    Guardo la posición del servidor para la reconciliación.
-        if (_datos.equipo == _nm.mi_id)
+        if (_datos.propietario == _nm.mi_id)
         {
             _inst.x_servidor = _datos.x;
             _inst.y_servidor = _datos.y;
@@ -976,9 +1125,11 @@ function recibir_snapshot(_buffer)
 
         _inst.hp     = _datos.hp;
         _inst.equipo = _datos.equipo;
+        _inst.propietario = _datos.propietario;
         _inst.vel_x  = _datos.vel_x;
         _inst.vel_y  = _datos.vel_y;
     }
+    return true;
 }
 ```
 
@@ -990,7 +1141,8 @@ function recibir_snapshot(_buffer)
 // ---------------------------------------------------------------------------
 net_id       = -1;
 tipo_entidad = 0;
-equipo       = -1;
+propietario  = 0;             // el servidor asigna el cliente que la controla
+equipo       = 0;             // alianza; no identifica al propietario
 
 // Interpolación
 x_anterior   = x;
@@ -1012,7 +1164,7 @@ hp    = 100;
 // objNetEntity — Step
 // ---------------------------------------------------------------------------
 // --- Interpolar hacia el objetivo (entidades remotas) ------------------------------
-if (equipo != objNetManager.mi_id)
+if (objNetManager.rol == "cliente" && propietario != objNetManager.mi_id)
 {
     // El intervalo entre snapshots: 1000 ms / tick rate
     var _intervalo = 1000 / NET_TICK_RATE;
@@ -1031,14 +1183,21 @@ if (equipo != objNetManager.mi_id)
 }
 else
 {
-    // --- Entidad propia: la mueve el input local (predicción) -------------------------
-    //    objPlayerLocal ya la ha movido. Aquí no tocamos x/y.
+    // El host simula con el callback autoritativo; el cliente predice su entidad.
+    // Esta rama no añade movimiento ni lo reemplaza con interpolación.
 }
 
 depth = -y;
 ```
 
 ### 5.7 Reconciliación (corregir la predicción)
+
+Este helper suaviza una corrección visual. El acuse de §5.5 ya elimina entradas
+confirmadas, pero una reconciliación con predicción completa requiere restaurar el estado
+autoritativo y re-simular los inputs posteriores al acuse con la misma regla de movimiento
+y colisiones. El historial mostrado guarda posiciones; añade las intenciones y ticks
+necesarios antes de usarlo para re-simular. Comparar la posición actual contra un snapshot
+antiguo, por sí solo, no completa ese algoritmo.
 
 ```gml
 // ---------------------------------------------------------------------------
@@ -1085,15 +1244,42 @@ function reconciliar(_inst)
 
 ### 5.8 Bucle del servidor
 
+El juego configura `objNetManager.aplicar_intencion` antes de alojar una partida: recibe
+un ID asignado por el servidor y `{ sec, ix, iy, disparar }`, valida estado, velocidad y
+cadencia de disparo, simula **un tick fijo** y devuelve `true` si lo aplicó. No acepta
+posiciones ni daño declarados por el cliente. El transporte no puede decidir esas reglas.
+La intención mantenida se aplica una vez por Step del servidor; recibir cien mensajes
+no debe provocar cien ticks de movimiento. El acuse refleja la última intención aplicada,
+no una cola completa de inputs históricos; cliente y servidor deben acordar esta política.
+
+```gml
+/// scr_net_server — llamada por el Step del servidor, antes de enviar el snapshot.
+function servidor_consumir_inputs(_aplicar)
+{
+    if (!is_callable(_aplicar)) return;
+    var _nm = objNetManager;
+    var _claves = variable_struct_get_names(_nm.clientes);
+    for (var _i = 0; _i < array_length(_claves); _i++)
+    {
+        var _cliente = _nm.clientes[$ _claves[_i]];
+        if (is_undefined(_cliente.intencion)) continue;
+        if (_aplicar(_cliente.id, _cliente.intencion))
+            _cliente.ultimo_input_aplicado = _cliente.intencion.sec;
+    }
+}
+```
+
 ```gml
 // ---------------------------------------------------------------------------
 // objNetManager — Step
 // ---------------------------------------------------------------------------
+tick_local++;
 switch (rol)
 {
     case "servidor":
+        servidor_consumir_inputs(aplicar_intencion);
         // --- Enviar snapshots a la cadencia configurada --------------------------------
-        if (global.frame_count mod NET_SEND_EVERY == 0)
+        if (tick_local mod NET_SEND_EVERY == 0)
         {
             servidor_enviar_snapshot();
         }
@@ -1106,7 +1292,7 @@ switch (rol)
         cliente_enviar_input();
 
         // --- Ping cada 2 segundos ----------------------------------------------------------
-        if (global.frame_count mod 120 == 0)
+        if (tick_local mod 120 == 0)
         {
             var _b = net_buffer_nuevo(NetMsg.ping);
             buffer_write(_b, buffer_u32, current_time);
@@ -1115,6 +1301,33 @@ switch (rol)
         break;
 }
 ```
+
+### 5.8 bis · Aceptación reproducible del transporte
+
+Para un fixture local, usa dos procesos del mismo build, el host en `127.0.0.1` y un
+cliente. El callback del fixture registra ID y secuencia y devuelve `true`, sin simular
+un juego. Registra bytes de cada mensaje, secuencia recibida, secuencia aplicada y acuse
+del snapshot. Ejecuta primero el caso positivo y después cada negativo por separado;
+termina ambos procesos y conserva versión del protocolo, runtime, target y resultado.
+Es un plan reproducible; esta ampliación no ejecutó el fixture.
+
+| Caso | Entrada | Resultado esperado |
+|---|---|---|
+| Loopback positivo | Conectar → welcome → input válido → callback → snapshot | ID único; acuse igual al input aplicado; historial confirmado retirado |
+| Conexión fallida | Evento no bloqueante con `succeeded = 0` | No queda conectado; socket liberado |
+| Input inválido o repetido | Dirección fuera de rango o secuencia ya recibida | No cambia la intención aceptada ni avanza el acuse |
+| Callback pendiente | Input válido sin callback o callback devuelve `false` | El acuse permanece en la secuencia aplicada anterior |
+| Snapshot truncado | Contador mayor que los registros presentes | Rechazo antes de modificar entidades o snapshots |
+| Entidad destruida | Un ID del registro ya no tiene instancia | Contador enviado igual al número de registros vivos |
+| Límite de entidades | Más de `NET_MAX_ENTIDADES` instancias registradas | No envía un contador que el lector rechace o que desborde |
+| Dos clientes | Intenciones con secuencias diferentes | Cada snapshot lleva el acuse de su destinatario |
+| Equipo compartido | Dos clientes distintos con el mismo equipo | Cada cliente predice solo la entidad cuyo propietario coincide con su ID |
+| Step del host | Entidad de un cliente en el host | El Step de interpolación no sobrescribe la simulación autoritativa |
+| Pérdida del servidor | Cerrar host mientras el cliente sigue abierto | El plazo de latido del juego desconecta y limpia; no se espera un evento inexistente |
+
+Incluye también los casos raw de §4.2 bis si tu backend usa TCP raw. El fixture anterior
+solo acredita transporte y acuses; no acredita predicción, colisiones, combate ni seguridad
+del callback del juego.
 
 ### 5.9 Chat
 
@@ -1280,7 +1493,7 @@ function LobbyState() constructor
 | Error | Síntoma | Solución |
 |---|---|---|
 | Enviar `id` de instancia por la red | Los IDs no coinciden entre máquinas | `net_id` asignado por el servidor |
-| No liberar los buffers | Fuga de memoria brutal (cada paquete es un buffer) | `buffer_delete()` siempre, incluso en los caminos de error |
+| No liberar los buffers propios | La memoria crece con los envíos o copias pendientes | `buffer_delete()` también en errores; el buffer entrante del evento lo libera el motor |
 | Paquetes de más de ~1400 bytes | Fragmentación y pérdidas masivas | Divide o comprime; mantén < 1200 bytes |
 | Leer el buffer sin `buffer_seek` al inicio | Lees desde donde se quedó la última escritura | `buffer_seek(_b, buffer_seek_start, 0)` antes de leer |
 | Acción en tiempo real sobre TCP | Bloqueos cuando se pierde un paquete | UDP para acción; TCP para lobby y chat |

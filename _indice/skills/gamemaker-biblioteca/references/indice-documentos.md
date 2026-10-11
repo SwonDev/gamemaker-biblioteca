@@ -3,7 +3,7 @@
 > **Generado por `_indice/sincronizar-skill.py` desde `MAPA.json`. No lo edites a mano:**
 > se reescribe en cada `python3 _indice/actualizar.py`.
 
-Versión de referencia: LTS 2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23) · Beta 2026.100.0 (IDE 1139 / runtime 1090) · GMRT 0.21.
+Versión de referencia: LTS 2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23) · Beta 2026.100.0 (snapshot 07-09-2026: IDE 1142 / runtime 1093) · GMRT 0.21.
 
 Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve `$BIB` (ver la cabecera de la skill).
 
@@ -33,6 +33,9 @@ Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve `$BIB
 - `INSTALACION.md` — **Instalar la biblioteca y la skill**
   Instalación de la skill, herramientas y diagnóstico por plataforma.
   *Úsalo cuando:* instalar, actualizar o diagnosticar la biblioteca y la skill.
+- `Método visual.md` — **Cómo trabaja tu IA con la biblioteca**
+  Explicación ilustrada de la aportación de la skill, el trabajo guiado por especificación y la selección de contexto.
+  *Úsalo cuando:* comprender el método antes de consultar sus contratos completos.
 
 
 ## `01 - Fundamentos` — Fundamentos de GML
@@ -440,3 +443,4 @@ Ilustraciones propias de la portada y su procedencia.
 **No usar para:** assets jugables de producción · certificar calidad de un juego
 
 - `assets/readme/README.md` — Ilustraciones de la portada
+- `assets/readme/prompts-metodología.md` — Prompts de las ilustraciones metodológicas

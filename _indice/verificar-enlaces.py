@@ -156,7 +156,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--autoprueba":
         _h = os.path.join(_tmp, "bis"); os.makedirs(_h)
         open(os.path.join(_h, "uno.md"), "w", encoding="utf-8").write(
             "# Uno\n\n## 5 · Una\n\nVer [dos](./dos.md).\n\n## 5 bis · Otra\n\n"
-            "### 5 bis.1 · Detalle\n\n### 2.5D · Ni esto\n")
+            "### 5 bis.1 · Detalle\n\n## 2 · Base\n\n### 2.5D · Ni esto\n")
         open(os.path.join(_h, "dos.md"), "w", encoding="utf-8").write("# Dos\n")
         _c, _o = _correr(_h)
         _revisar("`5 bis` y `2.5D` NO cuentan como duplicado de `5`", _c == 0,
@@ -508,7 +508,9 @@ for doc, destino, frag in anclas_rotas:
 # La convención de la casa —`5 bis`, `3 ter`, `9 quater.2`— es legítima y se
 # reconoce entera; lo que no vale es repetir la MISMA etiqueta.
 PAT_SECCION = re.compile(
-    r"^#{2,6}\s+(?>(\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies)(?:\.\d+)*)?))"
+    # Capturar en lookahead y consumir la referencia conserva la etiqueta completa
+    # sin retroceder de «2.5D» a «2»; (?>...) solo existe desde Python 3.11.
+    r"^#{2,6}\s+(?=(\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies)(?:\.\d+)*)?))\1"
     r"(?=\s*(?:·|\.|—|:|-|\s)\s*\S)", re.I)
 
 

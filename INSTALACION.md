@@ -44,7 +44,16 @@ python _indice/construir-indices.py
 python _indice/buscar.py draw_sprite_ext
 ```
 
-El primer comando deriva firmas del runtime real. El segundo debe mostrar la ficha. Para comprobar toda la biblioteca ejecuta `python _indice/actualizar.py`; puede compilar ejemplos y tarda más.
+El primer comando deriva firmas de la fuente seleccionada. El segundo debe mostrar la ficha. **La caché no acredita qué runtime usa tu proyecto.** Comprueba ese dato en el IDE o configuración de compilación y selecciona la misma versión:
+
+```bash
+export GM_BIBLIOTECA_RUNTIME=2026.0.0.23
+python _indice/construir-indices.py
+```
+
+También admite la carpeta de un runtime del IDE que contenga `GmlSpec.xml`. En PowerShell: `$env:GM_BIBLIOTECA_RUNTIME = '2026.0.0.23'`. No cambia el runtime del proyecto. Una selección inválida aborta. Sin selector se usa la versión numéricamente más alta disponible en la caché de GameMakerCLI; compara siempre `meta.runtime` con el proyecto.
+
+Para comprobar toda la biblioteca ejecuta `python _indice/actualizar.py`; puede compilar ejemplos y tarda más.
 
 `./instalar.sh --indices` solicita generación de índices antes de instalar. Si falla, sale con error y conserva tus instalaciones.
 
@@ -63,10 +72,31 @@ Sin GameMaker puedes leer documentación e instalar la skill. Contrasta las firm
 | Copilot CLI | `~/.copilot/skills` | [Skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-skills) |
 | Cursor CLI | `~/.cursor/skills` | [Skills](https://cursor.com/docs/context/skills) |
 | Cline | `~/.cline/skills` | [Skills](https://docs.cline.bot/features/skills) |
+| Pi | `~/.pi/agent/skills` | [Skills](https://github.com/earendil-works/pi/blob/v1.1.0/packages/coding-agent/docs/skills.md) |
+| OMP (Oh My Pi) | `~/.omp/agent/skills` | [Skills](https://github.com/can1357/oh-my-pi/blob/main/docs/skills.md) |
+| MiniMax Code (`mcode`) | `~/.minimax/skills` | [Repositorio oficial](https://github.com/MiniMax-AI/MiniMax-Code) |
+| DeepSeek Harness (`dsh`) | `~/.dsh/skills` | [Cargador oficial](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md) |
+| Hermes Agent | `~/.hermes/skills` | [Skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/) |
+| gentle-shell | `~/.gentle-shell/agent/skills`, modo aislado | [Repositorio oficial](https://github.com/Gentleman-Programming/gentle-shell) |
 
-El destino genérico `~/.agents/skills` se instala siempre; los demás se activan al encontrar el comando del agente en el PATH. Es compatibilidad de formato y rutas, no una prueba de todos los CLI. Verifica la versión y el descubrimiento de skills de tu agente.
+El destino genérico `~/.agents/skills` se instala siempre; los demás se activan al encontrar el comando del agente en el PATH. Para elegir solo uno, incluso antes de instalar el agente:
 
-Para otro agente, referencia `_indice/skills/gamemaker-biblioteca/AGENTS.md` desde sus instrucciones. **Integra su contenido sin sobrescribir un AGENTS.md existente.** Aider puede referenciarlo mediante `read`; el instalador no cambia su configuración.
+```bash
+./instalar.sh --listar-harnesses
+./instalar.sh --harness dsh
+```
+
+Nombres: `agents`, `claude`, `codex`, `opencode`, `qwen`, `kimi`, `gemini`, `copilot`, `cursor`, `cline`, `pi`, `omp`, `minimax`, `dsh`, `hermes`, `gentle-shell`. Con `--harness`, establece `GM_BIBLIOTECA` para que el agente localice también los documentos; ese modo instala un único destino sin registrar rutas globales.
+
+El instalador respeta `CODEX_HOME`, `PI_CODING_AGENT_DIR`, `PI_CONFIG_DIR`, `OMP_PROFILE`/`PI_PROFILE`, `MINIMAX_DATA_DIR`, `DSH_HOME`, `HERMES_HOME` y `GENTLE_SHELL_HOME`. Revisa los destinos impresos. Un perfil MiniMax, una opción `--home`, una configuración de gentle-shell con otro home o directorios personalizados en Qwen requieren `--destino /ruta/efectiva/skills`. El instalador conserva la configuración existente.
+
+Hermes usa en Windows `%LOCALAPPDATA%/hermes/skills` (sin esa variable, `~/AppData/Local/hermes/skills`); respeta además `HERMES_DATA_DIR_SUFFIX`. Para OMP, `PI_CONFIG_DIR` es relativo al home: una ruta absoluta o con `~` se rechaza y requiere un `PI_CODING_AGENT_DIR` absoluto o `--destino`. Los wrappers pueden seleccionar otro home al arrancar: confirma la ubicación efectiva en el catálogo.
+
+**Copiado, descubierto y utilizado son estados distintos.** Pi/OMP pueden condicionar skills de proyecto a confianza; MiniMax puede desactivar fuentes externas; Hermes requiere confianza para fuentes de proyecto; `dsh` necesita su proveedor filesystem y consumidor de skills activos. Las pruebas de cargadores usan el código instalado en macOS, sin peticiones a modelos. No certifican todos los CLI, proveedores o instalaciones Windows/Linux. Consulta los recibos en `_indice/auditorias/` y confirma el catálogo de tu agente.
+
+`dsh` es DeepSeek Harness. `codex-deepseek` conserva la carga de skills de Codex; usar un modelo DeepSeek dentro de otro agente no lo convierte en `dsh`.
+
+Para otro agente, referencia `_indice/skills/gamemaker-biblioteca/AGENTS.md` desde sus instrucciones. **Integra su contenido sin sobrescribir un AGENTS.md existente.** Conserva acceso a la biblioteca y las referencias del paquete. Aider puede referenciarlo mediante `read`; el instalador no cambia su configuración. Un agente que no cargue instrucciones ni pueda consultar archivos necesita adaptación propia: el formato por sí solo no habilita herramientas, ejecución o verificación.
 
 ## Actualizar o comprobar
 

@@ -9,7 +9,7 @@ Repositorio público: [SwonDev/gamemaker-biblioteca](https://github.com/SwonDev/
 |---|---|
 | Documentación propia, skill y herramientas | Incluidas, con licencia MIT o CC BY-SA según [LICENSE](LICENSE) |
 | Juego de referencia propio | Código y generadores incluidos; imports opcionales mantienen sus licencias |
-| Ilustraciones de la portada | Incluidas, originales y generadas con IA; [procedencia](assets/readme/README.md) |
+| Ilustraciones de la portada y el método | Incluidas, originales y generadas con IA; [procedencia](assets/readme/README.md) |
 | Catálogo de terceros | Solo `11 - Código descargado/_RUTAS.json` y `_CATALOGO.md`: enlaces y metadatos |
 | Manual oficial y código descargado de terceros | Fuera del repositorio; reconstrucción opcional en el equipo del consumidor |
 | Proyectos personales, corpus crudo, conversaciones, fuentes y recibos privados | Fuera de la distribución |
@@ -78,4 +78,4 @@ este proyecto es independiente.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) enumera mantenimiento, compilación, ejecución,
 trampas del CLI, privacidad y verificación visual. Cada recibo declara entradas,
-fecha, resultado y límites. [Recibo de esta actualización](./_indice/auditorias/r21-publicacion.md).
+fecha, resultado y límites. [Recibo de esta actualización](./_indice/auditorias/r22-publicacion.md).

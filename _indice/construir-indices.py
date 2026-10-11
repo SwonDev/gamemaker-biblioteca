@@ -23,7 +23,8 @@ No toca MAPA.json: ese lleva descripciones escritas a mano ("usar_cuando",
 edítalo a mano.
 """
 from ambito import es_ajena, rutas_no_publicables
-import glob, json, os, platform, re, sys
+from runtime_biblioteca import seleccionar_runtime, error_runtime, ruta_cache_gamemakercli as _ruta_cache_gamemakercli
+import glob, json, os, re, sys
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
 # propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
@@ -109,46 +110,26 @@ def documentos_es():
 
 
 def paginas(sub):
+    from ambito import archivos_del_ambito
     base = os.path.join(MANUAL, sub)
-    out = []
-    for raiz, _, files in os.walk(base):
-        for f in sorted(files):
-            if f.endswith(".md"):
-                out.append(os.path.relpath(os.path.join(raiz, f), RAIZ))
-    return sorted(out)
+    return sorted(os.path.relpath(p, RAIZ) for p in archivos_del_ambito(
+        RAIZ, [os.path.relpath(base, RAIZ)], {".md"}))
 
 
 def contar_gml():
-    n = 0
-    for raiz, _, files in os.walk(CODIGO):
-        n += sum(1 for f in files if f.endswith(".gml"))
-    return n
+    from ambito import archivos_del_ambito
+    return sum(1 for _ in archivos_del_ambito(
+        RAIZ, [os.path.relpath(CODIGO, RAIZ)], {".gml"}, corpus=True))
 
 
 
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def _ruta_cache_gamemakercli():
-    """Réplica de la lógica de gm-cli (ver buscar.py, misma función, para el porqué
-    exacto): macOS → ~/Library/Caches, Windows → %LOCALAPPDATA%\\GameMakerCLI\\cache,
-    resto → XDG_CACHE_HOME. No verificado fuera de macOS. Se repite aquí porque
-    buscar.py no se importa: cada script deriva su propia RUNTIMES."""
-    home = os.path.expanduser("~")
-    sistema = platform.system()
-    if sistema == "Darwin":
-        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
-    if sistema == "Windows":
-        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
-        return os.path.join(base, "GameMakerCLI", "cache")
-    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
-    return os.path.join(base, "GameMakerCLI")
-
-
 RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
 
 
-def fusionar_fnames(simb):
+def fusionar_fnames(simb, dir_runtime=None):
     """Añade al índice los símbolos que están en `fnames` y no en GmlSpec.xml.
 
     El runtime trae DOS listas de símbolos y no coinciden: `GmlSpec.xml` (la que usa
@@ -157,17 +138,22 @@ def fusionar_fnames(simb):
     cualquier herramienta basada en la documentación. Se marcan con `fuente: fnames`
     para avisar de que Feather no los reconoce.
     """
-    if not os.path.isdir(RUNTIMES):
-        return 0
-    rts = sorted(d for d in os.listdir(RUNTIMES) if d.startswith("runtime-"))
-    if not rts:
-        return 0
-    ruta = os.path.join(RUNTIMES, rts[-1], "fnames")   # el más reciente
+    if dir_runtime is None:
+        runtime = seleccionar_runtime(RUNTIMES)
+        if runtime is None:
+            return 0
+        dir_runtime = runtime.directorio
+    ruta = os.path.join(dir_runtime, "fnames")
     if not os.path.exists(ruta):
-        return 0
+        error_runtime(f"falta fnames en {dir_runtime}; no se puede verificar la API completa.")
 
     n = 0
-    for l in open(ruta, encoding="utf-8", errors="replace"):
+    try:
+        with open(ruta, encoding="utf-8") as entrada:
+            lineas = entrada.readlines()
+    except (OSError, UnicodeError) as error:
+        error_runtime(f"no se puede leer {ruta}: {error}")
+    for l in lineas:
         l = l.rstrip("\n").strip()
         if l.startswith("//") or not l:
             continue
@@ -265,7 +251,8 @@ def sincronizar_mapa(docs, n_simbolos):
     Devuelve la lista de avisos: si no está vacía, algo requiere una persona.
     """
     ruta = os.path.join(IND, "MAPA.json")
-    m = json.load(open(ruta, encoding="utf-8"))
+    with open(ruta, encoding="utf-8") as archivo:
+        m = json.load(archivo)
     avisos = []
 
     # Carpetas de infraestructura: existen, están descritas en MAPA.json a mano,
@@ -366,18 +353,15 @@ def sincronizar_mapa(docs, n_simbolos):
             avisos.append(f"fichero de índice que ya no existe: «{k}»")
 
     m["total_documentos"] = len(docs)
-    json.dump(m, open(ruta, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    with open(ruta, "w", encoding="utf-8") as archivo:
+        json.dump(m, archivo, ensure_ascii=False, indent=2)
     return avisos
 
 
 def runtime_instalado():
-    """Carpeta del runtime más reciente que hay instalado, y su versión."""
-    if not os.path.isdir(RUNTIMES):
-        return None, None
-    rts = sorted(d for d in os.listdir(RUNTIMES) if d.startswith("runtime-"))
-    if not rts:
-        return None, None
-    return os.path.join(RUNTIMES, rts[-1]), rts[-1].replace("runtime-", "")
+    """Directorio y versión de la fuente de API elegida para ambos listados."""
+    runtime = seleccionar_runtime(RUNTIMES)
+    return (runtime.directorio, runtime.version) if runtime else (None, None)
 
 
 def extraer_gmlspec(dir_runtime):
@@ -394,11 +378,13 @@ def extraer_gmlspec(dir_runtime):
     simb = {}
     specs = sorted(glob.glob(os.path.join(dir_runtime, "**", "GmlSpec.xml"),
                              recursive=True))
+    if not specs:
+        error_runtime(f"no hay GmlSpec.xml en {dir_runtime}; no se ha podido leer la API.")
     for ruta in specs:
         try:
             raiz = ET.parse(ruta).getroot()
-        except ET.ParseError:
-            continue
+        except (ET.ParseError, OSError) as error:
+            error_runtime(f"GmlSpec.xml ilegible o malformado en {ruta}: {error}")
         modulo = raiz.attrib.get("Module", "Base")
 
         for f in raiz.iter("Function"):
@@ -444,6 +430,8 @@ def extraer_gmlspec(dir_runtime):
             simb[nom] = {"tipo": "constante",
                          "tipo_dato": c.attrib.get("Type") or "Real",
                          "obsoleta": c.attrib.get("Deprecated") == "true"}
+    if not simb:
+        error_runtime(f"GmlSpec.xml no aporta símbolos de API en {dir_runtime}; no se publica un índice vacío.")
     return simb
 
 
@@ -462,11 +450,13 @@ def cruzar_manual(simb, en, es):
 
 
 def main():
+    runtime = seleccionar_runtime(RUNTIMES)
+    dir_rt, version_rt = (runtime.directorio, runtime.version) if runtime else (None, None)
+    nuevos = extraer_gmlspec(dir_rt) if dir_rt else None
+    nombres_spec = set(nuevos) if nuevos is not None else set()
+    extra = fusionar_fnames(nuevos, dir_rt) if dir_rt else None
     docs = documentos_es()
     en, es = paginas("manual-lts-2026-en"), paginas("manual-lts-2026-es")
-    json.dump({"documentos_es": docs, "manual_en": en, "manual_es": es},
-              open(os.path.join(IND, "documentos.json"), "w", encoding="utf-8"),
-              ensure_ascii=False, indent=1)
 
     ruta_simbolos = os.path.join(IND, "simbolos.json")
     if os.path.exists(ruta_simbolos):
@@ -477,11 +467,9 @@ def main():
         # el bloque de abajo lo rellena entero desde GmlSpec.xml.
         previo = {"meta": {}, "simbolos": {}}
     primera_vez = not previo["simbolos"]  # no confundir "se genera por primera vez" con "cambió"
-    dir_rt, version_rt = runtime_instalado()
 
     if dir_rt:
         # Se re-deriva del runtime instalado: así un runtime nuevo aparece solo.
-        nuevos = extraer_gmlspec(dir_rt)
         cruzar_manual(nuevos, en, es)
 
         # El análisis del corpus recorre 54 000 archivos .gml y no depende del
@@ -492,35 +480,40 @@ def main():
                 e["ejemplos_en_codigo"] = ej
 
         antes = {k for k, v in previo["simbolos"].items() if v.get("fuente") != "fnames"}
-        cambios = {"añadidos": sorted(set(nuevos) - antes),
-                   "retirados": sorted(antes - set(nuevos))}
+        cambios = {"añadidos": sorted(nombres_spec - antes),
+                   "retirados": sorted(antes - nombres_spec)}
         simb = {"meta": previo.get("meta") or {}, "simbolos": nuevos}
         simb["meta"]["runtime"] = version_rt
+        simb["meta"]["runtime_origen"] = runtime.origen
     elif previo["simbolos"]:
-        print("⚠ no hay runtime instalado: se conservan los símbolos anteriores")
+        print("⚠ no hay runtime disponible en la caché: se conservan los símbolos anteriores; "
+              "no se ha verificado el runtime del proyecto")
         simb, cambios = previo, {"añadidos": [], "retirados": []}
+        extra = sum(e.get("fuente") == "fnames" for e in simb["simbolos"].values())
     else:
         # Ni runtime instalado ni un simbolos.json previo que conservar: no hay
         # ningún camino para derivar la API por primera vez. Fallar con claridad
         # en vez de escribir un índice vacío que luego mentiría en silencio.
-        print("✗ No hay ningún runtime de GameMaker instalado en esta máquina, y")
+        print("✗ No hay runtime de GameMaker disponible en la caché para la biblioteca, y")
         print(f"  {os.path.relpath(ruta_simbolos, RAIZ)} no existe todavía: no hay nada")
         print("  que conservar de una ejecución anterior.")
         print()
         print("  Los símbolos de esta biblioteca se derivan del GmlSpec.xml del runtime")
-        print("  instalado (no hay una lista escrita a mano). Instala GameMaker Studio 2")
-        print("  LTS 2026 (o solo el runtime, con `gm-cli`) y vuelve a ejecutar:")
+        print("  elegido (no hay una lista escrita a mano). Instala el runtime o selecciona")
+        print("  su directorio existente con GM_BIBLIOTECA_RUNTIME y vuelve a ejecutar:")
         print("      python3 _indice/actualizar.py")
-        return 1
+        return 2
 
     simb["meta"]["archivos_gml_analizados"] = contar_gml()
-    extra = fusionar_fnames(simb["simbolos"])
     cruzados = cruzar_docs(simb["simbolos"], docs)
     simb["meta"]["simbolos"] = len(simb["simbolos"])
     simb["meta"]["fuentes"] = ["GmlSpec.xml", "fnames"]
     simb["meta"]["solo_en_fnames"] = extra
-    json.dump(simb, open(os.path.join(IND, "simbolos.json"), "w", encoding="utf-8"),
-              ensure_ascii=False, indent=1)
+    with open(os.path.join(IND, "documentos.json"), "w", encoding="utf-8") as archivo:
+        json.dump({"documentos_es": docs, "manual_en": en, "manual_es": es},
+                  archivo, ensure_ascii=False, indent=1)
+    with open(os.path.join(IND, "simbolos.json"), "w", encoding="utf-8") as archivo:
+        json.dump(simb, archivo, ensure_ascii=False, indent=1)
 
     avisos = sincronizar_mapa(docs, simb["meta"]["simbolos"])
 
@@ -532,12 +525,14 @@ def main():
     print(f"símbolos de la API     : {simb['meta']['simbolos']}"
           f"  (de ellos {simb['meta']['solo_en_fnames']} solo en fnames)")
     print(f"runtime leído          : {simb['meta']['runtime']}")
+    if runtime:
+        print(f"fuente de la API        : {runtime.descripcion}; no acredita el runtime activo del proyecto")
 
     if primera_vez:
         # No es que "cambiara": es la primera vez que se generan en este clon. Decirlo
         # como un cambio de API confundiría a quien acaba de clonar el repositorio.
         print(f"\nPrimera generación en este clon: {len(cambios['añadidos'])} símbolos "
-              "cargados desde el runtime instalado.")
+              "cargados desde el runtime leído.")
     elif cambios["añadidos"] or cambios["retirados"]:
         print(f"\n\033[1mLA API HA CAMBIADO\033[0m respecto al índice anterior:")
         if cambios["añadidos"]:

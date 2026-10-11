@@ -38,3 +38,28 @@ con WebP calidad 85; la social se redujo a 1280 × 640 y JPEG calidad 91. Se ret
 Ilustraciones propias compartidas bajo **CC BY-SA 4.0**, según [LICENSE](../../LICENSE).
 La licencia ofrece los derechos de distribución que corresponden al autor; no afirma
 exclusividad ni certificación jurídica del contenido generado.
+
+## Guía visual del método
+
+Tres ilustraciones adicionales generadas el **11-10-2026** por petición del autor,
+mediante la misma herramienta integrada y con la misma limitación de identificador.
+Se revisaron los píxeles y las etiquetas antes de integrarlas. La explicación accesible
+está en [Método visual](<../../Método visual.md>).
+
+| Archivo | Relación que explica | Formato y dimensiones |
+|---|---|---|
+| `aporta.webp` | Conocimiento → método → proyecto | WebP · 1536 × 1024 |
+| `spec-driven.webp` | Idea → especificación → tareas → pruebas | WebP · 1536 × 1024 |
+| `contexto.webp` | Recuperación por significado → selección de fuentes | WebP · 1536 × 1024 |
+
+Los tres PNG originales permanecen fuera del repositorio. Se exportaron sin recortar
+ni modificar su contenido, a WebP calidad 85, sin metadatos EXIF ni XMP. Mantienen la
+licencia **CC BY-SA 4.0**. [Prompts exactos](<./prompts-metodología.md>).
+
+## Iconos vectoriales propios
+
+`iconos/biblioteca.svg`, `iconos/metodo.svg` e `iconos/busqueda.svg` son dibujos originales
+escritos como SVG para esta portada el 11-10-2026. No proceden de una biblioteca de iconos
+ni de una generación raster. Su geometría sigue los motivos de páginas y fichas de
+`DESIGN.md`; se muestran a 32 × 32 con alternativa vacía junto a títulos completos.
+Comparten la licencia **CC BY-SA 4.0** de las ilustraciones propias.

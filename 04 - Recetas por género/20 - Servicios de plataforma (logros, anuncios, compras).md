@@ -20,8 +20,9 @@ python3 _indice/buscar.py steam_set_achievement
 ```
 
 Eso **no** significa que no exista: significa que **no es del runtime, es de la extensión
-Steamworks**. `buscar.py` solo conoce `GmlSpec.xml`. Para verificar una función de extensión,
-su fuente está descargada:
+Steamworks**. El índice del runtime combina `GmlSpec.xml` y `fnames`; no sustituye las
+firmas de una extensión. Comprueba la revisión de la extensión instalada y su `.yy` y
+documentación oficial. Si instalaste el corpus opcional, su fuente está descargada:
 
 | Servicio | Extensión (verifícala aquí) |
 |---|---|
@@ -32,9 +33,9 @@ su fuente está descargada:
 | Logros/tablas móvil | `.../GMEXT-GooglePlayServices/` · `.../GMEXT-GameCenter/` |
 | Backend, analítica, auth | `.../GMEXT-Firebase/` |
 
-> 🔺 **Las 14 extensiones oficiales de servicios están en el proyecto.** Si dudas de una
-> función de extensión, `grep -r nombre_funcion "11 - Código descargado/extensiones_oficiales/GMEXT-X"`.
-> Las firmas de abajo se verificaron así el 2 de septiembre de 2026, no se inventaron.
+> Las extensiones del catálogo no se instalan automáticamente en tu juego ni acompañan
+> necesariamente al clon público. Las firmas originales se consultaron el 2 de septiembre
+> de 2026; las de Cloud se contrastaron además con la fuente oficial el 11-10-2026.
 
 ---
 
@@ -244,41 +245,82 @@ switch (_tipo) {
 ## 5 · Guardado en la nube (Steam Cloud)
 
 ```gml
-/// guardar la partida también en la nube de Steam
-function guardar_nube(_nombre_archivo, _contenido) {
+/// Ejemplo de texto compacto en una línea; el guardado durable es el sistema de 01 · 14.
+/// _sincronizar solo se activa tras resolver cualquier divergencia entre copias.
+function guardar_nube(_nombre_archivo, _contenido, _sincronizar = false) {
     // primero en local, siempre
     var _f = file_text_open_write(_nombre_archivo);
+    if (_f < 0) return false;
     file_text_write_string(_f, _contenido);
     file_text_close(_f);
 
     // y en la nube si está disponible para esta app y este usuario
-    if (global.steam && steam_is_cloud_enabled_for_app()) {
-        steam_file_write(_nombre_archivo, _contenido, string_byte_length(_contenido));
+    if (_sincronizar && global.steam && steam_is_cloud_enabled_for_app()
+        && steam_is_cloud_enabled_for_account()) {
+        return steam_file_write(_nombre_archivo, _contenido, string_byte_length(_contenido)) > 0;
     }
+    return false;   // no se ha realizado una escritura para sincronizar con Steam
 }
 
-/// al cargar, preferir la nube si trae algo
-function cargar_nube(_nombre_archivo) {
+/// Recuperar las dos candidatas; no decidir cuál sustituye a la otra.
+function cargar_nube_candidatos(_nombre_archivo) {
+    var _resultado = { local: "", nube: "", hay_local: false, hay_nube: false, conflicto: false };
     if (global.steam && steam_file_exists(_nombre_archivo)) {
-        return steam_file_read(_nombre_archivo);
+        _resultado.nube = steam_file_read(_nombre_archivo);
+        _resultado.hay_nube = true;
     }
     if (file_exists(_nombre_archivo)) {
         var _f = file_text_open_read(_nombre_archivo);
-        var _s = file_text_read_string(_f);
-        file_text_close(_f);
-        return _s;
+        if (_f >= 0) {
+            _resultado.local = file_text_read_string(_f);
+            _resultado.hay_local = true;
+            file_text_close(_f);
+        }
     }
-    return "";
+    _resultado.conflicto = _resultado.hay_local && _resultado.hay_nube
+                          && _resultado.local != _resultado.nube;
+    return _resultado;
 }
 ```
 
-> 💡 **La nube no sustituye al guardado local, lo complementa.** Guarda siempre en local; la
-> nube es para que la partida siga al jugador entre equipos. Y `steam_is_cloud_enabled_for_app`
-> puede ser `false` aunque haya Steam: el jugador puede desactivar la nube por juego.
->
-> 🔺 **`window_set_size` y compañía no aplican aquí**, pero la lógica de "local + fallback" es
-> la misma que en [17 · Interoperabilidad con la web](./17%20-%20Interoperabilidad%20con%20la%20web%20%28HTML5%29.md)
-> con `localStorage`.
+**Existir no significa ser la copia vigente.** Si el jugador avanzó sin conexión, una copia
+de Steam anterior no debe reemplazar ese progreso solo porque `steam_file_exists` sea `true`.
+El helper devuelve ambas candidatas; valida su formato y migración con 01 · 14 antes de elegir.
+`conflicto` señala una diferencia de texto, no certifica validez ni cuál está más avanzada.
+El ejemplo usa una línea compacta: si tu formato tiene varias líneas o es binario, usa el
+lector del sistema de persistencia correspondiente. Este retorno sustituye el antiguo helper
+que elegía la nube automáticamente; el consumidor debe resolver la candidatura explícitamente.
+
+Conserva un ID estable de partida, versión del esquema, revisión y revisión base para
+distinguir avance lineal de dos ramas que evolucionaron offline. Una fecha de reloj o un
+contador mayor en una rama no prueban que contenga el progreso de la otra. Si divergen,
+conserva ambas y ofrece una elección comprensible; solo fusiona datos que tu modelo permita
+fusionar. Después de resolver, persiste la elección de forma durable y sincroniza. El retorno
+de `guardar_nube` acredita únicamente la aceptación local por la API de Steam, no una subida
+completada a sus servidores. Para copias rotativas y escrituras interrumpidas, reutiliza
+[01 · 14 §12 ter](<../01 - Fundamentos/14 - Persistencia y archivos.md#12-ter-copia-de-seguridad-rotativa-y-qué-pasa-si-se-apaga-a-mitad>).
+
+Steamworks puede operar sobre su copia local aunque el usuario haya desactivado la nube.
+Comprueba habilitación de app **y cuenta** para ofrecer sincronización, y evita prometer
+que una lectura procede de un servidor. Para Auto-Cloud entre sistemas, una raíz por OS
+aislada no comparte partidas: configura una raíz y sus `Root Overrides` según Valve.
+Separa ajustes de máquina del progreso. Si habilitas Dynamic Cloud Sync, implementa sus
+notificaciones de cambios durante la sesión antes de activarlo para jugadores; una sesión
+reanudada puede encontrar archivos cambiados por otro dispositivo.
+
+| Caso de aceptación | Resultado esperado |
+|---|---|
+| Progreso local más reciente tras jugar offline | No se sustituye por una copia Steam antigua |
+| Dos ramas offline válidas | Ambas se conservan hasta resolver la divergencia |
+| Copia corrupta o esquema anterior | Validación y migración antes de cargar o comparar revisiones |
+| Nube desactivada, cuota agotada o escritura Steam fallida | Guardado local protegido; estado de sincronización honesto |
+| Windows ↔ Linux/macOS | Misma partida y esquema, rutas configuradas con overrides |
+| Suspensión y cambio de archivos durante sesión | La política del juego resuelve cambios antes de guardar de nuevo |
+
+Fuente primaria: [Steam Cloud, rutas entre plataformas y Dynamic Cloud Sync](https://partner.steamgames.com/doc/features/cloud?l=english),
+consultada el 11-10-2026. Firmas y retornos de los helpers contrastados con
+[GMEXT-Steamworks, cloud.js, revisión b49d4c3](https://github.com/YoYoGames/GMEXT-Steamworks/blob/b49d4c3af7b9850ab7fd4a54d2eee04d666e4808/docs/cloud.js).
+La lectura de esas fuentes y el código no ejecutó sincronización ni una cuenta Steam.
 
 ### 5.1 · Cuota de Steam Cloud
 

@@ -29,15 +29,19 @@ Abre tu agente en el proyecto de GameMaker y pídele, por ejemplo:
 
 El instalador conserva las copias anteriores. Para comprobar firmas de GML contra **tu runtime**, instala GameMaker y genera los índices: [activar las herramientas](INSTALACION.md#activar-las-herramientas-de-gml).
 
-## Biblioteca + skill
+## <img src="assets/readme/iconos/biblioteca.svg" width="32" height="32" alt=""> Biblioteca + skill
 
 **La biblioteca es el conocimiento.** Fundamentos, recetas por género, arte, sonido, arquitectura, combate, IA, accesibilidad, pruebas y publicación. Puedes leerla sin usar ninguna IA.
 
 **La skill es la forma de trabajar.** Tu agente consulta las fuentes, concreta el encargo, divide el trabajo, verifica el código y revisa el resultado. Funciona como una capa de método sobre tu CLI y el modelo que tú elijas.
 
-Compatible con agentes que leen **Agent Skills** o **AGENTS.md**, incluidos Claude Code, Codex y OpenCode. [Destinos y límites de compatibilidad](INSTALACION.md#qué-cli-de-ia-están-soportados) · [Ver la skill](./_indice/skills/gamemaker-biblioteca/SKILL.md).
+![La biblioteca aporta fuentes, la skill guía el trabajo y el proyecto reúne las decisiones y las pruebas.](assets/readme/aporta.webp)
 
-## Del encargo al juego comprobado
+**[Cómo funciona: guía visual del método](<Método visual.md>)**
+
+Compatible con agentes que leen **Agent Skills** o **AGENTS.md**: Claude Code, Codex, OpenCode, Pi, OMP, MiniMax Code, DeepSeek Harness (`dsh`), Hermes Agent y gentle-shell, entre otros. Puedes elegir un destino con `./instalar.sh --harness dsh`. [Destinos, pruebas y límites](INSTALACION.md#qué-cli-de-ia-están-soportados) · [Ver la skill](./_indice/skills/gamemaker-biblioteca/SKILL.md).
+
+## <img src="assets/readme/iconos/metodo.svg" width="32" height="32" alt=""> Del encargo al juego comprobado
 
 <p align="center">
   <img src="assets/readme/ciclo.webp" alt="Ciclo de desarrollo: especifica los requisitos; construye una parte jugable; comprueba comportamiento y calidad; mejora con la evidencia y repite." width="520">
@@ -49,7 +53,7 @@ Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rend
 
 **[Método completo de desarrollo con IA](<13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)**
 
-## Encuentra lo que necesitas
+## <img src="assets/readme/iconos/busqueda.svg" width="32" height="32" alt=""> Encuentra lo que necesitas
 
 - **Quiero aprender:** [ruta por nivel](RUTA.md) y [fundamentos](<01 - Fundamentos>).
 - **Quiero crear un juego:** [recetas por género](<04 - Recetas por género>) y [diseño y producción](<13 - Diseño y producción de videojuegos/_INDICE-DISENO.md>).
@@ -58,7 +62,7 @@ Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rend
 
 ## Conocimiento que se puede comprobar
 
-Los símbolos se extraen del runtime instalado; el índice avisa si cambia. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Pruebas y alcance de esta actualización](./_indice/auditorias/r21-publicacion.md).
+Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Pruebas y límites de esta revisión](./_indice/auditorias/r22-publicacion.md).
 
 **Referencia documental:** GameMaker LTS 2026.0. El manual oficial y el código de terceros se reconstruyen aparte, con sus licencias. La instalación de la skill no instala GameMaker, EmbeddingGemma ni cambia tu modelo. [Qué se distribuye](PUBLICAR.md).
 

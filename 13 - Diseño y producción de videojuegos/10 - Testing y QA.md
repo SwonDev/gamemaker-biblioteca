@@ -1261,11 +1261,12 @@ Buenos momentos para dispararlo: cuando los FPS bajan de un umbral varios segund
 cuando el jugador muere en el mismo sitio por tercera vez, cuando una aserción de producción
 falla, y —siempre— con la tecla de «reportar bug» del modo QA.
 
-> ⚠️ **En Mac, el PNG que produce `screen_save()` puede salir invertido verticalmente aunque la
-> ventana real se vea bien** (Trampa 13 de
+> **Contrasta una vez la orientación del PNG con una captura del sistema.** La inversión
+> observada en una prueba antigua dejó de reproducirse el 10-09-2026 con runtime 2026.0.0.23
+> en macOS arm64. Voltear automáticamente una imagen correcta introduce el fallo (Trampa 13 de
 > [`12 · 09` §0](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-13--screen_save-invirtió-la-imagen-una-vez--y-hoy-ya-no-no-la-voltees)).
-> No afecta a si algo aparece o no, solo a si arriba/abajo en el PNG es arriba/abajo de verdad
-> — relevante para §8.6 y el guion de humo de §8.7.
+> Conserva la orientación medida en tu runtime y target; relevante para §8.6 y el guion de
+> humo de §8.7. La incidencia histórica no demuestra el comportamiento de otra plataforma.
 
 ### 7.4 El modo QA: teclas ocultas que no llegan al jugador
 
@@ -2769,7 +2770,7 @@ media:
 | Resolución | La mínima declarada (¿cabe el HUD?) y 4K (¿se ve el pixel art?) |
 | Proporción | 16:9, 16:10, 21:9 y una vertical si vas a móvil |
 | Entrada | Teclado, mando Xbox, mando PlayStation, mando genérico barato |
-| Idioma | El más largo (alemán) y uno con caracteres no latinos, si localizas |
+| Idioma | Las cadenas más largas comprobadas y locales con escrituras distintas, si localizas |
 | Hardware | El portátil integrado más flojo que tengas a mano |
 | Ventana | Ventana, pantalla completa, **cambiar entre ambas**, alt-tab, minimizar |
 
@@ -3278,88 +3279,132 @@ vez de jugar.
 > falso. Alguien que se toma la molestia de simular un ritmo de juego "razonable" pasa estos
 > filtros sin jugar ni un segundo. Para eso hace falta 14.3.
 
-### 14.3 Replay firmado: la única verificación real para un ranking de un jugador
+### 14.3 Replay verificable: checksum, tiempo y re-simulación
 
-Sin otro jugador al que compararle el resultado en directo, la única forma de saber si una
-puntuación de un jugador es legítima es que el **servidor rejuegue la partida** y compruebe
-que le sale lo mismo. Esto no es una idea nueva de esta sección: es exactamente el mismo
-determinismo que ya exige la prueba de generación procedural de §5.3 — **mismo estado inicial
-+ mismos inputs = mismo resultado** — aplicado a un marcador en vez de a un mapa.
+Un servidor puede re-simular las **intenciones** y comprobar que la puntuación concuerda
+con sus reglas. Eso demuestra consistencia con esa simulación; no demuestra que jugó una
+persona, que no hubo un bot ni que el cliente sea confiable. La semilla, versión de reglas,
+nivel y estado inicial tienen que quedar ligados por el servidor a la sesión autorizada.
+No aceptes esos parámetros solo porque el cliente los incluyó en el replay.
 
-El cliente graba **intenciones**, nunca el resultado — la misma regla de
-[`04 · 14`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 —, y la
-puntuación final que el propio cliente afirma haber sacado va **junto** al replay, no en su
-lugar:
+**Un hash sin clave no es una firma.** Un SHA-1 calculado y enviado junto a datos detecta
+una diferencia accidental si el checksum no cambió; cualquiera puede modificar los datos
+y recalcularlo. No acredita autoría ni protege de un intermediario activo. HTTPS protege
+el transporte; la autenticación y los límites de §14.7 siguen siendo necesarios. Una
+firma o MAC es otro contrato: [RFC 2104, autenticación con clave](https://www.rfc-editor.org/rfc/rfc2104).
+No metas una clave compartida de servidor dentro del juego distribuido. El ejemplo conserva
+SHA-1 como checksum de compatibilidad, sin atribuirle seguridad criptográfica.
+
+Conserva los **ticks sin acciones** y todas las acciones del mismo tick. Dos eventos en
+los ticks 0 y 600 no equivalen a dos pasos de simulación. En cada tick fijo, llama a
+`replay_anotar` para cada intención y después a `replay_avanzar_frame` una vez; durante
+la pausa no avances ese reloj. Cierra tras el último tick. `_simular_frame` recibe un array
+de acciones, que puede estar vacío, y avanza exactamente un tick con la misma regla pura
+y el mismo azar de §2.1-§2.2.
 
 ```gml
-// ═══════════ scr_replay_firmado ═══════════
-
-/// @func replay_iniciar(_semilla)
-/// @desc Empieza a grabar una partida verificable. La semilla fija el azar (misma
-///       AzarReproducible de §2.2), así que el servidor puede reproducir exactamente
-///       la misma partida a partir de los mismos eventos.
-function replay_iniciar(_semilla)
+// ═══════════ scr_replay_verificable ═══════════
+function replay_iniciar(_semilla, _version_simulacion = "1")
 {
-    global.replay = { semilla: _semilla, eventos: [], frame: 0 };
+    global.replay = { semilla: _semilla, version_simulacion: _version_simulacion,
+                      eventos: [], frame: 0 };
 }
 
-/// @desc Anota una intención del jugador. Llamarlo solo cuando ocurre algo de verdad
-///       (una tecla, una decisión), nunca cada frame: el paquete sería enorme.
-/// @param {String} _accion
 function replay_anotar(_accion)
 {
     array_push(global.replay.eventos, { frame: global.replay.frame, accion: _accion });
 }
 
-/// @func replay_cerrar(_puntuacion_declarada)
-/// @desc Cierra la grabación y la sella con un hash.
-///       ⚠️ El hash NO demuestra que la partida sea legítima: solo que el paquete no se
-///       corrompió ni se manipuló de camino al servidor. Quien lo demuestra es replay_verificar().
-/// @returns {Struct}
-function replay_cerrar(_puntuacion_declarada)
+function replay_avanzar_frame()
 {
-    var _r = global.replay;
-    _r.puntuacion = _puntuacion_declarada;
-    _r.hash = sha1_string_utf8(json_stringify(_r.eventos) + string(_r.semilla) + string(_r.puntuacion));
-    return _r;
+    global.replay.frame++;
 }
 
-/// @func replay_verificar(_replay, _estado_inicial, _simular_frame)
-/// @desc Comprueba el sello de integridad, rejuega el replay con la MISMA regla pura del
-///       juego (§2.1) y compara el resultado. Esto es lo que de verdad separa una
-///       puntuación real de una inventada.
-///       ⚠️ Antes esta función re-simulaba y comparaba la puntuación, pero nunca leía
-///       `_replay.hash`: el sello que calcula replay_cerrar() quedaba muerto y cualquier
-///       paquete corrupto o retocado en tránsito se daba por bueno. Ahora se compara.
-/// @param {Struct}   _replay          Lo recibido del cliente (semilla, eventos, puntuación, hash).
-/// @param {Function} _estado_inicial  (_azar) → estado de partida en el frame 0.
-/// @param {Function} _simular_frame   (_estado, _accion, _azar) → nuevo estado. Función pura,
-///                                    la misma que usarías en tus pruebas de §2.1-§2.2.
-/// @returns {Bool}
-function replay_verificar(_replay, _estado_inicial, _simular_frame)
+function replay_cerrar(_puntuacion_declarada)
 {
-    // 1. Integridad: el hash recibido debe coincidir con el que sale de recalcular la
-    //    MISMA fórmula que usó replay_cerrar(). Si no coincide, el paquete se corrompió
-    //    o se manipuló de camino al servidor: se rechaza sin gastar CPU en re-simular.
-    var _hash_esperado = sha1_string_utf8(json_stringify(_replay.eventos) + string(_replay.semilla) + string(_replay.puntuacion));
-    if (_hash_esperado != _replay.hash)
-    {
-        return false;
-    }
+    global.replay.puntuacion = _puntuacion_declarada;
+    // Conservar los bytes exactos: no reserializar structs para comprobar el checksum.
+    var _json = json_stringify(global.replay);
+    return { datos_json: _json, hash: sha1_string_utf8(_json) };
+}
 
-    // 2. Autoridad: re-simular con la regla pura del juego y comprobar que la puntuación
-    //    declarada es la que de verdad sale de jugar esos eventos desde esa semilla.
-    var _azar   = new AzarReproducible(_replay.semilla);
-    var _estado = _estado_inicial(_azar);
+/// _contexto es del servidor: semilla, version_simulacion, max_bytes, max_frames, max_eventos.
+/// _estado_inicial(_azar) y _simular_frame(_estado, _acciones, _azar) son reglas del juego.
+function replay_verificar(_paquete, _estado_inicial, _simular_frame, _contexto)
+{
+    if (!is_struct(_paquete)) return false;
+    if (!variable_struct_exists(_paquete, "datos_json")
+        || !variable_struct_exists(_paquete, "hash")) return false;
+    if (!is_string(_paquete.datos_json) || !is_string(_paquete.hash)) return false;
+    if (string_byte_length(_paquete.datos_json) > _contexto.max_bytes) return false;
+    if (sha1_string_utf8(_paquete.datos_json) != _paquete.hash) return false;
 
+    var _replay;
+    try { _replay = json_parse(_paquete.datos_json); }
+    catch (_error) { return false; }
+    if (!is_struct(_replay)) return false;
+    var _campos = ["semilla", "version_simulacion", "frame", "eventos", "puntuacion"];
+    for (var _i = 0; _i < array_length(_campos); _i++)
+        if (!variable_struct_exists(_replay, _campos[_i])) return false;
+
+    if (_replay.semilla != _contexto.semilla
+        || _replay.version_simulacion != _contexto.version_simulacion) return false;
+    if (!is_numeric(_replay.frame) || !is_numeric(_replay.puntuacion)) return false;
+    if (_replay.frame < 0 || _replay.frame != floor(_replay.frame)
+        || _replay.frame > _contexto.max_frames) return false;
+    if (!is_array(_replay.eventos)) return false;
+    if (array_length(_replay.eventos) > _contexto.max_eventos) return false;
+
+    var _ultimo_frame = -1;
     for (var _i = 0; _i < array_length(_replay.eventos); _i++)
     {
-        _estado = _simular_frame(_estado, _replay.eventos[_i].accion, _azar);
+        var _evento = _replay.eventos[_i];
+        if (!is_struct(_evento)) return false;
+        if (!variable_struct_exists(_evento, "frame")
+            || !variable_struct_exists(_evento, "accion")) return false;
+        if (!is_numeric(_evento.frame) || !is_string(_evento.accion)) return false;
+        if (_evento.frame != floor(_evento.frame) || _evento.frame < 0
+            || _evento.frame >= _replay.frame || _evento.frame < _ultimo_frame) return false;
+        _ultimo_frame = _evento.frame;
     }
 
+    var _azar = new AzarReproducible(_contexto.semilla);
+    var _estado = _estado_inicial(_azar);
+    var _indice_evento = 0;
+    for (var _frame = 0; _frame < _replay.frame; _frame++)
+    {
+        var _acciones = [];
+        while (_indice_evento < array_length(_replay.eventos)
+               && _replay.eventos[_indice_evento].frame == _frame)
+        {
+            array_push(_acciones, _replay.eventos[_indice_evento].accion);
+            _indice_evento++;
+        }
+        _estado = _simular_frame(_estado, _acciones, _azar);
+    }
     return (_estado.puntuacion == _replay.puntuacion);
 }
 ```
+
+El servidor aporta `_contexto` desde la sesión autenticada; sus presupuestos no vienen
+del paquete. Antes de esta función, valida los valores permitidos de cada acción, tiempo
+de partida y reglas del nivel. La función compara un estado inicial fijado, no un estado
+que subió el cliente. El checksum se verifica sobre `datos_json` sin reserializar: el
+orden de campos de un struct no constituye una serialización canónica.
+
+| Caso de regresión | Resultado esperado |
+|---|---|
+| Acción en 0 y otra en 600; duración 601 | 601 ticks simulados, incluidos los vacíos |
+| Dos acciones en el mismo tick | Ambas llegan juntas, en su orden, a un solo tick |
+| Frame negativo, fraccionario, fuera de duración o desordenado | Rechazo antes de simular |
+| Payload, duración o número de eventos sobre el presupuesto | Rechazo acotado |
+| Semilla o versión distinta de la sesión | Rechazo aunque el checksum coincida |
+| Datos modificados y hash recalculado | El checksum puede pasar; las reglas del servidor siguen decidiendo |
+| Mismos bytes al transportar JSON | El checksum no depende de reordenar propiedades al parsear |
+
+Estos son criterios de prueba, no nuevos resultados del runner. Añade tests de la regla
+real y de su port entre lenguajes: usar la misma semilla no garantiza por sí solo paridad
+de punto flotante, orden de operaciones ni generador aleatorio.
 
 **Este servidor de verificación no necesita ser GameMaker.** Basta con que reimplemente la
 misma regla pura (`_simular_frame`) en el lenguaje que sea — es justo el tipo de función que
@@ -3712,7 +3757,7 @@ biblioteca, borrado al terminar). Ningún proceso del runner quedó vivo al cerr
   *speedhack*, abierta con `curl` el 6 de septiembre de 2026):
   <https://www.cheatengine.org/aboutce.php>
 - Manual oficial LTS 2026 — `sha1_string_utf8`, `md5_string_utf8`, `base64_encode` /
-  `base64_decode` (funciones de hash y codificación usadas en el replay firmado de §14.3):
+  `base64_decode` (funciones de hash y codificación; el checksum de §14.3 no es una firma):
   <https://manual.gamemaker.io/lts/es/GameMaker_Language/GML_Reference/File_Handling/Encoding_And_Hashing/sha1_string_utf8.htm>
 - [`01 · 14 — Persistencia y archivos`](../01%20-%20Fundamentos/14%20-%20Persistencia%20y%20archivos.md) §12
   y [`04 · 14 — Multijugador`](../04%20-%20Recetas%20por%20g%C3%A9nero/14%20-%20Multijugador.md) §2.2 —

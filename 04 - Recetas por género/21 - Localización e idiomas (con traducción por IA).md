@@ -27,7 +27,8 @@ todo lo demás. Un texto escrito a pelo es un texto que nunca se traducirá.
 
 ## 1 · La tabla de cadenas
 
-Un archivo JSON por idioma, con las mismas claves. El español es la fuente.
+Un archivo JSON por idioma, con las mismas claves semánticas y variables; los sufijos
+de plural dependen de las categorías del idioma (§2). El español es la fuente.
 
 ```
 datafiles/idiomas/
@@ -45,8 +46,9 @@ datafiles/idiomas/
     "menu_jugar":     "Jugar",
     "menu_opciones":  "Opciones",
     "dialogo_bienvenida": "Hola, {nombre}. Bienvenido a {zona}.",
-    "monedas_una":    "Tienes {n} moneda",
-    "monedas_varias": "Tienes {n} monedas"
+    "monedas_one":   "Tienes {n} moneda",
+    "monedas_other": "Tienes {n} monedas",
+    "monedas_many":  "Tienes {n} monedas"
 }
 ```
 
@@ -64,7 +66,10 @@ datafiles/idiomas/
 /// scr_idioma — cargar el idioma (misma familia que txt(), §2)
 function idioma_cargar(_codigo) {
     var _ruta = $"idiomas/{_codigo}.json";
-    if (!file_exists(_ruta)) _ruta = "idiomas/es.json";   // fallback al original
+    if (!file_exists(_ruta)) {
+        _codigo = "es";               // las reglas siguen al idioma realmente cargado
+        _ruta = "idiomas/es.json";
+    }
 
     var _f = file_text_open_read(_ruta);
     var _txt = "";
@@ -103,10 +108,44 @@ function txt(_clave, _vars = undefined) {
     return _s;
 }
 
-/// plurales: elige la clave según la cantidad
+/// Cardinales enteros: subconjunto explícito de CLDR 48, no un motor de locale completo.
+function categoria_plural_entero(_idioma, _n) {
+    if (!is_numeric(_n)) return undefined;
+    var _valor = abs(_n);
+    if (_valor != floor(_valor) || _valor > 1000000000) return undefined;
+    var _mod10 = _valor mod 10;
+    var _mod100 = _valor mod 100;
+    switch (_idioma) {
+        case "en": case "de": return (_valor == 1) ? "one" : "other";
+        case "es": case "it": case "pt-PT":
+            if (_valor == 1) return "one";
+            if (_valor != 0 && _valor mod 1000000 == 0) return "many";
+            return "other";
+        case "fr": case "pt": case "pt-BR":
+            if (_valor <= 1) return "one";
+            if (_valor mod 1000000 == 0) return "many";
+            return "other";
+        case "ru":
+            if (_mod10 == 1 && _mod100 != 11) return "one";
+            if (_mod10 >= 2 && _mod10 <= 4 && !(_mod100 >= 12 && _mod100 <= 14)) return "few";
+            return "many";
+        case "ar":
+            if (_valor == 0) return "zero";
+            if (_valor == 1) return "one";
+            if (_valor == 2) return "two";
+            if (_mod100 >= 3 && _mod100 <= 10) return "few";
+            if (_mod100 >= 11 && _mod100 <= 99) return "many";
+            return "other";
+        case "ja": case "ko": case "zh": return "other";
+        default: return undefined;     // idioma no implementado: no adivinar su plural
+    }
+}
+
+/// Cada idioma aporta claves con las categorías que realmente usa.
 function txt_n(_base, _n) {
-    var _clave = (_n == 1) ? _base + "_una" : _base + "_varias";
-    return txt(_clave, { n: _n });
+    var _categoria = categoria_plural_entero(global.idioma, _n);
+    if (is_undefined(_categoria)) return $"[[{_base}:plural_no_admitido]]";
+    return txt(_base + "_" + _categoria, { n: _n });
 }
 ```
 
@@ -120,9 +159,32 @@ draw_text(x, y, txt_n("monedas", global.monedas));    // "Tienes 1 moneda" / "Ti
 > traducir, ves de un vistazo qué falta, en vez de un texto en blanco o el juego caído.
 >
 > ⚠️ **Los plurales NO son "+s".** En español «1 moneda / 2 monedas» parece trivial, pero en
-> ruso hay tres formas y en árabe seis. Por eso cada cantidad tiene su clave, no una regla
-> hardcodeada. Para idiomas con plurales complejos, amplía `txt_n` con las claves que haga
-> falta (`_pocas`, `_muchas`).
+> ruso usa `one/few/many` para enteros y en árabe hay seis categorías. **Añadir claves no
+> basta:** la regla tiene que elegirlas correctamente; `21` ruso no pertenece a la misma
+> categoría que `11`. El ejemplo aplica las reglas cardinales de CLDR 48 para los idiomas
+> enumerados, con cantidades enteras de valor absoluto hasta mil millones. No cubre
+> decimales con dígitos visibles, ordinales, exponentes compactos ni idiomas adicionales.
+
+No fuerces a todos los JSON a tener los mismos sufijos de plural: conserva las mismas
+claves semánticas y variables, pero exige las categorías de cada idioma. El español
+incluye `many` para millones enteros aunque aquí su frase coincida con `other`. Para
+otros idiomas, importa o implementa las reglas de una versión fijada de CLDR y conserva
+casos frontera por idioma; las categorías no son géneros gramaticales ni traducciones
+literales de «singular/plural». [Reglas cardinales oficiales de CLDR 48](https://www.unicode.org/cldr/charts/48/supplemental/language_plural_rules.html),
+consultadas el 11-10-2026. El formato de cantidad y sus operandos visibles se explican en
+[Plural Rules de CLDR](https://cldr.unicode.org/index/cldr-spec/plural-rules).
+`pt` y `pt-PT` no eligen la misma categoría para cero: conserva la variante regional
+que corresponda al contenido, en vez de eliminarla al seleccionar idioma.
+
+| Idioma | Cantidades que deben distinguirse | Categorías esperadas |
+|---|---|---|
+| Español | 0, 1, 2, 1000000 | `other`, `one`, `other`, `many` |
+| Ruso | 1, 2, 5, 11, 21, 22 | `one`, `few`, `many`, `many`, `one`, `few` |
+| Árabe | 0, 1, 2, 3, 11, 100 | `zero`, `one`, `two`, `few`, `many`, `other` |
+| Cantidad fuera del contrato | 1.5 o idioma no implementado | Marcador de plural no admitido; no selección silenciosa |
+
+Esta tabla es el criterio de regresión; no atribuye una ejecución nueva de GML a la
+consulta de CLDR.
 
 **El error que nadie ve hasta que traduce: concatenar la frase.**
 
@@ -319,6 +381,32 @@ fnt_cirilico = font_add("NotoSans.ttf", 24, false, false, 0x0400, 0x04FF);
 > 💡 **Elige una fuente por familia de idiomas** y cámbiala junto con el idioma. La familia
 > **Noto** de Google cubre casi todos los alfabetos con el mismo estilo, y es de uso libre.
 
+### 4.1 · Grafemas, normalización y pruebas de texto mixto
+
+Un byte, un punto de código, un grafema visible y un glifo dibujado son unidades distintas.
+`string_byte_length` mide bytes y el manual describe `string_length`/`string_char_at` como
+operaciones por caracteres; **no declara una segmentación de grafemas conforme a UAX #29**.
+No certifiques que un recorte o una tecla de borrar conserva un carácter visible solo
+porque use esas funciones. `é` y `e` seguido de un acento combinante pueden verse igual,
+y una familia emoji puede contener varios puntos de código unidos.
+
+Para texto fijo, normaliza las traducciones durante el pipeline de contenido con una
+herramienta cuya versión esté fijada y verificada. Para nombres, chat, edición y efecto
+de escritura progresiva, necesitas segmentación de grafemas comprobada en la librería
+de entrada/render elegida. El soporte RTL de Scribble explicado en 07 · 18 §6 no demuestra
+por sí solo edición, selección o borrado por grafemas, ni conformidad universal de BiDi.
+No inventes una función GML `grapheme_*` o `normalize_*`.
+
+Prueba acentos precompuestos y combinantes, emoji unidos, árabe mezclado con números,
+paréntesis y nombres latinos, y saltos de línea CJK. Comprueba dibujo, selección, borrado,
+recorte, foco y cambio de idioma: son fronteras diferentes. La pseudolocalización con
+acentos y expansión de texto detecta recortes; no sustituye una revisión de cada idioma
+real ni garantiza que alemán sea siempre el texto más largo.
+
+Fuentes primarias, consultadas el 11-10-2026: [UAX #29, segmentación de texto](https://www.unicode.org/reports/tr29/),
+[UAX #9, algoritmo bidireccional](https://www.unicode.org/reports/tr9/) y
+[string_length, manual LTS](https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Strings/string_length.htm).
+
 ---
 
 ## 4 bis · ¿Cabe? — la regla del «idioma más largo» no se puede aplicar en bloque
@@ -471,17 +559,22 @@ prompt = (
 # … llamar al LLM, parsear su JSON, fusionar con `ya`, guardar {idioma}.json …
 ```
 
-**Paso 3 — revisas.** La IA acierta el 90 %; el 10 % (tono, términos del juego, longitud que
-rompe la UI) lo ajustas a mano. La clave: **el LLM hace el trabajo mecánico, tú decides.**
+**Paso 3 — revisas.** La IA aporta un borrador; revisa tono, términos del juego, variables,
+categorías de plural y longitud en pantalla. No hay una tasa universal de acierto que
+demuestre la calidad de tu traducción. **El LLM hace el trabajo mecánico, tú decides.**
 
 > 🔺 **Lo que la IA NO debe tocar, y por eso va en el prompt:**
 > - Las `{variables}` — si traduce `{nombre}` a `{name}`, la interpolación se rompe.
 > - Los nombres propios del juego (personajes, zonas, hechizos).
 > - El formato JSON y las claves.
 >
-> ⚠️ **La longitud cambia.** El alemán es ~30 % más largo que el español; el chino, más corto.
-> Un botón que cabe en español revienta en alemán. Prueba la UI en el idioma más largo, no solo
-> en el tuyo. Diseña con holgura o con texto que se autoescala.
+> Para plurales, prepara primero las claves de destino que exige §2. El script anterior
+> conserva claves ya preparadas; copiar solo los sufijos españoles no genera las categorías
+> árabes o rusas que faltan. Valida tanto las variables como ese esquema por idioma.
+>
+> **La longitud cambia por cadena, fuente y contexto.** Mide cada texto en cada idioma
+> admitido según §4 bis; elegir siempre alemán como «el más largo» no cubre otros casos.
+> Diseña con holgura y revisa recorte, salto de línea y legibilidad.
 >
 > 💡 **Guarda una memoria de traducción** (las claves ya traducidas) para no re-traducir —y no
 > re-pagar— lo que no ha cambiado. Es lo que hace `_indice/traduccion/tm.py` con el manual:
@@ -531,7 +624,7 @@ debe apoyarse en los **datos de wishlist por región de la propia página de Ste
 | La IA traduce `{variables}` | La interpolación deja de funcionar |
 | Fuente sin los glifos del idioma | Texto en blanco en ruso/CJK |
 | Un botón o logo con texto quemado en el sprite | Se traduce todo el juego menos ESE texto, y nadie se acuerda |
-| Probar solo en tu idioma | La UI revienta en alemán (30 % más largo) |
+| Probar solo en tu idioma | Puede haber recorte, glifos ausentes o plurales incorrectos en cualquier idioma admitido |
 | Re-traducir todo cada vez | Tiempo y dinero tirados; usa memoria de traducción |
 | Texto faltante = pantalla en blanco | Devuelve `[[clave]]` para verlo |
 

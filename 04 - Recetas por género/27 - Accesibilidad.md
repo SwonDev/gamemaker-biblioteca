@@ -309,15 +309,27 @@ function shake(_fuerza) {
     // … aplicar el shake …
 }
 
-/// los flashes de pantalla se suavizan o se quitan
+/// El ajuste elimina este flash; el resto del compositor debe respetarlo también.
 function flash_pantalla(_alpha) {
-    if (global.a11y.reduce_motion) _alpha = min(_alpha, 0.3);   // tope suave
+    if (global.a11y.reduce_motion) return;
     // … dibujar el flash …
 }
 ```
 
-> ⚠️ **Nunca hagas flashes de pantalla completa a más de 3 por segundo.** Es el umbral de
-> riesgo de convulsiones fotosensibles (norma WCAG). Con `reduce_motion`, quítalos del todo.
+**Cuenta los flashes del resultado compuesto, no los de cada emisor por separado.**
+Mantener como máximo tres flashes en **cualquier intervalo de un segundo** satisface
+la vía de frecuencia de WCAG 2.3.1; no basta con que cada efecto cumpla su contador si
+juntos superan ese máximo. Un flash comprende dos cambios opuestos, no una sola transición.
+WCAG también define una vía por área y umbrales de luminancia y rojo: no se deduce de
+reducir el alfa de un sprite, y aquí no se certifica mediante un número de alfa.
+
+La guía XAG 118 añade revisión de patrones con contraste, área y movimiento. El límite
+de frecuencia no acredita ausencia de todo riesgo de fotosensibilidad o migraña. Revisa
+capturas de los píxeles finales en combinaciones intensas de efectos y cambios de cámara;
+con `reduce_motion`, este flash queda desactivado desde la primera pantalla, también al
+recuperar ajustes. Es una política y un plan de comprobación, no una nueva prueba visual.
+Fuentes primarias consultadas el 11-10-2026: [WCAG 2.3.1 y definición de flash](https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html)
+y [XAG 118, Photosensitivity](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/118).
 
 > 💡 **Esto es lo que Steam etiqueta *Camera Comfort*** en la ficha de tienda: la lista exacta
 > que pide es *screen shake*, *motion blur* y *camera bob/sway* ajustables o desactivables. El
