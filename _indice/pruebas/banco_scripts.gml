@@ -139,6 +139,15 @@ function banco_grid()
 
 function banco_tiempo()
 {
+    comprobar("reloj_dt antes de iniciar devuelve cero", reloj_dt() == 0);
+    comprobar("reloj_dt_real antes de iniciar devuelve cero", reloj_dt_real() == 0);
+    comprobar("reloj_tiempo antes de iniciar devuelve cero", reloj_tiempo() == 0);
+    reloj_actualizar();
+    comprobar("actualizar inicia el reloj sin ocultar sus funciones",
+              is_real(reloj_dt()) && is_real(reloj_tiempo()) && reloj_dt_real() <= 1/30);
+    reloj_iniciar();
+    comprobar("iniciar reinicia el tiempo acumulado", reloj_tiempo() == 0);
+
     var _cd = new Cooldown(2);          // 2 segundos
     comprobar("un Cooldown nace listo", _cd.listo());
     comprobar("usarlo devuelve true la primera vez", _cd.usar());

@@ -4,7 +4,7 @@
 onboarding y tutorial, transiciones y carga, HUD y pantallas, entrada multi-dispositivo, texto,
 accesibilidad y UX de sistema (guardado, errores, telemetría, *quality of life*).
 
-**Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+**Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje`
 (carpetas 01, 02, 04, 05, 06, 07, 08, 10, 12, 13 + `RUTA.md`; excluidos `Lumbre/`,
 `GameMaker_Fuentes/`, `09 - Manual oficial/` salvo consulta puntual y `11 - Código descargado/`).
 

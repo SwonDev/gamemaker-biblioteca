@@ -1,6 +1,6 @@
 # Auditoría de cobertura — dominio **AUDIO DE JUEGO COMPLETO**
 
-> Biblioteca auditada: `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+> Biblioteca auditada: `/Users/usuario/Documents/GameMaker_Aprendizaje`
 > Fecha: **6 de septiembre de 2026** · Referencia: GameMaker LTS 2026.0 (runtime `2026.0.0.23`)
 > Auditor: agente de dominio «audio». Ignorados `Lumbre/` y `GameMaker_Fuentes/`.
 

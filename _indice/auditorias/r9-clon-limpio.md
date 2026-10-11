@@ -32,7 +32,7 @@ usa el propio README en su primer párrafo.
 
 ```sh
 $ git clone https://github.com/SwonDev/gamemaker-biblioteca.git ~/gm_clon_limpio
-Cloning into '/Users/adrianpereradelgado/gm_clon_limpio'...
+Cloning into '/Users/usuario/gm_clon_limpio'...
 $ du -sh ~/gm_clon_limpio
  22M
 $ find ~/gm_clon_limpio -type f | wc -l
@@ -313,7 +313,7 @@ Antes de tocar nada se guardó el estado exacto de los enlaces de skills (`~/.cl
 sustituyó los 6 enlaces simbólicos existentes por copias reales apuntando al clon. Tras terminar
 las pruebas, los 6 se restauraron a sus symlinks originales exactos (verificado con `readlink`
 contra el manifiesto guardado antes de empezar) y `~/.config/gamemaker-biblioteca/ruta` se
-devolvió a `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`.
+devolvió a `/Users/usuario/Documents/GameMaker_Aprendizaje`.
 
 Efectos colaterales detectados y revertidos, ninguno causado por un comando mío contra el
 repositorio original:

@@ -26,6 +26,7 @@ Hace, en orden y parando al primer fallo real:
 Sale con 0 solo si todo está correcto. Cualquier otra cosa es trabajo pendiente
 y lo dice explícitamente.
 """
+from ambito import es_ajena, rutas_no_publicables
 import os, re, subprocess, sys, json, time
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -127,11 +128,11 @@ def revisar_ortografia():
     for raiz, dirs, files in os.walk(RAIZ):
         dirs[:] = [d for d in dirs
                    if d not in {".git", "09 - Manual oficial", "11 - Código descargado",
-                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes",
+                                "node_modules", ".ruff_cache", "Lumbre", "_pruebas", "GameMaker_Fuentes",
                                 # Los informes citan literalmente la salida de este
                                 # script, con la palabra que marca incluida.
                                 "auditorias"}
-                   and not d.startswith(".")]
+                   and not d.startswith(".") and not es_ajena(RAIZ, os.path.join(raiz,d))]
         for f in files:
             if not f.endswith(".md"):
                 continue
@@ -209,10 +210,10 @@ def revisar_nombres():
     for raiz, dirs, files in os.walk(RAIZ):
         dirs[:] = [d for d in dirs
                    if d not in {".git", "09 - Manual oficial", "11 - Código descargado",
-                                "node_modules", ".ruff_cache", "Lumbre", "GameMaker_Fuentes",
+                                "node_modules", ".ruff_cache", "Lumbre", "_pruebas", "GameMaker_Fuentes",
                                 # informes de trabajo: nombres ASCII a propósito, como los índices
                                 "auditorias"}
-                   and not d.startswith(".")]
+                   and not d.startswith(".") and not es_ajena(RAIZ, os.path.join(raiz, d))]
         for f in files:
             if not f.endswith((".md", ".gml")):
                 continue
@@ -335,29 +336,18 @@ def revisar_mapa():
 def main():
     problemas = []
 
-    # Paso 0 cero: nada del material privado del usuario puede quedar publicable.
-    #
-    # `Lumbre/` y `GameMaker_Fuentes/` nunca se tocan, se citan ni se publican. El
-    # `.gitignore` los cubría por nombre exacto — y el 2026-09-10 apareció en la raíz
-    # una carpeta `.lumbre-canonica/` que NO encajaba con ningún patrón. Como cada
-    # commit de esta sesión se hace con `git add -A`, el siguiente la habría subido a
-    # un repositorio público. No llegó a pasar, y esta comprobación existe para que
-    # tampoco pase con la siguiente carpeta que alguien deje ahí.
-    _prohibido = re.compile(r"lumbre|gamemaker_fuentes|secrets?\.env|\.env$", re.I)
-    try:
-        _sin_seguir = subprocess.run(["git", "status", "--porcelain"], cwd=RAIZ,
-                                     capture_output=True, text=True, timeout=60).stdout
-    except (OSError, subprocess.SubprocessError):
-        _sin_seguir = ""
-    _fugas = [l[3:].strip() for l in _sin_seguir.splitlines()
-              if l.startswith("??") and _prohibido.search(l[3:])]
+    # El ámbito se comprueba en el conjunto elegible, incluidos archivos ya versionados.
+    _lista = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+                            cwd=RAIZ, capture_output=True, text=True)
+    if _lista.returncode != 0:
+        print("✗ No se pudo comprobar el ámbito de publicación.")
+        return 1
+    _fugas = rutas_no_publicables(RAIZ, [p for p in _lista.stdout.split("\0") if p])
     if _fugas:
-        print("\n\033[1m✗ Material privado sin ignorar, y `git add -A` lo publicaría:\033[0m")
+        print("✗ Archivos fuera del ámbito público; revisa Git y las exclusiones:")
         for f in _fugas:
             print("    " + f)
-        print("  Añádelo al `.gitignore` ANTES de volver a commitear. `Lumbre/` y")
-        print("  `GameMaker_Fuentes/` no se tocan, no se citan y no se publican.")
-        problemas.append("material privado publicable: " + ", ".join(_fugas))
+        return 1
 
     paso(0, "Las herramientas, antes de fiarse de lo que digan")
     # Un validador que deja de validar no falla: calla. Y un aviso que no salta se
@@ -365,6 +355,9 @@ def main():
     # casos que ya le han mordido de verdad, y eso va PRIMERO: si el metro está mal,
     # da igual lo que mida.
     _autopruebas = [
+        ("ambito.py", "ámbito público y repositorios anidados"),
+        ("pruebas/probar-ambito.py", "consumidores del ámbito y corpus opcional"),
+        ("pruebas/probar-instalacion.py", "instalación aislada y conservación de copias"),
         ("verificar-enlaces.py",      "enlaces y anclas"),
         ("validar-codigo-gml.py",     "cadenas sin cerrar"),
         ("auditar-juego-completo.py", "auditor de juego completo"),

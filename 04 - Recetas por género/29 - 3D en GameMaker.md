@@ -1041,6 +1041,52 @@ modelo instanciado muchas veces)—, cuatro shaders, modelos `.glb` de Kenney, y
 
 ---
 
+## 11 · Contrato de exportación por consumidor y promoción del asset
+
+Un formato propio necesita matriz de compatibilidad: exportador, lector del juego, preview,
+render externo, generador de retratos y comprobador. Que el exportador y el juego admitan una
+versión nueva no actualiza automáticamente un lector auxiliar. Cada consumidor valida versión,
+tamaños y dominios y falla de forma explícita cuando no puede interpretarlos; no lee una
+cabecera nueva como si tuviera el tamaño de la anterior.
+
+Valida todos los campos numéricos, incluidos coordenadas, normales, materiales, emisión y
+transformaciones. Declara finitud y rangos por campo; comparar solo «diferencia mayor que una
+tolerancia» puede dejar pasar NaN. Prueba datos no finitos, truncamiento y versión incompatible,
+además del archivo correcto. La validación externa no sustituye cargarlo en el runtime y
+comprobar matrices, materiales, jerarquía y liberación de recursos.
+
+Separa **generado, escrito, validado y apto para integración**. Una generación con iteraciones
+agotadas puede haber escrito un archivo que incumple presupuesto. Produce en ubicación temporal,
+valida y solo entonces promueve la salida canónica con huellas de fuente/generador/parámetros.
+Conserva candidatos rechazados como tales y el último asset válido; presencia o fecha nueva
+no son aprobación. Si falla la generación, no devuelve como válida una referencia a un
+objeto eliminado; los consumidores rechazan ese estado. Comprueba también todas las vistas/poses declaradas: una medida de winding,
+ocupación o luma en una fixture no certifica identidad ni todo el catálogo.
+
+El perfil semántico también forma parte del formato: significado de roles, materiales y canales,
+stride, paletas externas y máximos de índices/trozos/arrays. Exportador, atributos, uniforms y
+pases comparten esos contratos. Color y sombra aplican la misma deformación; una sombra que
+usa la geometría anterior no se arregla cambiando iluminación. Define cómo se transforman las
+normales bajo escala no uniforme. Prueba máximos, valores centinela y fallback del perfil declarado.
+
+Declara las pérdidas permitidas por el canon de comparación. Ordenar vértices puede ocultar
+winding; omitir roles o pesos no demuestra preservar jerarquía ni animación. Usa controles
+independientes de los metadatos producidos por el mismo exportador. Una IoU global alta puede
+ocultar piezas flotantes, contactos o cara incorrectos: comprueba regiones, anclas y todas las
+vistas requeridas. Si falta una vista o una pieza esperada, el resultado es incompleto.
+El rostro valida todos los ojos y sus coordenadas finitas/plausibles; un aviso no satisface
+una puerta que exige dos ojos válidos. El umbral y la cardinalidad pertenecen al contrato del asset.
+
+Declara representación RGB/alfa y espacio de color por paso, incluida la suma emisiva.
+Una salida premultiplicada necesita factores compatibles; no aplica por inercia la mezcla
+usada para una textura de alfa sin premultiplicar. La [referencia de blending](<../08 - Referencia GML completa/04 - Color y blending.md>)
+explica la frontera; restaura también el estado gráfico al salir del pase.
+
+El [recibo público](../_indice/auditorias/r21-publicacion.md) delimita la validación documental;
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)
+§11 fija trazabilidad y [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15,
+los casos cruzados. Son contratos propuestos; no se ejecutó una nueva validación de assets fuente.
+
 ## Ver también
 
 - [08 · 07 — Vertex buffers y formatos](../08%20-%20Referencia%20GML%20completa/07%20-%20Vertex%20buffers%20y%20formatos.md) — la ficha de cada función `vertex_*` y un terreno procedural completo

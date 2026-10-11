@@ -12,7 +12,7 @@ Todo lo que impida eso es un hueco, aunque el tema «esté documentado».
 
 ## Qué es esto
 
-`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje` es una base de conocimiento en
+`/Users/usuario/Documents/GameMaker_Aprendizaje` es una base de conocimiento en
 español sobre GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime GMS2 2026.0.0.23) con 256 documentos
 propios, el manual oficial espejado completo en dos idiomas y 608 repositorios de GML real.
 

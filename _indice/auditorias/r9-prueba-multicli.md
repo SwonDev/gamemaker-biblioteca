@@ -63,7 +63,7 @@ repo al empezar esta auditoría.
 Antes de responder, `codex` ejecutó por su cuenta:
 
 ```
-cat /Users/adrianpereradelgado/.agents/skills/gamemaker-biblioteca/SKILL.md
+cat /Users/usuario/.agents/skills/gamemaker-biblioteca/SKILL.md
 ```
 
 — el archivo **completo**, no solo el frontmatter — y a continuación, siguiendo al pie de la letra
@@ -218,7 +218,7 @@ depender de que Claude Code esté instalado.
 (`~/.claude/skills`, `~/.kimi-code/skills`, `~/.agents/skills`):
 
 ```
-WARN  Skipping invalid skill at /Users/adrianpereradelgado/.kimi-code/skills/gamemaker-biblioteca/SKILL.md:
+WARN  Skipping invalid skill at /Users/usuario/.kimi-code/skills/gamemaker-biblioteca/SKILL.md:
 Invalid frontmatter in .../SKILL.md: bad indentation of a mapping entry (2:277)
   SkillParseError: ...
     at parseSkillText (.../main.cjs:234539:48)

@@ -2,7 +2,7 @@
 
 > **Fecha:** 06-09-2026 · **105 temas evaluados** · **79 cubiertos** · **14 parciales** · **11 faltan**
 > (y 1 función pedida por el propio brief que se verificó y **no existe**: `draw_get_batch_count`)
-> **Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje` (excluidos
+> **Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje` (excluidos
 > `Lumbre/` y `GameMaker_Fuentes/`). Método: `_indice/BRIEF-auditor-r3.md`. Lista canónica
 > contrastada con el blog oficial de GameMaker (*How to optimise your games in GameMaker*, *9
 > Essential Best-Practise Tips*, vía WebSearch — `gamemaker.io` sigue devolviendo 403 a WebFetch

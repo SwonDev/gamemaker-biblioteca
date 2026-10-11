@@ -2,7 +2,7 @@
 
 ## Qué es la biblioteca
 
-`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje` es una **base de conocimiento en
+`/Users/usuario/Documents/GameMaker_Aprendizaje` es una **base de conocimiento en
 español sobre GameMaker LTS 2026.0** (IDE 2026.0.0.16 · runtime 2026.0.0.23) construida para
 que un LLM desarrolle cualquier videojuego con el motor **sin inventarse nada**. No es un
 proyecto de GameMaker. Léete `AGENTS.md` de la raíz antes de escribir (5 minutos).

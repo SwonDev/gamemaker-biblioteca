@@ -23,6 +23,7 @@ existen: los genera `construir-indices.py` (paso 2 de `actualizar.py`), no se pu
 
 Uso:  python3 "_indice/verificar-enlaces.py" [carpeta]
 """
+from ambito import es_ajena, rutas_no_publicables
 import os, re, sys, urllib.parse
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -371,7 +372,7 @@ def recorrer_documentacion(destino, excluidas):
     """os.walk podando las carpetas excluidas, MÁS las excepciones propias."""
     for raiz, dirs, files in os.walk(destino):
         dirs[:] = [d for d in dirs
-                   if d not in excluidas and not _es_privada(d)]
+                   if d not in excluidas and not es_ajena(destino, os.path.join(raiz,d))]
         yield raiz, files
     for ruta, ficheros in documentos_propios_en_excluidas(destino):
         yield ruta, ficheros
@@ -382,7 +383,7 @@ EXCLUIDAS = {".git", "node_modules", "11 - Código descargado",
              # Lumbre (juego personal) y GameMaker_Fuentes (repos crudos) no son
              # documentación. Los informes de «auditorias» tampoco: sus rutas son
              # relativas a la raíz, no a su carpeta.
-             "Lumbre", "GameMaker_Fuentes", "auditorias"}
+             "Lumbre", "_pruebas", "GameMaker_Fuentes", "auditorias"}
 
 # Y cualquier variante del juego personal, no solo el nombre exacto: apareció una
 # carpeta `.lumbre-canonica/` que no encajaba con ninguna entrada de arriba y metió
@@ -591,7 +592,7 @@ def indice_de_documentos(destino):
     for r, ds, fs in os.walk(destino):
         ds[:] = [d for d in ds if d not in {".git", "node_modules", "11 - Código descargado",
                                             "09 - Manual oficial", ".ruff_cache",
-                                            "Lumbre", "GameMaker_Fuentes", "auditorias"}]
+                                            "Lumbre", "_pruebas", "GameMaker_Fuentes", "auditorias"} and not es_ajena(destino, os.path.join(r,d))]
         for fi in fs:
             if not fi.endswith(".md"):
                 continue

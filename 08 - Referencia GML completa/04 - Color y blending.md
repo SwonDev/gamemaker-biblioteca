@@ -1114,6 +1114,26 @@ recibe mantenimiento.
 
 ---
 
+## Contrato de RGB/alfa y espacio de color entre pases
+
+Antes de elegir factores, declara si RGB está premultiplicado por alfa. Con una salida
+premultiplicada, el par fuente `bm_one` / destino `bm_inv_src_alpha` conserva la contribución
+ya multiplicada y atenúa el fondo; multiplicar de nuevo la fuente por alfa oscurece los bordes.
+Una suma emisiva puede tener un contrato aditivo propio: no se deduce de la extensión del PNG
+ni del nombre del shader. Conserva la representación de cada superficie y restaura el estado
+tras dibujar, especialmente al pasar de mundo a post, retratos y GUI.
+
+Define también el espacio de color de entrada, iluminación, mezcla y salida. Una fórmula
+CPU, una medida de luma o una imagen en gris no verifica todos los canales ni la composición
+GPU. Prueba transparencias superpuestas, alfa parcial/cero, emisión y cadena de post, con
+lectura de píxeles y referencia adecuada. Las conversiones o correcciones se aplican donde
+el contrato las declare; aplicarlas dos veces altera el resultado aunque el shader compile.
+
+El alcance documental está en [el recibo público](../_indice/auditorias/r21-publicacion.md).
+Los símbolos anteriores se contrastaron con el índice del runtime 2026.0.0.23; los casos
+propuestos están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15.
+No se atribuye una nueva prueba visual ni compatibilidad universal a la lectura del shader.
+
 ## Tabla resumen
 
 ### Color y alfa (13)

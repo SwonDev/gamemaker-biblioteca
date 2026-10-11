@@ -6,7 +6,7 @@
 > proyecto con el motor sin inventarse nada.
 
 **Versión de referencia:** GameMaker **LTS 2026.0** · IDE `2026.0.0.16` · runtime GMS2 `2026.0.0.23`
-**Canal Beta vigente:** `2026.100.0` (IDE 1142 / runtime 1093, 02-09-2026, verificado 07-09-2026) · **GMRT** Beta `0.21`
+**Canal Beta documentado el 07-09-2026:** `2026.100.0` (IDE 1142 / runtime 1093, 02-09-2026, verificado 07-09-2026) · **GMRT** Beta `0.21`
 
 ---
 
@@ -129,11 +129,10 @@ python3 _indice/actualizar.py
 
 Eso es todo. Hace, en orden y parando al primer fallo real:
 
-0. **Se comprueba a sí mismo primero.** Las tres herramientas que dan garantías
+0. **Se comprueba a sí mismo primero.** Las herramientas que dan garantías
    —`verificar-enlaces.py`, `validar-codigo-gml.py`, `auditar-juego-completo.py`,
    `validar-proyecto.py`, `puerta-pixel-art.py`, `validar-integracion.py` y
-   `atlas-a-gamemaker.py`— pasan sus propias autopruebas (**82 casos** que
-   ya han mordido de verdad) **antes** de que nadie se fíe de lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
+   `atlas-a-gamemaker.py`— pasan sus propias autopruebas (el recuento real aparece en la salida de cada herramienta) **antes** de que nadie se fíe de lo que digan. Un validador que deja de validar no falla: calla, y un aviso que no salta se lee
    igual que «está todo bien». Si el metro está mal, da igual lo que mida. Cada una se puede
    correr suelta con `--autoprueba`.
 1. **Verifica los enlaces internos** — cero rotos o no sigue. Y con ellos, dos cosas que
@@ -158,8 +157,8 @@ Córrelas antes de publicar:
 | Comando | Qué demuestra |
 |---|---|
 | `bash _indice/validar-compilacion.sh` | Los 13 scripts de `06` compilan contra el runtime real |
-| `bash _indice/validar-ejecucion.sh` | Y además **hacen lo que dicen**: 189 comprobaciones dentro de un juego que se ejecuta |
-| `bash _indice/verificar-trampas.sh` | Las 7 trampas comprobables de `12 · 09 §0` **siguen** siendo ciertas con el CLI de hoy |
+| `bash _indice/validar-ejecucion.sh` | Y además **hacen lo que dicen**: comprobaciones dentro de un juego; recuento real en `_indice/pruebas/ultimo-resultado.txt` |
+| `bash _indice/verificar-trampas.sh` | Las trampas comprobables de `12 · 09 §0` **siguen** siendo ciertas con el CLI de hoy |
 
 ### Qué pasa cuando YoYo publica un runtime nuevo
 
@@ -212,6 +211,11 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
 ---
 
 ## 5. Flujo recomendado para desarrollar un proyecto
+
+**Si es un proyecto existente, largo o con varios agentes**, lee primero
+[13 · 29 — Desarrollo con IA](<./13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>):
+contratos, crítica aislada, evidencia por revisión, recursos y continuidad. Recupera la pausa
+y el WIP antes de actuar; una auditoría de lectura no autoriza reanudar el juego.
 
 0. **Especificación primero.** «Hazme un juego de X» **es** un encargo que incluye diseñar,
    aunque no lo diga con esas palabras: si no trae ya una especificación (un GDD, una ficha de

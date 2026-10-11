@@ -2577,6 +2577,29 @@ a tiempo completo. Hay librerías maduras y con licencia MIT en el
 
 ---
 
+## 6 · Confirmación, prioridad y caché de interfaz
+
+Lee la entrada una vez y resuelve primero el modal activo, después el resto de la UI y al
+final el mundo. Al cerrar un panel, consume la pulsación que lo cerró: el mismo clic no debe
+activar un ataque, una compra o una recompensa debajo. Una previsualización de equipo usa
+un estado temporal; cancelar no modifica el equipo autoritativo.
+
+La confirmación vuelve a consultar UID, propiedad, protección, compatibilidad y precio. Una
+captura del coste o un botón habilitado no autoriza el mutador. Prueba cambiar el dato entre
+abrir y confirmar, y confirmar dos veces. Si cacheas listas o retratos, invalida por generación
+del modelo y por huellas de entradas. Medir cajas detecta overflow; verificar glifos y píxeles
+sigue siendo una puerta distinta.
+
+En una lista virtualizada, recorta la zona interactiva además del dibujo. Una tarjeta que
+queda fuera o parcialmente visible no recibe clics en su zona oculta. Al cambiar vista o
+filtro, conserva la selección por identidad o reasígnala según contrato, sin reutilizar un
+índice que ahora identifica otro dato. Prueba extremos de texto/valor y tarjetas recortadas;
+la base de scroll ya está en [Menús con scroll](<../04 - Recetas por género/18 - Menús con scroll y navegación.md>).
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 **Dentro de la biblioteca**

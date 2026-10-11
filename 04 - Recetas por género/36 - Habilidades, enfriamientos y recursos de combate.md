@@ -1177,6 +1177,22 @@ function gestor_habilidades_serializar(_g)
 
 ---
 
+## 6 · Acción en cola y estadísticas al relevar
+
+Una habilidad en cola conserva su intención y valida objetivo, estado y recurso al ejecutarse.
+Declara si una orden posterior la reemplaza y qué sucede al abrir un modal, relevar, morir o
+cambiar de tramo. La UI de enfriamiento lee el mismo reloj que decide la ejecución; pausa y
+ralentización no deben crear otro reloj para la presentación.
+
+Al cambiar de ejemplar reconstruye estadísticas y recursos desde datos persistentes, equipo y
+modificadores vigentes. Limpia el estado temporal que pertenezca a la instancia saliente y
+conserva solo lo que el contrato atribuya al ejemplar. Prueba el cambio con una habilidad
+pendiente y un coste insuficiente, además del caso normal.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [13 · 16 — Progresión: árboles de habilidades, desbloqueos y meta-progresión](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/16%20-%20Progresión%20-%20árboles%20de%20habilidades,%20desbloqueos%20y%20meta-progresión.md) —

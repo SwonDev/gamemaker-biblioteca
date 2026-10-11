@@ -1,6 +1,6 @@
 # Auditoría de cobertura · Combate, enemigos, jefes y sistemas de daño
 
-**Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+**Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje`
 **Fecha:** 2026-09-06 · **Auditor:** agente de dominio «combate»
 **Excluidos del barrido:** `Lumbre/`, `GameMaker_Fuentes/`, `09 - Manual oficial/`, `11 - Código descargado/`
 **Contadas como existentes:** carpeta `13`, y recetas `04/28`–`04/31`.

@@ -2034,15 +2034,16 @@ agente sin experiencia se detiene sin saber si puede seguir.
 
 | # | Paso | Comando | Qué comprueba | Criterio para avanzar |
 |---|---|---|---|---|
+| 0 | **Contrato y estado** | Especificación previa (`13/28`); si existe proyecto, reglas, glosario, dirección, revisión, WIP y pausa (`13/29`) | Alcance, autorización y criterio observable | Documento escrito y mostrado; pausa respetada |
 | 1 | **Idea → receta** | Lee `04 - Recetas por género/` del género que toca | Qué sistemas construir y en qué orden | Tienes una lista de sistemas, no una vaga idea |
 | 2 | **Crear el proyecto** | `gm-cli init --no-interactive -n <nombre> -t "<plantilla de la tabla de la Trampa 1>" --ai --toolchain GMS2@2026.0.0.23` | Que exista `<nombre>.yyp` | `ls <nombre>/*.yyp` no está vacío |
 | 3 | **Crear recursos** | MCP `gamemaker-resource-tool` o `gm-cli resourcetool eval "<comando>"` — ver [§3](#3--el-mcp-gamemaker-resource-tool-inventario-real) | El recurso aparece en `resource list` y, si es un evento, el `.gml` en la ruta de [§2](#2--dónde-va-cada-gml-el-nombre-exacto-de-archivo) | `object event list name=<obj>` muestra el evento con el número que pediste (por la Trampa 3) |
 | 4 | **Escribir GML** | Editor de archivos normal sobre el `.gml` ya creado | Cada símbolo que uses existe: `python3 "_indice/buscar.py" <símbolo>` | Ningún símbolo sin verificar en el código que acabas de escribir |
-| 5 | **Compilar** | `gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only` (solo para iterar rápido — ver la nota debajo de la tabla) | Sintaxis válida — **NO** que las funciones existan (Trampa 4) | `exit 0` **y** sin salida en `--errors-only` |
-| 6 | **Validar antes de confiar en el paso 5** | `python3 "_indice/validar-proyecto.py" <ruta> --todo` | Funciones inventadas (con prefijo de familia del runtime) **y** nombres desconocidos sin definir | `✓ Ninguna llamada a una función del runtime que no exista` **y** la lista de «desconocidas» revisada a mano (ver matiz en [§7](#7--interpretar-los-errores-del-compilador--lo-que-detecta-y-lo-que-no)) |
+| 5 | **Validar GML** | `python3 "_indice/validar-proyecto.py" <ruta> --todo` | Funciones inventadas, aridad, nombres inexistentes y colisiones globales; análisis léxico | `exit 0`, avisos revisados y alcance estático declarado |
+| 6 | **Compilar** | `gm-cli compile --toolchain GMS2@2026.0.0.23 --errors-only` (solo iteración rápida — ver nota) | Sintaxis y construcción; no acredita comportamiento | `exit 0` y log revisado; compilación final también sin `--errors-only` |
 | 7 | **Corregir** | Vuelve al paso 4 con el error exacto: `gml_Object_<obj>_<Evento>(<línea>) : <mensaje>` | — | Repite 5-6 hasta limpio |
 | 8 | **Ejecutar** | `gm-cli run --toolchain GMS2@2026.0.0.23 --target mac` (o el target de tu plataforma) | Comportamiento real — ver [§4](#4--depurar-sin-ver-la-pantalla) para qué puedes leer de la salida | El juego llega al punto que estás probando sin errores no controlados en el log |
-| 9 | **Limpiar** | Mata el proceso del *runner* por nombre tras cada `run` de depuración (§4) | Que no queden procesos huérfanos | `ps -ef \| grep -i runner` no devuelve nada tuyo |
+| 9 | **Cerrar la prueba** | Cierra solo el runner atribuido por ejecutable, proyecto y fecha/PID a esta ejecución (`13/29`) | Procesos propios cerrados y guardado recuperado | Recibo de cierre y cotejo del guardado; si falta atribución, queda pendiente |
 | 10 | **Iterar** | Vuelve al paso 3 o 4 según qué falte | — | El sistema de la receta del paso 1 está completo |
 | 11 | **¿Es un juego?** | `python3 "_indice/auditar-juego-completo.py" <ruta>` | Qué piezas del envoltorio NO aparecen: menú, opciones, pausa, guardado, créditos, fin de partida, sonido, mando, arranque por portada, y objetos sin sprite que pintan rectángulos | `exit 0`, o cada ✗ justificado por escrito |
 
@@ -2051,7 +2052,7 @@ tres sistemas y compilar una sola vez al final: el primer error de sintaxis ocul
 dos, y el mensaje `gml_Object_<obj>_<Evento>(<línea>)` solo apunta al primero que encuentra el
 compilador, no a todos los que hay.
 
-> ⚠️ **`--errors-only` sirve para iterar rápido en el paso 5 — no para la última compilación
+> ⚠️ **`--errors-only` sirve para iterar rápido en el paso 6 — no para la última compilación
 > antes de dar la tarea por terminada.** Silencia los `WARNING`, y al menos uno de ellos es un
 > fallo real y no cosmético: un *included file* creado por `resourcetool` cuyo archivo nunca
 > llegó al paquete compilado (Trampa 8 de [§0](#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)).
@@ -2891,15 +2892,15 @@ sprite-gen compose-atlas --run-dir <run>                     # hoja + manifest.j
 
 #### Peldaño 3 — Generación por IA
 
-`codex exec` con el modelo `gpt-image-2` está disponible y verificado en esta máquina —
-**probado en esta sesión**, generando un icono de personaje real (no un boceto): la política
-global del entorno del usuario lo delega así porque `imagegen` es una *skill* de sistema propia
-de Codex, sin equivalente directo en Claude Code.
+En Codex usa la herramienta integrada `imagegen` y conserva el modelo solicitado,
+por ejemplo GPT Image 2.5. La herramienta no expone su identificador interno; generar una
+imagen no acredita ese identificador. En otro harness, comprueba la vía autorizada antes
+de delegar. Los ejemplos históricos no verifican una versión nueva del modelo.
 
 ```bash
 codex exec -C <dir_proyecto> --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \
   -o <scratch>/codex_last.txt \
-  "Usa tu herramienta de generación de imágenes (gpt-image-2) para crear <descripción del
+  "Usa tu herramienta de generación de imágenes (GPT Image 2.5) para crear <descripción del
    personaje/objeto: silueta, paleta, estilo>. Fondo neutro o transparente, sin texto ni marcas
    de agua. Guarda el PNG 1024x1024 en <ruta>. Genera 2-3 variantes. Al terminar lista las rutas."
 ```
@@ -2920,7 +2921,7 @@ antes de dar por bueno cualquier resultado.
 > [`07 · 23` §5 bis](../07%20-%20Ecosistema/23%20-%20Arte%20generado%20por%20IA%20%28pixel%20art%20y%20assets%202D%29.md#5-bis--la-cadena-que-sí-llega-al-sprite-final-animado):
 >
 > ```
-> codex + gpt-imagegen-2.5 → pixel-art-fixer → sprite-gen → atlas-a-gamemaker.py → .yyp
+> codex + GPT Image 2.5 → pixel-art-fixer → sprite-gen → atlas-a-gamemaker.py → .yyp
 > ```
 >
 > Los tres pasos atacan las tres objeciones, cada uno la suya: **`imagegen` genera cualquier

@@ -80,7 +80,7 @@ heredar assets ya hechos de una plantilla temática. Resultado real:
 
 ```
 gm-cli init --no-interactive -n escuadron_nova -t "Blank Pixel Game" --ai --toolchain GMS2@2026.0.0.23
-◇  Project created at /Users/adrianpereradelgado/gm_reval/escuadron_nova
+◇  Project created at /Users/usuario/gm_reval/escuadron_nova
 (3.25s user, 4.98s total — sin PREFABS RESTORE, sin fallo)
 ```
 
@@ -350,7 +350,7 @@ filtrar), tras limpiar los tres recursos desechables de verificación (trampas 3
 ```
 ◇  Compiling for mac
 │  Options: .../runtime-2026.0.0.23/bin/platform_setting_defaults.json
-│  Options: /Users/adrianpereradelgado/gm_reval/escuadron_nova/local_settings.json
+│  Options: /Users/usuario/gm_reval/escuadron_nova/local_settings.json
 │  Failed to load Options from .../local_settings.json
 │  Setting up the Asset compiler
 │  Found Project Format 2

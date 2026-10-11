@@ -247,7 +247,7 @@ references/indice-documentos.md regenerado: 256 documentos.
 Todas las rutas que cita la skill existen.
 ✓ Claude Code: .../.claude/skills/gamemaker-biblioteca → esta carpeta
 ✓ Codex (pool): .../.codex/skills-pool/gamemaker-biblioteca → esta carpeta
-✗ Codex (activa): falta /Users/adrianpereradelgado/.codex/skills/gamemaker-biblioteca
+✗ Codex (activa): falta /Users/usuario/.codex/skills/gamemaker-biblioteca
 
 12. Espejo español del manual (¿va a la par del inglés?)
 3119 páginas comparadas · 0 ausentes · 22 incompletas · 0 con literales traducidos

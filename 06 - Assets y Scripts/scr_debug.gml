@@ -48,9 +48,9 @@
 /// @desc    Inicializa el sistema de depuración. Llamalo una vez, en el Create
 ///          de un objeto persistente.
 function debug_init() {
-    if (variable_global_exists("__debug")) { return; }
+    if (variable_global_exists("__debug_estado")) { return; }
 
-    global.__debug = {
+    global.__debug_estado = {
         visible    : true,
         overlay_nativo : false,
         relojes    : {},   // variables vigiladas: nombre -> método
@@ -63,7 +63,7 @@ function debug_init() {
         fuente     : -1    // -1 = usar la fuente por defecto
     };
 
-    array_resize(global.__debug.fps_historia, 0);
+    array_resize(global.__debug_estado.fps_historia, 0);
 }
 
 
@@ -71,8 +71,8 @@ function debug_init() {
 /// @desc    Acceso interno al estado global. Se inicializa si hiciera falta.
 /// @returns {Struct}
 function __debug() {
-    if (!variable_global_exists("__debug")) { debug_init(); }
-    return global.__debug;
+    if (!variable_global_exists("__debug_estado")) { debug_init(); }
+    return global.__debug_estado;
 }
 
 

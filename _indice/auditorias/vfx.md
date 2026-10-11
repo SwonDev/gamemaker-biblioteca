@@ -1,6 +1,6 @@
 # Auditoría de cobertura · Dominio **VFX y gráficos de juego**
 
-> Biblioteca auditada: `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+> Biblioteca auditada: `/Users/usuario/Documents/GameMaker_Aprendizaje`
 > Versión de referencia: GameMaker LTS 2026.0 (IDE `2026.0.0.16`, runtime `2026.0.0.23`)
 > Fecha: 2026-09-06 · Ignorados `Lumbre/` y `GameMaker_Fuentes/` según el brief.
 > Se cuentan como existentes la carpeta 13 y las recetas 28-31 de la 04.

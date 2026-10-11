@@ -3,17 +3,18 @@
 > **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**
 > **`SKILL.md`. No lo edites a mano:** se reescribe en cada `python3 _indice/actualizar.py`
 > o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz
-> de un proyecto y no tienen un directorio de skills en formato `SKILL.md` — copia
-> este archivo (o enlázalo) como `AGENTS.md` en la raíz de tu proyecto de GameMaker.
+> de un proyecto y no tienen un directorio de skills en formato `SKILL.md`.
+> Si ya existe un `AGENTS.md`, integra estas directrices sin sobrescribir sus reglas.
+> Si no existe, puedes copiar o enlazar este archivo en la raíz del proyecto.
 > Si tu CLI sí lee skills, usa directamente la carpeta
 > `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.
 
-**Cuándo aplica esto:** Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego», «no compila», «se comporta raro», archivos .yyp/.yy/.gml, gm-cli, resourcetool, publicar un juego. Fuente fidedigna para LTS 2026: verifica cada símbolo antes de escribirlo (¿existe?, firma, obsoleta, manual) y trae las trampas del CLI que hacen fracasar a un agente. Cubre el desarrollo entero — diseño y GDD, niveles, arte y animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura, procedural, físicas, combate, IA, pathfinding, progresión, sonido, narrativa, testing, producción, móvil y 3D — y la publicación: firmar, notarizar, Steam, Play, App Store y consolas.
+**Cuándo aplica esto:** Úsala ante cualquier cosa de GameMaker o GML: «hazme un juego», «no compila», «se comporta raro», archivos .yyp/.yy/.gml, gm-cli, resourcetool, publicar un juego y metodología de desarrollo guiado por especificación con IA, Claude/Codex, gauntlet, EmbeddingGemma 2 y continuidad entre harnesses. Fuente fidedigna para LTS 2026: verifica cada símbolo antes de escribirlo (¿existe?, firma, obsoleta, manual) y trae las trampas del CLI que hacen fracasar a un agente. Cubre el desarrollo entero — diseño y GDD, niveles, arte y animación, VFX y shaders, UI/UX y accesibilidad, cámaras, arquitectura, procedural, físicas, combate, IA, pathfinding, progresión, sonido, narrativa, testing, producción, móvil y 3D — y la publicación: firmar, notarizar, Steam, Play, App Store y consolas.
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r44 · 2026-09-10 -->
-`r23 · 2026-09-10` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
+<!-- SKILL-VERSION: r46 · 2026-10-11 -->
+`r46 · 2026-10-11` — GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime 2026.0.0.23).
 
 Una base de conocimiento local, en español, verificada contra el runtime instalado. Existe
 para que el GML que escribas **no invente nada** y para que cada decisión de diseño tenga
@@ -21,8 +22,8 @@ detrás un documento contrastado.
 
 > 🏷️ **Para qué sirve esa etiqueta.** Una skill instalada es una **copia**: puede llevar meses
 > desfasada sin que se note, porque responde igual de convencida. `sincronizar-skill.py` compara
-> la versión de cada copia instalada con la de esta carpeta y **te dice cuál va atrasada y por
-> cuánto**. Si en una sesión ves un `r` distinto del que tiene el repositorio, reinstala con
+> versión y bytes del paquete completo —SKILL, AGENTS y referencias— contra esta carpeta y
+> **te dice qué copia está desfasada o incompleta**. Si en una sesión ves un `r` distinto del que tiene el repositorio, reinstala con
 > `./instalar.sh` antes de fiarte de lo que diga.
 
 **Lo primero de todo, una sola vez por sesión**, y no solo la asignación: también la
@@ -46,7 +47,7 @@ que un agente interpreta como «la herramienta está rota» en vez de «la bibli
 - **`✓`** → todo lo de abajo funciona tal cual.
 - **`⚠`** → la biblioteca está, pero le falta el índice de símbolos, que se genera del
   **runtime instalado** (un clon recién bajado de GitHub sin GameMaker en la máquina está así).
-  Los 272 documentos, las recetas y los validadores funcionan; lo que no funciona es
+  Los documentos, las recetas y los validadores disponibles sirven; lo que no funciona es
   `buscar.py <símbolo>`. Para verificar una firma usa `gm-cli manual read "<símbolo>"`, y si
   hay GameMaker instalado arréglalo de una vez con `python3 "$BIB/_indice/actualizar.py"`.
 - **`✗`** → **dilo en tu respuesta** y cae a `gm-cli manual read "<símbolo>"` para cada duda de
@@ -248,7 +249,7 @@ los errores de todo lo que venga después.
 | **Varios agentes trabajando en el MISMO proyecto** | `resourcetool` **reescribe el `.yyp` entero**: dos procesos creando recursos a la vez se pisan y **el que pierde no se entera** — el recurso desaparece del `.yyp`, su carpeta se queda en disco y `gm-cli compile` sale con **0 sin decir nada**. Aquí el consejo de «mira el disco» da un falso verde: hay que mirar el **`.yyp`**. **Y `compile`/`run`/`package` comparten la carpeta `.gmcache`**: dos a la vez hacen que el runner SEGFAULTEE leyendo un `options.ini` a medio escribir — medido, tres informes de fallo de `Mac_Runner` en dos minutos, traza en `IniFile::GetSection`. Parece un bug de GameMaker y es una colisión. **Un escritor a la vez por proyecto**, y después `auditar-juego-completo.py`, que lista los recursos huérfanos y hace fallar. Medido y reproducido en `12/09` trampa 19 |
 | **Verificar con `resource info` es ESCRIBIR** | Cualquier llamada a `resourcetool` guarda el proyecto — **medido incluso con `HELP`**, que no consulta nada: el `.yyp` cambia de `mtime` y la salida dice `Saving..........Success`. Así que «verifica leyendo de vuelta» **se contradice a sí mismo con dos agentes**: la verificación provoca la carrera. Verifica leyendo el `.yy` con `cat`/`grep`: no escribe, no arranca `npx` y mide el archivo que decide. `12/09` trampa 20 |
 | **Cambiar el origen o la velocidad de un sprite** | `xorigin`, `yorigin` y `playbackSpeed` **cuelgan de `sequence`**, no del sprite: `spr.xorigin` falla con `Member 'xorigin' not found`. Y el sprite **sí** tiene un `origin`, que es el enum (Automatic/Custom), no la coordenada — quien lo vea en la lista se lo cree. La ruta buena es `spr.sequence.xorigin`. Ojo: el intento fallido **también imprime `Saving...Success`**, así que un `grep success` da verde sobre un comando que falló. `12/09` trampa 21 |
-| **Necesito el sprite FINAL, animado y de producción** | La cadena de `07/23 §5 bis`, en este orden: **`codex` con `gpt-imagegen-2.5`** genera cualquier asset (hoja, iconset, con fondo o sin él) → **`puerta-pixel-art.py`** dictamina → **`pixel-art-fixer`** (MIT) lo devuelve a una rejilla real, porque lo que sale de un modelo **no es pixel art** aunque lo parezca → **`sprite-gen`** (Apache-2.0) anima desde **UNA base con la identidad bloqueada** y entrega atlas + `manifest.json` con rectángulos y fps por estado → `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` lo registra. Pedirle «una hoja de sprites» a un modelo en crudo sigue sin servir, y `07/23 §2` dice por qué |
+| **Necesito el sprite FINAL, animado y de producción** | La cadena de `07/23 §5 bis`, en este orden: **`codex` con `GPT Image 2.5`** genera cualquier asset (hoja, iconset, con fondo o sin él) → **`puerta-pixel-art.py`** dictamina → **`pixel-art-fixer`** (MIT) lo devuelve a una rejilla real, porque lo que sale de un modelo **no es pixel art** aunque lo parezca → **`sprite-gen`** (Apache-2.0) anima desde **UNA base con la identidad bloqueada** y entrega atlas + `manifest.json` con rectángulos y fps por estado → `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` lo registra. Pedirle «una hoja de sprites» a un modelo en crudo sigue sin servir, y `07/23 §2` dice por qué |
 | Tengo un dibujo y necesito la hoja de sprites animada | `sprite-gen` (Apache-2.0, skill de Codex/Claude + CLI) monta el atlas y su `manifest.json`; el paso a GameMaker, que él no trae, lo hace `python3 "$BIB/_indice/atlas-a-gamemaker.py" <run> --salida <carpeta>` → `gm-cli resourcetool script`. Receta en `12/09 §5.2` peldaño 2 ter |
 | ¿Este PNG hay que repararlo, o repararlo lo destruye? | `python3 "$BIB/_indice/puerta-pixel-art.py" <carpeta de PNG>` — **antes** de pasarle `pixel-art-fixer` a nada |
 | **El usuario me dice dónde tiene sus assets** | `python3 "$BIB/_indice/auditar-biblioteca-assets.py" "<la RAÍZ de su biblioteca>" [--profundidad 3] [--json informe.json] [--solo-fuentes]` — **antes de copiar nada**. Es de solo lectura. Busca cinco señales estructurales, no corazonadas: medios sin licencia (ni heredada ni dentro del `.zip`), varias **familias** de licencia bajo un solo nombre, el **runtime del motor** (un pack no trae `UnityEngine.*.dll`: eso es un juego descompilado), un **extractor guardado junto a los medios**, y el binario de cada tipografía (`fsType`, licencia embebida y los glifos `áéíóúüñ¿¡`, que si faltan **no dan error**: miden cero). **Un bloqueo suyo no es un veredicto y su silencio no es un aprobado**, y apúntala a la RAÍZ: si le das una subcarpeta no puede ver el `.zip` con la licencia que está en otra. Criterio y casos medidos en `07/09 §10 bis.9` |
@@ -256,7 +257,7 @@ los errores de todo lo que venga después.
 | **Texto en otro idioma que NINGÚN linter caza** | Una **función** que devuelve el texto ya hecho no es un literal, así que el `grep` de «cero cadenas en `draw_text`» no la ve. Medido: `InputVerbGetBindingName()` devuelve «arrow left», «space» y «escape» **en inglés**, en medio de una frase en español — y se descubrió mirando una captura del juego, no el código. `auditar-juego-completo.py` lista ahora las funciones cuyo valor se dibuja tal cual, saltándose `txt()`, las `txt_*` propias y las de número. Criterio en `04/21 §4 ter` |
 | Voy a pedirle un sprite a **Retro Diffusion** y cuesta dinero | `python3 "$BIB/_indice/validar-peticion-retrodiffusion.py" peticion.json [--imagen inicio.png] [--presupuesto 0.50]` — **antes de mandarla**. Comprueba el estilo contra el catálogo, el tamaño contra los límites de ese estilo concreto (no los de la API), el lote, las referencias, los prefijos `data:`, y mide el fotograma de partida **en disco**. No usa red ni clave: no puede gastar. Las nueve trampas caras, en `07/23 §1 bis.1` — la primera es que **el POST de v2 no devuelve la imagen** y quien lea `base64_images` de esa respuesta se queda sin nada y con el cargo hecho |
 | ¿Las trampas del CLI siguen siendo ciertas hoy? | `bash "$BIB/_indice/verificar-trampas.sh"` — las reproduce contra el CLI instalado. Si alguna ya no se cumple, este documento está desfasado |
-| ¿El código reutilizable de la biblioteca hace lo que dice? | `bash "$BIB/_indice/validar-ejecucion.sh"` — monta un juego real y lo **ejecuta**: **200 comprobaciones** sobre los 13 scripts de `06`. Compilar no es ejecutar: sacó cuatro fallos que compilaban limpios. **Valida el banco antes de arrancarlo**, porque un nombre inventado ahí dentro compila con exit 0 y CUELGA la ejecución sin decir nada |
+| ¿El código reutilizable de la biblioteca hace lo que dice? | `bash "$BIB/_indice/validar-ejecucion.sh"` — monta un juego real y lo **ejecuta**: **205 comprobaciones** sobre los 13 scripts de `06`. Compilar no es ejecutar: sacó cuatro fallos que compilaban limpios. **Valida el banco antes de arrancarlo**, porque un nombre inventado ahí dentro compila con exit 0 y CUELGA la ejecución sin decir nada |
 | Compilar (desde la carpeta del `.yyp`) | `gm-cli compile` · ejecutar: `gm-cli run` |
 | Crear o editar recursos (objetos, sprites, rooms, eventos) | `gm-cli resourcetool eval "<comando>"` o el MCP `gamemaker-resource-tool` del proyecto |
 | Proyecto nuevo | `gm-cli init --no-interactive -n <nombre> -t "<plantilla>" --ai --toolchain GMS2@2026.0.0.23` — el `-n` **solo admite letras, números, guiones y guiones bajos**: «Cripta de las Placas» falla con `Use only letters, numbers, dashes, and underscores`. El nombre bonito del juego se pone luego en `options set … property=display_name value="Cripta de las Placas"`, entrecomillado |
@@ -301,6 +302,9 @@ documentos, generado del disco, en `$BIB/_indice/skills/gamemaker-biblioteca/ref
 | Un juego completo, de principio a fin | `04 - Recetas por género/00 - Anatomía de un juego completo.md` y después la receta del género |
 | Un juego de género X | `04 - Recetas por género/` — **59 recetas**: los géneros clásicos (plataformas, RPG, roguelike, metroidvania, tower defense, puzle, shoot'em up, carreras, gestión, ritmo, sigilo, horror, granja, idle) más beat'em up, aventura gráfica, deportes, lucha, souls-like, colonia, party games y bullet heaven/autobattler/deckbuilder; y los sistemas transversales: **el nivel como mapa de texto** (la única vía de montar un nivel sin abrir el editor de salas), **puertas, llaves y placas de presión** (el puzle de sala), combate (cuerpo a cuerpo, a distancia, por turnos, no letal), daño y estados, enemigos y director, habilidades, traversal, pathfinding, VFX, tutorial, transiciones y pausa, audio reactivo, modding, eje Z falso, selección de nivel, metajuego y live-ops |
 | Diseñar: mecánicas, niveles, arte, UI, sonido, historia | `13 - Diseño y producción de videojuegos/` (mapa en `$BIB/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md`) |
+| Desarrollo largo con IA, varios harnesses, gauntlet, crítica A/B, colas o retomar una pausa | `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` antes de despachar trabajo; después `12/09` y `13/10` para las puertas técnicas |
+| Búsqueda, clasificación o deduplicación de código, información y recursos; contexto/tokens | `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md`: literal frente a significado, MCP real, fuentes verificadas, índices acotados y fallback |
+| Búsqueda semántica o RAG como función de producto | `13/29 §11.1` y `12/11`: consumidor real, servicio/modelo conservado, reserva fuera del corpus, fidelidad y recuperación separadas |
 | Estructurar el proyecto para que crezca | `13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md` |
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
 | «No compila» o «se comporta raro» con código antiguo | `01 - Fundamentos/03 - Handles - el cambio clave de 2026.md` → `02 - Novedades 2026/02 - Cambios en GML 2026.md` → `buscar.py` (¿obsoleta?) → github.com/YoYoGames/GameMaker-Bugs |
@@ -392,6 +396,42 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 
 ## Flujo para un desarrollo real
 
+**Proyecto existente o continuación:** antes del paso 0, lee reglas, especificación, glosario,
+dirección visual, estado y pausa; comprueba checkout, revisión y WIP. No recrees sistemas ni
+retomes procesos pausados sin autorización. Si hay varios agentes, un bucle de calidad o un
+cambio de harness, carga `13/29` completo: contratos, propiedad, recursos y evidencia.
+
+**Método general, para cualquier género y target (`13/29 §2.1–2.2`):** recupera contexto →
+aclara lo pendiente (`grill-with-docs`) → spec (`to-spec`) → tareas verticales y dependencias
+(`to-tickets`) → implementación/prueba (`implement`, `tdd`) → integración → revisión
+(`mp-code-review`) → evidencia y aceptación. Reutiliza spec y tareas existentes; una corrección
+pequeña no exige rehacer el GDD. El usuario no tiene que invocar skills: selecciónalas por
+fase, léelas y aplica su procedimiento, conservando la precedencia de reglas/modelos/permisos.
+Los nombres externos no se distribuyen con este paquete; si faltan, declara el límite y usa
+los contratos documentados, sin inventar pruebas, descargar otros modelos ni publicar por defecto.
+
+**Contexto y recursos (`12/11`):** símbolo exacto → índice/manual; texto literal → `rg`/`tg`;
+comportamiento o recurso por significado → EmbeddingGemma 2 si la instalación está disponible.
+Acota proyecto/modalidad, recupera pocos candidatos, abre fuentes/fronteras y conserva ruta,
+ubicación y huella. Usa `find_similar`/`compare` para duplicados/clasificación calibrada; no
+borres por similitud. Indexar puede escribir/cargar modelo: respeta pausa y recursos. Sin MCP,
+usa mapa/catálogo/literal y declara el fallback. Mide tokens reales y corrección, no prometas
+ahorro por número de caracteres ni añadas embeddings al ejecutable si solo los usa el agente.
+
+**Cinco puertas del trabajo con IA (`13/29`):**
+
+- Evidencia vigente: commit + huellas del WIP/entradas, runtime, target, configuración y escenario.
+  Una batería anterior es histórica; compilar ahora no la refresca. Registra modo, aserciones,
+  medidas informativas, omisiones y denominadores: cero fallos no certifica todos los presupuestos.
+- Crítica fresca: clave fuera del paquete accesible, sin explicación del constructor antes del
+  juicio, controles negativos e idénticos válidos. Contaminación → nueva ronda.
+- Mejora integrable y aceptación final son estados distintos. Una preferencia visual no
+  autoriza una identidad incorrecta ni bajar el umbral del usuario.
+- Propiedad de archivos y un escritor de recursos; exclusión `.gmcache`, guardado y recursos
+  pesados. Orden de bloqueo consistente, FIFO y propietario verificable, sin limpieza por nombre.
+- Continuidad: conserva modelos, permisos, WIP, recibos y pausa entre harnesses. Un cambio de
+  cuota no autoriza reanudar ni sustituir modelos.
+
 0. **Especificación**: si el encargo es «hazme un juego» y no trae ya género, alcance y
    plataforma decididos, pregúntalos en un único turno (nunca un interrogatorio secuencial) y
    completa con los valores por defecto lo que el usuario no conteste — preguntas, criterio de
@@ -476,6 +516,8 @@ Un tutorial nunca gana a `simbolos.json`. Lo no verificado lleva ⚠️ en el te
 4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
    diálogos, audio, guardado y UI ya están resueltos por terceros.
 5. **GML**: `buscar.py` por símbolo mientras escribes; `validar-proyecto.py` al terminar.
+   Revisa también **COLISIÓN GLOBAL**: un flag con nombre de función puede ocultarla (`13/29`).
+   El análisis léxico no cubre todos los ámbitos ni accesos dinámicos: confirma en runtime.
 6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala. Recuerda que
    compilar limpio **no** significa que el código sea correcto (trampa 4).
 7. **Antes de decir «terminado»**, en este orden:

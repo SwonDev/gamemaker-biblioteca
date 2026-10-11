@@ -6,7 +6,7 @@ verdad sobre lo que falta, con evidencia, no en tranquilizar.
 
 ## Qué es esto
 
-`/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje` es una base de conocimiento en
+`/Users/usuario/Documents/GameMaker_Aprendizaje` es una base de conocimiento en
 español sobre GameMaker LTS 2026 (IDE 2026.0.0.16 · runtime GMS2 2026.0.0.23), pensada para que
 un agente de IA desarrolle **cualquier videojuego** con GameMaker sin inventarse nada.
 245 documentos propios + el manual oficial espejado + 608 repos de GML real.

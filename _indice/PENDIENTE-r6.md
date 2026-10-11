@@ -11,7 +11,7 @@ Un agente estaba **documentando los cinco hallazgos de la prueba de regresión**
 la sesión se cierre. Al volver, lo primero es **comprobar qué escribió y consolidarlo**:
 
 ```sh
-cd "/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje"
+cd "/Users/usuario/Documents/GameMaker_Aprendizaje"
 git status --short                 # ¿qué tocó?
 python3 _indice/actualizar.py      # ¿sigue todo coherente?
 ```

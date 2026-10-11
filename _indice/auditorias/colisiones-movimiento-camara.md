@@ -5,7 +5,7 @@ one-way, móviles, escaleras, paredes, bordes) · movimiento top-down y en rejil
 knockback y hit stun · controlador de personaje completo · cámara (seguimiento, deadzone,
 look-ahead, zonas, multijugador, shake, zoom, pixel-perfect, 3D).
 
-**Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+**Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje`
 (carpetas 01–13 salvo `Lumbre/` y `GameMaker_Fuentes/`).
 **Fecha:** 6 de septiembre de 2026. **Runtime de referencia:** GMS2 `2026.0.0.23`.
 

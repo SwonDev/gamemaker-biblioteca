@@ -68,8 +68,15 @@ Todos los símbolos vigentes del runtime son localizables, pero no todos por la 
 4. Convenciones de nombres  →  05 - Referencia/04 - Convenciones y estilo GML.md
 5. Valida el proyecto entero: python3 "_indice/validar-proyecto.py" <ruta-del-proyecto>
 6. ¿Es un juego entero?:     python3 "_indice/auditar-juego-completo.py" <ruta-del-proyecto>
-6. Compila: gm-cli compile
+7. Compila: gm-cli compile
 ```
+
+### A bis · «Seguimos el proyecto», «varios agentes» o «bucle de mejora con IA»
+
+Lee [`13 · 29 — Desarrollo con IA`](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)
+antes de despachar trabajo. Recupera contratos, revisión, WIP y pausa. Allí están la
+crítica aislada, las dos puertas de aceptación, la vigencia de evidencia, los recursos y
+la continuidad entre harnesses; enlaza a los procedimientos de CLI y QA existentes.
 
 ### B bis · «Hazme un juego COMPLETO de principio a fin»
 
@@ -120,7 +127,7 @@ nada; luego baja al género concreto en «B».
 
 ```
 1. 02 - Novedades 2026/01 - Resumen LTS 2026.0.md
-2. README.md §2  ← estado del ecosistema con fechas
+2. 02 - Novedades 2026/  ← cambios con fuente y fecha
 3. https://releases.gamemaker.io/  ← la fuente viva
 ```
 
@@ -142,7 +149,7 @@ usan Claude Code y Codex desde otros proyectos.
 
 ```
 0. RUTA.md  ← ⭐ la progresión completa de cero a profesional (6 niveles con prueba)
-1. README.md §4  ← cuatro rutas según de dónde vengas
+1. GUIA.md, «Rutas de aprendizaje»  ← entrada según de dónde vengas
 2. 10 - Cursos en español/05 - Ruta de aprendizaje en español.md  ← si quieres solo español
 3. 03 - Cursos (YouTube)/_INDICE-CURSOS.md  ← 44 capítulos transcritos
 ```

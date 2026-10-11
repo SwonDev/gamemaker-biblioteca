@@ -75,22 +75,22 @@ $ cd ~/prueba_r13_rpg && gm-cli compile --toolchain GMS2@2026.0.0.23
 ◇  Installing runtime
 ◆  Runtime found
 ◇  Compiling for mac
-│  Options: /Users/adrianpereradelgado/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/platform_setting_defaults.json
-│  Options: /Users/adrianpereradelgado/prueba_r13_rpg/local_settings.json
-│  Failed to load Options from /Users/adrianpereradelgado/prueba_r13_rpg/local_settings.json
+│  Options: /Users/usuario/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/platform_setting_defaults.json
+│  Options: /Users/usuario/prueba_r13_rpg/local_settings.json
+│  Failed to load Options from /Users/usuario/prueba_r13_rpg/local_settings.json
 │  Setting up the Asset compiler
 │  Found Project Format 2
 │  Core Resources : Info - +++ GMSC serialisation:  SUCCESSFUL LOAD AND LINK TIME: 117.835ms
 │  Success
-│  finished adding assets from /Users/adrianpereradelgado/prueba_r13_rpg/prueba_r13_rpg.yyp.
+│  finished adding assets from /Users/usuario/prueba_r13_rpg/prueba_r13_rpg.yyp.
 │  Release build
-│  Options: /Users/adrianpereradelgado/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/PlatformOptions.json
-│  homedir : /Users/adrianpereradelgado
-│  remote_install_path : /Users/adrianpereradelgado/gamemakerstudio2/GM_MAC/prueba_r13_rpg
-│  Options: /Users/adrianpereradelgado/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/ExtensionOptions.json
+│  Options: /Users/usuario/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/PlatformOptions.json
+│  homedir : /Users/usuario
+│  remote_install_path : /Users/usuario/gamemakerstudio2/GM_MAC/prueba_r13_rpg
+│  Options: /Users/usuario/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/ExtensionOptions.json
 │  PlatformOptions
 │  [Compile] Run asset compiler
-│  Looking for built-in fallback image in /Users/adrianpereradelgado/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/BuiltinImages
+│  Looking for built-in fallback image in /Users/usuario/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/BuiltinImages
 │  Compile Constants...
 │  finished.
 │  Remove DnD...
@@ -110,7 +110,7 @@ $ cd ~/prueba_r13_rpg && gm-cli compile --toolchain GMS2@2026.0.0.23
 │  collapsing enums.
 │  Final Compile...
 │  Final Compile finished.
-│  Saving IFF file... /Users/adrianpereradelgado/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/output/game.zip
+│  Saving IFF file... /Users/usuario/prueba_r13_rpg/.gmcache/build-gms2-mac-VM/output/game.zip
 │  Writing Chunk... GEN8 size ... -0.00 MB
 │  option_game_speed=60
 │  Writing Chunk... OPTN size ... 0.00 MB

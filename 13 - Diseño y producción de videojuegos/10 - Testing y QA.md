@@ -2115,60 +2115,30 @@ guardado sin que nadie juegue a mano.
 
 #### 8.7.1 Arrancar el juego sin bloquear la sesión y sin dejar procesos huérfanos
 
-`gm-cli run --help` (§3.4) no tiene ningún flag de tiempo límite — ni `--timeout` ni nada
-parecido. El límite hay que ponerlo tú, envolviendo el proceso:
+`gm-cli run --help` (§3.4) no ofrecía un flag de tiempo límite en la comprobación
+histórica del 8-09-2026. Consulta el `--help` de la versión instalada antes de envolverlo.
+La prueba de humo debe acabar por sí misma; el supervisor necesita además un límite y un
+registro de identidad del lanzador y del runner desde su adquisición.
 
-```bash
-#!/usr/bin/env bash
-# lanzar-humo.sh — arranca el juego en segundo plano, sin bloquear la sesión, con un
-# margen de tiempo, y garantiza que no queda ningún proceso del runner huérfano al salir.
-set -uo pipefail
+**Corrección del 11-10-2026:** el guion anterior usaba una limpieza global por nombre. Se
+había probado en una sesión aislada, pero podía cerrar el runner de otro proyecto en una
+máquina compartida. Por eso se retira como receta general. Tampoco basta con matar el CLI:
+en macOS se observó un runner con PPID 1, fuera del árbol del lanzador.
 
-PROYECTO="${1:?ruta al .yyp}"
-CONFIG="${2:-Humo}"
-TARGET="${3:-mac}"
-TOOLCHAIN="GMS2@2026.0.0.23"
-NOMBRE_RUNNER="Mac_Runner"        # cambia por plataforma — ver la tabla de abajo
-MARGEN_S=20                        # fotogramas de espera del objeto + margen de arranque/cierre
+Antes de ejecutar, define cómo vas a atribuir el runner a esta prueba: ejecutable, argumentos
+con proyecto/paquete, PID, fecha de inicio y comparación con los procesos preexistentes.
+Captura la identidad en cuanto se adquiere y coteja de nuevo antes de señalizarlo, porque el
+PID puede reutilizarse. Si no puedes atribuirlo de forma inequívoca, **no mates por nombre**:
+deja la recuperación pendiente y no declares completa la prueba. Un runner ya existente se
+preserva aunque tenga el mismo nombre. El cierre y la restauración del guardado se verifican
+antes de liberar la reserva del juego. El procedimiento completo de propiedad, recuperación
+y bloqueo de la siguiente prueba está en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>).
 
-SALIDA="$(mktemp)"
-gm-cli run --toolchain "$TOOLCHAIN" --target "$TARGET" --config "$CONFIG" "$PROYECTO" \
-    > "$SALIDA" 2>&1 &
-PID_RUN=$!
-
-# Espera activa, no un sleep ciego: si el objeto de humo llama a game_end() (caso
-# normal), gm-cli run devuelve el control por sí solo y este bucle sale enseguida —
-# ✅ verificado en vivo, 8 de septiembre de 2026: una pasada normal de este guion
-# completa (compilar + arrancar + esperar 30 fotogramas + capturar + game_end) en
-# 2,7-6,1 s según la carga de la máquina, muy por debajo de MARGEN_S — el bucle
-# nunca llega a agotar el margen salvo que algo se cuelgue de verdad (ver más abajo).
-SEGUNDOS=0
-while kill -0 "$PID_RUN" 2>/dev/null && [ "$SEGUNDOS" -lt "$MARGEN_S" ]; do
-    sleep 1
-    SEGUNDOS=$((SEGUNDOS + 1))
-done
-
-# Red de seguridad, SIEMPRE, pase lo que pase arriba — y no es un "por si acaso":
-# ✅ verificado en vivo que "kill $PID_RUN" por sí solo NO es fiable para terminar el
-# runner real. El proceso Mac_Runner nace con PPID=1 (no es hijo del proceso de
-# gm-cli, está huérfano desde el instante en que arranca — "InstallRunnerOnMac" /
-# "RunOnMac" en el log lo lanzan por fuera del árbol de procesos de gm-cli), así que
-# una señal a $PID_RUN no tiene por qué propagarse. En dos pruebas aisladas de esta
-# sesión el resultado fue distinto: una vez el runner seguía vivo un segundo después
-# de "kill $PID_RUN"; otra vez ya no estaba tras dos segundos. No lo trates como
-# determinista en ningún sentido — `pkill -f "$NOMBRE_RUNNER"` es la única línea que
-# se verificó consistente en las tres pruebas de esta sesión (incluida una con un
-# objeto que cuelga a propósito, sin llamar nunca a game_end(): el bucle agotó
-# MARGEN_S=5 en 5,06 s y `pkill` limpió el proceso, confirmado con `ps` acto
-# seguido). Además, y esto tampoco estaba documentado: dos ejecuciones sucesivas sin
-# este paso dejaron procesos huérfanos del runner corriendo — verificado en vivo,
-# `12 · 09` §4.3 / auditoría r4, hallazgo #50.
-kill "$PID_RUN" 2>/dev/null
-pkill -f "$NOMBRE_RUNNER" 2>/dev/null
-
-cat "$SALIDA"
-echo "__SALIDA_EN__ $SALIDA"   # el llamador decide si borra el temporal o lo inspecciona
-```
+Conserva el log completo y el resultado del juego, del supervisor y de la recuperación por
+separado. Que el wrapper termine no demuestra que terminaron sus procesos ni que el test
+alcanzó todas las aserciones. El nombre de la tabla siguiente ayuda a identificar candidatos;
+**no autoriza a cerrarlos todos**.
 
 **El nombre del runner por plataforma**:
 
@@ -2478,7 +2448,7 @@ find ~/Library/Application\ Support -maxdepth 2 -iname "*.png" -newer "$MARCA" 2
 ```
 
 ```
-/Users/adrianpereradelgado/Library/Application Support/com.yoyogames.macyoyorunner/humo_captura.png
+/Users/usuario/Library/Application Support/com.yoyogames.macyoyorunner/humo_captura.png
 ```
 
 En Windows, cambia la raíz por `%LOCALAPPDATA%`; en Linux, por `~/.config` — ninguna de las dos
@@ -3528,6 +3498,55 @@ si no:
 > validación de 14.2 y la re-simulación de 14.3.
 
 ---
+
+## 15 · QA entre sistemas: casos extraídos de un desarrollo largo con IA
+
+Las pruebas de una pieza pueden pasar mientras falla su frontera con otra. La lectura del
+caso estudiado aporta esta matriz generalizada; se adapta a los contratos del juego y se
+reproduce en runtime. No son resultados de una ejecución nueva del juego fuente. El método de
+propiedad y evidencia está en [Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>).
+
+| Frontera | Caso que debe poder fallar | Invariante observable |
+|---|---|---|
+| Especie → ejemplar → instancia | Relevar, reconstruir instancia, reordenar catálogo, recargar | UID, propiedad, equipo y favorito conservados; instancia no es identidad persistente |
+| Colección → economía → recompensa | Inventario lleno, dinero insuficiente, doble confirmación | Validar antes de gastar; bandeja/recompensa pendiente conservada; rechazo con motivo |
+| Guardado → carga → migración | Cierre en cada fase, temporal válido más nuevo, principal corrupto | Elegir secuencia válida; integridad y longitud antes de promover; migración antes de importar |
+| Tramo → resultados → salida | Salir con proyectiles, órdenes, invocaciones y botín pendiente | Cancelar trabajo del tramo, recoger pendientes según contrato y liberar recursos una sola vez |
+| Tutorial → entrada → progreso | Esperar sin actuar, hacer acción incorrecta, repetir una acción | Avance por acción/estado real; tiempo transcurrido no sustituye la demostración |
+| Selección → progreso → assets | Rango suficiente con asset ausente, contenido bloqueado, catálogo parcial | Distinguir requisito de rango, disponibilidad técnica y progreso; no habilitar entrada imposible |
+| Navegación → colisión → persecución | Posición en borde de celda, destino móvil, puente y recálculo | Comprobar geometría real además de rejilla; ruta estable sin oscilación ni atajos a través de paredes |
+| Daño → reflejo/contagio/fragmentos | Un efecto vuelve a activar su propio disparador | Guarda anti-recursión; propietario y caducidad explícitos; estado ligado al ejemplar correcto |
+| Victoria → recompensa → endgame | Recibo repetido, rotación cambia durante partida, tiempo justo al límite | Recompensa idempotente; ID de rotación fijado; límites y reglas combinadas respetados |
+| Entrada → modal → mundo | Pulsar confirmar/relevo/ataque con panel abierto y dato cambiado | El modal consume la entrada antes del mundo; confirmar revalida UID y coste actuales |
+| Autopiloto → gameplay → aserción | Preparar escenario por debug y luego ejecutar una acción del jugador | Separar preparación, entrada real inyectada y efecto observado; cambiar estado directamente no prueba el control |
+| Solicitud de audio → reproducción → escucha | Asset ausente, cupo lleno, sonido distante o mezclador silenciado | Contador de solicitudes separado de arranques aceptados, duración/estado observado y aceptación audible |
+| Premio → fragmentos → ingreso | Repartir un total no divisible, recoger dos veces y salir con monedas en vuelo | Suma conservada; hook por ingreso una vez por grupo; presentación cancelada no borra propiedad |
+| Solicitud → respuesta → percentil | Objetivo inalcanzable, orden reemplazada, respuesta ausente al terminar | Informar denominador, reemplazos y timeouts; percentiles de respuestas no ocultan solicitudes fallidas |
+| Director → ataque vivo → cierre | Morir o cambiar fase con una plaza reservada | Límites separados de población, llegadas y ataques; propiedad y liberación una sola vez |
+| Pausa → panel anidado → reapertura | Cerrar un modal con pulsación sostenida y volver al mundo | Relojes coherentes; ningún ataque o movimiento por entrada residual |
+| Picking → cámara → interacción | Silueta animada, objetos superpuestos, ancla fuera del suelo transitable | Transformaciones coherentes; prioridad definida; destino alcanzable distinto del centro visual si procede |
+| Preferencias → pruebas → restauración | Fixture cambia volumen, idioma o controles | Aislar y restaurar datos del jugador; claves solicitadas no certifican todos los idiomas |
+| Atributos → uniforms → color/sombra/post | Cambiar perfil, exceder capacidad o deformar solo un pase | Roles/canales/stride/límites coherentes; sombra acompaña geometría; RGB/alfa y espacio de color compatibles con la mezcla |
+| Modelo → envolvente → render | Probar varias poses/vistas y dejar un modelo sin cargar | Publicar modelos, poses y puntos examinados; mínimo de casos no demuestra todo el catálogo ni envolvente geométrica universal |
+| Carga → frame → telemetría | Carga de un asset más caro que el anterior | Presupuesto basado en coste medido y máximo real comprobado; un límite configurado no certifica latencia |
+
+El modo de ejecución forma parte del recibo. Si ciertos umbrales solo son informativos en
+modo normal, informa sus resultados por separado de las aserciones: cero fallos no significa
+que todos los presupuestos pasaran. Las entradas de tipo «medida» no se convierten en aserciones
+por llevar una marca verde. El peor paso elegido de la mejor repetición tampoco es el peor
+observado del conjunto; conserva todas las repeticiones antes de decidir.
+
+Una fixture ausente se registra como **OMITIDO**, con motivo y efecto sobre la cobertura;
+no como PASS ni como un retorno silencioso. Conserva casos previstos, ejecutados y omitidos.
+Un umbral mínimo de casos acredita ese mínimo; no todo el catálogo. Comparar una fórmula de
+color o proyección en CPU no verifica los píxeles ni el estado gráfico del shader que la usa.
+
+Los casos negativos deben romper la condición que el instrumento dice vigilar: una población
+que desaparece a mitad de intervalo, un snapshot truncado o una acción de tutorial ausente.
+Un test que solo busca la cadena «PASS» puede ignorar que la batería no terminó. Exige total
+esperado, final inequívoco y código de salida, además de los recibos de recuperación.
+El [recibo público](../_indice/auditorias/r21-publicacion.md) delimita las pruebas de la biblioteca;
+no convierte la inspección estática en una certificación de estas interacciones.
 
 ## Ver también
 

@@ -489,7 +489,7 @@ La recomendación corta: **usa IA generativa cruda para todo lo que nunca llega 
 tal cual, y para nada que sí lo hace sin pasar por la cadena de
 [§5 bis](#5-bis--la-cadena-que-sí-llega-al-sprite-final-animado) o por las manos de una
 persona.** Es exactamente el mismo
-criterio que ya aplica esta biblioteca a sus propias herramientas de imagen —`gpt-image-2`
+criterio que ya aplica esta biblioteca a sus propias herramientas de imagen —`GPT Image 2.5`
 para hojas de modelado 3D o iconos de marca (ver `img2threejs` y los flujos de diseño del
 propio repositorio de herramientas del usuario), nunca como sustituto del sprite final.
 
@@ -506,19 +506,19 @@ aquí.
 ### La cadena, en tres pasos y un puente
 
 ```
-codex + gpt-imagegen-2.5  →  pixel-art-fixer  →  sprite-gen  →  atlas-a-gamemaker.py  →  .yyp
+codex + GPT Image 2.5  →  pixel-art-fixer  →  sprite-gen  →  atlas-a-gamemaker.py  →  .yyp
       genera                  vuelve a la           anima             registra
    CUALQUIER asset             rejilla real      desde UNA base       el recurso
 ```
 
-**1 · Generar — `codex` con `gpt-imagegen-2.5`.** Es el paso que produce material de
+**1 · Generar — `codex` con `GPT Image 2.5`.** Es el paso que produce material de
 cualquier tipo: un sprite suelto, una hoja, un *iconset*, con fondo o sin él. En Claude Code
 se delega con `codex exec`, porque `imagegen` es una *skill* de sistema propia de Codex:
 
 ```bash
 codex exec -C <dir> --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \
   -o <scratch>/codex_last.txt \
-  "Usa tu herramienta de generación de imágenes (gpt-imagegen-2.5) para crear <descripción:
+  "Usa tu herramienta de generación de imágenes (GPT Image 2.5) para crear <descripción:
    silueta, paleta, estilo>. Fondo plano que contraste con el sujeto, sin texto ni marcas de
    agua. Guarda los PNG en <ruta>. Genera 2-3 variantes. Al terminar lista las rutas."
 ```
@@ -617,11 +617,16 @@ biblioteca. `sprite-gen` avisa además de que la locomoción cíclica (andar, co
 siendo experimental** salvo que su control de calidad de movimiento pase, y su tubería de
 vídeo necesita credencial propia (`grok` o `XAI_API_KEY`) y `ffmpeg`.
 
-> ⚠️ **El nombre del modelo.** Aquí se escribe **`gpt-imagegen-2.5`**, que es el que indica el
-> usuario. El `CLAUDE.md` global de este equipo todavía dice `gpt-image-2` en sus reglas de
-> iconos y de `img2threejs`: si la versión buena es la 2.5, esa regla está desfasada y conviene
-> corregirla allí. **No se cambia desde aquí**: el modelo lo elige el usuario, y esta
-> biblioteca no toca su configuración.
+> **Modelo y autorización.** Usa exactamente el modelo de imagen elegido por el usuario.
+> GPT Image 2.5 tiene identificadores oficiales `gpt-image-2.5-sunburst` y
+> `gpt-image-2.5-flare`; conserva la variante elegida al usar la API. La herramienta
+> integrada de Codex se usa directamente y no expone un selector ni su identificador
+> interno. No normalices el nombre a otro modelo ni cambies la elección sin autorización.
+> Fuente: [OpenAI](https://developers.openai.com/api/docs/guides/image-prompting), 11-10-2026.
+> En Codex se usa la herramienta `imagegen` directamente; en otros harnesses se comprueba
+> la vía autorizada y sus permisos. Si la herramienta no expone el identificador interno,
+> no afirmes haberlo verificado. Esta biblioteca no cambia configuraciones ni permite
+> sustituir el modelo elegido por una alternativa.
 
 ---
 

@@ -1570,6 +1570,31 @@ corriendo el bucle de ganancia/gasto miles de veces.
 
 ---
 
+## 12 · Medir la referencia sin seleccionar solo los desenlaces visibles
+
+Antes de calibrar probabilidades o economía desde un vídeo, fija unidad, intervalo y población:
+apariciones, derrotas, capturas y eventos cuyo desenlace no se puede observar son denominadores
+distintos. Contar solo encuentros con un desenlace claro puede favorecer lo más visible, como
+una captura, y sesgar densidad y tasa. Conserva desconocidos y rango de incertidumbre; revisa
+etapas completas y comprueba que la fuente permite observar lo que quieres medir.
+
+Si una medición nueva cambia la densidad, recalibra el ritmo, ingresos, rarezas y protecciones
+que dependen de ella. Versiona medidas, supuestos, tablas y simulación, preservando los valores
+anteriores y el motivo. Las pruebas de paridad entre simulación y GML no corrigen por sí solas
+una entrada sesgada: pueden coincidir perfectamente sobre el mismo supuesto incorrecto.
+Usa controles negativos y escenarios independientes; declarar una tanda calibrada sigue
+limitado a sus entradas, población y criterio.
+
+En una simulación larga, informa también jugadores que no alcanzaron cada hito y el tiempo
+de observación disponible. La mediana de quienes llegaron no representa a toda la población;
+una racha aún abierta al terminar no desaparece del informe. Conserva esas observaciones
+censuradas y define cómo entran en la métrica. Ajustar ritmo con una fuente y predecir otra
+independiente ayuda a detectar sobreajuste a la tanda de calibración.
+
+El método de recibos y recalibración está en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>) §6 y §10.
+Estos principios no imponen los valores de aquel proyecto ni acreditan una nueva ejecución.
+
 ## Ver también
 
 - [02 — Diseño de niveles](./02%20-%20Diseño%20de%20niveles.md) — el oficio de convertir estas decisiones en salas concretas; §5 de aquí es su puerta de entrada

@@ -299,12 +299,12 @@ que confíe ciegamente en "compila limpio, luego funciona" enviaría a producci�
 ## 7 · Limpieza
 
 ```
-$ pkill -f "gm_prueba_movil" && pkill -f "Mac_Runner -game /Users/adrianpereradelgado/gm_prueba_movil"
+$ pkill -f "gm_prueba_movil" && pkill -f "Mac_Runner -game /Users/usuario/gm_prueba_movil"
 $ ps aux | grep -i "gm_prueba_movil\|JuegoMovil" | grep -v grep
 (sin salida — limpio)
 $ rm -rf ~/gm_prueba_movil
 $ ls ~/gm_prueba_movil
-ls: /Users/adrianpereradelgado/gm_prueba_movil: No such file or directory
+ls: /Users/usuario/gm_prueba_movil: No such file or directory
 ```
 
 **Nota operativa, no un hallazgo sobre la skill**: a mitad de la prueba, dos sesiones de agente distintas en

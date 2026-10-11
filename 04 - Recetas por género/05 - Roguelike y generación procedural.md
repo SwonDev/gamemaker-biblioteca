@@ -1378,6 +1378,23 @@ metroidvania (salas prefabricadas conectadas).
 
 ---
 
+## 10. Botín registrado y presentación cancelable
+
+Separa cálculo puro de tabla, contexto, RNG y estado persistente de los adaptadores de escena.
+Conserva las secuencias y los contadores de garantía de recompensa cuando el contrato lo
+requiera. Registra cada premio una vez antes de animar su vuelo; salir de la escena cancela
+presentación, no revoca propiedad. Prueba inventario lleno, doble recogida y transición durante
+la animación, con bandeja o recibo pendiente según el contrato.
+
+Si un premio se representa mediante varias monedas, la suma de sus valores conserva el total,
+incluido el resto de la división. Un efecto por ingreso se dispara una vez por grupo de premio,
+no una vez por fragmento visual. La recogida forzada al salir y la recogida normal usan la misma
+operación idempotente. Un consumible inutilizable declara si espera, se convierte o caduca.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## 9. Fuentes
 
 - Manual oficial — `random_set_seed` / `random_get_seed` / `randomize` —

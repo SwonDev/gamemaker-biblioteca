@@ -359,5 +359,5 @@ $ ps -ef | grep -- "-game .*/gm_prueba_3d/" | grep -v grep
 (sin salida tras el kill — proceso propio aislado y terminado por PID, no pkill -f Mac_Runner)
 $ rm -rf ~/gm_prueba_3d
 $ ls ~/gm_prueba_3d
-ls: /Users/adrianpereradelgado/gm_prueba_3d: No such file or directory
+ls: /Users/usuario/gm_prueba_3d: No such file or directory
 ```

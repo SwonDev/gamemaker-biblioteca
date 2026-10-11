@@ -7,7 +7,7 @@
 > seguridad, accesibilidad técnica, analítica, crash reporting, parcheo, GMRT, Feather,
 > documentación de código, hot reload, MCP y agentes de IA.
 >
-> **Fecha:** 06-09-2026 · **Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+> **Fecha:** 06-09-2026 · **Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje`
 > (excluidos `Lumbre/` y `GameMaker_Fuentes/`).
 >
 > **Fuentes canónicas usadas para construir la lista:** Robert Nystrom, *Game Programming

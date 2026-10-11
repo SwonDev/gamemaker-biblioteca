@@ -280,13 +280,13 @@ Trampa 8), tras mover las funciones del conductor al script y con las 7 objetos 
 scripts / 1 archivo incluido del proyecto terminado:
 
 ```
-│  Options: /Users/adrianpereradelgado/gm_prueba_ritmo/ritmo/local_settings.json
-│  Failed to load Options from /Users/adrianpereradelgado/gm_prueba_ritmo/ritmo/local_settings.json
+│  Options: /Users/usuario/gm_prueba_ritmo/ritmo/local_settings.json
+│  Failed to load Options from /Users/usuario/gm_prueba_ritmo/ritmo/local_settings.json
 │  Setting up the Asset compiler
 │  Found Project Format 2
 │  Core Resources : Info - +++ GMSC serialisation:  SUCCESSFUL LOAD AND LINK TIME: 133.006ms
 │  Success
-│  finished adding assets from /Users/adrianpereradelgado/gm_prueba_ritmo/ritmo/ritmo.yyp.
+│  finished adding assets from /Users/usuario/gm_prueba_ritmo/ritmo/ritmo.yyp.
 │  Release build
    … (compilación completa, cero líneas WARNING, cero líneas de error) …
 │  Writing Chunk... AUDO size ... 0.00 MB
@@ -381,7 +381,7 @@ verdad — comparte el 95 % del código de dibujo con la victoria, que sí se ca
 ```
 $ ps aux | grep -- "-game .*/gm_prueba_ritmo/" | grep -v grep
 (sin salida — sin procesos vivos antes de empezar la limpieza)
-$ pkill -f -- "-game /Users/adrianpereradelgado/gm_prueba_ritmo/"
+$ pkill -f -- "-game /Users/usuario/gm_prueba_ritmo/"
 $ ps aux | grep -- "-game .*/gm_prueba_ritmo/" | grep -v grep
 (sin salida — confirmado)
 $ rm -rf ~/gm_prueba_ritmo

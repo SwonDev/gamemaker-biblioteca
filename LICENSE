@@ -1,8 +1,9 @@
 Esta biblioteca tiene dos licencias, según qué parte uses.
 
 ═══════════════════════════════════════════════════════════════════════════════
-1 · LAS HERRAMIENTAS (todo lo que hay en `_indice/`, `instalar.sh` y los .gml de
-    `06 - Assets y Scripts/`) — Licencia MIT
+1 · LAS HERRAMIENTAS (todo lo que hay en `_indice/`, `instalar.sh`,
+    `reconstruir.sh`, los .gml de `06 - Assets y Scripts/` y el código propio de
+    `14 - Juego de referencia/`) — Licencia MIT
 ═══════════════════════════════════════════════════════════════════════════════
 
 Copyright (c) 2026 Adrián Perera Delgado
@@ -28,13 +29,18 @@ USO U OTRO TIPO DE ACCIONES EN EL SOFTWARE.
 
 ═══════════════════════════════════════════════════════════════════════════════
 2 · LA DOCUMENTACIÓN (las carpetas numeradas: 01, 02, 03, 04, 05, 07, 08, 10,
-    12, 13, y los archivos .md de la raíz) — Creative Commons BY-SA 4.0
+    12, 13, los .md de `14`, los archivos .md de la raíz y las ilustraciones propias
+    de `assets/readme/`) — Creative Commons BY-SA 4.0
 ═══════════════════════════════════════════════════════════════════════════════
 
 Eres libre de compartirla y adaptarla, incluso comercialmente, siempre que des
 crédito y distribuyas tus cambios bajo esta misma licencia.
 
 Texto completo: https://creativecommons.org/licenses/by-sa/4.0/deed.es
+
+El arte y sonido producidos por los generadores propios de `14 - Juego de referencia/`
+se comparten también bajo CC BY-SA 4.0. Imports opcionales de terceros conservan su
+licencia original (por ejemplo, CC0); no pasan a estas licencias por ser importados.
 
 ═══════════════════════════════════════════════════════════════════════════════
 3 · LO QUE NO SE DISTRIBUYE AQUÍ, Y POR QUÉ

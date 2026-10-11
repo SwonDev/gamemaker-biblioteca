@@ -831,6 +831,22 @@ if (global.depurar_ia) {
 
 ---
 
+## 8 · Presupuesto observado y liberación de plazas
+
+Población viva, ritmo de llegada y ataques simultáneos son tres límites distintos. El cupo
+de ataques debe contrastarse con acciones vivas observadas; reservar una ficha no demuestra
+que empezó un ataque, y acabar una animación no libera automáticamente otra acción que siga
+activa. Cada reserva declara dueño y cierre por impacto final, cancelación, muerte y salida.
+
+Prueba muerte durante anticipación, objetivo perdido y cambio de fase de jefe; ninguna plaza
+queda retenida ni se libera dos veces. Acota retroceso, escape y persecución para evitar un
+bucle sin progreso. Las nuevas fases cancelan acciones incompatibles antes de emitir otras.
+Una media de enemigos en pantalla no acredita un máximo de ataques simultáneos.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [23 · IA de enemigos y steering behaviors](./23%20-%20IA%20de%20enemigos%20y%20steering%20behaviors.md) — el **movimiento** de cada enemigo: *seek*, *flee*, patrulla, *flocking*. Este documento decide el grupo; aquel resuelve cómo se desplaza cada uno

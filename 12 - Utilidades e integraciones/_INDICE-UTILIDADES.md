@@ -4,7 +4,8 @@
 > analizadores, frameworks de test, importadores de mapas, sincronizadores de Aseprite,
 > extensiones nativas, integraciones con Steam/Discord/Twitch, multijugador y tiendas de assets.
 >
-> Investigado y verificado el **1 de septiembre de 2026**. Cuando existe el repositorio, está
+> El corpus inicial se verificó el **1 de septiembre de 2026**; búsqueda multimodal y metodología
+> para agentes se añadieron el **11 de octubre de 2026**. Cuando existe el repositorio, está
 > **descargado** en [`11 - Código descargado`](../11%20-%20C%C3%B3digo%20descargado/_CATALOGO.md).
 
 ---
@@ -21,7 +22,9 @@
 | 06 | [itch.io — assets, herramientas y jams](./06%20-%20itch.io%20-%20assets%2C%20herramientas%20y%20jams.md) | Qué hay realmente en itch.io para GameMaker, con precios |
 | 07 | [Dónde buscar: hubs, foros y documentación](./07%20-%20D%C3%B3nde%20buscar%20-%20hubs%20y%20documentaci%C3%B3n.md) | awesome-gamemaker, GameMaker Kitchen, Marketplace, foros, gm(48) |
 | 08 | [Tooling externo: CLI, parsers e ingeniería inversa](./08%20-%20Tooling%20externo%20-%20CLI%2C%20parsers%20e%20ingenier%C3%ADa%20inversa.md) | Ecosistema npm/PyPI: Stitch (@bscotch) y su **`gml-parser` con ejemplos reales**, @bscotch/yy, **TS→GML (`gmts`) con ejemplo de código**, **gml-linter con sus 17 reglas**, MCP, UndertaleModTool para estudiar juegos compilados |
-| 09 | [Manual del agente de IA — operar GameMaker con gm-cli](./09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md) | **El documento que usa un agente de IA para desarrollar un juego de punta a punta**: las cuatro trampas verificadas (plantillas que fallan, `resourcetool`/`compile` colgados bajo sandbox, bugs de numeración de eventos, el compilador que no detecta funciones inventadas), el ciclo completo, la tabla exacta de qué `.gml` va en qué archivo por evento, el inventario de las 80 herramientas del MCP, la frontera de lo que un agente puede depurar solo, assets sin artista y los errores típicos de un LLM con GameMaker |
+| 09 | [Manual del agente de IA — operar GameMaker con gm-cli](./09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md) | **El documento que usa un agente de IA para desarrollar un juego de punta a punta**: las trampas verificadas (plantillas, `resourcetool`/`compile`, eventos, funciones inventadas, recursos compartidos, fuentes y persistencia), el ciclo completo, la tabla exacta de qué `.gml` va en qué archivo por evento, el inventario de las 80 herramientas del MCP, la frontera de lo que un agente puede depurar solo, assets sin artista y los errores típicos de un LLM con GameMaker |
+
+| 11 | [Búsqueda multimodal con EmbeddingGemma 2](<11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md>) | Código, información y recursos por significado; clasificación, procedencia, índices y ahorro de contexto medido |
 
 ---
 

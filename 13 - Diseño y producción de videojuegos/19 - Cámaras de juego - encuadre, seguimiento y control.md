@@ -1433,6 +1433,22 @@ if (lock_activo && instance_exists(objetivo_lock))
 
 ---
 
+## 6 · Selección: separar dibujo y destino de interacción
+
+El picking y el dibujo comparten matrices y transformaciones de cámara, mundo y GUI.
+Comprueba ida y vuelta con una cámara desplazada, resolución distinta y escalado de GUI;
+la distancia al centro del sprite no basta para una silueta 3D o una pose animada. Define
+el desempate de objetos superpuestos y si la distancia a cámara afecta a la prioridad.
+
+El centro visual de un personaje puede estar fuera del suelo transitable. Conservar por
+separado ancla de selección y destino de interacción permite señalar la figura y caminar a
+un lugar válido. Prueba la selección durante animación, con oclusión y en bordes; una captura
+estática centrada no demuestra esos casos.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [`01 · 10 — Rooms, capas, cámaras y viewports`](../01%20-%20Fundamentos/10%20-%20Rooms,%20capas,%20cámaras%20y%20viewports.md) — la API de cámaras, viewports, seguimiento manual y *split screen*

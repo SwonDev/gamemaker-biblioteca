@@ -4,7 +4,7 @@
 > (31 de agosto de 2026). Las salidas son copias literales de la terminal, no recreaciones.
 >
 > **Entorno verificado**
-> - `gm-cli` **2.3.0** instalado global en `/opt/homebrew/bin/gm-cli` — es también la última publicada en npm (reverificado el **2 de septiembre de 2026**)
+> - `gm-cli` **2.4.0** instalado global con pnpm en `~/Library/pnpm/bin/gm-cli` — es también la última publicada (27 de septiembre de 2026; hasta esa fecha, 2.3.0 con npm: ver §10)
 > - GameMaker **LTS 2026.0** — IDE 2026.0.0.16 / GMS2 Runtime 2026.0.0.23
 > - Licencia Professional activa vía variable de entorno `GAMEMAKER_CLI_LICENSE`
 > - macOS 26 (Darwin 25.5), Apple Silicon
@@ -23,9 +23,9 @@ paquete npm `@gamemaker/gm-cli`. Es **código abierto con licencia Apache-2.0**.
 | Licencia | `Apache-2.0` (campo `license` del `package.json`) |
 | Binario | `gm-cli` (entrada `dist/cli.js`) |
 | Node requerido | `>=24` (campo `engines`) |
-| Versión publicada más reciente | `2.3.0` |
-| Historial de versiones npm | `1.2.1, 1.3.0, 1.4.0, 1.4.1, 2.0.0, 2.1.0, 2.2.0, 2.3.0` |
-| Repo creado / último push | 2026-03-25 / 2026-08-17 |
+| Versión publicada más reciente | `2.4.0` (23-09-2026) |
+| Historial de versiones npm | `1.2.1, 1.3.0, 1.4.0, 1.4.1, 2.0.0, 2.1.0, 2.2.0, 2.3.0, 2.4.0` |
+| Repo creado / último push | 2026-03-25 / 2026-09-23 |
 
 ### Por qué es importante
 
@@ -331,7 +331,7 @@ Cuando hay un **error de sintaxis GML**, sí se imprime. Prueba real rompiendo a
 ```
 Command failed:
 gml_Object_obj_player_Step_0(0) : unexpected symbol ";" in expression
-/Users/adrianpereradelgado/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/assetcompiler/osx/arm64/GMAssetCompiler.dll exited with non-zero status (1)
+/Users/usuario/Library/Caches/GameMakerCLI/runtimes-gms2/runtime-2026.0.0.23/bin/assetcompiler/osx/arm64/GMAssetCompiler.dll exited with non-zero status (1)
 ```
 
 > ⚠️ **`--errors-only` no muestra los `WARNING` ni algunos *crashes* reales del `AssetCompiler`
@@ -368,7 +368,8 @@ Verificado leyendo el código del propio binario, no la documentación:
 | Versión | Targets aceptados por `run` / `compile` / `package` |
 |---|---|
 | **2.2.0** | `mac`, `windows`, `linux`, `operagx` |
-| **2.3.0** (instalada y última, verificado 07-09-2026) | `mac`, `windows`, `linux`, `operagx`, **`android`** |
+| **2.3.0** (verificado 07-09-2026) | `mac`, `windows`, `linux`, `operagx`, **`android`** |
+| **2.4.0** (instalada y última, verificado 27-09-2026) | Igual que la 2.3.0 |
 
 Cualquier otro valor lanza un error antes de compilar:
 
@@ -382,7 +383,7 @@ Support for target 'reddit' is coming soon to GameMaker CLI.
 ```
 
 > **Importante**: Reddit/Devvit **sí** existe como target en el IDE 2026.0, pero **todavía no** en
-> el CLI. Consolas, iOS, tvOS, HTML5 y el resto: tampoco. En el CLI 2.3.0 (la instalada) puedes
+> el CLI. Consolas, iOS, tvOS, HTML5 y el resto: tampoco. En el CLI 2.3.0 y 2.4.0 (la instalada) puedes
 > compilar para escritorio (Windows/macOS/Linux), GX.games y Android; en la 2.2.0, sin Android.
 
 ---
@@ -881,7 +882,7 @@ Salida real sin proyecto:
 
 ```
 Shared cache
-/Users/adrianpereradelgado/Library/Caches/GameMakerCLI
+/Users/usuario/Library/Caches/GameMakerCLI
 Contents: version-check
 
 Local cache
@@ -892,7 +893,7 @@ Salida real con proyecto:
 
 ```
 Shared cache
-/Users/adrianpereradelgado/Library/Caches/GameMakerCLI
+/Users/usuario/Library/Caches/GameMakerCLI
 Contents: runtimes-gms2, version-check
 
 Local cache
@@ -921,39 +922,46 @@ En CI conviene cachear `.gmcache` (es exactamente lo que hacen los workflows gen
 
 ---
 
-## 10. Actualizar a la 2.3.0
+## 10. Actualizar el CLI
 
-> ✅ **Ya hecho en este Mac** (verificado 07-09-2026): `gm-cli --version` devuelve `2.3.0`. Esta
-> sección queda como guía para cuando exista una versión más nueva o para otra máquina.
+> ✅ **En este Mac, 2.4.0 instalada con pnpm** (27-09-2026): `which -a gm-cli` devuelve una
+> sola ruta, `~/Library/pnpm/bin/gm-cli`. Se unificó el gestor como proponía la versión anterior
+> de esta sección, y al hacerlo apareció lo que esa advertencia temía: **ya había dos copias con
+> npm** —la 2.3.0 activa en `~/.local` y una 2.2.0 olvidada en `/opt/homebrew`, tapada en el
+> `PATH`—. Las dos se desinstalaron. Después, `bash _indice/verificar-trampas.sh` dio las 9
+> trampas comprobables como ciertas (exit 0), y `init` con la plantilla `blank` más `compile`
+> salieron con 0.
 
-El propio CLI lo sugiere con npm:
-
-```bash
-npm install -g @gamemaker/gm-cli@latest
-```
-
-Con npm, que es el gestor con el que quedó instalado en este Mac:
-
-```bash
-npm install -g @gamemaker/gm-cli@latest
-```
-
-> **Nota sobre el gestor:** pnpm es el gestor por defecto en este entorno, pero
-> `@gamemaker/gm-cli` ya estaba instalado **con npm**. Actualizarlo con pnpm dejaría
-> dos copias globales del binario, así que en este caso concreto se usa npm.
-
-Para fijar exactamente la 2.3.0:
+Con pnpm, que es el gestor con el que está instalado en este Mac:
 
 ```bash
-npm install -g @gamemaker/gm-cli@2.3.0
+pnpm add -g @gamemaker/gm-cli@latest
 ```
 
-> **Recomendación práctica**: `gm-cli` ya está instalado en este Mac con **npm**
-> (`/opt/homebrew/lib/node_modules/@gamemaker/gm-cli`). Mezclar gestores en un paquete global
-> suele acabar en dos copias y en un binario que apunta a la vieja. Actualízalo con **npm** para
-> mantener la coherencia, o desinstálalo con npm y vuelve a instalarlo con pnpm si prefieres
-> unificar. No se ha ejecutado la actualización al redactar este documento: era documentación,
-> no mantenimiento.
+El propio CLI sugiere npm (`npm install -g @gamemaker/gm-cli`) porque es lo que publica YoYo.
+**Úsalo solo si en tu máquina lo instalaste con npm**: la regla es no mezclar gestores en un
+paquete global, porque acaba en dos copias y en un binario que apunta a la vieja. Si quieres
+pasarte a pnpm, primero `npm uninstall -g @gamemaker/gm-cli` en **cada** prefijo donde esté
+(`npm config get prefix` y `/opt/homebrew`), y comprueba con `which -a gm-cli` que no queda
+ninguna.
+
+Para fijar una versión exacta:
+
+```bash
+pnpm add -g @gamemaker/gm-cli@2.4.0
+```
+
+**Después de actualizar, siempre** `bash _indice/verificar-trampas.sh`: las trampas de
+`12 · 09 §0` están medidas sobre una versión concreta, y una que YoYo arregle se convierte en una
+advertencia falsa.
+
+### Qué cambia de 2.3.0 a 2.4.0 (verificado)
+
+| Cambio | Detalle |
+|---|---|
+| **Included files en GX.Games** | Commit `69e2cdd` (PR #239, 23-09-2026): usa el Igor del runtime del juego en vez del suyo, para arreglar un desajuste de versiones al empaquetar para GX.Games ([GameMaker-Bugs#15930](https://github.com/YoYoGames/GameMaker-Bugs/issues/15930)). **No toca la trampa 8**: `verificar-trampas.sh` la sigue dando por cierta |
+| Documentación | Commit `87bda35` («Changes to docs») |
+| Targets | Sin cambios: la lista con `android` sigue igual |
 
 ### Qué cambia de 2.2.0 a 2.3.0 (verificado)
 
@@ -1203,7 +1211,8 @@ gm-cli cache clean
 
 > **Verificado el 31 de agosto de 2026** y **reverificado el 2 de septiembre de 2026** en
 > este Mac (macOS, Apple Silicon) con `gm-cli` **2.2.0** y **2.3.0**. No es un problema de
-> versión ni de configuración: **sigue fallando en la 2.3.0**, la última publicada.
+> versión ni de configuración: **sigue fallando en la 2.3.0**. ⚠️ **Sin reverificar con la 2.4.0**
+> (27-09-2026): con ella solo se ha comprobado que la plantilla `blank` crea y compila.
 
 ### Síntoma
 

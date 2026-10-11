@@ -886,6 +886,30 @@ salen bus y emisor) → **prioridad** (UI y voz altas, ambiente baja) → **cupo
 
 ---
 
+## 11 · Solicitud, reproducción y escucha son evidencias distintas
+
+Un registro de bancos solicitados demuestra que el gameplay emitió eventos. Si se incrementa
+antes de comprobar disponibilidad, presupuesto, distancia y voces, no demuestra que el motor
+aceptara una reproducción. Registra también aceptación, rechazo y motivo; comprueba estado y
+duración de las voces cuando sea pertinente. Ninguno de esos contadores acredita por sí solo
+que el sonido fuera audible ni que la mezcla cumpla el criterio del usuario.
+
+Vincula anticipaciones al ID de acción y cancélalas cuando la acción desaparezca antes del
+impacto. Un loop posicional necesita emisor y propietario propios, con cierre al abandonar
+la escena. Los pasos se sincronizan con la fase de animación y el material del suelo. Prueba
+asset ausente, voces llenas, fuera de alcance, volumen cero, pausa y salida de tramo, además
+de escuchar la escena más densa. La receta de audio reactivo concreta esa frontera.
+
+La puerta del banco declara archivos obligatorios y población esperada: omitir un WAV ausente
+no cuenta como validarlo. Separa alertas informativas de vetos y fija tolerancias de calibración.
+Mide costuras, picos y cancelación por canal y después del códec final, además de la reducción
+mono: canales opuestos pueden ocultar un defecto al promediar. La señal previa a codificar y
+una mezcla simulada no sustituyen reproducción y escucha del producto instalado.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [`06 - Assets y Scripts/scr_audio.gml`](<../06 - Assets y Scripts/scr_audio.gml>) — el código real de todo lo que este documento explica: `audio_init`, `audio_step`, `audio_destruir`, `mezcla_aplicar`, `voces_iniciar`, `emisores_iniciar`, `emisores_liberar`, `variacion_tono`, `variacion_ganancia`, `banco_crear`, `banco_siguiente`, `apagar_con_fundido`, `voces_paso`, `sonar_limitado`, `sonar_en`, `sfx`, `sfx_ui`, `voz_decir`, `musica_poner`, `ambiente_poner`

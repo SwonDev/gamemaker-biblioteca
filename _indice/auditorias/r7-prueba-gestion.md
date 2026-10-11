@@ -526,7 +526,7 @@ $ ps aux | grep -i "Mac_Runner\|gm_prueba_gestion" | grep -v grep
 (sin salida — limpio)
 $ rm -rf ~/gm_prueba_gestion
 $ ls ~/gm_prueba_gestion
-ls: /Users/adrianpereradelgado/gm_prueba_gestion: No such file or directory
+ls: /Users/usuario/gm_prueba_gestion: No such file or directory
 ```
 
 **Nota operativa, no un hallazgo sobre la skill**: durante esta sesión hubo, como mínimo, otras

@@ -1235,6 +1235,22 @@ Orden recomendado. Cada paso es jugable antes de pasar al siguiente — igual qu
 
 ---
 
+## 10. Propiedad de efectos y relevo de entidad
+
+Fija el orden de cálculo, defensas, aplicación, interrupciones y hooks de daño en un único
+contrato. Los hooks de reflejo, contagio o fragmentación declaran propietario, caducidad y
+una guarda que impida volver a activarse recursivamente. Un efecto retrasado revalida que el
+objetivo y la acción siguen existiendo; no reutiliza un handle destruido.
+
+Al relevar un personaje, limpia estados temporales ligados a su instancia y reconstruye las
+estadísticas desde el ejemplar persistente y sus modificadores. Define qué efectos permanecen
+en el ejemplar. Prueba relevar con daño pendiente, reentrar, expirar un efecto y ejecutar una
+cadena de reflejos. Identidad de especie, ejemplar e instancia no son intercambiables.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [04 · 30 — Combate cuerpo a cuerpo](./30%20-%20Combate%20cuerpo%20a%20cuerpo%20-%20hitboxes,%20hurtboxes%20y%20combos.md) —

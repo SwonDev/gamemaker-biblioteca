@@ -5,7 +5,7 @@
 > puzzles, mundo y exploración, prototipado y playtesting, géneros y sus convenciones, game jam,
 > ética, monetización y F2P, retención y analítica, pitch y comunicación del diseño.
 >
-> **Biblioteca auditada:** `/Users/adrianpereradelgado/Documents/GameMaker_Aprendizaje`
+> **Biblioteca auditada:** `/Users/usuario/Documents/GameMaker_Aprendizaje`
 > (GameMaker LTS 2026.0 · runtime `2026.0.0.23`). Se contaron como existentes la carpeta
 > `13 - Diseño y producción de videojuegos` (14 documentos) y las recetas 28-31 de `04`.
 > Se ignoraron `Lumbre/` y `GameMaker_Fuentes/`.
