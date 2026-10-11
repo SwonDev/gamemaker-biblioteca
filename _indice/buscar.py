@@ -13,6 +13,7 @@ Uso:
 Todo funciona sin conexión. Es la forma recomendada de comprobar si una función existe
 antes de escribir código: si no aparece aquí, no está en este runtime.
 """
+from ambito import es_ajena, rutas_no_publicables, archivos_del_ambito
 import os, re, sys, json, shutil, platform, subprocess
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -120,27 +121,17 @@ def cargar(avisar=True):
 
 def _mencionado_en(nombre, limite=6):
     """Busca el literal en los documentos y en el manual. Devuelve rutas, sin duplicar."""
-    args = ["grep", "-rlI", "--include=*.md", "-F", "-e", nombre]
-    rutas_previas = len(args)
-    for d in ("01 - Fundamentos", "02 - Novedades 2026", "04 - Recetas por género",
-              "07 - Ecosistema", "08 - Referencia GML completa",
-              "12 - Utilidades e integraciones",
-              "09 - Manual oficial/manual-lts-2026-es"):
-        ruta = os.path.join(RAIZ, d)
-        if os.path.exists(ruta):
-            args.append(ruta)
-    if len(args) == rutas_previas:
-        # Ninguna de las carpetas existe: un grep sin rutas recorrería el
-        # directorio de trabajo entero en vez de devolver "sin resultados".
-        return []
+    carpetas = ("01 - Fundamentos", "02 - Novedades 2026", "04 - Recetas por género",
+                "07 - Ecosistema", "08 - Referencia GML completa", "12 - Utilidades e integraciones",
+                "09 - Manual oficial/manual-lts-2026-es")
     if not _grep_disponible():
         return []
     try:
-        r = subprocess.run(args, capture_output=True, text=True, check=False)
+        salida = _grep_archivos(RAIZ, carpetas, nombre, [".md"], solo_rutas=True, literal=True)
     except OSError:
         return []
     vistos = []
-    for l in r.stdout.splitlines():
+    for l in salida.splitlines():
         rel = l.replace(RAIZ + os.sep, "")
         if rel not in vistos:
             vistos.append(rel)
@@ -309,18 +300,21 @@ def _tiene_contenido(ruta, exts, tope=40000):
     posible en una biblioteca cuyo trabajo es que un modelo no se invente cosas.
     Corta en el primer acierto, así que en el caso normal no recorre nada.
     """
-    if os.path.isfile(ruta):
-        return ruta.endswith(tuple(exts))
-    vistos = 0
-    for _base, _dirs, files in os.walk(ruta):
-        _dirs[:] = [d for d in _dirs if d != ".git"]
-        for f in files:
-            if f.endswith(tuple(exts)):
-                return True
-            vistos += 1
-            if vistos > tope:      # techo de seguridad: no barrer un disco entero
-                return False
-    return False
+    relativos = [os.path.relpath(ruta, RAIZ)]
+    return next(archivos_del_ambito(RAIZ, relativos, exts, corpus=relativos[0].startswith("11 - Código descargado")), None) is not None
+
+
+def _grep_archivos(raiz, subdirs, patron, exts, solo_rutas=False, literal=False):
+    archivos = list(archivos_del_ambito(raiz, subdirs, exts, corpus=any(d.startswith("11 - Código descargado") for d in subdirs)))
+    salida = []
+    for inicio in range(0, len(archivos), 200):
+        opciones = "-ilI" if solo_rutas else "-HniI"
+        r = subprocess.run(["grep", opciones] + (["-F"] if literal else []) + ["-e", patron, "--"] + archivos[inicio:inicio+200],
+                           capture_output=True, text=True)
+        if r.returncode > 1:
+            raise OSError(r.stderr.strip() or "grep no pudo leer los archivos")
+        salida.append(r.stdout)
+    return "".join(salida)
 
 
 def grep(subdirs, patron, exts, limite=40):
@@ -348,16 +342,12 @@ def grep(subdirs, patron, exts, limite=40):
         # que el corpus ausente, entrando por la puerta de Windows: allí `grep` no
         # viene de serie, y el aviso de arriba se lee y el código de salida no.
         return 2
-    args = ["grep", "-rniI", "--include=*" + exts[0]]
-    for e in exts[1:]:
-        args.append("--include=*" + e)
-    args += ["-e", patron] + existentes
     try:
-        r = subprocess.run(args, capture_output=True, text=True)
+        salida = _grep_archivos(RAIZ, subdirs, patron, exts)
     except OSError as e:
         print(f"✗ No se pudo ejecutar «grep»: {e}")
-        return 1
-    lineas = r.stdout.splitlines()
+        return 2
+    lineas = salida.splitlines()
     # Las coincidencias de PALABRA COMPLETA van primero. Sin esto, buscar «respec»
     # devuelve cincuenta «respecto» y entierra el documento que de verdad habla de
     # respec; lo mismo con «pi» dentro de «pixel» o «copia».
@@ -386,15 +376,12 @@ def _buscar_en(subdirs, patron, exts, muestra=4):
         return 0, []
     if not _grep_disponible():
         return 0, []
-    args = ["grep", "-rilI", "--include=*" + exts[0]]
-    for e in exts[1:]:
-        args.append("--include=*" + e)
-    args += ["-e", patron] + existentes
     try:
-        r = subprocess.run(args, capture_output=True, text=True)
-    except OSError:
-        return 0, []
-    rutas = [l.replace(_RAIZ + os.sep, "") for l in r.stdout.splitlines()]
+        salida = _grep_archivos(_RAIZ, subdirs, patron, exts, solo_rutas=True)
+    except OSError as e:
+        print(f"✗ No se pudo buscar: {e}")
+        raise SystemExit(2)
+    rutas = [l.replace(_RAIZ + os.sep, "") for l in salida.splitlines()]
     return len(rutas), rutas[:muestra]
 
 
@@ -406,15 +393,12 @@ def _buscar_en3(subdirs, patron, exts, muestra=4):
         return 0, [], []
     if not _grep_disponible():
         return 0, [], []
-    args = ["grep", "-rilI", "--include=*" + exts[0]]
-    for e in exts[1:]:
-        args.append("--include=*" + e)
-    args += ["-e", patron] + existentes
     try:
-        r = subprocess.run(args, capture_output=True, text=True)
-    except OSError:
-        return 0, [], []
-    rutas = [l.replace(_RAIZ + os.sep, "") for l in r.stdout.splitlines()]
+        salida = _grep_archivos(_RAIZ, subdirs, patron, exts, solo_rutas=True)
+    except OSError as e:
+        print(f"✗ No se pudo buscar: {e}")
+        raise SystemExit(2)
+    rutas = [l.replace(_RAIZ + os.sep, "") for l in salida.splitlines()]
     return len(rutas), rutas[:muestra], rutas
 
 
@@ -523,11 +507,11 @@ def listar(prefijo):
 _RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Lumbre (juego personal) y GameMaker_Fuentes (repos crudos) no son documentación.
 _EXCLUIR = {"_indice", "09 - Manual oficial", "11 - Código descargado",
-            "Lumbre", "GameMaker_Fuentes"}
+            "Lumbre", "_pruebas", "GameMaker_Fuentes"}
 DOCS = sorted(
     d for d in os.listdir(_RAIZ)
     if os.path.isdir(os.path.join(_RAIZ, d))
-    and d not in _EXCLUIR and not d.startswith(".")
+    and d not in _EXCLUIR and not d.startswith(".") and not es_ajena(_RAIZ, os.path.join(_RAIZ,d))
 )
 # …más los documentos sueltos de la raíz (README, AGENTS, RUTA, CLAUDE)
 DOCS += [f for f in sorted(os.listdir(_RAIZ)) if f.endswith(".md")]
@@ -593,7 +577,10 @@ def autoprueba():
     # y exit 1 —un falso «no existe»—, y el manual ausente daba exit 0 —un falso
     # verde—. Los dos son ahora 2.
     import tempfile
+    global RAIZ
+    raiz_real = RAIZ
     with tempfile.TemporaryDirectory() as tmp:
+        RAIZ = tmp
         vacio = os.path.join(tmp, "11 - Código descargado")
         os.makedirs(vacio)
         with open(os.path.join(vacio, "_CATALOGO.md"), "w", encoding="utf-8") as f:
@@ -603,6 +590,8 @@ def autoprueba():
         with open(os.path.join(vacio, "x.gml"), "w", encoding="utf-8") as f:
             f.write("// ahora sí\n")
         revisar("y en cuanto hay un .gml, sí", _tiene_contenido(vacio, [".gml"]))
+
+    RAIZ = raiz_real
 
     # --- Windows sin `grep`: tres de las cuatro fuentes quedan CIEGAS ------------
     # `grep` viene de serie en macOS y Linux, no en Windows. Sin él, las búsquedas de

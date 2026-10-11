@@ -4,7 +4,7 @@
 > un proyecto comercial. Seis niveles, cada uno con **competencias observables**, material
 > exacto y una prueba para saber si ya lo tienes.
 >
-> Las [rutas del README](./README.md#4-rutas-de-aprendizaje) son **puertas de entrada** según
+> Las [rutas de la guía](./GUIA.md#rutas-de-aprendizaje) son **puertas de entrada** según
 > de dónde vengas. Esta es **la progresión completa**, y cubre además el tramo alto que
 > aquellas no llegan a tocar.
 

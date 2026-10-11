@@ -366,7 +366,7 @@ proyecto. Puede que una futura versión del CLI añada el subcomando anunciado.
 node --version
 
 # gm-cli global
-npm install -g @gamemaker/gm-cli@latest    # usa npm: es el gestor con el que ya está instalado
+pnpm add -g @gamemaker/gm-cli@latest    # el mismo gestor con el que lo instalaste (aquí, pnpm)
 ```
 
 ### 5.2 Preparar el proyecto

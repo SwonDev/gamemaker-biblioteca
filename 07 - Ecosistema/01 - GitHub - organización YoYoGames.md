@@ -74,7 +74,7 @@ Detalles técnicos confirmados en la documentación:
 - **Qué hace:** Interfaz de línea de comandos oficial. Crea, edita, compila, empaqueta y ejecuta proyectos sin abrir el IDE.
 - **Licencia:** Apache-2.0.
 - **Última actividad:** push 2026-08-17 · 39 ★. Creado en 2026-03-25, así que es **una herramienta nueva de 2026**.
-- **Instalado en este Mac:** versión **2.2.0** (la última publicada es **2.3.0**; actualiza con `npm install -g @gamemaker/gm-cli`).
+- **Instalado en este Mac:** versión **2.4.0**, con pnpm (27-09-2026); se actualiza con el mismo gestor, ver [`13 · GM CLI §10`](./13%20-%20GM%20CLI%20-%20la%20l%C3%ADnea%20de%20comandos.md).
 
 Comandos (verificados con `gm-cli --help`):
 

@@ -618,6 +618,22 @@ sonido_solicitar(snd_enemigo_carga, x, y, /*dano*/ 3, /*dist_max*/ 480, _visible
 
 ---
 
+## 6 · Probar el circuito completo del evento de sonido
+
+Distingue evento solicitado, voz aceptada y audibilidad. Cuenta rechazos por asset ausente,
+distancia, prioridad, presupuesto y cierre; un contador antes de esas guardas no acredita que
+sonó el banco. Los eventos aplazados conservan identidad de acción para cancelarse si se
+interrumpe; cada loop conserva su emisor y lo libera al salir.
+
+Prueba cambios de material y zona, cámara/oyente desplazados, pausa y desaparición del emisor,
+con el presupuesto lleno. Sincroniza pasos con fase de animación y golpes con el reloj de
+combate. La comprobación técnica de voces se complementa con escucha de mezcla real; una
+solicitud registrada ni una captura muda sustituyen esa puerta.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [13 · 09 — Diseño de sonido y mezcla](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/09%20-%20Diseño%20de%20sonido%20y%20mezcla.md) — el gestor completo (§4.2), el banco con *round robin* y el cupo de voces (§3.2, §3.3), el anillo de emisores (§5.2), la oclusión (§5.3) y el sistema de importancia explicado en prosa (§1.3), todos la base de este documento

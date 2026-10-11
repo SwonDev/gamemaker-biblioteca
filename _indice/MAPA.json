@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 257 documentos con su título",
+    "_indice/documentos.json": "los 264 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -1227,11 +1227,15 @@
           "titulo": "09 · Manual del agente de IA — operar GameMaker con `gm-cli`"
         },
         {
+          "ruta": "12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md",
+          "titulo": "Búsqueda multimodal con EmbeddingGemma 2 — contexto y recursos para agentes"
+        },
+        {
           "ruta": "12 - Utilidades e integraciones/_INDICE-UTILIDADES.md",
           "titulo": "12 · Utilidades e integraciones para GameMaker"
         }
       ],
-      "n_documentos": 10
+      "n_documentos": 11
     },
     {
       "titulo": "Diseño y producción de videojuegos",
@@ -1377,11 +1381,15 @@
           "titulo": "28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md",
+          "titulo": "Desarrollo con IA — orquestación, crítica y evidencia"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 29
+      "n_documentos": 30
     },
     {
       "titulo": "Un juego completo, montado y funcionando",
@@ -1409,6 +1417,26 @@
         }
       ],
       "n_documentos": 2
+    },
+    {
+      "titulo": "assets",
+      "proposito": "Ilustraciones propias de la portada y su procedencia.",
+      "usar_cuando": [
+        "presentar la biblioteca",
+        "revisar derechos y origen de las ilustraciones"
+      ],
+      "no_usar_para": [
+        "assets jugables de producción",
+        "certificar calidad de un juego"
+      ],
+      "ruta": "assets",
+      "documentos": [
+        {
+          "ruta": "assets/readme/README.md",
+          "titulo": "Ilustraciones de la portada"
+        }
+      ],
+      "n_documentos": 1
     }
   ],
   "puntos_de_entrada": {
@@ -1424,7 +1452,7 @@
       "nota_para_agentes": "Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente."
     },
     "README.md": {
-      "titulo": "Biblioteca GameMaker · para que tu agente de IA no invente funciones"
+      "titulo": "Tu IA. Un método para crear juegos con GameMaker."
     },
     "AGENTS.md": {
       "titulo": "AGENTS.md — cómo usar esta biblioteca si eres un agente de IA"
@@ -1445,13 +1473,53 @@
       ]
     },
     "PUBLICAR.md": {
-      "titulo": "Publicar esta biblioteca",
+      "titulo": "Distribuir y reconstruir la biblioteca",
       "proposito": "",
       "usar_cuando": [],
       "no_usar_para": []
+    },
+    "CONTRIBUTING.md": {
+      "titulo": "Contribuir a la biblioteca",
+      "proposito": "Cómo proponer mejoras, validar y publicar contenido propio.",
+      "usar_cuando": [
+        "proponer cambios y comprobar una contribución"
+      ],
+      "no_usar_para": [
+        "verificar firmas de GML sin el índice"
+      ]
+    },
+    "DESIGN.md": {
+      "titulo": "DESIGN",
+      "proposito": "Dirección visual y reglas de la presentación pública.",
+      "usar_cuando": [
+        "mantener la identidad visual de la portada y sus assets"
+      ],
+      "no_usar_para": [
+        "verificar firmas de GML sin el índice"
+      ]
+    },
+    "GUIA.md": {
+      "titulo": "Guía de la biblioteca GameMaker",
+      "proposito": "Mapa y rutas para consultar la biblioteca según el objetivo.",
+      "usar_cuando": [
+        "elegir una ruta de consulta según el encargo"
+      ],
+      "no_usar_para": [
+        "verificar firmas de GML sin el índice"
+      ]
+    },
+    "INSTALACION.md": {
+      "titulo": "Instalar la biblioteca y la skill",
+      "proposito": "Instalación de la skill, herramientas y diagnóstico por plataforma.",
+      "usar_cuando": [
+        "instalar, actualizar o diagnosticar la biblioteca y la skill"
+      ],
+      "no_usar_para": [
+        "verificar firmas de GML sin el índice"
+      ]
     }
   },
-  "total_documentos": 257,
+  "total_documentos": 264,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

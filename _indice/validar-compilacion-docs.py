@@ -177,6 +177,7 @@ mano antes de una release.
 Sale con 0 solo si todos los bloques compilables compilan sin error real.
 """
 import argparse
+from ambito import es_ajena
 import bisect
 import os
 import re
@@ -453,13 +454,16 @@ def extraer_bloques():
         if not os.path.isdir(base):
             continue
         for raiz, dirs, files in os.walk(base):
-            dirs.sort()
+            dirs[:] = sorted(d for d in dirs if not es_ajena(RAIZ, os.path.join(raiz, d)))
             for f in sorted(files):
                 if not f.endswith(".md"):
                     continue
                 fp = os.path.join(raiz, f)
+                if es_ajena(RAIZ, fp):
+                    continue
                 try:
-                    txt = open(fp, encoding="utf-8", errors="replace").read()
+                    with open(fp, encoding="utf-8", errors="replace") as entrada:
+                        txt = entrada.read()
                 except OSError:
                     continue
                 for m in BLOQUE.finditer(txt):
@@ -885,9 +889,13 @@ def _compilar_todo(args):
             mensaje = mensaje.replace(ofusc, orig)
         errores_atribuidos.append((b, linea_real, mensaje))
 
-    compilo_bien = "Compilation finished" in salida
+    compilo_bien = r.returncode == 0 and "Compilation finished" in salida
 
     print(f"\n{'='*70}")
+    if not compilo_bien:
+        print(f"gm-cli compile salió con {r.returncode}; no hay confirmación válida de compilación.")
+        print("Salida del CLI (incluye fallos previos a analizar GML):")
+        print(salida.strip() or "(sin salida)")
     if compilo_bien and not errores_atribuidos and not errores_sueltos:
         try:
             os.makedirs(os.path.dirname(marca), exist_ok=True)

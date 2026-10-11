@@ -22,6 +22,7 @@ Lo llama actualizar.py e instalar.sh (antes de copiar la skill, para que la copi
 el AGENTS.md al día). Sale con 0 si no hay rutas rotas.
 """
 import os, re, sys, json
+from pathlib import Path
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
 # propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
@@ -61,7 +62,7 @@ def _carpeta_instalada(nombre):
 
 
 def generar_indice():
-    m = json.load(open(os.path.join(IND, "MAPA.json"), encoding="utf-8"))
+    m = json.loads(Path(IND, "MAPA.json").read_text(encoding="utf-8"))
     v = m.get("version_referencia", {})
     out = []
     out.append("# Índice de documentos de la biblioteca\n")
@@ -108,7 +109,7 @@ def generar_indice():
             out.append(c["nota"])
         out.append("")
     os.makedirs(REFS, exist_ok=True)
-    open(GENERADO, "w", encoding="utf-8").write("\n".join(out).rstrip() + "\n")
+    Path(GENERADO).write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
     return sum(len(c.get("documentos", [])) for c in m.get("carpetas", []))
 
 
@@ -168,13 +169,14 @@ def generar_agents_md():
     desincronizarse de lo que ya dice la skill.
     """
     ruta_skill = os.path.join(SKILL, "SKILL.md")
-    txt = open(ruta_skill, encoding="utf-8").read()
+    txt = Path(ruta_skill).read_text(encoding="utf-8")
     # SKILL.md empieza por "---\n<frontmatter YAML>\n---\n<cuerpo>". Se separa por el
     # delimitador de cierre del frontmatter, no por el primero (que abre el bloque).
-    partes = txt.split("---", 2)
-    if len(partes) < 3:
-        return None  # SKILL.md sin frontmatter: no debería pasar, no se genera nada falso
-    frontmatter, cuerpo = partes[1], partes[2]
+    bloque = re.match(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)(.*)\Z", txt, re.S)
+    if not bloque:
+        print("  ✗ SKILL.md no empieza por un frontmatter completo.")
+        return None
+    frontmatter, cuerpo = bloque.groups()
     cuerpo = _anclar_enlaces_relativos(cuerpo)
 
     # El frontmatter tiene que ser YAML VÁLIDO SEGÚN LA ESPECIFICACIÓN, no solo «válido para
@@ -185,18 +187,18 @@ def generar_agents_md():
     try:
         import yaml  # PyYAML es de terceros, no viene con Python: de ahí el except ImportError
         datos = yaml.safe_load(frontmatter)
-        if not isinstance(datos, dict) or "description" not in datos:
-            print("  ✗ El frontmatter de SKILL.md no tiene 'description'.")
+        if not isinstance(datos, dict) or datos.get("name") != "gamemaker-biblioteca":
+            print("  ✗ El frontmatter necesita name: gamemaker-biblioteca.")
+            return None
+        if not isinstance(datos, dict) or not isinstance(datos.get("description"), str) \
+                or not datos["description"].strip():
+            print("  ✗ El frontmatter de SKILL.md necesita una 'description' de texto no vacía.")
             return None
         descripcion = str(datos["description"])
     except ImportError:
-        # Sin PyYAML no se puede validar; se avisa y se sigue con el método simple.
-        print("  ⚠ Sin PyYAML: no se ha podido validar el frontmatter de SKILL.md.")
-        descripcion = ""
-        for linea in frontmatter.splitlines():
-            if linea.strip().startswith("description:"):
-                descripcion = linea.split(":", 1)[1].strip().strip('"')
-                break
+        print("  ✗ Falta PyYAML: no se puede validar el frontmatter de SKILL.md.")
+        print("    Usa un entorno Python con PyYAML; no se certifica una skill sin analizarla.")
+        return None
     except Exception as e:
         print(f"  ✗ El frontmatter de SKILL.md NO es YAML válido: {e}")
         print("    Kimi Code y otros parsers estrictos rechazarán la skill entera.")
@@ -226,8 +228,9 @@ def generar_agents_md():
         "> **`SKILL.md`. No lo edites a mano:** se reescribe en cada "
         "`python3 _indice/actualizar.py`\n"
         "> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz\n"
-        "> de un proyecto y no tienen un directorio de skills en formato `SKILL.md` — copia\n"
-        "> este archivo (o enlázalo) como `AGENTS.md` en la raíz de tu proyecto de GameMaker.\n"
+        "> de un proyecto y no tienen un directorio de skills en formato `SKILL.md`.\n"
+        "> Si ya existe un `AGENTS.md`, integra estas directrices sin sobrescribir sus reglas.\n"
+        "> Si no existe, puedes copiar o enlazar este archivo en la raíz del proyecto.\n"
         "> Si tu CLI sí lee skills, usa directamente la carpeta\n"
         "> `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.\n",
     ]
@@ -248,7 +251,12 @@ def rutas_rotas():
     for fp in archivos:
         if not os.path.isfile(fp):
             continue
-        txt = open(fp, encoding="utf-8").read()
+        txt = Path(fp).read_text(encoding="utf-8")
+        if fp == os.path.join(SKILL, "SKILL.md"):
+            for m in re.finditer(r"(?:`|\()references/([^`)\s#]+)", txt):
+                referencia = "references/" + m.group(1)
+                if not os.path.isfile(os.path.join(SKILL, referencia)):
+                    rotas.append((os.path.relpath(fp, RAIZ), referencia))
         for m in RUTA.finditer(txt):
             r = m.group(1).split("#")[0].rstrip("/")
             if r.endswith("…") or "…" in r:
@@ -280,6 +288,20 @@ def _version_de(ruta_skill_md):
     except OSError:
         pass
     return None
+
+
+def contenido_paquete(ruta):
+    """Compara todos los archivos distribuidos; excluye solo residuos locales de Python/OS."""
+    contenido = {}
+    for raiz, dirs, archivos in os.walk(ruta):
+        dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git"}]
+        for nombre in archivos:
+            if nombre == ".DS_Store" or nombre.endswith((".pyc", ".pyo")):
+                continue
+            archivo = os.path.join(raiz, nombre)
+            with open(archivo, "rb") as f:
+                contenido[os.path.relpath(archivo, ruta)] = f.read()
+    return contenido
 
 
 def estado_enlaces():
@@ -316,8 +338,7 @@ def estado_enlaces():
     OPCIONALES = {"Gemini CLI", "GitHub Copilot CLI", "Cursor CLI", "Cline",
                   "Codex (pool)"}
 
-    propio = os.path.join(SKILL, "SKILL.md")
-    txt_propio = open(propio, encoding="utf-8").read() if os.path.isfile(propio) else None
+    paquete_propio = contenido_paquete(SKILL)
     lineas = []
 
     # Qwen: lo que manda es su settings.json, no la carpeta.
@@ -326,7 +347,7 @@ def estado_enlaces():
         _cfg = os.path.expanduser("~/.qwen/settings.json")
         _dirs = []
         if os.path.isfile(_cfg):
-            _dirs = (_json.load(open(_cfg, encoding="utf-8")).get("skills") or {}).get("directories") or []
+            _dirs = (_json.loads(Path(_cfg).read_text(encoding="utf-8")).get("skills") or {}).get("directories") or []
         _dirs_abs = [os.path.realpath(os.path.expanduser(d)) for d in _dirs]
         _qwen_propio = os.path.realpath(os.path.expanduser("~/.qwen/skills"))
         if _dirs and _qwen_propio not in _dirs_abs:
@@ -353,8 +374,11 @@ def estado_enlaces():
         # Symlink → identidad de ruta. Copia (cp -R) → mismo contenido. Ambas cuentan como
         # "al día"; solo se avisa si de verdad es otra cosa (una skill distinta con ese nombre).
         es_symlink = os.path.islink(ruta)
-        al_dia = os.path.samefile(real, SKILL) if es_symlink else (
-            txt_propio is not None and open(skill_md, encoding="utf-8").read() == txt_propio)
+        try:
+            al_dia = os.path.samefile(real, SKILL) if es_symlink else (
+                contenido_paquete(real) == paquete_propio)
+        except OSError:
+            al_dia = False
         if al_dia:
             modo = "enlace →" if es_symlink else "copia al día,"
             lineas.append(f"  ✓ {nombre}: {ruta} ({modo} esta carpeta)")
@@ -384,12 +408,12 @@ def cifras_desfasadas(n_documentos):
     porque enseña que las cifras de la skill son aproximadas, y entonces dejan de
     servir para nada. Contarlas cuesta microsegundos.
     """
-    texto = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
+    texto = Path(SKILL, "SKILL.md").read_text(encoding="utf-8")
     # El README es la puerta de entrada de quien clona: sus cifras envejecen igual
     # y nadie las mira. Tenía tres desfasadas a la vez (251 documentos cuando eran
     # 270, 57 recetas cuando eran 59, 608 repos cuando eran 634).
     ruta_readme = os.path.join(RAIZ, "README.md")
-    readme = open(ruta_readme, encoding="utf-8").read() if os.path.isfile(ruta_readme) else ""
+    readme = Path(ruta_readme).read_text(encoding="utf-8") if os.path.isfile(ruta_readme) else ""
     avisos = []
 
     def _mirar(patron, real, que, donde="la skill", cuerpo=None):
@@ -414,7 +438,7 @@ def cifras_desfasadas(n_documentos):
     if os.path.isfile(marca):
         try:
             _mirar(r"\*\*(\d+) comprobaciones\*\* sobre los",
-                   int(open(marca, encoding="utf-8").read().strip()), "comprobaciones")
+                   int(Path(marca).read_text(encoding="utf-8").strip()), "comprobaciones")
         except ValueError:
             pass
 
@@ -423,7 +447,7 @@ def cifras_desfasadas(n_documentos):
     simbolos = os.path.join(RAIZ, "_indice", "simbolos.json")
     if os.path.isfile(simbolos):
         try:
-            d = json.load(open(simbolos, encoding="utf-8"))
+            d = json.loads(Path(simbolos).read_text(encoding="utf-8"))
             n_obs = sum(1 for v in d["simbolos"].values()
                         if v.get("obsoleta") and v.get("tipo") == "función")
             _mirar(r"funciones obsoletas \(hay (\d+)\)", n_obs, "funciones obsoletas")
@@ -440,7 +464,7 @@ def cifras_desfasadas(n_documentos):
         n_repos = 0
         if os.path.isfile(rutas_json):
             try:
-                n_repos = len(json.load(open(rutas_json, encoding="utf-8")))
+                n_repos = len(json.loads(Path(rutas_json).read_text(encoding="utf-8")))
             except ValueError:
                 n_repos = 0
         _mirar(r"\*\*(\d+) documentos en español\*\*", n_documentos, "documentos",
@@ -483,7 +507,7 @@ def main():
         print("Todas las rutas que cita la skill existen.")
     for l in estado_enlaces():
         print(l)
-    return 1 if (rotas or desfasadas) else 0
+    return 1 if (rotas or desfasadas or not agents) else 0
 
 
 import os as _os_arg, sys as _sys_arg
@@ -538,10 +562,16 @@ def autoprueba():
         revisar("la SKILL.md de este repositorio lleva su etiqueta",
                 bool(propia), "devolvió %r" % propia)
 
+    import subprocess
+    pruebas = subprocess.run(
+        [sys.executable, os.path.join(IND, "pruebas", "probar-sincronizacion.py")],
+        capture_output=True, text=True, encoding="utf-8")
+    revisar("contratos públicos: YAML y paquete completo (10 casos)",
+            pruebas.returncode == 0, pruebas.stdout + pruebas.stderr)
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n\u2713 Las 5 comprobaciones de la autoprueba pasan.")
+    print("\n\u2713 Las 5 comprobaciones de versión y los 10 casos de sincronización pasan.")
     return 0
 
 

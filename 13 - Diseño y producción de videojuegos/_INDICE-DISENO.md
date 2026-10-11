@@ -1,6 +1,6 @@
 # Diseño y producción de videojuegos — índice
 
-> **El oficio que va antes y alrededor del código.** 28 documentos. Las otras carpetas explican el motor;
+> **El oficio que va antes y alrededor del código.** 29 documentos. Las otras carpetas explican el motor;
 > esta explica cómo se diseña, se estructura, se prueba y se lanza un juego, y cómo cada
 > decisión se traduce a GameMaker LTS 2026 con GML verificado contra el runtime
 > `2026.0.0.23`. Cada documento va del principio (por qué) al método (cómo) y al código
@@ -52,6 +52,13 @@ Cuatro recetas nacieron en la misma revisión y completan lo transversal:
 - [29 · 3D en GameMaker](<../04 - Recetas por género/29 - 3D en GameMaker.md>) — cámara y matrices, vertex buffers, OBJ, iluminación, billboards, colisiones 3D, rendimiento.
 - [30 · Combate cuerpo a cuerpo](<../04 - Recetas por género/30 - Combate cuerpo a cuerpo - hitboxes, hurtboxes y combos.md>) — hitbox ≠ hurtbox ≠ máscara, frame data, cola de golpes, combos, i-frames, parry.
 - [31 · IA de decisión](<../04 - Recetas por género/31 - IA de decisión - árboles de comportamiento, utility y GOAP.md>) — FSM → árbol de comportamiento → utility → GOAP, blackboard, percepción, tick escalonado.
+
+## Desarrollo asistido por IA durante semanas
+
+[29 · Desarrollo con IA — orquestación, crítica y evidencia](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)
+conecta contratos, constructores e integrador, crítica aislada, evidencias por revisión,
+colas y disco, guardado, rendimiento, datos y assets derivados, y continuidad Claude/Codex.
+Lee este documento al retomar un proyecto o iniciar un bucle con varios agentes.
 
 ## Orden sugerido para un juego nuevo
 

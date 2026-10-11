@@ -705,6 +705,24 @@ function partida_cargar(_slot) {
 >    (`"goblin"`) y reconstruye con `asset_get_index` (§3.8). Un handle no significa nada en la
 >    siguiente ejecución.
 
+**Identidad y fronteras de persistencia en un catálogo grande.** Separa el ID estable de la
+especie, el UID del ejemplar poseído y el ID de la instancia de combate. Un relevo, una nueva
+instancia o un cambio de orden del catálogo no debe crear otra propiedad ni cambiar favoritos.
+Los índices de presentación se reconstruyen desde los datos persistentes; no se guardan como
+si fueran la identidad. En operaciones de colección/economía valida todas las condiciones
+antes de gastar y devuelve un motivo de rechazo observable. Una colección llena necesita una
+salida explícita para recompensas pendientes; liberarlas o descartar un ejemplar protegido
+requiere una decisión del jugador.
+
+Para snapshots grandes, conserva una vista estable durante las fases de escritura y limita
+el trabajo por frame. La escritura completa debe releerse y comprobar tamaño/integridad
+antes de rotar copias o promoverla. La recuperación elige el snapshot válido más nuevo según
+su secuencia, no según cuál archivo estaba presente primero; migra antes de importar y
+reconstruye los índices derivados después. Este orden y sus casos de interrupción están en
+[Testing y QA](<10 - Testing y QA.md>) y su experiencia de integración en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Es una
+pauta arquitectónica: el formato y presupuesto se deciden y miden en cada proyecto.
+
 #### Autoguardado: cuándo, escritura atómica e indicador
 
 El autoguardado vive en su **propia ranura** (`"auto"`, nunca `"slot1"`): si pisara la partida
@@ -1231,7 +1249,29 @@ lectura**; un README de instalación sigue siendo trabajo del proyecto concreto.
 
 ---
 
+## 7 · Fronteras de entrada, mundo y carga
+
+Centraliza la lectura de entrada; la UI consume antes de convertirla en intención del mundo.
+Una orden nueva puede sustituir a la anterior según contrato. Las acciones en cola conservan
+objetivo e identidad y declaran cuándo caducan o se cancelan. Comprueba objetivo válido justo
+antes de ejecutar. Portal visible, acción de interacción y carga del destino usan el mismo
+predicado de acceso; el punto que se selecciona visualmente puede diferir del punto transitable
+donde se interactúa. Una compañía cosmética no altera la posición autoritativa del jugador.
+
+Distingue vista preparada, carga completa y buffers listos para uso inmutable. Cancelar una
+carga libera lo construido parcialmente; transferir un buffer transfiere su propietario.
+Una malla compartida pertenece a la caché, no a cada instancia que la usa. La preparación,
+consumo y liberación tienen fases explícitas. Presupuesto de carga o guardado significa coste
+observado: una lectura, descompresión o escritura indivisible puede exceder el límite del
+fotograma aunque el bucle compruebe su reloj entre unidades.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
+
+- [Desarrollo con IA — orquestación, crítica y evidencia](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>) — contratos, datos derivados, revisión exacta, recursos y continuidad.
 
 - [04 · 00 Anatomía de un juego completo](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md) — el arco de escenas que este documento presupone
 - [04 · 16 Señales y desacoplamiento](../04%20-%20Recetas%20por%20género/16%20-%20Señales%20y%20desacoplamiento.md) · [04 · 15 Game feel y juice](../04%20-%20Recetas%20por%20género/15%20-%20Game%20feel%20y%20juice.md)

@@ -8,6 +8,14 @@ actualizar este mapa.
 
 ---
 
+## Metodología general, spec, contexto, orquestación y continuidad
+
+1. `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` — spec guiada por decisiones, tareas verticales, router de skills y ciclo; antes de iniciar agentes o retomar
+2. `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md` — localizar/clasificar código, documentos y recursos, contexto acotado y coste medido
+3. `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — escritor único de recursos, exclusión de caché y operación verificada
+4. `13 - Diseño y producción de videojuegos/10 - Testing y QA.md` — herramientas, runtime y aceptación; captura y guardado
+5. `13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md` — alcance, hitos y publicación
+
 ## Diseño de juego (mecánicas, core loop, balance, dificultad, GDD)
 
 1. `13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md`

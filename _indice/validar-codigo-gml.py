@@ -11,6 +11,7 @@ lenguaje. Lo que no es nada de eso es una función inventada — el peor fallo p
 
 Sale con 0 solo si no hay ni una llamada sospechosa.
 """
+from ambito import es_ajena, rutas_no_publicables
 import os, re, json, sys
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -53,10 +54,10 @@ PALABRAS = {
 }
 
 # carpetas de contenido propio (no manual, no repos de terceros)
-# «Lumbre» es el juego personal del usuario y «GameMaker_Fuentes» el almacén crudo de repos
+# Los proyectos anidados son ajenos a la biblioteca, «_pruebas» su banco de pruebas y auditorías, y «GameMaker_Fuentes» el almacén crudo de repos
 # clonados: ninguno es documentación de la biblioteca y no se indexan ni se revisan.
 EXCL = {"_indice", "09 - Manual oficial", "11 - Código descargado",
-        "Lumbre", "GameMaker_Fuentes"}
+        "Lumbre", "_pruebas", "GameMaker_Fuentes"}
 
 
 def limpiar(codigo):
@@ -401,7 +402,7 @@ def main():
     definidas = set()
     docs = []
     for raiz, dirs, files in os.walk(RAIZ):
-        dirs[:] = [d for d in dirs if d not in EXCL and not d.startswith(".")]
+        dirs[:] = [d for d in dirs if d not in EXCL and not d.startswith(".") and not es_ajena(RAIZ, os.path.join(raiz,d))]
         for f in files:
             if not f.endswith((".md", ".gml")):
                 continue

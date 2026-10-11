@@ -78,6 +78,7 @@ releer `_indice/auditorias/r4-frescura.md` primero**:
 Solo `muerto` debe interpretarse como "hay que arreglar este enlace".
 `no_comprobado` es una lista de "vuelve a intentarlo", no de sospechosos.
 """
+from ambito import es_ajena, rutas_no_publicables
 import argparse
 import collections
 import concurrent.futures
@@ -220,10 +221,10 @@ def recolectar(con_terceros):
         # `auditorias` queda fuera por el mismo motivo que en `verificar-enlaces.py`:
         # son informes con fecha, y un enlace que murió después es un hecho
         # histórico del informe, no algo que corregir.
-        excl = {".git", "09 - Manual oficial", "GameMaker_Fuentes", "Lumbre", "auditorias"}
+        excl = {".git", "09 - Manual oficial", "GameMaker_Fuentes", "Lumbre", "_pruebas", "auditorias"}
         if not con_terceros:
             excl.add("11 - Código descargado")
-        dirs[:] = [d for d in dirs if d not in excl and not d.startswith(".")]
+        dirs[:] = [d for d in dirs if d not in excl and not d.startswith(".") and not es_ajena(RAIZ, os.path.join(raiz,d))]
         for f in files:
             if not f.endswith(".md"):
                 continue

@@ -1895,6 +1895,22 @@ Orden recomendado. Cada paso es jugable antes de pasar al siguiente.
 
 ---
 
+## 10. Frontera entre acción, animación y presentación
+
+Cada acción tiene identidad y reloj autoritativos para anticipación, impacto y recuperación.
+Animación, hitbox y audio leen ese reloj; el daño no depende de que se haya dibujado un frame.
+Un salto de tiempo que cruza el impacto lo resuelve una sola vez. Una acción de varios impactos
+lo declara explícitamente y registra los ya resueltos.
+
+Pausa, cambio de fase, muerte y relevo necesitan una política de cancelación. Un efecto o
+sonido retrasado verifica que aún pertenece a la acción vigente antes de ejecutarse. Prueba
+cancelar antes del impacto, en su frontera y después, y reanudar sin una orden residual.
+Un efecto vistoso no demuestra que la tubería de daño y las interrupciones tengan orden correcto.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<../13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [04 · 15 — Game feel y juice](./15%20-%20Game%20feel%20y%20juice.md) — hit stop, sacudida de

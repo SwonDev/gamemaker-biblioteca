@@ -74,9 +74,9 @@ function reloj_iniciar()
 {
     if (!variable_global_exists("time_scale")) { global.time_scale = 1.0; }
 
-    global.reloj_dt      = 0;   // segundos de este frame, YA escalados
-    global.reloj_dt_real = 0;   // segundos reales de este frame, sin escalar
-    global.reloj_tiempo  = 0;   // segundos de juego acumulados (respeta la escala)
+    global.__estado_reloj_dt      = 0;   // segundos de este frame, YA escalados
+    global.__estado_reloj_dt_real = 0;   // segundos reales de este frame, sin escalar
+    global.__estado_reloj_tiempo  = 0;   // segundos de juego acumulados (respeta la escala)
 }
 
 /// @function reloj_actualizar()
@@ -89,14 +89,14 @@ function reloj_iniciar()
 ///          a un máximo de 1/30 s antes de usarlo.
 function reloj_actualizar()
 {
-    if (!variable_global_exists("reloj_dt")) { reloj_iniciar(); }
+    if (!variable_global_exists("__estado_reloj_dt")) { reloj_iniciar(); }
 
-    global.reloj_dt_real = min(delta_time / 1000000, 1 / 30);
+    global.__estado_reloj_dt_real = min(delta_time / 1000000, 1 / 30);
 
     var _escala = variable_global_exists("time_scale") ? global.time_scale : 1.0;
-    global.reloj_dt = global.reloj_dt_real * _escala;
+    global.__estado_reloj_dt = global.__estado_reloj_dt_real * _escala;
 
-    global.reloj_tiempo += global.reloj_dt;
+    global.__estado_reloj_tiempo += global.__estado_reloj_dt;
 }
 
 /// @function reloj_dt()
@@ -107,7 +107,7 @@ function reloj_actualizar()
 /// @returns {Real}
 function reloj_dt()
 {
-    return variable_global_exists("reloj_dt") ? global.reloj_dt : 0;
+    return variable_global_exists("__estado_reloj_dt") ? global.__estado_reloj_dt : 0;
 }
 
 /// @function reloj_dt_real()
@@ -117,7 +117,7 @@ function reloj_dt()
 /// @returns {Real}
 function reloj_dt_real()
 {
-    return variable_global_exists("reloj_dt_real") ? global.reloj_dt_real : 0;
+    return variable_global_exists("__estado_reloj_dt_real") ? global.__estado_reloj_dt_real : 0;
 }
 
 /// @function reloj_tiempo()
@@ -126,7 +126,7 @@ function reloj_dt_real()
 /// @returns {Real}
 function reloj_tiempo()
 {
-    return variable_global_exists("reloj_tiempo") ? global.reloj_tiempo : 0;
+    return variable_global_exists("__estado_reloj_tiempo") ? global.__estado_reloj_tiempo : 0;
 }
 
 

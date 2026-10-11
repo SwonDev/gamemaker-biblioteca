@@ -14,13 +14,25 @@ Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve `$BIB
   Itinerario maestro en 6 niveles (0 Cero → 5 Profesional) con competencias observables, material exacto por nivel y una prueba de nivel.
   *Úsalo cuando:* el usuario está aprendiendo y hay que situarlo; qué estudio ahora / por dónde sigo; cuánto me falta para X; no sé si estoy listo para hacer un juego comercial.
   *Para el agente:* Situar al usuario por lo que SABE HACER, no por lo que dice saber, y entregar solo material de su nivel y del siguiente.
-- `README.md` — **Biblioteca GameMaker · para que tu agente de IA no invente funciones**
+- `README.md` — **Tu IA. Un método para crear juegos con GameMaker.**
 - `AGENTS.md` — **AGENTS.md — cómo usar esta biblioteca si eres un agente de IA**
 - `_indice/COMO-BUSCAR.md` — **Árbol de decisión para encontrar cualquier cosa**
 - `CLAUDE.md` — **CLAUDE.md**
   Arranque mínimo: las 5 reglas irrenunciables y el desvío a AGENTS.md (instrucciones completas) y a _indice/COMO-BUSCAR.md (cómo buscar). Deliberadamente corto: se carga en cada sesión.
   *Úsalo cuando:* empiezas una sesión en este repositorio; quieres las reglas antes de tocar nada.
-- `PUBLICAR.md` — **Publicar esta biblioteca**
+- `PUBLICAR.md` — **Distribuir y reconstruir la biblioteca**
+- `CONTRIBUTING.md` — **Contribuir a la biblioteca**
+  Cómo proponer mejoras, validar y publicar contenido propio.
+  *Úsalo cuando:* proponer cambios y comprobar una contribución.
+- `DESIGN.md` — **DESIGN**
+  Dirección visual y reglas de la presentación pública.
+  *Úsalo cuando:* mantener la identidad visual de la portada y sus assets.
+- `GUIA.md` — **Guía de la biblioteca GameMaker**
+  Mapa y rutas para consultar la biblioteca según el objetivo.
+  *Úsalo cuando:* elegir una ruta de consulta según el encargo.
+- `INSTALACION.md` — **Instalar la biblioteca y la skill**
+  Instalación de la skill, herramientas y diagnóstico por plataforma.
+  *Úsalo cuando:* instalar, actualizar o diagnosticar la biblioteca y la skill.
 
 
 ## `01 - Fundamentos` — Fundamentos de GML
@@ -363,6 +375,7 @@ Herramientas de flujo de trabajo, extensiones nativas, integraciones con servici
 - `12 - Utilidades e integraciones/07 - Dónde buscar - hubs y documentación.md` — 07 · Dónde buscar: hubs, foros y documentación
 - `12 - Utilidades e integraciones/08 - Tooling externo - CLI, parsers e ingeniería inversa.md` — 08 · Tooling externo: CLI, parsers, TypeScript e ingeniería inversa
 - `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — 09 · Manual del agente de IA — operar GameMaker con `gm-cli`
+- `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md` — Búsqueda multimodal con EmbeddingGemma 2 — contexto y recursos para agentes
 - `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` — 12 · Utilidades e integraciones para GameMaker
 
 
@@ -402,6 +415,7 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/26 - Comunidad propia - Discord, moderación y gestión de crisis.md` — 26 · Comunidad propia: Discord, moderación y gestión de crisis
 - `13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md` — 27 · Formatos de producción especiales
 - `13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md` — 28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente
+- `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` — Desarrollo con IA — orquestación, crítica y evidencia
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice
 
 
@@ -415,3 +429,14 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 
 - `14 - Juego de referencia/README.md` — 14 · Juego de referencia — «Enjambre»
 - `14 - Juego de referencia/enjambre/ESPECIFICACION.md` — «Enjambre» — especificación
+
+
+## `assets` — assets
+
+Ilustraciones propias de la portada y su procedencia.
+
+**Usar cuando:** presentar la biblioteca · revisar derechos y origen de las ilustraciones
+
+**No usar para:** assets jugables de producción · certificar calidad de un juego
+
+- `assets/readme/README.md` — Ilustraciones de la portada

@@ -1171,6 +1171,21 @@ para saber que el resto del árbol no se está usando.
 
 ---
 
+## 6 · Progreso observado, disponibilidad y tutorial
+
+Comprueba por separado requisito de rango, progreso y disponibilidad técnica del contenido.
+Un desbloqueo no crea el asset que falta; tener el asset no concede el progreso. La condición
+que habilita el menú debe ser la misma que valida la entrada al contenido.
+
+Un tutorial avanza por la acción y el estado que pretende enseñar, con un caso negativo donde
+el jugador espera sin actuar. Los menús anidados conservan la pausa hasta cerrar el último
+propietario. Al volver, no reutilizan la pulsación que abrió o cerró el panel. Preparar por
+debug una cuenta avanzada es una fixture; no acredita haber jugado sus pasos de progresión.
+
+Estos contratos generalizan la experiencia del caso; el [recibo público](../_indice/auditorias/r21-publicacion.md)
+los casos cruzados están en [QA](<10 - Testing y QA.md>) §15 y el método en
+[Desarrollo con IA](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>). Son pruebas propuestas, no resultados nuevos del juego fuente.
+
 ## Ver también
 
 - [13 · 01 — Diseño de juego: core loop, mecánicas, balance y dificultad](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md) —

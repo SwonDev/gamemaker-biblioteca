@@ -4,9 +4,9 @@
 
 Es el mismo control anti-alucinación que `validar-codigo-gml.py` aplica a la biblioteca,
 pero apuntado a cualquier proyecto de GameMaker del disco. Pensado para que un agente
-lo ejecute sobre su propio código ANTES de `gm-cli compile`: el compilador también lo
-cazaría, pero este informe dice el nombre exacto, dónde está y qué símbolo parecido sí
-existe.
+lo ejecute sobre su propio código ANTES de `gm-cli compile`: algunas llamadas inexistentes
+compilan y fallan al ejecutar. Este informe dice el nombre exacto, dónde está y qué símbolo
+parecido sí existe. Es análisis estático; no sustituye el runtime.
 
     python3 "_indice/validar-proyecto.py" <ruta-del-proyecto> [--todo] [--json]
 
@@ -23,7 +23,9 @@ llamada `nombre(`:
   · desconocida    → no lleva prefijo de familia; suele ser un nombre propio que falta
                      por definir o un método; se lista solo con --todo
 
-Sale con 0 si no hay inventadas ni problemas de aridad; con 1 si hay alguna.
+También falla ante nombres inexistentes, escrituras de solo lectura, cadenas sin cerrar
+y colisiones globales con funciones de script. Sale con 0 si no encuentra esos errores,
+con 1 si encuentra alguno y con 2 si no puede analizar el proyecto.
 """
 import os, re, sys, json, difflib, importlib.util, platform
 
@@ -95,6 +97,40 @@ def asignaciones_a_solo_lectura(archivos, simbolos):
                 linea = texto[:m.start()].count("\n") + 1
                 hallados.append((rel, nom, linea))
     return hallados
+
+
+def colisiones_globales(archivos, proyecto):
+    """Escrituras globales que ocultan una función de script declarada en el nivel superior."""
+    funciones = set()
+    tokens = re.compile(vcg.DEFINE.pattern + r"|[{}]")
+    for fp, cod in archivos:
+        if os.path.relpath(fp, proyecto).split(os.sep)[0] == "objects":
+            continue  # Las funciones declaradas en eventos no son funciones globales de script.
+        profundidad = 0
+        for token in tokens.finditer(cod):
+            if token.group(1) and profundidad == 0:
+                funciones.add(token.group(1))
+            elif token.group() == "{":
+                profundidad += 1
+            elif token.group() == "}":
+                profundidad = max(0, profundidad - 1)
+    patron = re.compile(r"(?<![\w.])global\s*\.\s*([A-Za-z_]\w*)\s*(=(?!=)|[+*/%-]=|\+\+|--)")
+    encontrados = []
+    for fp, cod in archivos:
+        for m in patron.finditer(cod):
+            nombre = m.group(1)
+            if nombre not in funciones:
+                continue
+            resto = cod[m.end():].lstrip()
+            referencia = resto.split(";", 1)[0].strip()
+            while referencia.startswith("(") and referencia.endswith(")"):
+                referencia = referencia[1:-1].strip()
+            # Una referencia a la misma función o una nueva función conserva el callable.
+            if m.group(2) == "=" and (re.match(r"function\b", resto) or
+                                      referencia == nombre):
+                continue
+            encontrados.append((fp, nombre, cod[:m.start()].count("\n") + 1))
+    return encontrados
 
 
 def cargar_simbolos():
@@ -184,13 +220,13 @@ def main():
         print(f"No existe la carpeta: {proyecto}")
         return 2
     if not any(f.endswith(".yyp") for f in os.listdir(proyecto)):
-        print(f"⚠ En {proyecto} no hay ningún .yyp: se analizan igualmente los .gml que haya.")
+        print(f"⚠ En {proyecto} no hay ningún .yyp: se analizan igualmente los .gml que haya.", file=sys.stderr if como_json else sys.stdout)
 
     simb, meta = cargar_simbolos()
     instalado = runtime_instalado()
     if instalado and instalado != meta.get("runtime"):
         print(f"⚠ ÍNDICE CADUCADO: simbolos.json es del runtime {meta.get('runtime')} y el "
-              f"instalado es {instalado}. Regenera con: python3 _indice/actualizar.py")
+              f"instalado es {instalado}. Regenera con: python3 _indice/actualizar.py", file=sys.stderr if como_json else sys.stdout)
 
     # Solo cuenta lo que el proyecto trae de verdad: sus .gml y sus extensiones. Las
     # librerías descargadas en la biblioteca NO valen aquí: muchas traen «shims» de
@@ -281,62 +317,6 @@ def main():
     def parecidos(nom):
         return difflib.get_close_matches(nom, simb.keys(), n=3, cutoff=0.75)
 
-    if como_json:
-        print(json.dumps({
-            "proyecto": proyecto, "archivos_gml": len(archivos), "llamadas": total,
-            "inventadas": {n: {"en": sorted(a), "parecidas": parecidos(n)} for n, a in inventadas.items()},
-            "obsoletas": {n: sorted(a) for n, a in obsoletas.items()},
-            "aridad_incorrecta": {n: [{"en": d, "problema": msg} for d, msg in casos]
-                                   for n, casos in problemas_aridad.items()},
-            "desconocidas": {n: sorted(a) for n, a in desconocidas.items()},
-        }, ensure_ascii=False, indent=1))
-        return 1 if (inventadas or problemas_aridad or inexistentes
-                 or _solo_lectura) else 0
-
-    print(f"{len(archivos)} archivos .gml · {total} llamadas analizadas · runtime del índice "
-          f"{meta.get('runtime')}")
-    if inventadas:
-        print(f"\n\033[1m✗ {len(inventadas)} funciones INVENTADAS (no existen en el runtime):\033[0m")
-        for nom, donde in sorted(inventadas.items()):
-            p = parecidos(nom)
-            print(f"  {nom}()")
-            for d in sorted(donde)[:4]:
-                print(f"      en {d}")
-            if p:
-                print(f"      ¿quisiste decir? {', '.join(p)}")
-            print(f"      ficha: python3 \"_indice/buscar.py\" {p[0] if p else nom}")
-    else:
-        print("\n✓ Ninguna llamada a una función del runtime que no exista.")
-    if obsoletas:
-        print(f"\n⚠ {len(obsoletas)} funciones OBSOLETAS (existen, pero el runtime las retira):")
-        for nom, donde in sorted(obsoletas.items()):
-            print(f"  {nom}()  →  python3 \"_indice/buscar.py\" {nom}   (te dice la alternativa)")
-            for d in sorted(donde)[:3]:
-                print(f"      en {d}")
-    if problemas_aridad:
-        n_llamadas = sum(len(v) for v in problemas_aridad.values())
-        print(f"\n\033[1m✗ {n_llamadas} llamada(s) a {len(problemas_aridad)} función(es) con un número "
-              f"de argumentos que no cuadra con su firma:\033[0m")
-        print("  (existir no basta: la firma completa es la que manda — ver `buscar.py <función>`)")
-        for nom, casos in sorted(problemas_aridad.items()):
-            for d, msg in casos:
-                print(f"  {nom}()  ·  {msg}  ·  en {d}")
-    else:
-        print("\n✓ Ninguna llamada a una función del runtime con un número de argumentos "
-              "que no cuadre con su firma.")
-    # Un literal sin cerrar descuadra el análisis del archivo entero: lo que sigue a la
-    # comilla huérfana se lee como cadena, y las funciones definidas ahí «desaparecen».
-    # Se avisa ANTES de la lista de desconocidas porque, sin este aviso, esa lista mezcla
-    # nombres falsos con los de verdad y enseña a desconfiar de ella entera — que es
-    # exactamente cómo se cuela el fallo que sí importa.
-    if literales_rotos:
-        print(f"\n⚠ {len(literales_rotos)} archivo(s) con una cadena que NO cierra. GameMaker no")
-        print("  los compilará, y mientras tanto este análisis pierde lo que venga después:")
-        for rel, lineas in literales_rotos[:10]:
-            print(f"  {rel}  ·  línea(s) {', '.join(str(x) for x in lineas[:6])}")
-        print("  Suele ser un generador que escribe un « \" » sin escapar dentro del literal.")
-        print("  Arregla esto ANTES de leer la lista de nombres desconocidos de abajo.")
-
     # Contraste contra el fuente crudo: si el nombre SÍ aparece definido en el archivo,
     # el análisis se perdió (casi siempre por lo de arriba) y decirlo evita que alguien
     # persiga una función que existe.
@@ -389,6 +369,67 @@ def main():
                 plataforma[nom] = donde
             else:
                 inexistentes[nom] = donde
+    colisiones = colisiones_globales(codigos, proyecto)
+    if como_json:
+        print(json.dumps({
+            "proyecto": proyecto, "archivos_gml": len(archivos), "llamadas": total,
+            "inventadas": {n: {"en": sorted(a), "parecidas": parecidos(n)} for n, a in inventadas.items()},
+            "obsoletas": {n: sorted(a) for n, a in obsoletas.items()},
+            "aridad_incorrecta": {n: [{"en": d, "problema": msg} for d, msg in casos]
+                                   for n, casos in problemas_aridad.items()},
+            "desconocidas": {n: sorted(a) for n, a in desconocidas.items()},
+            "inexistentes": {n: sorted(a) for n, a in inexistentes.items()},
+            "solo_lectura": _solo_lectura,
+            "literales_rotos": literales_rotos,
+            "colisiones_globales": [(os.path.relpath(f, proyecto), n, l) for f, n, l in colisiones],
+        }, ensure_ascii=False, indent=1))
+        return 1 if (inventadas or problemas_aridad or inexistentes
+                 or _solo_lectura or colisiones or literales_rotos) else 0
+
+    print(f"{len(archivos)} archivos .gml · {total} llamadas analizadas · runtime del índice "
+          f"{meta.get('runtime')}")
+    if inventadas:
+        print(f"\n\033[1m✗ {len(inventadas)} funciones INVENTADAS (no existen en el runtime):\033[0m")
+        for nom, donde in sorted(inventadas.items()):
+            p = parecidos(nom)
+            print(f"  {nom}()")
+            for d in sorted(donde)[:4]:
+                print(f"      en {d}")
+            if p:
+                print(f"      ¿quisiste decir? {', '.join(p)}")
+            print(f"      ficha: python3 \"_indice/buscar.py\" {p[0] if p else nom}")
+    else:
+        print("\n✓ Ninguna llamada a una función del runtime que no exista.")
+    if obsoletas:
+        print(f"\n⚠ {len(obsoletas)} funciones OBSOLETAS (existen, pero el runtime las retira):")
+        for nom, donde in sorted(obsoletas.items()):
+            print(f"  {nom}()  →  python3 \"_indice/buscar.py\" {nom}   (te dice la alternativa)")
+            for d in sorted(donde)[:3]:
+                print(f"      en {d}")
+    if problemas_aridad:
+        n_llamadas = sum(len(v) for v in problemas_aridad.values())
+        print(f"\n\033[1m✗ {n_llamadas} llamada(s) a {len(problemas_aridad)} función(es) con un número "
+              f"de argumentos que no cuadra con su firma:\033[0m")
+        print("  (existir no basta: la firma completa es la que manda — ver `buscar.py <función>`)")
+        for nom, casos in sorted(problemas_aridad.items()):
+            for d, msg in casos:
+                print(f"  {nom}()  ·  {msg}  ·  en {d}")
+    else:
+        print("\n✓ Ninguna llamada a una función del runtime con un número de argumentos "
+              "que no cuadre con su firma.")
+    # Un literal sin cerrar descuadra el análisis del archivo entero: lo que sigue a la
+    # comilla huérfana se lee como cadena, y las funciones definidas ahí «desaparecen».
+    # Se avisa ANTES de la lista de desconocidas porque, sin este aviso, esa lista mezcla
+    # nombres falsos con los de verdad y enseña a desconfiar de ella entera — que es
+    # exactamente cómo se cuela el fallo que sí importa.
+    if literales_rotos:
+        print(f"\n⚠ {len(literales_rotos)} archivo(s) con una cadena que NO cierra. GameMaker no")
+        print("  los compilará, y mientras tanto este análisis pierde lo que venga después:")
+        for rel, lineas in literales_rotos[:10]:
+            print(f"  {rel}  ·  línea(s) {', '.join(str(x) for x in lineas[:6])}")
+        print("  Suele ser un generador que escribe un « \" » sin escapar dentro del literal.")
+        print("  Arregla esto ANTES de leer la lista de nombres desconocidos de abajo.")
+
     # Las de plataforma y extensión existen — pero no aquí. Van aparte porque
     # meterlas en la lista de arriba la volvería ruido: un proyecto que soporta
     # Steam y mando de consola trae decenas, y todas son correctas.
@@ -402,6 +443,12 @@ def main():
             fam = nom.split("_")[0]
             familias[fam] = familias.get(fam, 0) + 1
         print("  " + " · ".join(f"{k}_*: {v}" for k, v in sorted(familias.items())))
+
+    if colisiones:
+        print("\n✗ COLISIÓN GLOBAL: una asignación puede ocultar una función del proyecto:")
+        for fp, nombre, linea in colisiones:
+            print(f"  global.{nombre}  en {os.path.relpath(fp, proyecto)}:{linea}")
+        print("  Usa un nombre distinto para el estado. Análisis léxico: confirma el alcance en runtime.")
 
     if _solo_lectura:
         print(f"\n\033[1m✗ {len(_solo_lectura)} asignación(es) a una variable incorporada de "
@@ -437,7 +484,7 @@ def main():
         print(f"\n· {len(desconocidas)} nombres que el proyecto no define ni el runtime declara "
               f"(--todo para verlos): métodos de struct, funciones que faltan o extensiones sin instalar.")
     return 1 if (inventadas or problemas_aridad or inexistentes
-                 or _solo_lectura) else 0
+                 or _solo_lectura or colisiones or literales_rotos) else 0
 
 
 def autoprueba():
@@ -516,6 +563,26 @@ def autoprueba():
                         "function usa() { return mi_helper() + 1; }\n"})
         revisar("una función propia del proyecto no se marca como inventada", c == 0,
                 "exit %d · %s" % (c, o.strip()[-120:]))
+
+        for nombre, codigo, esperado, tiene_colision in (
+            ("global_colision", "function oculto() { return 1; }\nglobal.oculto = false;", 1, True),
+            ("global_estado", "function oculto() { return 1; }\nglobal.estado_oculto = false;", 0, False),
+            ("global_callable", "function oculto() { return 1; }\nglobal.oculto = oculto;", 0, False),
+            ("global_parentesis", "function oculto() { return 1; }\nglobal.oculto = ((oculto));", 0, False),
+            ("global_comentario", 'function oculto() { return 1; }\n// global.oculto = false;\nvar _s = "global.oculto = false;";', 0, False),
+            ("global_anidada", 'function padre() { function oculto() { return 1; } }\nglobal.oculto = false;', 0, False),
+            ("json_inexistente", "sin_definir();", 1, False),
+            ("json_literal", 'var _s = "sin cierre;', 1, False),
+        ):
+            base = os.path.join(tmp, nombre)
+            proyecto(base, {"scr_caso": codigo})
+            r = subprocess.run([sys.executable, yo, base, "--json"], capture_output=True, text=True)
+            try:
+                datos = json.loads(r.stdout)
+                ok = r.returncode == esperado and bool(datos["colisiones_globales"]) == tiene_colision
+            except (ValueError, KeyError):
+                ok = False
+            revisar(nombre + ": JSON válido y diagnóstico correcto", ok, r.stdout + r.stderr)
 
         # 6 · Sin argumentos: no puede salir con 0 fingiendo que todo está bien.
         r = subprocess.run([sys.executable, yo], capture_output=True, text=True)

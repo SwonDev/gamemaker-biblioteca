@@ -1770,6 +1770,8 @@ durante semanas, no para el primer día en que cuesta arrancar.
 
 ## Ver también
 
+- [Desarrollo con IA — orquestación, crítica y evidencia](<29 - Desarrollo con IA - orquestación, crítica y evidencia.md>) — contratos, datos derivados, revisión exacta, recursos y continuidad.
+
 - [13 · 28 — De «hazme un juego» a una especificación: el protocolo de elicitación del agente](./28%20-%20De%20hazme%20un%20juego%20a%20una%20especificaci%C3%B3n%20-%20el%20protocolo%20de%20elicitaci%C3%B3n%20del%20agente.md) — cuándo las fases de §2 no aplican (sesión de agente en vez de calendario humano), nota en la cabecera de esa sección
 - [13 · 01 — Diseño de juego: core loop, mecánicas, balance y dificultad](./01%20-%20Dise%C3%B1o%20de%20juego%20-%20core%20loop%2C%20mec%C3%A1nicas%2C%20balance%20y%20dificultad.md) — el bucle que aquí se manda construir primero, y qué medir para ajustarlo
 - [13 · 06 — Arquitectura de un proyecto GameMaker](./06%20-%20Arquitectura%20de%20un%20proyecto%20GameMaker.md) — las decisiones estructurales que merecen un ADR

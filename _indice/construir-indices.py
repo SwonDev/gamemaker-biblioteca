@@ -22,6 +22,7 @@ No toca MAPA.json: ese lleva descripciones escritas a mano ("usar_cuando",
 "no_usar_para") que no se pueden deducir del disco. Al añadir una carpeta nueva,
 edítalo a mano.
 """
+from ambito import es_ajena, rutas_no_publicables
 import glob, json, os, platform, re, sys
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -42,10 +43,10 @@ IND = os.path.join(RAIZ, "_indice")
 MANUAL = os.path.join(RAIZ, "09 - Manual oficial")
 CODIGO = os.path.join(RAIZ, "11 - Código descargado")
 
-# «Lumbre» es el juego personal del usuario y «GameMaker_Fuentes» el almacén crudo de repos
+# Los proyectos anidados son ajenos a la biblioteca, «_pruebas» su banco de pruebas y auditorías, y «GameMaker_Fuentes» el almacén crudo de repos
 # clonados: ninguno es documentación de la biblioteca y no se indexan ni se revisan.
 EXCLUIR = {"_indice", "09 - Manual oficial", "11 - Código descargado",
-           "Lumbre", "GameMaker_Fuentes"}
+           "Lumbre", "_pruebas", "GameMaker_Fuentes"}
 
 
 def titulo_de(path):
@@ -67,14 +68,16 @@ def documentos_es():
     out = []
     for carpeta in sorted(os.listdir(RAIZ)):
         d = os.path.join(RAIZ, carpeta)
-        if not os.path.isdir(d) or carpeta in EXCLUIR or carpeta.startswith("."):
+        if not os.path.isdir(d) or carpeta in EXCLUIR or carpeta.startswith(".") or es_ajena(RAIZ, d):
             continue
         for raiz, dirs, files in os.walk(d):
-            dirs[:] = [x for x in dirs if not x.startswith(".")]
+            dirs[:] = [x for x in dirs if not x.startswith(".") and not es_ajena(RAIZ, os.path.join(raiz, x))]
             for f in sorted(files):
                 if not f.endswith(".md"):
                     continue
                 full = os.path.join(raiz, f)
+                if es_ajena(RAIZ, full):
+                    continue
                 out.append({
                     "ruta": os.path.relpath(full, RAIZ),
                     "titulo": titulo_de(full),
@@ -313,6 +316,7 @@ def sincronizar_mapa(docs, n_simbolos):
         # tiene catálogo en vez de entrada por archivo.
         _juego_ref = os.path.join(RAIZ, carpeta, "enjambre")
         for r, _dirs, fs in os.walk(os.path.join(RAIZ, carpeta)):
+            _dirs[:] = [d for d in _dirs if not es_ajena(RAIZ, os.path.join(r, d))]
             if os.path.commonpath([os.path.abspath(r), os.path.abspath(_juego_ref)]) == \
                     os.path.abspath(_juego_ref):
                 continue
@@ -320,6 +324,8 @@ def sincronizar_mapa(docs, n_simbolos):
                 if not f.endswith(".gml"):
                     continue
                 full = os.path.join(r, f)
+                if es_ajena(RAIZ, full):
+                    continue
                 entradas_doc.append({"ruta": os.path.relpath(full, RAIZ),
                                      "titulo": titulo_gml(full)})
 

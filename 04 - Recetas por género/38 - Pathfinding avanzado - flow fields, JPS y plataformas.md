@@ -1097,6 +1097,30 @@ if (ruta_i < array_length(ruta)) {
 
 ---
 
+### 5.4 Rejilla conservadora, colisión real y cachés de transitabilidad
+
+Una rejilla puede cortar un paso que la geometría continua permite o aceptar un paso donde
+el radio real no cabe. Una frontera útil consiste en probar primero el segmento real libre, conectar posición y destino con
+centros accesibles y usar conexiones entre zonas para salvar cortes de cuantización. Cada
+puente se valida contra la regla de colisión y el radio del agente; unir componentes de la
+rejilla por proximidad no demuestra que el cuerpo pueda pasar. El método no sustituye la
+prueba de colisión durante el movimiento.
+
+Al recalcular una persecución, suaviza desde la **posición actual**, no desde un centro de
+celda que el agente ya rebasó. Conserva un criterio estable para avanzar por los puntos:
+un destino móvil y un recálculo frecuente pueden hacer que la unidad vuelva hacia atrás
+cada frame aunque cada ruta aislada sea válida. Prueba bordes, esquinas, pasillos estrechos,
+puentes, destino móvil y caminos imposibles con el mismo radio que usa el juego.
+
+Una caché de transitabilidad debe identificar huella del mapa, versión de la regla de
+colisión, dimensiones y parámetros que alteran accesibilidad, incluido el radio si procede.
+Comprueba cabecera y longitud al leerla; si cambió una entrada o está truncada, se regenera
+sin tratarla como un mapa válido vacío. «Existe el archivo» no significa «describe este mapa».
+Los casos cruzados están en
+[Testing y QA](<../13 - Diseño y producción de videojuegos/10 - Testing y QA.md>), y el alcance
+de la validación documental está en [el recibo público](../_indice/auditorias/r21-publicacion.md).
+No se ha ejecutado aquí una batería nueva de navegación del proyecto fuente.
+
 ## 6 · Checklist
 
 - [ ] ¿Sabes cuántas unidades comparten destino a la vez? Decenas o cientos → campo de flujo
@@ -1188,7 +1212,7 @@ if (ruta_i < array_length(ruta)) {
   original (WebSearch agotado) para verificar la implementación de §3.3 línea a línea contra él
   — verifica el comportamiento en tu propio mapa antes de confiar en la poda a ciegas.
   Sin URL: no se abrió ninguna en esta sesión.
-  Se sí abrieron `06 - Assets y Scripts/scr_grid_pathfinding.gml` (`GridPonderado`, base de
+  Sí se abrieron `06 - Assets y Scripts/scr_grid_pathfinding.gml` (`GridPonderado`, base de
   `GridJPS`) y `04 - Recetas por género/01 - Plataformas 2D.md` (física de salto, base del grafo
   de plataformas), ambos código y prosa propios de esta biblioteca.
 - ⚠️ El **grafo de plataformas** (§4) es diseño propio de esta biblioteca, construido a partir de
