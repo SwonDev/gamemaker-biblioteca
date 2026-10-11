@@ -12,6 +12,8 @@ La referencia anterior es una instantánea documental. El 11-10-2026 las notas o
 publican Beta Release 9 (IDE 1171 / runtime 1116, 07-10-2026); LTS mantiene IDE 16 / runtime 23.
 Consulta [las notas oficiales](https://releases.gamemaker.io/release-notes/2026/100.html)
 para cambios de plataforma. Esto no autoriza actualizar el runtime de un proyecto.
+GMRT 0.22 está publicado como Beta experimental; su API 3D no forma parte del índice
+GMS2 LTS. Fuentes y límites en [la investigación r23](./_indice/auditorias/r23-investigacion-versiones.md).
 
 ---
 

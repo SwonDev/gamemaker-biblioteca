@@ -1185,9 +1185,9 @@ reglas de por qué/cuándo se puede enviar telemetría **ya están escritas y no
 envío, política de privacidad). Esta sección es solo el **cómo técnico** una vez que esas
 cuatro reglas ya se cumplen.
 
-**El archivo que ya escribe `telemetria_volcar()` ES la cola.** No hace falta inventar una
-estructura de cola nueva: basta con intentar enviar ese mismo JSON y, si falla, dejarlo donde
-está para el próximo intento.
+**El archivo de `telemetria_volcar()` permite reenviar el volcado de esta sesión.**
+El ejemplo conserva el fichero si no recibe confirmación y evita borrar una escritura
+posterior. No es una cola durable de varios lotes: sus límites están al final de esta sección.
 
 ```gml
 /// scr_telemetria (continuación) — envío por HTTP
@@ -1196,6 +1196,17 @@ está para el próximo intento.
                                  //    en un build real (variable de entorno / Included File
                                  //    no versionado). Vacío = no se envía nada, solo se guarda
                                  //    en local, exactamente como en §9.5.
+
+function telemetria_leer_pendiente()
+{
+    var _ruta = game_save_id + TELEMETRIA_ARCHIVO;
+    if (!file_exists(_ruta)) return undefined;
+    var _f = file_text_open_read(_ruta);
+    var _texto = "";
+    while (!file_text_eof(_f)) { _texto += file_text_read_string(_f); file_text_readln(_f); }
+    file_text_close(_f);
+    return _texto;
+}
 
 /// @description Intenta enviar la cola pendiente al backend. NO bloquea el frame:
 ///              http_request() es asíncrono, la respuesta llega sola al evento
@@ -1215,14 +1226,13 @@ function telemetria_enviar()
     // primero se resolvería antes de que sepamos a cuál de los dos pertenece.
     if (variable_global_exists("telemetria_envio_id") && global.telemetria_envio_id != -1) return;
 
-    var _f = file_text_open_read(_ruta_cola);
-    var _cuerpo = "";
-    while (!file_text_eof(_f)) { _cuerpo += file_text_read_string(_f); file_text_readln(_f); }
-    file_text_close(_f);
+    var _cuerpo = telemetria_leer_pendiente();
+    if (is_undefined(_cuerpo)) return;
 
     var _headers = ds_map_create();
     ds_map_add(_headers, "Content-Type", "application/json");
 
+    global.telemetria_envio_cuerpo = _cuerpo;
     global.telemetria_envio_id = http_request(TELEMETRIA_ENDPOINT, "POST", _headers, _cuerpo);
 
     ds_map_destroy(_headers);
@@ -1231,27 +1241,30 @@ function telemetria_enviar()
 
 ```gml
 /// obj_arranque · Async - HTTP — la respuesta llega aquí, en el frame que sea
-if (variable_global_exists("telemetria_envio_id") && async_load[? "id"] == global.telemetria_envio_id)
+var _respuesta = clasificar_respuesta_http(async_load,
+    variable_global_exists("telemetria_envio_id") ? global.telemetria_envio_id : -1);
+if (_respuesta.coincide && _respuesta.terminal)
 {
-    if (async_load[? "status"] == 0)
+    // Contrato de ESTE endpoint: 200/204 confirma que el lote quedó persistido.
+    // Si el backend exige un ACK en JSON, valídalo antes de borrar.
+    if (_respuesta.exito_http && (_respuesta.codigo == 200 || _respuesta.codigo == 204))
     {
-        // Éxito confirmado por el servidor: la cola ya está entregada, se borra.
-        // Un nuevo telemetria_volcar() puede escribir encima sin pisar nada en vuelo.
-        var _ruta_cola = game_save_id + TELEMETRIA_ARCHIVO;
-        if (file_exists(_ruta_cola)) { file_delete(_ruta_cola); }
+        // Un volcado posterior no pertenece a la confirmación de este envío.
+        if (telemetria_leer_pendiente() == global.telemetria_envio_cuerpo)
+            file_delete(game_save_id + TELEMETRIA_ARCHIVO);
     }
-    else if (async_load[? "status"] < 0)
+    else
     {
-        // Sin red, DNS caído, servidor caído... El archivo NO se borra: sigue siendo
-        // la cola, y el próximo Room End vuelve a intentar el mismo envío. Un evento
-        // de telemetría nunca se pierde por un fallo de red puntual.
-        show_debug_message("telemetria: envío falló (sin red o servidor caído), se reintenta luego");
+        show_debug_message("telemetría: sin confirmación; se conserva el volcado pendiente");
     }
-    // status == 1 ("descargando") no aplica a subir un JSON pequeño: se ignora.
-
     global.telemetria_envio_id = -1;
+    global.telemetria_envio_cuerpo = undefined;
 }
 ```
+
+Incluye el clasificador de [12 · 12 §1.1](<../12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md>).
+El progreso puede llegar aunque el POST sea pequeño: no libera el ID. Un 202
+solo acredita aceptación para procesar, salvo otro contrato explícito del servicio.
 
 **Las tres decisiones que evitan castigar la batería y el frame**, explícitas porque son las
 que se suelen hacer mal:
@@ -1264,22 +1277,23 @@ que se suelen hacer mal:
    la respuesta llega al evento Async - HTTP cuando toque — así que un envío lento (o que nunca
    responde) no le quita ni un frame al jugador. El único cuidado real es no lanzar un segundo
    `http_request()` mientras el primero sigue en vuelo (el `if` de `telemetria_envio_id != -1`
-   de arriba), no por rendimiento sino para no confundir qué `id` de `async_load` pertenece a
-   cuál.
-3. **El fallo se queda en disco, no en memoria.** Si el archivo de cola solo viviera en una
+   de arriba). Añade un plazo local para no dejar ese ID bloqueado para siempre;
+   descarta la respuesta tardía después de invalidarlo (12 · 12 §3).
+3. **El volcado se queda en disco, no en memoria.** Si el archivo pendiente solo viviera en una
    variable, un cierre del juego mientras no hay red se lo llevaría por delante. Al ser el mismo
    fichero que ya escribe `telemetria_volcar()`, sobrevive al cierre igual que cualquier otro
-   dato guardado — la cola **es** la persistencia, no algo aparte de ella.
+   dato guardado. Este ejemplo mantiene un volcado, no una cola durable de varios lotes.
 
-> 🔺 **`TELEMETRIA_ENDPOINT` es un marcador, no una URL real.** No escribas la dirección de tu
-> backend ni ninguna clave de API en el código fuente versionado: en un proyecto real sale de
-> una variable de entorno del pipeline de build o de un Included File que **no** se sube al
-> repositorio. La regla es la misma que para cualquier secreto — nunca en el código.
+> 🔺 **`TELEMETRIA_ENDPOINT` es un marcador, no una URL real.** Configura la URL según
+> el entorno del build. Una URL pública no es una credencial; las claves y tokens sí
+> viven fuera del repositorio y de los recibos.
 >
-> ⚠️ **Sigue sin ser una cola con reintentos exponenciales ni con límite de tamaño.** Para un
-> volumen de eventos de un juego de un estudio pequeño (unos pocos KB por sesión, un intento por
-> sala) esto basta; si el volumen crece mucho, la cola puede acumular varias sesiones sin enviar
-> — vigila el tamaño del archivo, no solo que exista.
+> ⚠️ **Es un volcado reenviable de una sesión, con límites explícitos.** No acredita
+> recuperación de varios lotes tras reiniciar: `telemetria_volcar()` reescribe el fichero
+> de la sesión actual. Para producción, usa una cola persistente por lote, recupera los
+> pendientes antes de registrar una sesión nueva y confirma solo el lote enviado.
+> Define límites, plazo, reintentos e idempotencia del servidor en 12 · 12 §4.
+> Reenviar eventos ya aceptados puede duplicarlos sin deduplicación del backend.
 
 ### 9.8 · Precio dinámico y tienda de un NPC, en código
 

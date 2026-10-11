@@ -91,7 +91,12 @@ De izquierda a derecha:
 
 ### 1.5 Ventanas divididas en Workspaces
 
-En la Beta 2026.100 Release 2 ya está la infraestructura para **dividir ventanas de workspace**, pero la función **no está activada todavía** (quedan bugs). Cuando lo esté permitirá cosas como tener dos editores lado a lado en el mismo workspace.
+La infraestructura de Release 2 ya está **habilitada desde Beta 2026.100 Release 8**
+(28-09-2026). Permite divisiones horizontales o verticales desde el menú de la pestaña,
+con varias divisiones en una sola dirección a la vez. Incluye Code Editor 2; todavía
+no permite abrir dos veces el mismo objeto para comparar sus eventos.
+[Fuente oficial, consultada 11-10-2026](https://releases.gamemaker.io/release-notes/2026/100.html).
+Es un cambio Beta: no se atribuye al IDE LTS 2026.0.0.16.
 
 ### 1.6 Snippets personalizados
 

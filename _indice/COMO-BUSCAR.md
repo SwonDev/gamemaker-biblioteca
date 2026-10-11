@@ -15,8 +15,9 @@ python3 "_indice/buscar.py" <símbolo>
 > `python3 _indice/buscar.py --todo "<lo que sea>"`: barre símbolos, biblioteca,
 > manual y código real a la vez, y ordena la respuesta por autoridad.
 
-**Antes de escribir cualquier función de GML.** Si no aparece, no existe en este runtime
-(`2026.0.0.23`). El buscador te da la firma exacta, si está obsoleta, la página del manual en
+**Antes de escribir cualquier función de GML.** Una ausencia se refiere al runtime y a la
+cobertura del índice consultado, no a extensiones ni funciones propias. Comprueba primero
+que `meta.runtime` coincide con el proyecto. El buscador te da la firma exacta, si está obsoleta, la página del manual en
 español y en inglés, los documentos que lo explican y los repositorios reales donde se usa.
 
 Tres avisos que puede darte, y qué significan:
@@ -34,7 +35,7 @@ Hay tres, y la diferencia entre el 1 y el 2 es la que importa:
 | Sale con | Significa | Qué hacer |
 |---|---|---|
 | **0** | Lo he buscado y **está** | Usa la ficha que te da |
-| **1** | Lo he buscado y **no está** | No lo escribas: no existe en este runtime |
+| **1** | Lo he buscado y **no está** | No lo atribuyas al runtime: revisa versión, cobertura, extensiones y funciones propias |
 | **2** | **No he podido buscar** | Ni existe ni deja de existir: no lo sabes. Arregla lo que dice el mensaje (falta `_indice/simbolos.json`, falta `grep` en el `PATH`) y vuelve a preguntar |
 
 **Tratar un 2 como un 1 es el peor error posible aquí**: es leer «no existe» donde pone «no lo
@@ -43,9 +44,9 @@ sé», y de ahí sale una función inventada con la conciencia tranquila. Es la 
 la que `gm-cli compile --errors-only` merece que le rompas el código una vez
 ([`12 · 09 §7.7`](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md)).
 
-> 💡 **Si `buscar.py` dice que algo no existe, no existe.** El buscador se re-deriva del
-> `GmlSpec.xml` del runtime instalado en cada regeneración, y comprueba también el manual
-> antes de dar ese veredicto.
+> 💡 **Una ausencia es evidencia acotada.** El índice incorpora `GmlSpec.xml` y `fnames`
+> del runtime seleccionado; una versión distinta, una extensión o una API experimental
+> requieren su propia fuente. No conviertas «no he podido buscar» en «no existe».
 
 ### Si el manual no lo explica
 

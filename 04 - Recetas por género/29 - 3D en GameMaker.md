@@ -63,11 +63,14 @@ la tienes**: ninguno de sus símbolos existe en el `GmlSpec.xml` del runtime `20
 (`buscar.py --listar GM3D` → **0 símbolos**). El propio documento de GMRT la describe como
 «funciones GM3D **(incompletas, pidiendo feedback)**», avisa de que **no hay ayuda de sintaxis
 en la IDE**, y lista `vertex_buffer_exists()` y `vertex_format_exists()` como incompatibles en
-0.21.0 —dos funciones que este documento usa—.
+0.22.0 —dos funciones que este documento usa—.
 
 ⚠️ **Conclusión práctica:** todo lo que sigue está escrito para la tubería clásica de LTS 2026,
-que funciona hoy y en producción. GM3D es lo que vendrá; síguelo, no lo uses aún para nada con
-fecha de entrega. Detalle en
+que funciona en GMS2 LTS. GM3D **ya está publicado como experimental**: GMRT 0.22 añade
+Jolt y sombras direccionales ([notas oficiales](https://releases.gamemaker.io/release-notes/2026/GMRT_MS_22),
+consulta 11-10-2026). No se ha ejecutado aquí su matriz de capacidades; no atribuyas a
+GMRT las pruebas de estos ejemplos clásicos. Para un proyecto con fecha de entrega,
+evalúa primero las incompatibilidades y los ejemplos fijados en el target real. Detalle en
 [02 · 03 — GMRT, el nuevo runtime](../02%20-%20Novedades%202026/03%20-%20GMRT%20-%20El%20nuevo%20runtime.md).
 
 ---

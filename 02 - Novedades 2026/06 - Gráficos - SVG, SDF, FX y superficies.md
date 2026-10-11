@@ -1,5 +1,14 @@
 # Gráficos: SVG, SDF, FX, superficies y texturas (LTS 2026.0)
 
+**Nota de versión, 11-10-2026:** Beta R9 cambia en Android la creación de páginas de
+fuente a demanda. Las notas advierten que `font_get_texture()` puede no aportar toda
+la información en ese momento y remiten a `font_get_info()`.
+[Fuente oficial](https://releases.gamemaker.io/release-notes/2026/100.html) e
+[incidencia de memoria](https://github.com/YoYoGames/GameMaker-Bugs/issues/15987).
+Comprueba glifos, memoria y uso del getter en el runtime objetivo; no se atribuye el
+arreglo a LTS ni se ha ejecutado aquí en Android. SVG sigue en las incompatibilidades
+publicadas de GMRT 0.22.
+
 ---
 
 ## 1. Sprites SVG (vectoriales)

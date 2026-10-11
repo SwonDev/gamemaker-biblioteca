@@ -184,7 +184,7 @@ Failed to restore project. "ProjectTool PREFABS RESTORE" exited with code 1
 ⚠️ **No es solo Platformer Template.** De las 18 plantillas de juego de §1.1, **9 fallan y 9
 funcionan** — siete más de las que fallan sin ningún aviso previo aquí. La tabla completa con
 las 18 verificadas una a una está en [`12 · 09` §0, Trampa
-1](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-1--9-de-las-18-plantillas-de-gm-cli-init-fallan-hoy-en-macos)
+1](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-1--fallo-histórico-de-9-plantillas-en-gm-cli-230-macos)
 — no se repite aquí para no desincronizarse con ella.
 
 Con **Space Rocks** (que no usa prefabs) el comando funciona perfectamente en cualquiera de las dos versiones, y genera el árbol completo mostrado en la sección 3.

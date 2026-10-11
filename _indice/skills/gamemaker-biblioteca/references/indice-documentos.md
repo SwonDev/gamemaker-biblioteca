@@ -3,7 +3,7 @@
 > **Generado por `_indice/sincronizar-skill.py` desde `MAPA.json`. No lo edites a mano:**
 > se reescribe en cada `python3 _indice/actualizar.py`.
 
-Versión de referencia: LTS 2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23) · Beta 2026.100.0 (snapshot 07-09-2026: IDE 1142 / runtime 1093) · GMRT 0.21.
+Versión de referencia (instantánea de MAPA.json; consulta novedades en `02/01`): LTS 2026.0.0 (IDE 2026.0.0.16 / runtime GMS2 2026.0.0.23) · Beta 2026.100.0 (snapshot 07-09-2026: IDE 1142 / runtime 1093) · GMRT 0.21.
 
 Todas las rutas son relativas a la raíz de la biblioteca, la que resuelve `$BIB` (ver la cabecera de la skill).
 
@@ -379,6 +379,7 @@ Herramientas de flujo de trabajo, extensiones nativas, integraciones con servici
 - `12 - Utilidades e integraciones/08 - Tooling externo - CLI, parsers e ingeniería inversa.md` — 08 · Tooling externo: CLI, parsers, TypeScript e ingeniería inversa
 - `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — 09 · Manual del agente de IA — operar GameMaker con `gm-cli`
 - `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md` — Búsqueda multimodal con EmbeddingGemma 2 — contexto y recursos para agentes
+- `12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md` — 12 · HTTP asíncrono: estados, propiedad y respuestas tardías
 - `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` — 12 · Utilidades e integraciones para GameMaker
 
 

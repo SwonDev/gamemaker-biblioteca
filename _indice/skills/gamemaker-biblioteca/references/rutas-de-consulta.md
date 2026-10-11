@@ -18,6 +18,7 @@ documentos, generado del disco, en [indice-documentos.md](indice-documentos.md).
 | Búsqueda, clasificación o deduplicación de código, información y recursos; contexto/tokens | `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md`: literal frente a significado, MCP real, fuentes verificadas, índices acotados y fallback |
 | Búsqueda semántica o RAG como función de producto | `13/29 §11.1` y `12/11`: consumidor real, servicio/modelo conservado, reserva fuera del corpus, fidelidad y recuperación separadas |
 | Estructurar el proyecto para que crezca | `13 - Diseño y producción de videojuegos/06 - Arquitectura de un proyecto GameMaker.md` |
+| HTTP, callbacks asíncronos, respuestas tardías, timeout o reintentos | `12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md`: ID, progreso frente a terminal, HTTP frente a aceptación, propiedad y persistencia |
 | Explicar un concepto del motor | `01 - Fundamentos/` → la página del manual en `09 - Manual oficial/manual-lts-2026-es/` |
 | «No compila» o «se comporta raro» con código antiguo | `01 - Fundamentos/03 - Handles - el cambio clave de 2026.md` → `02 - Novedades 2026/02 - Cambios en GML 2026.md` → `buscar.py` (¿obsoleta?) → github.com/YoYoGames/GameMaker-Bugs |
 | Qué librería, extensión o herramienta usar | `12 - Utilidades e integraciones/_INDICE-UTILIDADES.md` → `11 - Código descargado/_CATALOGO.md` → `07 - Ecosistema/` |

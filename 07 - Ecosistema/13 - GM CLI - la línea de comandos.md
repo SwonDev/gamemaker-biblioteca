@@ -1,10 +1,13 @@
 # 13 · GM CLI — la línea de comandos de GameMaker
 
-> **Estado de la documentación**: todo lo que aparece aquí se ha ejecutado de verdad en este Mac
-> (31 de agosto de 2026). Las salidas son copias literales de la terminal, no recreaciones.
+> **Estado de la documentación**: las salidas históricas de terminal se ejecutaron en
+> este Mac y conservan sus fechas. Las novedades posteriores distinguen inspección de
+> fuente y ejecución local; 2.4.1 se ha inspeccionado, no ejecutado. Las salidas son copias
+> literales de la terminal, no recreaciones.
 >
 > **Entorno verificado**
-> - `gm-cli` **2.4.0** instalado global con pnpm en `~/Library/pnpm/bin/gm-cli` — es también la última publicada (27 de septiembre de 2026; hasta esa fecha, 2.3.0 con npm: ver §10)
+> - `gm-cli` **2.4.0** instalado y probado con pnpm en `~/Library/pnpm/bin/gm-cli`;
+>   el 11-10-2026 la última publicada es **2.4.1**. No se ha actualizado esta instalación.
 > - GameMaker **LTS 2026.0** — IDE 2026.0.0.16 / GMS2 Runtime 2026.0.0.23
 > - Licencia Professional activa vía variable de entorno `GAMEMAKER_CLI_LICENSE`
 > - macOS 26 (Darwin 25.5), Apple Silicon
@@ -23,8 +26,8 @@ paquete npm `@gamemaker/gm-cli`. Es **código abierto con licencia Apache-2.0**.
 | Licencia | `Apache-2.0` (campo `license` del `package.json`) |
 | Binario | `gm-cli` (entrada `dist/cli.js`) |
 | Node requerido | `>=24` (campo `engines`) |
-| Versión publicada más reciente | `2.4.0` (23-09-2026) |
-| Historial de versiones npm | `1.2.1, 1.3.0, 1.4.0, 1.4.1, 2.0.0, 2.1.0, 2.2.0, 2.3.0, 2.4.0` |
+| Versión publicada más reciente | `2.4.1` (28-09-2026; consulta 11-10-2026) |
+| Historial de versiones npm | `1.2.1, 1.3.0, 1.4.0, 1.4.1, 2.0.0, 2.1.0, 2.2.0, 2.3.0, 2.4.0, 2.4.1` |
 | Repo creado / último push | 2026-03-25 / 2026-09-23 |
 
 ### Por qué es importante
@@ -955,12 +958,26 @@ pnpm add -g @gamemaker/gm-cli@2.4.0
 `12 · 09 §0` están medidas sobre una versión concreta, y una que YoYo arregle se convierte en una
 advertencia falsa.
 
+### Qué cambia de 2.4.0 a 2.4.1 (fuente publicada, sin ejecución local)
+
+El [CHANGELOG oficial fijado a 2.4.1](https://github.com/YoYoGames/gm-cli/blob/cf3ca060a50d9cfcc01b254e52c25b7aa6670d39/CHANGELOG.md)
+corrige la instalación de un módulo ausente: usa la versión exacta del runtime cacheado,
+en vez de resolver la última del feed. Si falla una compilación por un módulo,
+comprueba **runtime elegido, módulos presentes y versión descargada** antes de culpar al GML.
+No cambies el runtime para ocultar el fallo. La inspección del paquete acredita el cambio
+de fuente; no una compilación local con 2.4.1.
+
+La corrección de mensajes de `gm-options.json` de la rama `main` posterior a 2.4.1
+todavía no está en ese paquete. Publicado y `main` son revisiones distintas.
+[Recibo de paquetes y fuentes](<../_indice/auditorias/r23-investigacion-versiones.md>).
+
 ### Qué cambia de 2.3.0 a 2.4.0 (verificado)
 
 | Cambio | Detalle |
 |---|---|
 | **Included files en GX.Games** | Commit `69e2cdd` (PR #239, 23-09-2026): usa el Igor del runtime del juego en vez del suyo, para arreglar un desajuste de versiones al empaquetar para GX.Games ([GameMaker-Bugs#15930](https://github.com/YoYoGames/GameMaker-Bugs/issues/15930)). **No toca la trampa 8**: `verificar-trampas.sh` la sigue dando por cierta |
 | Documentación | Commit `87bda35` («Changes to docs») |
+| Prefabs del IDE | Detecta y copia paquetes referenciados que ya estén descargados en los almacenes del IDE. No demuestra restauración universal sin esos paquetes ni resuelve por sí solo un registro inaccesible |
 | Targets | Sin cambios: la lista con `android` sigue igual |
 
 ### Qué cambia de 2.2.0 a 2.3.0 (verificado)
@@ -969,7 +986,7 @@ advertencia falsa.
 |---|---|
 | **Target `android`** | La lista de targets aceptados pasa de `["mac","windows","linux","operagx"]` a `["mac","windows","linux","operagx","android"]` |
 | README | **Idéntico** en ambas versiones (diff vacío), así que no hay changelog oficial en el paquete |
-| Repo GitHub | `YoYoGames/gm-cli` tiene **0 releases** publicados: no hay notas de versión oficiales |
+| Repo GitHub | El número de GitHub Releases no determina si hay notas: existe el `CHANGELOG.md` oficial enlazado arriba |
 
 Comprobación literal del binario 2.3.0:
 
@@ -1231,7 +1248,7 @@ El directorio del proyecto se crea **pero queda vacío de `.yyp`**: no hay proye
 **No es solo `Platformer`**: de las 18 plantillas de juego, **9 fallan y 9 funcionan**. La
 tabla completa con las 18, verificada una a una, vive en un solo sitio para no duplicarla y
 que se desactualice — [`12 · 09` §0, Trampa
-1](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-1--9-de-las-18-plantillas-de-gm-cli-init-fallan-hoy-en-macos).
+1](../12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#trampa-1--fallo-histórico-de-9-plantillas-en-gm-cli-230-macos).
 Como referencia rápida, las tres que se probaron primero en esta sesión:
 
 | Plantilla | Resultado | ¿Genera `.yyp`? |

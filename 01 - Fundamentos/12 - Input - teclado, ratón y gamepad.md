@@ -937,10 +937,10 @@ else if (_tipo == "gamepad lost")
 var _dx = input_mover_x();
 var _dy = input_mover_y();
 
-// Normalizar el vector diagonal
-if (_dx != 0 || _dy != 0)
+// Limitar diagonales sin convertir una inclinación analógica pequeña en velocidad máxima.
+var _longitud = point_distance(0, 0, _dx, _dy);
+if (_longitud > 1)
 {
-    var _longitud = point_distance(0, 0, _dx, _dy);
     _dx /= _longitud;
     _dy /= _longitud;
 }
@@ -952,6 +952,11 @@ if (input_saltar_pulsado() && en_suelo)
     vel_y = vel_salto;
 }
 ```
+
+Con `_dx = 0.4` y `_dy = 0`, se conserva el 40 % de velocidad. Una diagonal
+digital `(1, 1)` sí se reduce a longitud 1. Si el diseño exige velocidad fija
+para cualquier inclinación, normaliza los vectores no nulos de forma explícita;
+esa es otra decisión de control, no una corrección de la diagonal.
 
 ```gml
 // ═══════════ obj_controlador (Step) ═══════════

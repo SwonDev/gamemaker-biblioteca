@@ -76,10 +76,14 @@ La distribución comercial de juegos **sigue requiriendo licencia activa**.
 | **Scene Graph** | Simplifica el manejo de mundos 3D: construir mundos y entornos complejos |
 | **Matemáticas 3D** | Mejor soporte de **matrices, cuaterniones** y funciones útiles de 3D |
 | **Animación** | De momento, animaciones simples cargadas desde los glTF; ampliarán el soporte |
+| **Físicas y sombras** | GMRT 0.22 añade Jolt 3D y sombras direccionales; API experimental sin ayuda del IDE |
 
 Están usando **Blender** como fuente principal para creación de assets y quieren **integrar estrechamente el flujo de Blender** en el futuro.
 
-Detalle de lo que ya hay en `03 - GMRT - El nuevo runtime.md`.
+Actualización consultada el 11-10-2026: estas incorporaciones de 0.22 están publicadas,
+no son solo planes. [Notas oficiales](https://releases.gamemaker.io/release-notes/2026/GMRT_MS_22)
+y detalle en [03 - GMRT](<./03 - GMRT - El nuevo runtime.md>). Las fechas de lenguajes
+de la sección siguiente siguen siendo planes; una fecha pasada no prueba disponibilidad.
 
 ---
 
@@ -238,7 +242,7 @@ Roadmap público: https://roadmap.gamemaker.io y https://github.com/orgs/YoYoGam
 - Prefab Builder
 - Workspaces con pestañas scrollables
 - Validación y reparación de paquetes
-- Split windows (infra lista, función pendiente de activar)
+- Split workspaces horizontal/vertical (habilitado desde Release 8; una dirección a la vez)
 - Eliminación de rollback
 
 ### Pendiente (según roadmap)

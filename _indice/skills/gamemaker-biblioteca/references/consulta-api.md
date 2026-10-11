@@ -58,6 +58,16 @@ asignación, también sin `--todo`. Los desconocidos plausibles como métodos o 
 requieren revisión: ni la lista ni un exit 0 demuestran resolución dinámica en runtime.
 Consulta el `--help` de la versión disponible; no reutilices semántica de flags de una copia vieja.
 
+## Callbacks HTTP y vida útil
+
+Antes de integrar HTTP, abre `12/12 — HTTP asíncrono`. Conserva el ID durante progreso;
+un `status == 0` solo termina el transporte, no acredita éxito HTTP ni aceptación del
+backend. Comprueba `http_status` y el contrato del endpoint antes de aplicar o borrar datos.
+`async_load` es efímero y lo administra el motor: copia los valores necesarios, no su map.
+Define plazo, destinatario/generación e idempotencia; cancelar lógicamente no deshace un POST.
+Sin la biblioteca, verifica estos contratos en las páginas oficiales de eventos Async/HTTP
+del runtime objetivo. No generalices la prueba nativa a CORS, TLS ni otros targets.
+
 ## Comandos de consulta
 
 | Necesito | Comando |

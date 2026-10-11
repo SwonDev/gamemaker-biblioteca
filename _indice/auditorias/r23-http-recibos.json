@@ -1,0 +1,772 @@
+[
+  {
+    "runtime": "2026.0.0.23",
+    "target": "mac",
+    "modo": "vm",
+    "fuentes": [
+      {
+        "ruta": "12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md",
+        "marcador": "function clasificar_respuesta_http(",
+        "sha256_documento": "e8406bc9fd265e4a88f162d8885525fb9e144b9a478a6ae47d5278c07bac63b9",
+        "sha256_bloque": "6a705265661bedfcae0f78bafcf4b9508042b6913669fcecd341359f17204564"
+      },
+      {
+        "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+        "marcador": "/// obj_control · Async - HTTP",
+        "sha256_documento": "10a724ba93ccb4cf07c8bc324e7497b93ad1a169512ac02794841deb3f5f6e57",
+        "sha256_bloque": "ac94ad7033a2b246620282b3724f0d066062338ae0ec97475d6c41e9d3b74439"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "function telemetria_leer_pendiente(",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "ff7801531cad88aa8a5dea31d2866a35551479977f1972d705fcb5eb4b3b67e9"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "/// obj_arranque · Async - HTTP",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "f3f8bc10f79cf644094299d326a636212622db356ff3c78eb9974084cea5ea92"
+      },
+      {
+        "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+        "marcador": "vector antes de move_and_collide",
+        "sha256_documento": "05884df661c54aa0f2942e77904d3db7e0f6a9401d43467ce92f3afbee71eac2",
+        "sha256_bloque": "69a32e75fa93a56518a26c42d1fce0896202e2659112fc835609e1ba64dd19d4"
+      }
+    ],
+    "sha256_orquestador": "60aeb4d04494b1b9eb51aaea727815eb30174de96d44c450005f747c238c7e0f",
+    "mutacion": null,
+    "estado": "ejecutado",
+    "limite_por_comando_segundos": 240,
+    "limites": [
+      "dominio liveops sustituido por validación JSON mínima",
+      "sin TLS/CORS/backend remoto",
+      "sin cierre y recuperación de cola multisesión",
+      "progreso y códigos ausentes sintéticos"
+    ],
+    "gm_cli": "2.4.0",
+    "sha256_banco": "d241d50e7497fe12750b22f68ecf101ac2514a5228c8a60de0c30395846c5107",
+    "sha256_fuente_fixture": "7665e8e8781458d19eeb956011f0290949034182ce6cd977de5244d4ec3b37b7",
+    "correctas": 49,
+    "fallidas": 0,
+    "callbacks_terminales": [
+      {
+        "etapa": 0.0,
+        "codigo": 200.0,
+        "id_peticion": 1.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 1.0,
+        "codigo": 500.0,
+        "id_peticion": 4.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 2.0,
+        "codigo": 204.0,
+        "id_peticion": 5.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 3.0,
+        "codigo": 200.0,
+        "id_peticion": 6.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 4.0,
+        "codigo": 500.0,
+        "id_peticion": 7.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 5.0,
+        "codigo": 200.0,
+        "id_peticion": 8.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 6.0,
+        "codigo": 204.0,
+        "id_peticion": 9.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 7.0,
+        "codigo": 200.0,
+        "id_peticion": 10.0,
+        "estado": 0.0
+      }
+    ],
+    "peticiones_servidor": [
+      {
+        "ruta": "/config200",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config500",
+        "metodo": "GET",
+        "codigo": 500,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config204",
+        "metodo": "GET",
+        "codigo": 204,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/configbad",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/post500",
+        "metodo": "POST",
+        "codigo": 500,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post200",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post204",
+        "metodo": "POST",
+        "codigo": 204,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/postnuevo",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      }
+    ],
+    "codigo_salida": 0,
+    "compilacion_warning": false
+  },
+  {
+    "runtime": "2026.0.0.23",
+    "target": "mac",
+    "modo": "vm",
+    "fuentes": [
+      {
+        "ruta": "12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md",
+        "marcador": "function clasificar_respuesta_http(",
+        "sha256_documento": "e8406bc9fd265e4a88f162d8885525fb9e144b9a478a6ae47d5278c07bac63b9",
+        "sha256_bloque": "6a705265661bedfcae0f78bafcf4b9508042b6913669fcecd341359f17204564"
+      },
+      {
+        "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+        "marcador": "/// obj_control · Async - HTTP",
+        "sha256_documento": "10a724ba93ccb4cf07c8bc324e7497b93ad1a169512ac02794841deb3f5f6e57",
+        "sha256_bloque": "ac94ad7033a2b246620282b3724f0d066062338ae0ec97475d6c41e9d3b74439"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "function telemetria_leer_pendiente(",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "ff7801531cad88aa8a5dea31d2866a35551479977f1972d705fcb5eb4b3b67e9"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "/// obj_arranque · Async - HTTP",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "f3f8bc10f79cf644094299d326a636212622db356ff3c78eb9974084cea5ea92"
+      },
+      {
+        "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+        "marcador": "vector antes de move_and_collide",
+        "sha256_documento": "05884df661c54aa0f2942e77904d3db7e0f6a9401d43467ce92f3afbee71eac2",
+        "sha256_bloque": "69a32e75fa93a56518a26c42d1fce0896202e2659112fc835609e1ba64dd19d4"
+      }
+    ],
+    "sha256_orquestador": "60aeb4d04494b1b9eb51aaea727815eb30174de96d44c450005f747c238c7e0f",
+    "mutacion": "progreso",
+    "estado": "ejecutado",
+    "limite_por_comando_segundos": 240,
+    "limites": [
+      "dominio liveops sustituido por validación JSON mínima",
+      "sin TLS/CORS/backend remoto",
+      "sin cierre y recuperación de cola multisesión",
+      "progreso y códigos ausentes sintéticos"
+    ],
+    "gm_cli": "2.4.0",
+    "sha256_banco": "d241d50e7497fe12750b22f68ecf101ac2514a5228c8a60de0c30395846c5107",
+    "sha256_fuente_fixture": "67cdeb5a85f7db0c2363a1b4785b7e1fb6bc6dcf67a410f953d64bef5ffe2fea",
+    "correctas": 48,
+    "fallidas": 1,
+    "callbacks_terminales": [
+      {
+        "etapa": 0.0,
+        "codigo": 200.0,
+        "id_peticion": 1.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 1.0,
+        "codigo": 500.0,
+        "id_peticion": 4.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 2.0,
+        "codigo": 204.0,
+        "id_peticion": 5.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 3.0,
+        "codigo": 200.0,
+        "id_peticion": 6.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 4.0,
+        "codigo": 500.0,
+        "id_peticion": 7.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 5.0,
+        "codigo": 200.0,
+        "id_peticion": 8.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 6.0,
+        "codigo": 204.0,
+        "id_peticion": 9.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 7.0,
+        "codigo": 200.0,
+        "id_peticion": 10.0,
+        "estado": 0.0
+      }
+    ],
+    "peticiones_servidor": [
+      {
+        "ruta": "/config200",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config500",
+        "metodo": "GET",
+        "codigo": 500,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config204",
+        "metodo": "GET",
+        "codigo": 204,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/configbad",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/post500",
+        "metodo": "POST",
+        "codigo": 500,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post200",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post204",
+        "metodo": "POST",
+        "codigo": 204,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/postnuevo",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      }
+    ],
+    "codigo_salida": 1,
+    "compilacion_warning": false
+  },
+  {
+    "runtime": "2026.0.0.23",
+    "target": "mac",
+    "modo": "vm",
+    "fuentes": [
+      {
+        "ruta": "12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md",
+        "marcador": "function clasificar_respuesta_http(",
+        "sha256_documento": "e8406bc9fd265e4a88f162d8885525fb9e144b9a478a6ae47d5278c07bac63b9",
+        "sha256_bloque": "6a705265661bedfcae0f78bafcf4b9508042b6913669fcecd341359f17204564"
+      },
+      {
+        "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+        "marcador": "/// obj_control · Async - HTTP",
+        "sha256_documento": "10a724ba93ccb4cf07c8bc324e7497b93ad1a169512ac02794841deb3f5f6e57",
+        "sha256_bloque": "ac94ad7033a2b246620282b3724f0d066062338ae0ec97475d6c41e9d3b74439"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "function telemetria_leer_pendiente(",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "ff7801531cad88aa8a5dea31d2866a35551479977f1972d705fcb5eb4b3b67e9"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "/// obj_arranque · Async - HTTP",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "f3f8bc10f79cf644094299d326a636212622db356ff3c78eb9974084cea5ea92"
+      },
+      {
+        "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+        "marcador": "vector antes de move_and_collide",
+        "sha256_documento": "05884df661c54aa0f2942e77904d3db7e0f6a9401d43467ce92f3afbee71eac2",
+        "sha256_bloque": "69a32e75fa93a56518a26c42d1fce0896202e2659112fc835609e1ba64dd19d4"
+      }
+    ],
+    "sha256_orquestador": "60aeb4d04494b1b9eb51aaea727815eb30174de96d44c450005f747c238c7e0f",
+    "mutacion": "http",
+    "estado": "ejecutado",
+    "limite_por_comando_segundos": 240,
+    "limites": [
+      "dominio liveops sustituido por validación JSON mínima",
+      "sin TLS/CORS/backend remoto",
+      "sin cierre y recuperación de cola multisesión",
+      "progreso y códigos ausentes sintéticos"
+    ],
+    "gm_cli": "2.4.0",
+    "sha256_banco": "d241d50e7497fe12750b22f68ecf101ac2514a5228c8a60de0c30395846c5107",
+    "sha256_fuente_fixture": "d55af77dbeee36c4f56212e2b590b5a6a8ebaea918d61e9de2a635b91f69d95d",
+    "correctas": 43,
+    "fallidas": 6,
+    "callbacks_terminales": [
+      {
+        "etapa": 0.0,
+        "codigo": 200.0,
+        "id_peticion": 1.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 1.0,
+        "codigo": 500.0,
+        "id_peticion": 4.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 2.0,
+        "codigo": 204.0,
+        "id_peticion": 5.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 3.0,
+        "codigo": 200.0,
+        "id_peticion": 6.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 4.0,
+        "codigo": 500.0,
+        "id_peticion": 7.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 5.0,
+        "codigo": 200.0,
+        "id_peticion": 8.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 6.0,
+        "codigo": 204.0,
+        "id_peticion": 9.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 7.0,
+        "codigo": 200.0,
+        "id_peticion": 10.0,
+        "estado": 0.0
+      }
+    ],
+    "peticiones_servidor": [
+      {
+        "ruta": "/config200",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config500",
+        "metodo": "GET",
+        "codigo": 500,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config204",
+        "metodo": "GET",
+        "codigo": 204,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/configbad",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/post500",
+        "metodo": "POST",
+        "codigo": 500,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post200",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post204",
+        "metodo": "POST",
+        "codigo": 204,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/postnuevo",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      }
+    ],
+    "codigo_salida": 1,
+    "compilacion_warning": false
+  },
+  {
+    "runtime": "2026.0.0.23",
+    "target": "mac",
+    "modo": "vm",
+    "fuentes": [
+      {
+        "ruta": "12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md",
+        "marcador": "function clasificar_respuesta_http(",
+        "sha256_documento": "e8406bc9fd265e4a88f162d8885525fb9e144b9a478a6ae47d5278c07bac63b9",
+        "sha256_bloque": "6a705265661bedfcae0f78bafcf4b9508042b6913669fcecd341359f17204564"
+      },
+      {
+        "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+        "marcador": "/// obj_control · Async - HTTP",
+        "sha256_documento": "10a724ba93ccb4cf07c8bc324e7497b93ad1a169512ac02794841deb3f5f6e57",
+        "sha256_bloque": "ac94ad7033a2b246620282b3724f0d066062338ae0ec97475d6c41e9d3b74439"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "function telemetria_leer_pendiente(",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "ff7801531cad88aa8a5dea31d2866a35551479977f1972d705fcb5eb4b3b67e9"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "/// obj_arranque · Async - HTTP",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "f3f8bc10f79cf644094299d326a636212622db356ff3c78eb9974084cea5ea92"
+      },
+      {
+        "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+        "marcador": "vector antes de move_and_collide",
+        "sha256_documento": "05884df661c54aa0f2942e77904d3db7e0f6a9401d43467ce92f3afbee71eac2",
+        "sha256_bloque": "69a32e75fa93a56518a26c42d1fce0896202e2659112fc835609e1ba64dd19d4"
+      }
+    ],
+    "sha256_orquestador": "60aeb4d04494b1b9eb51aaea727815eb30174de96d44c450005f747c238c7e0f",
+    "mutacion": "cola",
+    "estado": "ejecutado",
+    "limite_por_comando_segundos": 240,
+    "limites": [
+      "dominio liveops sustituido por validación JSON mínima",
+      "sin TLS/CORS/backend remoto",
+      "sin cierre y recuperación de cola multisesión",
+      "progreso y códigos ausentes sintéticos"
+    ],
+    "gm_cli": "2.4.0",
+    "sha256_banco": "d241d50e7497fe12750b22f68ecf101ac2514a5228c8a60de0c30395846c5107",
+    "sha256_fuente_fixture": "9734e70ea547b8b2cc03a859e50784454fb6bddf9f88b1495ac9dc0c279adb72",
+    "correctas": 47,
+    "fallidas": 2,
+    "callbacks_terminales": [
+      {
+        "etapa": 0.0,
+        "codigo": 200.0,
+        "id_peticion": 1.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 1.0,
+        "codigo": 500.0,
+        "id_peticion": 4.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 2.0,
+        "codigo": 204.0,
+        "id_peticion": 5.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 3.0,
+        "codigo": 200.0,
+        "id_peticion": 6.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 4.0,
+        "codigo": 500.0,
+        "id_peticion": 7.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 5.0,
+        "codigo": 200.0,
+        "id_peticion": 8.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 6.0,
+        "codigo": 204.0,
+        "id_peticion": 9.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 7.0,
+        "codigo": 200.0,
+        "id_peticion": 10.0,
+        "estado": 0.0
+      }
+    ],
+    "peticiones_servidor": [
+      {
+        "ruta": "/config200",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config500",
+        "metodo": "GET",
+        "codigo": 500,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config204",
+        "metodo": "GET",
+        "codigo": 204,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/configbad",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/post500",
+        "metodo": "POST",
+        "codigo": 500,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post200",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post204",
+        "metodo": "POST",
+        "codigo": 204,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/postnuevo",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      }
+    ],
+    "codigo_salida": 1,
+    "compilacion_warning": false
+  },
+  {
+    "runtime": "2026.0.0.23",
+    "target": "mac",
+    "modo": "vm",
+    "fuentes": [
+      {
+        "ruta": "12 - Utilidades e integraciones/12 - HTTP asíncrono - estados, propiedad y respuestas tardías.md",
+        "marcador": "function clasificar_respuesta_http(",
+        "sha256_documento": "e8406bc9fd265e4a88f162d8885525fb9e144b9a478a6ae47d5278c07bac63b9",
+        "sha256_bloque": "6a705265661bedfcae0f78bafcf4b9508042b6913669fcecd341359f17204564"
+      },
+      {
+        "ruta": "04 - Recetas por género/52 - Live-ops técnico (config remota, versión mínima, mensajes del juego).md",
+        "marcador": "/// obj_control · Async - HTTP",
+        "sha256_documento": "10a724ba93ccb4cf07c8bc324e7497b93ad1a169512ac02794841deb3f5f6e57",
+        "sha256_bloque": "ac94ad7033a2b246620282b3724f0d066062338ae0ec97475d6c41e9d3b74439"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "function telemetria_leer_pendiente(",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "ff7801531cad88aa8a5dea31d2866a35551479977f1972d705fcb5eb4b3b67e9"
+      },
+      {
+        "ruta": "13 - Diseño y producción de videojuegos/01 - Diseño de juego - core loop, mecánicas, balance y dificultad.md",
+        "marcador": "/// obj_arranque · Async - HTTP",
+        "sha256_documento": "a0877fa032b54028ee8ebeaaf6193941d8f1b53a05f45c2e4c67b474c2c04274",
+        "sha256_bloque": "f3f8bc10f79cf644094299d326a636212622db356ff3c78eb9974084cea5ea92"
+      },
+      {
+        "ruta": "01 - Fundamentos/12 - Input - teclado, ratón y gamepad.md",
+        "marcador": "vector antes de move_and_collide",
+        "sha256_documento": "05884df661c54aa0f2942e77904d3db7e0f6a9401d43467ce92f3afbee71eac2",
+        "sha256_bloque": "69a32e75fa93a56518a26c42d1fce0896202e2659112fc835609e1ba64dd19d4"
+      }
+    ],
+    "sha256_orquestador": "60aeb4d04494b1b9eb51aaea727815eb30174de96d44c450005f747c238c7e0f",
+    "mutacion": "input",
+    "estado": "ejecutado",
+    "limite_por_comando_segundos": 240,
+    "limites": [
+      "dominio liveops sustituido por validación JSON mínima",
+      "sin TLS/CORS/backend remoto",
+      "sin cierre y recuperación de cola multisesión",
+      "progreso y códigos ausentes sintéticos"
+    ],
+    "gm_cli": "2.4.0",
+    "sha256_banco": "d241d50e7497fe12750b22f68ecf101ac2514a5228c8a60de0c30395846c5107",
+    "sha256_fuente_fixture": "306fdd29757189fbac486632edcb0e7a7a63305fbfc7c0e155ca61e9f9cf41e3",
+    "correctas": 47,
+    "fallidas": 2,
+    "callbacks_terminales": [
+      {
+        "etapa": 0.0,
+        "codigo": 200.0,
+        "id_peticion": 1.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 1.0,
+        "codigo": 500.0,
+        "id_peticion": 4.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 2.0,
+        "codigo": 204.0,
+        "id_peticion": 5.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 3.0,
+        "codigo": 200.0,
+        "id_peticion": 6.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 4.0,
+        "codigo": 500.0,
+        "id_peticion": 7.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 5.0,
+        "codigo": 200.0,
+        "id_peticion": 8.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 6.0,
+        "codigo": 204.0,
+        "id_peticion": 9.0,
+        "estado": 0.0
+      },
+      {
+        "etapa": 7.0,
+        "codigo": 200.0,
+        "id_peticion": 10.0,
+        "estado": 0.0
+      }
+    ],
+    "peticiones_servidor": [
+      {
+        "ruta": "/config200",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config500",
+        "metodo": "GET",
+        "codigo": 500,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/config204",
+        "metodo": "GET",
+        "codigo": 204,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/configbad",
+        "metodo": "GET",
+        "codigo": 200,
+        "bytes_cuerpo": 0
+      },
+      {
+        "ruta": "/post500",
+        "metodo": "POST",
+        "codigo": 500,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post200",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/post204",
+        "metodo": "POST",
+        "codigo": 204,
+        "bytes_cuerpo": 12
+      },
+      {
+        "ruta": "/postnuevo",
+        "metodo": "POST",
+        "codigo": 200,
+        "bytes_cuerpo": 12
+      }
+    ],
+    "codigo_salida": 1,
+    "compilacion_warning": false
+  }
+]

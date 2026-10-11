@@ -68,7 +68,7 @@ def generar_indice():
     out.append("# Índice de documentos de la biblioteca\n")
     out.append("> **Generado por `_indice/sincronizar-skill.py` desde `MAPA.json`. No lo edites a mano:**\n"
                "> se reescribe en cada `python3 _indice/actualizar.py`.\n")
-    out.append(f"Versión de referencia: LTS {v.get('lts', '?')} · Beta {v.get('beta', '?')} · "
+    out.append(f"Versión de referencia (instantánea de MAPA.json; consulta novedades en `02/01`): LTS {v.get('lts', '?')} · Beta {v.get('beta', '?')} · "
                f"GMRT {v.get('gmrt', '?')}.\n")
     # La raíz NO se escribe a fuego: este archivo viaja a otros CLI y a quien clone el
     # repositorio, donde esa ruta no existe. Se usa la misma convención que la skill.
