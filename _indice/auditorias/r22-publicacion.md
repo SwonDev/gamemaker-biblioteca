@@ -68,7 +68,22 @@ destinos locales, incluidos los seis harnesses nuevos; Codex conserva su enlace
 canónico y la vía compartida de Agent Skills. El instalador conservó las copias previas.
 Qwen sigue leyendo su ruta configurada a Claude; no se cambió su configuración.
 
-El cierre remoto añade el clon nuevo y la revisión del README y la guía en GitHub.
+Se publicó mediante avance normal de `main`, desde la historia pública r46, el commit
+[`90dc080b733192cd5e39f741993469d084ad6e67`](https://github.com/SwonDev/gamemaker-biblioteca/commit/90dc080b733192cd5e39f741993469d084ad6e67).
+Un clon nuevo del repositorio remoto confirmó ese HEAD y, con un entorno virtual nuevo
+de Python 3.10.21, instaló las dependencias declaradas y la skill en un destino aislado.
+Los 12 archivos coinciden mediante SHA-256. También pasó la instalación con `DSH_HOME`
+aislado, la derivación de índices para 2026.0.0.23 y la consulta de
+`gpu_get_blendequation_sepalpha`; los archivos generados no producen diferencias.
+Este clon no ejecutó conversaciones LLM, juegos ni la reconstrucción del corpus opcional.
+
+En GitHub real se comprobaron README y guía a 1440 × 900 y 390 × 844, en claro y oscuro:
+ocho capturas inspeccionadas, imágenes cargadas, alternativas presentes, sin desbordamiento
+de página, foco visible y navegación con Tab y Enter. Se recorrieron los 28 enlaces del
+README y los 13 de la guía, incluidas las imágenes ampliables. El
+[informe visual](./r22-visual.md) identifica el alcance, la valoración manual y los
+límites del anfitrión. Este recibo final se publica como un commit posterior normal;
+no reescribe el commit del paquete que se clonó y comprobó.
 
 ## 4. Límites
 
