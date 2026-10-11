@@ -27,7 +27,8 @@ También falla ante nombres inexistentes, escrituras de solo lectura, cadenas si
 y colisiones globales con funciones de script. Sale con 0 si no encuentra esos errores,
 con 1 si encuentra alguno y con 2 si no puede analizar el proyecto.
 """
-import os, re, sys, json, difflib, importlib.util, platform
+import os, re, sys, json, difflib, importlib.util
+from runtime_biblioteca import seleccionar_runtime, aviso_indice, ruta_cache_gamemakercli as _ruta_cache_gamemakercli
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
 # propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
@@ -144,34 +145,13 @@ def cargar_simbolos():
     return d["simbolos"], d.get("meta", {})
 
 
-# La misma carpeta que consultan buscar.py y construir-indices.py (gm-cli guarda ahí
-# los runtimes). buscar.py no se puede importar sin ejecutar su CLI, así que se repite
-# la constante: si cambia allí, cambia aquí.
-def _ruta_cache_gamemakercli():
-    """Réplica de la lógica de gm-cli (ver buscar.py, misma función, para el porqué
-    exacto): macOS → ~/Library/Caches, Windows → %LOCALAPPDATA%\\GameMakerCLI\\cache,
-    resto → XDG_CACHE_HOME. No verificado fuera de macOS."""
-    home = os.path.expanduser("~")
-    sistema = platform.system()
-    if sistema == "Darwin":
-        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
-    if sistema == "Windows":
-        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
-        return os.path.join(base, "GameMakerCLI", "cache")
-    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
-    return os.path.join(base, "GameMakerCLI")
-
-
 RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
 
 
 def runtime_instalado():
-    """Versión del runtime que hay en disco, para avisar si el índice caducó."""
-    try:
-        rts = sorted(d for d in os.listdir(RUNTIMES) if d.startswith("runtime-"))
-    except OSError:
-        return None
-    return rts[-1].replace("runtime-", "") if rts else None
+    """Versión de la fuente elegida; no acredita el runtime de este proyecto."""
+    runtime = seleccionar_runtime(RUNTIMES)
+    return runtime.version if runtime else None
 
 
 def gml_del_proyecto(ruta):
@@ -222,11 +202,11 @@ def main():
     if not any(f.endswith(".yyp") for f in os.listdir(proyecto)):
         print(f"⚠ En {proyecto} no hay ningún .yyp: se analizan igualmente los .gml que haya.", file=sys.stderr if como_json else sys.stdout)
 
+    runtime = seleccionar_runtime(RUNTIMES)
     simb, meta = cargar_simbolos()
-    instalado = runtime_instalado()
-    if instalado and instalado != meta.get("runtime"):
-        print(f"⚠ ÍNDICE CADUCADO: simbolos.json es del runtime {meta.get('runtime')} y el "
-              f"instalado es {instalado}. Regenera con: python3 _indice/actualizar.py", file=sys.stderr if como_json else sys.stdout)
+    aviso = aviso_indice(meta, runtime)
+    if aviso:
+        print(aviso, file=sys.stderr if como_json else sys.stdout)
 
     # Solo cuenta lo que el proyecto trae de verdad: sus .gml y sus extensiones. Las
     # librerías descargadas en la biblioteca NO valen aquí: muchas traen «shims» de

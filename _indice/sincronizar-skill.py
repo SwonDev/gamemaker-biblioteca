@@ -195,6 +195,9 @@ def generar_agents_md():
             print("  ✗ El frontmatter de SKILL.md necesita una 'description' de texto no vacía.")
             return None
         descripcion = str(datos["description"])
+        if len(descripcion) > 1024:
+            print("  ✗ La descripción excede los 1024 caracteres de Agent Skills.")
+            return None
     except ImportError:
         print("  ✗ Falta PyYAML: no se puede validar el frontmatter de SKILL.md.")
         print("    Usa un entorno Python con PyYAML; no se certifica una skill sin analizarla.")
@@ -218,9 +221,6 @@ def generar_agents_md():
         print("    descripción, y son los primeros en perderse si un CLI la acorta:")
         print("      " + ", ".join(faltan))
         print("    Muévelos al principio; la lista de disciplinas puede ir al final.")
-    if len(descripcion) > 1024:
-        print(f"  ⚠ La descripción mide {len(descripcion)} caracteres. Cuanto más larga,")
-        print("    más probable que un CLI la recorte. Por debajo de 1024 va sobrada.")
 
     out = [
         "# AGENTS.md — Biblioteca GameMaker (generado desde la skill)\n",
@@ -331,6 +331,15 @@ def estado_enlaces():
         "Cursor CLI": os.path.expanduser("~/.cursor/skills/gamemaker-biblioteca"),
         "Cline": os.path.expanduser("~/.cline/skills/gamemaker-biblioteca"),
     }
+    from harnesses import destinos
+    nativos = destinos(os.path.expanduser("~/"))
+    codex_skills = nativos["codex"][1]
+    sitios["Codex (pool)"] = str(codex_skills.parent/"skills-pool/gamemaker-biblioteca")
+    sitios["Codex (ruta legacy, opcional)"] = str(codex_skills/"gamemaker-biblioteca")
+    for clave, etiqueta in (("pi", "Pi"), ("omp", "OMP"), ("minimax", "MiniMax Code"),
+                            ("dsh", "DeepSeek Harness (dsh)"), ("hermes", "Hermes Agent"),
+                            ("gentle-shell", "gentle-shell (aislado)")):
+        sitios[etiqueta] = str(nativos[clave][1]/"gamemaker-biblioteca")
     # CLI que este equipo no tiene instalados: su ausencia no dice nada del estado
     # de la skill, así que no se pinta como error.
     # `skills-pool` la crea y gestiona el propio Codex (su marketplace): `instalar.sh`
@@ -566,12 +575,12 @@ def autoprueba():
     pruebas = subprocess.run(
         [sys.executable, os.path.join(IND, "pruebas", "probar-sincronizacion.py")],
         capture_output=True, text=True, encoding="utf-8")
-    revisar("contratos públicos: YAML y paquete completo (10 casos)",
+    revisar("contratos públicos: YAML y paquete completo",
             pruebas.returncode == 0, pruebas.stdout + pruebas.stderr)
     if fallos:
         print("\n\u2717 %d comprobación(es) de la autoprueba fallan." % len(fallos))
         return 1
-    print("\n\u2713 Las 5 comprobaciones de versión y los 10 casos de sincronización pasan.")
+    print("\n\u2713 Las comprobaciones de versión y sincronización pasan.")
     return 0
 
 

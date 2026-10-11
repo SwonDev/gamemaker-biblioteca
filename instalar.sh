@@ -4,22 +4,30 @@ set -euo pipefail
 
 ayuda() {
   cat <<'FIN'
-Uso: ./instalar.sh [--comprobar] [--enlace] [--indices] [--destino <carpeta>]
+Uso: ./instalar.sh [--comprobar] [--enlace] [--indices] [--destino <carpeta> | --harness <nombre>]
   --comprobar  valida el paquete, sin instalación ni registro global.
   --enlace     enlaza el paquete en vez de copiarlo.
   --indices    deriva índices del runtime antes de instalar; un fallo aborta.
   --destino    instala solo en esa carpeta, sin registrar rutas globales.
+  --harness    instala solo en el destino nativo de ese agente.
+  --listar-harnesses  muestra nombres y destinos, sin instalar.
 FIN
 }
 comprobar=0
 enlace=0
 indices=0
 base_elegida=""
+harness=""
+listar=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --comprobar) comprobar=1 ;;
     --enlace) enlace=1 ;;
     --indices) indices=1 ;;
+    --listar-harnesses) listar=1 ;;
+    --harness)
+      [ "$#" -ge 2 ] && [ -n "$2" ] && [[ "$2" != --* ]] || { ayuda; exit 2; }
+      harness="$2"; shift ;;
     --destino)
       [ "$#" -ge 2 ] && [ -n "$2" ] && [[ "$2" != --* ]] || { ayuda; exit 2; }
       base_elegida="$2"; shift ;;
@@ -39,6 +47,14 @@ for candidato in python3 python; do
   fi
 done
 [ -n "$PY" ] || { echo "✗ Falta Python 3.10 o posterior."; exit 1; }
+if [ "$listar" -eq 1 ]; then
+  "$PY" "$RAIZ/_indice/harnesses.py" --home "$HOME" --listar
+  exit 0
+fi
+if [ -n "$harness" ]; then
+  [ -z "$base_elegida" ] || { echo "✗ Elige --harness o --destino, no ambos."; exit 2; }
+  base_elegida="$("$PY" "$RAIZ/_indice/harnesses.py" --home "$HOME" --harness "$harness")" || exit 2
+fi
 "$PY" "$RAIZ/_indice/sincronizar-skill.py" || {
   echo "✗ Paquete no válido. No se ha instalado ni registrado nada."; exit 1;
 }
@@ -106,24 +122,10 @@ if [ -n "$base_elegida" ]; then
   instalar_en "$base_elegida"
   echo "Establece GM_BIBLIOTECA con la ubicación de esta biblioteca para ese agente."
 else
-  DESTINOS=(
-    "claude|$HOME/.claude/skills"
-    "codex|$HOME/.codex/skills"
-    "|$HOME/.agents/skills"
-    "opencode|$HOME/.config/opencode/skills"
-    "qwen|$HOME/.qwen/skills"
-    "kimi|$HOME/.kimi-code/skills"
-    "gemini|$HOME/.gemini/skills"
-    "copilot|$HOME/.copilot/skills"
-    "cursor-agent|$HOME/.cursor/skills"
-    "cline|$HOME/.cline/skills"
-  )
-  for entrada in "${DESTINOS[@]}"; do
-    IFS='|' read -r comando base <<< "$entrada"
-    if [ -z "$comando" ] || command -v "$comando" >/dev/null 2>&1; then
-      instalar_en "$base"
-    fi
-  done
+  destinos="$("$PY" "$RAIZ/_indice/harnesses.py" --home "$HOME")" || exit 2
+  while IFS= read -r base; do
+    [ -z "$base" ] || instalar_en "$base"
+  done <<< "$destinos"
   mkdir -p "$HOME/.config/gamemaker-biblioteca"
   printf '%s' "$RAIZ" > "$HOME/.config/gamemaker-biblioteca/ruta"
   echo "✓ Ruta local registrada."

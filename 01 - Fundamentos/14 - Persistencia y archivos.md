@@ -649,7 +649,7 @@ var _checksum = md5_string_utf8(_json);
 El punto anterior calcula un checksum (`md5_string_utf8`) pero no dice qué hacer con él. Un
 checksum que se calcula y no se compara en ningún sitio no protege nada: es exactamente el
 defecto que tenía el replay firmado de
-[13 · 10 §14.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#143-replay-firmado-la-única-verificación-real-para-un-ranking-de-un-jugador)
+[13 · 10 §14.3](../13%20-%20Diseño%20y%20producción%20de%20videojuegos/10%20-%20Testing%20y%20QA.md#143-replay-verificable-checksum-tiempo-y-re-simulación)
 antes de corregirlo. El flujo completo tiene **cuatro pasos**, no uno:
 
 1. **Calcular** el hash de los datos, antes de escribir nada.
@@ -708,7 +708,7 @@ checksum, y conectada con las copias de seguridad de más abajo— está en
 > un poco más rápido y un poco más corto — si no te hace falta la resistencia extra a
 > colisiones de SHA-1. Para detectar corrupción accidental (no un atacante decidido a
 > falsificar el hash también), cualquiera de los dos vale; `scr_save_load.gml` usa
-> `sha1_string_utf8` porque es la misma función que ya usa el replay firmado de 13 · 10 §14.3,
+> `sha1_string_utf8` porque es la misma función que ya usa el checksum del replay de 13 · 10 §14.3,
 > y usar la misma en todo el proyecto evita tener dos convenciones de hash a la vez.
 
 ## 12 ter. Copia de seguridad rotativa y qué pasa si se apaga a mitad

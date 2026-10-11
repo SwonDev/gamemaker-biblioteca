@@ -12,9 +12,16 @@ Uso:
 
 Todo funciona sin conexión. Es la forma recomendada de comprobar si una función existe
 antes de escribir código: si no aparece aquí, no está en este runtime.
+
+Fuente de la API: GM_BIBLIOTECA_RUNTIME=<versión> o <directorio existente del runtime>.
+Ejemplo: GM_BIBLIOTECA_RUNTIME=2026.0.0.23 python3 _indice/buscar.py draw_sprite_ext
+Sin selección, se compara con el último disponible en caché, por versión numérica;
+esto no identifica el runtime activo del proyecto ni cambia su configuración.
+Una selección explícita inválida sale con 2 y nunca usa otro runtime.
 """
 from ambito import es_ajena, rutas_no_publicables, archivos_del_ambito
-import os, re, sys, json, shutil, platform, subprocess
+from runtime_biblioteca import seleccionar_runtime, aviso_indice, ruta_cache_gamemakercli as _ruta_cache_gamemakercli
+import os, re, sys, json, shutil, subprocess
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
 # propio actualizar.py capturando la salida de este script vía subprocess), sys.stdout
@@ -31,24 +38,6 @@ for _flujo in (sys.stdout, sys.stderr):
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IDX = os.path.join(RAIZ, "_indice")
-
-
-def _ruta_cache_gamemakercli():
-    """Dónde guarda gm-cli sus runtimes descargados, replicando su propia lógica
-    (dist/chunk-GBMHU7PM.js de @gamemaker/gm-cli 2.3.0 — sin dependencias tipo
-    `env-paths`, la calcula a mano): macOS usa ~/Library/Caches, Windows
-    %LOCALAPPDATA%\\GameMakerCLI\\cache, y el resto (Linux/BSD/…) el estándar
-    XDG_CACHE_HOME. No verificado fuera de macOS: si una versión futura de gm-cli
-    cambia esta lógica, hay que releerla del bundle instalado."""
-    home = os.path.expanduser("~")
-    sistema = platform.system()
-    if sistema == "Darwin":
-        return os.path.join(home, "Library", "Caches", "GameMakerCLI")
-    if sistema == "Windows":
-        base = os.environ.get("LOCALAPPDATA") or os.path.join(home, "AppData", "Local")
-        return os.path.join(base, "GameMakerCLI", "cache")
-    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(home, ".cache")
-    return os.path.join(base, "GameMakerCLI")
 
 
 RUNTIMES = os.path.join(_ruta_cache_gamemakercli(), "runtimes-gms2")
@@ -75,32 +64,20 @@ def _grep_disponible():
 
 
 def runtime_instalado():
-    """Versión del runtime que hay instalado ahora mismo, o None."""
-    try:
-        rts = sorted(d for d in os.listdir(RUNTIMES) if d.startswith("runtime-"))
-    except OSError:
-        return None
-    return rts[-1].replace("runtime-", "") if rts else None
+    """Versión de la fuente de API elegida; no implica runtime activo del proyecto."""
+    runtime = seleccionar_runtime(RUNTIMES)
+    return runtime.version if runtime else None
 
 
-def avisar_si_caducado(meta):
-    """Compara el índice con el runtime instalado y avisa si ya no coinciden.
-
-    Es la salvaguarda contra el fallo más peligroso de esta biblioteca: que
-    YoYo publique un runtime nuevo, nadie regenere los índices, y buscar.py
-    siga respondiendo con la API vieja como si nada. Un índice caducado que
-    calla es peor que no tener índice.
-    """
-    real = runtime_instalado()
-    if not real or real == meta.get("runtime"):
-        return
-    print(f"⚠ ÍNDICE CADUCADO: se generó con el runtime {meta.get('runtime')} "
-          f"pero el instalado es {real}.")
-    print("  La API puede haber cambiado. Regenera antes de fiarte de esta ficha:")
-    print("      python3 _indice/actualizar.py\n")
+def avisar_si_caducado(meta, runtime=None):
+    """Compara contra la fuente elegida sin atribuirle el runtime activo del proyecto."""
+    aviso = aviso_indice(meta, runtime or seleccionar_runtime(RUNTIMES))
+    if aviso:
+        print(aviso + "\n")
 
 
 def cargar(avisar=True):
+    runtime = seleccionar_runtime(RUNTIMES)
     ruta = os.path.join(IDX, "simbolos.json")
     if not os.path.exists(ruta):
         print("✗ No existe _indice/simbolos.json todavía.")
@@ -115,7 +92,7 @@ def cargar(avisar=True):
     with open(ruta, encoding="utf-8") as f:
         d = json.load(f)
     if avisar:
-        avisar_si_caducado(d.get("meta", {}))
+        avisar_si_caducado(d.get("meta", {}), runtime)
     return d
 
 

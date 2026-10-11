@@ -434,10 +434,11 @@ gpu_set_blendequation_sepalpha(bm_eq_add, bm_eq_max);
 ```
 
 - **Notas / trampas:**
-  - **No existe `gpu_get_blendequation_sepalpha()`.** El manual documenta únicamente el *setter*
-    `gpu_set_blendequation_sepalpha()`; para leer el estado de la ecuación existe solo
-    `gpu_get_blendequation()`. Si necesitas conservar las ecuaciones separadas para restaurarlas,
-    guárdalas tú en variables cuando las fijes.
+  - **`gpu_get_blendequation_sepalpha()` sí existe en el runtime de referencia**, aunque no
+    tenga página propia en el manual. Devuelve un array con las ecuaciones de color y alfa.
+    Consulta su ficha con `python3 _indice/buscar.py gpu_get_blendequation_sepalpha` y contrasta
+    `08/20`, apartado «Getters de GPU», antes de usarla en un runtime distinto. La ausencia
+    de una página del manual no demuestra la ausencia de una función del motor.
 
 ---
 

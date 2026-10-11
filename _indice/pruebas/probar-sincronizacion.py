@@ -4,6 +4,7 @@ import importlib.util
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -69,6 +70,11 @@ class Sincronizacion(unittest.TestCase):
         (self.skill / "SKILL.md").write_text('# Sin metadatos\n', encoding="utf-8")
         self.assertNotEqual(mod.main(), 0)
 
+    def test_descripcion_fuera_del_estandar_impide_exito(self):
+        (self.skill / "SKILL.md").write_text(
+            '---\nname: gamemaker-biblioteca\ndescription: "' + 'x'*1025 + '"\n---\n# T\n', encoding="utf-8")
+        self.assertNotEqual(mod.main(), 0)
+
     def test_parser_ausente_impide_exito(self):
         with patch.dict(sys.modules, {"yaml": None}):
             self.assertNotEqual(mod.main(), 0)
@@ -106,6 +112,17 @@ class Sincronizacion(unittest.TestCase):
         self.copiar()
         (self.destino / "references/obsoleta.md").write_text('Instrucción retirada\n', encoding="utf-8")
         self.assertNotIn("copia al día", self.estado_generico())
+
+    def test_codex_home_comprueba_destino_activo(self):
+        self.copiar()
+        configurado = self.base/"codex-personalizado"
+        destino = configurado/"skills/gamemaker-biblioteca"
+        destino.parent.mkdir(parents=True)
+        shutil.copytree(self.skill, destino)
+        with patch.dict(os.environ, {"CODEX_HOME": str(configurado)}):
+            lineas = [l for l in mod.estado_enlaces() if "Codex (" in l]
+        self.assertTrue(any(str(destino) in l and "copia al día" in l for l in lineas), lineas)
+        self.assertFalse(any(str(self.base/"usuario/.codex/skills/gamemaker-biblioteca") in l for l in lineas), lineas)
 
 
 if __name__ == "__main__":

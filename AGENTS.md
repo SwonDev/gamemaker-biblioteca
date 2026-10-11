@@ -8,13 +8,19 @@
 **Versión de referencia:** GameMaker **LTS 2026.0** · IDE `2026.0.0.16` · runtime GMS2 `2026.0.0.23`
 **Canal Beta documentado el 07-09-2026:** `2026.100.0` (IDE 1142 / runtime 1093, 02-09-2026, verificado 07-09-2026) · **GMRT** Beta `0.21`
 
+La referencia anterior es una instantánea documental. El 11-10-2026 las notas oficiales
+publican Beta Release 9 (IDE 1171 / runtime 1116, 07-10-2026); LTS mantiene IDE 16 / runtime 23.
+Consulta [las notas oficiales](https://releases.gamemaker.io/release-notes/2026/100.html)
+para cambios de plataforma. Esto no autoriza actualizar el runtime de un proyecto.
+
 ---
 
 ## 1. La regla que lo gobierna todo
 
-**No inventes funciones de GML.** El motor tiene exactamente **2 357 funciones**, **886
-constantes**, **210 variables**, **33 structs incorporados** y **13 enumeraciones**. Están
-todas listadas aquí, extraídas del `GmlSpec.xml` del runtime instalado.
+**Verifica los símbolos de GML contra la versión del proyecto.** Los recuentos y la
+procedencia están en el `meta` de `_indice/simbolos.json`. La extracción combina
+`GmlSpec.xml` y `fnames`; structs y enumeraciones pueden requerir el manual. El índice
+de una máquina no acredita por sí solo el runtime que utiliza otro proyecto.
 
 Antes de usar cualquier símbolo:
 
@@ -24,13 +30,20 @@ python3 "_indice/buscar.py" nombre_de_la_funcion
 
 - Si aparece → te da la firma exacta, el tipo de retorno, si está obsoleta, la página del
   manual (en español y en inglés) y **dónde se usa de verdad** en código real descargado.
-- Si no aparece → **no existe**. No la escribas. El buscador te sugiere alternativas parecidas.
+- Si no aparece → **no está en ese índice**. Comprueba versión, cobertura y extensiones del
+  proyecto antes de concluir que no existe. El buscador sugiere alternativas; un fallo de
+  lectura, una fuente ausente o un índice distinto no son una prueba de ausencia.
 
 Comprobación cruzada con el manual oficial offline:
 
 ```sh
 gm-cli manual read "nombre_de_la_funcion"
 ```
+
+Sin CLI o índice, consulta el manual oficial de la rama adecuada. Selecciona la fuente
+con `GM_BIBLIOTECA_RUNTIME` (versión o carpeta del runtime con spec) antes de derivar
+el índice; una selección inválida falla. Sin selector se usa el último runtime numérico
+disponible en caché, sin atribuirle la condición de runtime activo del proyecto.
 
 ---
 
@@ -246,8 +259,8 @@ y el WIP antes de actuar; una auditoría de lectura no autoriza reanudar el jueg
    (`OBJECT EVENT FINDORCREATE`) que no significa que la propiedad cruda del recurso sea
    inalcanzable por `RESOURCE SET`, **la fuente por defecto del motor, que no tiene glifos de
    `á é í ó ú ñ ¿ ¡` y los omite en silencio** — grave para una biblioteca entera en español —,
-   y `screen_save()`, que en Mac invierte la imagen verticalmente mientras la ventana real se ve
-   bien) en
+   y la orientación de `screen_save()`, que se contrasta una vez con una captura del sistema
+   en lugar de voltear el PNG por una advertencia histórica) en
    [`12 - Utilidades e integraciones/09 - Manual del agente de IA`](./12%20-%20Utilidades%20e%20integraciones/09%20-%20Manual%20del%20agente%20de%20IA%20-%20operar%20GameMaker%20con%20gm-cli.md#0--las-dieciocho-trampas-que-hacen-fracasar-a-un-agente-hoy)
    — léelo entero si vas a operar este repo por terminal, es la guía específica para agentes.
 4. **Escribe GML** verificando cada símbolo con `buscar.py` antes de usarlo. Al terminar,

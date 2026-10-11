@@ -109,6 +109,18 @@ destinos comprobados. El texto esencial sigue disponible si no se carga una imag
 El README explica qué hacer si falta GameMaker o un harness compatible, y enlaza el
 diagnóstico de instalación. La imagen social conserva título y lectura en miniatura.
 
+Los tres iconos vectoriales propios representan páginas, una ficha comprobada y búsqueda
+entre fichas. Comparten geometría de 64 unidades y papel cálido; se muestran a 32 píxeles.
+Son decorativos junto a títulos legibles, con alternativa vacía. No son controles ni
+logotipos de los harnesses y conservan lectura sobre los temas claro y oscuro de GitHub.
+
+La guía visual amplía tres relaciones que la portada no explica: conocimiento → método →
+proyecto, especificación → tareas → pruebas y búsqueda semántica → contexto seleccionado.
+Cada ilustración tiene una composición propia, pocas etiquetas grandes y una explicación
+equivalente en Markdown. El README muestra la primera y enlaza la guía completa para
+conservar una entrada breve. Las flechas representan relaciones reales del procedimiento;
+ninguna cifra de ahorro ni estado de verificación se inventa dentro de una imagen.
+
 ## Criterios de entrega
 
 - Presentar instrucciones de instalación ejecutadas y compatibilidad con alcance declarado.

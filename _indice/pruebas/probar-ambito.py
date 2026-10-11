@@ -70,6 +70,31 @@ class AmbitoReal(unittest.TestCase):
         self.assertIn("real.gml", salida.getvalue())
         self.assertNotIn("secreto.gml", salida.getvalue())
 
+    def test_recuento_corpus_solo_incluye_clones_registrados(self):
+        corpus = self.r/"11 - Código descargado"
+        legitimo = corpus/"librerias/ejemplo"
+        (legitimo/".git").mkdir(parents=True)
+        (legitimo/"real.gml").write_text("// Público", encoding="utf-8")
+        privado = corpus/"ajeno"
+        (privado/".git").mkdir(parents=True)
+        (privado/"secreto.gml").write_text("// Privado", encoding="utf-8")
+        (corpus/"_RUTAS.json").write_text(json.dumps({"Ejemplo":"librerias/ejemplo"}), encoding="utf-8")
+        m = cargar("construir-indices")
+        m.RAIZ, m.CODIGO = str(self.r), str(corpus)
+        self.assertEqual(m.contar_gml(), 1)
+
+    def test_indice_manual_excluye_repositorio_ajeno_y_enlace(self):
+        base = self.r/"09 - Manual oficial/manual-lts-2026-es"
+        base.mkdir(parents=True)
+        (base/"publico.md").write_text("# Oficial", encoding="utf-8")
+        (base/"ajeno/.git").mkdir(parents=True)
+        (base/"ajeno/privado.md").write_text("# Privado", encoding="utf-8")
+        (base/"alias.md").symlink_to(self.externo)
+        m = cargar("construir-indices")
+        m.RAIZ, m.MANUAL = str(self.r), str(base.parent)
+        self.assertEqual(m.paginas("manual-lts-2026-es"),
+                         ["09 - Manual oficial/manual-lts-2026-es/publico.md"])
+
     def test_regex_invalida_no_declara_ausencia(self):
         m = cargar("buscar")
         m.RAIZ = str(self.r)
