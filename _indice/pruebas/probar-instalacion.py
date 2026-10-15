@@ -55,7 +55,7 @@ class Instalador(unittest.TestCase):
     def ejecutar(self, *args):
         return subprocess.run([sys.executable, "-I", "-S", str(self.bib / "instalar.py"),
                                "--home", str(self.home), *args], env=self.entorno,
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, encoding="utf-8")
 
     def test_instala_paquete_sin_dependencias_ni_motor(self):
         resultado = self.ejecutar("--destino", str(self.dest))
@@ -65,7 +65,7 @@ class Instalador(unittest.TestCase):
                 self.assertEqual(archivo.read_bytes(),
                     (self.dest / "gamemaker-biblioteca" / archivo.relative_to(self.paquete)).read_bytes())
         self.assertFalse(self.home.exists())
-        self.assertEqual((self.dest / ".gamemaker-biblioteca-ruta").read_text(), str(self.bib.resolve()))
+        self.assertEqual((self.dest / ".gamemaker-biblioteca-ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
 
     def test_defecto_instala_todos_y_registra_sin_duplicar_codex(self):
         resultado = self.ejecutar()
@@ -77,7 +77,7 @@ class Instalador(unittest.TestCase):
                          "AppData/Local/hermes/skills" if sys.platform == "win32" else ".hermes/skills"):
             self.assertTrue((self.home / relativa / "gamemaker-biblioteca/SKILL.md").is_file(), relativa)
         self.assertFalse((self.home / ".codex").exists())
-        self.assertEqual((self.home / ".config/gamemaker-biblioteca/ruta").read_text(), str(self.bib.resolve()))
+        self.assertEqual((self.home / ".config/gamemaker-biblioteca/ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
 
     def test_codex_elegido_es_canonico_y_encuentra_biblioteca(self):
         resultado = self.ejecutar("--harness", "codex")
@@ -90,7 +90,7 @@ class Instalador(unittest.TestCase):
     def test_destino_puede_solicitar_registro(self):
         resultado = self.ejecutar("--destino", str(self.dest), "--registrar")
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
-        self.assertEqual((self.home / ".config/gamemaker-biblioteca/ruta").read_text(), str(self.bib.resolve()))
+        self.assertEqual((self.home / ".config/gamemaker-biblioteca/ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
 
     def test_reinstalacion_identica_no_toca_copia_ni_crea_backup(self):
         self.assertEqual(self.ejecutar("--destino", str(self.dest)).returncode, 0)
@@ -114,7 +114,7 @@ class Instalador(unittest.TestCase):
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
         notas = list((self.dest / ".gamemaker-biblioteca-backups").rglob("nota.txt"))
         self.assertEqual(len(notas), 1)
-        self.assertEqual(notas[0].read_text(), "Trabajo anterior con ñ.")
+        self.assertEqual(notas[0].read_text(encoding="utf-8"), "Trabajo anterior con ñ.")
         self.assertEqual(list(self.dest.glob(".gm-skill.*")), [])
 
     def test_paquete_modificado_no_reemplaza_ni_registra(self):
@@ -124,13 +124,13 @@ class Instalador(unittest.TestCase):
         (self.paquete / "references/consulta.md").write_text("Alterado", encoding="utf-8")
         resultado = self.ejecutar("--destino", str(self.dest), "--registrar")
         self.assertNotEqual(resultado.returncode, 0)
-        self.assertEqual((viejo / "nota.txt").read_text(), "Conservar")
+        self.assertEqual((viejo / "nota.txt").read_text(encoding="utf-8"), "Conservar")
         self.assertFalse(self.home.exists())
         self.assertFalse((self.dest / ".gamemaker-biblioteca-backups").exists())
 
     def test_manifiesto_ausente_extra_y_revision_falsa_no_instalan(self):
         manifiesto = self.paquete / "manifest.json"
-        original = manifiesto.read_text()
+        original = manifiesto.read_text(encoding="utf-8")
         for caso in ("ausente", "extra", "revision"):
             with self.subTest(caso=caso):
                 manifiesto.write_text(original, encoding="utf-8")
@@ -149,7 +149,7 @@ class Instalador(unittest.TestCase):
 
     def test_rutas_de_manifiesto_no_escapan(self):
         manifiesto = self.paquete / "manifest.json"
-        original = json.loads(manifiesto.read_text())
+        original = json.loads(manifiesto.read_text(encoding="utf-8"))
         for nombre in ("../fuera", "/fuera", "references/../../fuera", "..\\fuera", "C:/fuera"):
             with self.subTest(nombre=nombre):
                 datos = dict(original, files=dict(original["files"], **{nombre: "0" * 64}))
@@ -192,7 +192,7 @@ class Instalador(unittest.TestCase):
         self.assertNotEqual(resultado.returncode, 0)
         self.assertIn("fuera del plan", resultado.stderr)
         self.assertTrue(alias.is_symlink())
-        self.assertEqual((estable / "SKILL.md").read_text(), "Revisión anterior")
+        self.assertEqual((estable / "SKILL.md").read_text(encoding="utf-8"), "Revisión anterior")
         self.assertFalse(self.home.exists())
 
     def test_comprobar_paquete_rechaza_manifiesto_y_selectores_invalidos(self):
@@ -228,19 +228,19 @@ class Instalador(unittest.TestCase):
         fecha_a = sidecar_a.stat().st_mtime_ns
         comando_b = [sys.executable, "-I", "-S", str(biblioteca_b / "instalar.py"),
                      "--home", str(self.home), "--harness", "codex"]
-        resultado = subprocess.run(comando_b, env=self.entorno, capture_output=True, text=True)
+        resultado = subprocess.run(comando_b, env=self.entorno, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
         sidecar_b = self.home / ".agents/skills/.gamemaker-biblioteca-ruta"
-        self.assertEqual(sidecar_a.read_text(), str(self.bib.resolve()))
-        self.assertEqual(sidecar_b.read_text(), str(biblioteca_b.resolve()))
+        self.assertEqual(sidecar_a.read_text(encoding="utf-8"), str(self.bib.resolve()))
+        self.assertEqual(sidecar_b.read_text(encoding="utf-8"), str(biblioteca_b.resolve()))
         registro = self.home / ".config/gamemaker-biblioteca/ruta"
-        self.assertEqual(registro.read_text(), str(biblioteca_b.resolve()))
+        self.assertEqual(registro.read_text(encoding="utf-8"), str(biblioteca_b.resolve()))
         backups = list(registro.parent.glob("ruta-anterior.*"))
         self.assertEqual(len(backups), 1)
-        self.assertEqual(backups[0].read_text(), str(self.bib.resolve()))
+        self.assertEqual(backups[0].read_text(encoding="utf-8"), str(self.bib.resolve()))
         self.assertIn("ruta global de biblioteca cambia", resultado.stdout)
         fecha_b, fecha_global = sidecar_b.stat().st_mtime_ns, registro.stat().st_mtime_ns
-        resultado = subprocess.run(comando_b, env=self.entorno, capture_output=True, text=True)
+        resultado = subprocess.run(comando_b, env=self.entorno, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
         self.assertEqual(sidecar_a.stat().st_mtime_ns, fecha_a)
         self.assertEqual(sidecar_b.stat().st_mtime_ns, fecha_b)
@@ -275,7 +275,7 @@ class Instalador(unittest.TestCase):
         for alias in aliases:
             self.assertTrue(alias.is_symlink())
             self.assertEqual(alias.readlink(), claude)
-            self.assertEqual((alias.parent / ".gamemaker-biblioteca-ruta").read_text(), str(self.bib.resolve()))
+            self.assertEqual((alias.parent / ".gamemaker-biblioteca-ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
         self.assertEqual(len(list(self.home.rglob(".gamemaker-biblioteca-backups/copia.*/gamemaker-biblioteca/nota.txt"))), 1)
 
     @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
@@ -289,7 +289,7 @@ class Instalador(unittest.TestCase):
         resultado = self.ejecutar("--destino", str(self.dest))
         self.assertNotEqual(resultado.returncode, 0)
         self.assertTrue(alias.is_symlink())
-        self.assertEqual((compartida / "nota.txt").read_text(), "Conservar")
+        self.assertEqual((compartida / "nota.txt").read_text(encoding="utf-8"), "Conservar")
 
     @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
     def test_enlace_canonico_conservado(self):
@@ -398,7 +398,7 @@ class Instalador(unittest.TestCase):
         with patch.object(modulo.os, "replace", side_effect=fallo_unico), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             resultado = modulo.main(["--home", str(self.home), "--destino", str(self.dest)])
         self.assertEqual(resultado, 1)
-        self.assertEqual((viejo / "nota.txt").read_text(), "Conservar")
+        self.assertEqual((viejo / "nota.txt").read_text(encoding="utf-8"), "Conservar")
         self.assertEqual(list(self.dest.glob(".gm-skill.*")), [])
 
     def test_doble_fallo_conserva_backup_y_paquete_preparado(self):
@@ -419,7 +419,7 @@ class Instalador(unittest.TestCase):
         self.assertEqual(resultado, 1)
         backups = list((self.dest / ".gamemaker-biblioteca-backups").rglob("nota.txt"))
         self.assertEqual(len(backups), 1)
-        self.assertEqual(backups[0].read_text(), "Recuperable")
+        self.assertEqual(backups[0].read_text(encoding="utf-8"), "Recuperable")
         preparados = list(self.dest.glob(".gm-skill.*/gamemaker-biblioteca/manifest.json"))
         self.assertEqual(len(preparados), 1)
         self.assertIn(str(backups[0].parent.resolve()), errores.getvalue())

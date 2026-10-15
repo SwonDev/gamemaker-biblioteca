@@ -29,6 +29,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Comprobar sin dependencias adicionales
         run: python instalar.py --comprobar
+      - name: Entrada nativa de PowerShell
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./instalar.ps1 --comprobar
       - name: Regresiones de instalación
         run: python _indice/pruebas/probar-instalacion.py
       - name: Regresiones de descarga y extracción
