@@ -13,17 +13,33 @@ Contenido: [capacidades y sondeos](#localizar-biblioteca-y-capacidades) ·
 Una skill instalada es una copia, puede estar incompleta o desfasada aunque responda con
 seguridad. La etiqueta `SKILL-VERSION` identifica la revisión; `sincronizar-skill.py` compara
 versión y bytes de SKILL, AGENTS y todas las referencias. Si difieren de la fuente canónica,
-informa y reinstala con `./instalar.sh` dentro del alcance autorizado; no cambies a escondidas
+informa y reinstala con `python3 instalar.py` dentro del alcance autorizado; no cambies a escondidas
 la configuración del harness. El paquete de skill puede existir sin la biblioteca completa.
 
-La ruta la escribe el instalador en `~/.config/gamemaker-biblioteca/ruta`;
-`GM_BIBLIOTECA` permite indicar otra raíz. `BIB` siempre significa la raíz de la biblioteca,
-no la carpeta de esta skill. No supongas una ruta de macOS ni la deduzcas de una copia aislada.
+Resuelve la biblioteca en este orden: `GM_BIBLIOTECA` explícita → archivo oculto
+`.gamemaker-biblioteca-ruta` junto a la **carpeta de skill instalada** → raíz canónica si
+estás leyendo su propio árbol `_indice/skills/` → `~/.config/gamemaker-biblioteca/ruta`.
+Comprueba siempre `_indice/buscar.py` en la raíz candidata. El registro por destino permite
+usar dos bibliotecas sin que una copia pase silenciosamente a consultar la otra.
+
+El agente obtiene `SKILL_DIR`/`$SkillDir` de la ruta real de `SKILL.md` que acaba de leer;
+no pide al usuario que configure esa variable. Conserva la ruta lógica al comprobar el
+archivo adyacente, antes de resolver un symlink. `BIB` significa la biblioteca completa,
+no la carpeta de esta skill. Un paquete aislado no implica una biblioteca instalada.
+La instalación normal, `--harness` y `--destino` escriben su ruta adyacente; el registro
+global es fallback y `--destino` solo lo cambia con `--registrar`. No necesitas exportar
+variables. La instalación solo requiere Python 3.10+; PyYAML/Pillow son de mantenimiento.
 
 ### Bash / zsh
 
 ```sh
-BIB="${GM_BIBLIOTECA:-$(cat ~/.config/gamemaker-biblioteca/ruta 2>/dev/null)}"
+BIB="${GM_BIBLIOTECA:-}"
+if [ -z "$BIB" ] && [ -n "${SKILL_DIR:-}" ]; then
+  BIB="$(cat "$(dirname "$SKILL_DIR")/.gamemaker-biblioteca-ruta" 2>/dev/null)"
+fi
+if [ -z "$BIB" ]; then
+  BIB="$(cat ~/.config/gamemaker-biblioteca/ruta 2>/dev/null)"
+fi
 if [ -z "$BIB" ] || [ ! -f "$BIB/_indice/buscar.py" ]; then
   echo "SIN biblioteca completa: siguen disponibles las referencias del paquete de skill."
 elif [ ! -f "$BIB/_indice/simbolos.json" ]; then
@@ -39,6 +55,12 @@ command -v python3 || true
 
 ```powershell
 $BIB = $env:GM_BIBLIOTECA
+if ([string]::IsNullOrWhiteSpace($BIB) -and (Get-Variable SkillDir -ErrorAction SilentlyContinue)) {
+    $rutaDestino = Join-Path (Split-Path $SkillDir -Parent) '.gamemaker-biblioteca-ruta'
+    if (Test-Path -LiteralPath $rutaDestino -PathType Leaf) {
+        $BIB = (Get-Content -LiteralPath $rutaDestino -Raw -Encoding UTF8).Trim()
+    }
+}
 $rutaGuardada = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.config/gamemaker-biblioteca/ruta'
 if ([string]::IsNullOrWhiteSpace($BIB) -and (Test-Path -LiteralPath $rutaGuardada -PathType Leaf)) {
     $BIB = (Get-Content -LiteralPath $rutaGuardada -Raw -Encoding UTF8).Trim()

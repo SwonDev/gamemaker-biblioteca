@@ -1,0 +1,83 @@
+{
+  "revision": "r49 · 2026-10-15",
+  "archivos": [
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/AGENTS.md",
+      "relativa": "AGENTS.md",
+      "bytes": 8205,
+      "sha256": "29987d2869680184ca7ea805f918fca618da33ca1b03afe3fb33931c24a47655"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+      "relativa": "SKILL.md",
+      "bytes": 7250,
+      "sha256": "8e42b1b73ced7d736f98623d8883151de3441eecb5990b6f652f795dd48fec59"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/assets-y-texto.md",
+      "relativa": "references/assets-y-texto.md",
+      "bytes": 6761,
+      "sha256": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/consulta-api.md",
+      "relativa": "references/consulta-api.md",
+      "bytes": 9289,
+      "sha256": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contexto-y-recursos.md",
+      "relativa": "references/contexto-y-recursos.md",
+      "bytes": 1955,
+      "sha256": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+      "relativa": "references/desarrollo-y-evidencia.md",
+      "bytes": 8015,
+      "sha256": "89168b90c08a5b248b149edc1cec358bdc3e65ae6deb35a39a4dc6a8c5047873"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+      "relativa": "references/entorno-y-fuentes.md",
+      "bytes": 7665,
+      "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/indice-documentos.md",
+      "relativa": "references/indice-documentos.md",
+      "bytes": 45580,
+      "sha256": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md",
+      "relativa": "references/mapa-disciplinas.md",
+      "bytes": 15454,
+      "sha256": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/metodo-y-aprendizaje.md",
+      "relativa": "references/metodo-y-aprendizaje.md",
+      "bytes": 5822,
+      "sha256": "95f86aa8811f79ff6a68031232492802f34dfc4bfcfd86c995b86122bc8c292b"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/operar-gamemaker.md",
+      "relativa": "references/operar-gamemaker.md",
+      "bytes": 18927,
+      "sha256": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+      "relativa": "references/qa-y-entrega.md",
+      "bytes": 10443,
+      "sha256": "240e909fe4b074bb7dda435a025dc03c27b84b1d37d0c5903c516e4e88c4cd20"
+    },
+    {
+      "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/rutas-de-consulta.md",
+      "relativa": "references/rutas-de-consulta.md",
+      "bytes": 5474,
+      "sha256": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34"
+    }
+  ]
+}

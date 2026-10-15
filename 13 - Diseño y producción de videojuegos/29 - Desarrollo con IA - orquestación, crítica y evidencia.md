@@ -14,6 +14,10 @@ Los conecta: aquí vive el contrato de trabajo; allí, las API y los procedimien
 Los umbrales visuales, el hardware y los modelos del caso son decisiones de aquel proyecto,
 no requisitos universales para GameMaker.
 
+Para **cambiar requisitos, gobernar rondas o promover aprendizajes**, continúa con
+[30 · Especificación viva y mejora del método](<30 - Especificación viva y mejora del método.md>):
+concreta la trazabilidad y evalúa también la skill, sin sustituir los contratos de este capítulo.
+
 ## 1 · Antes de actuar: recuperar el encargo real
 
 En un proyecto existente, lee primero reglas, especificación, glosario, dirección visual,
@@ -519,7 +523,7 @@ Una integración autorizada en un proyecto no autoriza commits, push ni instalac
 ### 14.1 Encargo de pieza
 
 ```text
-ID y requisito:
+ID y requisito/versión; criterio y autoridad vigentes:
 Checkout/revisión de partida y WIP que preservar:
 Archivos propios / fronteras compartidas / integrador:
 Entradas autoritativas y huellas:
@@ -534,7 +538,7 @@ Permisos vigentes y operaciones reservadas al usuario:
 ### 14.2 Recibo de ronda
 
 ```text
-Hipótesis / requisito / referencia:
+Hipótesis / requisito y versión / referencia y rúbrica vigentes:
 Revisión y huellas de entradas / binario:
 Entorno / escenario / intervalo / población:
 Comandos y resultados completos:

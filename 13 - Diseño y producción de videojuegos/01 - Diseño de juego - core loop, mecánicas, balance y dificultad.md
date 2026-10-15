@@ -797,19 +797,26 @@ La regla operativa que sale de ahí, y que cuesta más de cumplir de lo que pare
 | «Cuéntame qué pasó en ese momento» | «¿Te gustaría que hubiera un mapa?» | El jugador detecta problemas muy bien y propone soluciones muy mal |
 | «¿Qué ibas a hacer a continuación?» | «¿Entendiste que el botón X hacía Y?» | Le estás enseñando la mecánica que querías medir |
 
-El protocolo estándar es **pensar en voz alta** (*think-aloud*), «sin inducir ni corregir»: el
-tester narra lo que hace y por qué; tú callas y escribes. Las preguntas van **al final**.
+**Pensar en voz alta** (*think-aloud*) es una técnica posible: el tester narra sin recibir
+indicaciones ni correcciones. También puede distraer y alterar la partida. Elige entre
+observación directa, relato y preguntas según la hipótesis; registra la técnica y su límite.
+Las preguntas aclaratorias de este protocolo van **al final**. Contraste:
+[Ambinder, Valve, GDC 2009, diapositivas 12–26](https://cdn.akamai.steamstatic.com/apps/valve/2009/GDC2009_ValvesApproachToPlaytesting.pdf),
+consultado el 15-10-2026.
 
 ### 7.3 · Cuánta gente, cada cuánto
 
-**Cinco personas por ronda, varias rondas.** Jakob Nielsen mostró que cinco usuarios sacan a la
-luz alrededor del **85 %** de los problemas de usabilidad, y que con el mismo presupuesto es
-mejor hacer **tres estudios de cinco** que uno de quince: los ciclos sirven para comprobar si el
-arreglo funcionó. ⚠️ El dato procede de la usabilidad de interfaces, no de un estudio específico
-de videojuegos; el orden de magnitud se sostiene, pero un problema de *diversión* aparece más
-tarde que uno de usabilidad.
+Planifica rondas pequeñas con personas del público objetivo y vuelve a observar después
+del cambio. La conocida propuesta de cinco participantes de
+[Jakob Nielsen](https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/)
+trata de usabilidad con usuarios y tareas comparables; no establece una muestra universal
+para diversión, balance, accesibilidad o géneros. Consulta de la fuente: 15-10-2026.
 
-Regla de conteo al vaciar las notas: **1 de 5 es ruido · 3 de 5 es el diseño.**
+Conserva cada incidencia con frecuencia, gravedad, contexto y población. **Un caso aislado
+no se descarta como ruido por su frecuencia**: puede revelar pérdida de guardado o una
+barrera para un grupo minoritario. La recurrencia orienta la investigación; no demuestra
+por sí sola la causa. Separa observación y diagnóstico, reproduce cuando sea posible y
+vincula la decisión al requisito y a la evidencia según `13/30`.
 
 ### 7.4 · Cómo registrar
 

@@ -740,6 +740,13 @@ El fichero de configuración lleva `access-key`, `user-folder`, `runners` (`"vm,
 > con `gm-cli run`, pero la automatización en Python está pensada para Windows. Si tu CI no
 > es Windows, o usas el mini-framework de §3, o miras a crispy.
 
+Contraste de fuentes el **15-10-2026**: `develop` de GM-TestFramework en
+[`1eb0853`](https://github.com/YoYoGames/GM-TestFramework/tree/1eb0853f2bd8b490ecc1633e4d8f6424a15c899a)
+incluye un wrapper Bash con preparación para macOS/Linux, pero su
+[orquestador](https://github.com/YoYoGames/GM-TestFramework/blob/1eb0853f2bd8b490ecc1633e4d8f6424a15c899a/classes/commands/IgorRunTestsCommand.py)
+fija Igor Windows x64. La presencia del wrapper no demuestra automatización completa desde
+otros hosts. Este contraste es de lectura, sin ejecutar la suite ni certificar otro target.
+
 **Para qué te sirve de verdad, aunque no lo adoptes:** es la mejor colección pública de casos
 límite del motor. Antes de discutir si algo es un bug tuyo o del runtime, busca la función en
 `projects/xUnit/scripts/Basic*TestSuite/` y mira qué comportamiento da por bueno YoYo.
@@ -804,6 +811,16 @@ volcar los resultados a un fichero y que los lea CI.
 | Quieres demostrar un bug del motor ante YoYo | **GM-TestFramework** (aporta la suite al repo) |
 | Necesitas medir cuánto tarda un trozo de código | **GMBenchmark** (§6) |
 | Ya usas el ecosistema Bscotch (Stitch) | **olympus** + **ganary** para regresión |
+
+Una práctica útil de
+[Olympus](https://github.com/bscotch/olympus/blob/2e8a34f065facabc6133225005c3591755652f04/src/datafiles/Olympus/Olympus_README.md)
+es conservar estados separados: `passed`, `failed`, `skipped`, `crashed`. Recuperar la suite
+tras un cierre inesperado permite continuar; no aprueba el caso interrumpido. Su documentación
+también distingue aserción y juicio humano de imagen/sonido. Se estudió el método, sin
+integrar ni ejecutar ese framework. La elección parte de la frontera que falta al banco
+actual; el [contraste especializado](../_indice/auditorias/r24-investigacion-metodos.md)
+registra versiones declaradas y límites. La coherencia entre criterio, caso y recibo continúa
+en [13 · 30](<30 - Especificación viva y mejora del método.md>).
 
 ---
 

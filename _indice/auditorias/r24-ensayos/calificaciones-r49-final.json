@@ -1,0 +1,377 @@
+[
+  {
+    "muestra": "r49-final-01",
+    "agente": "/root/ensayos_skill/r49_final_01",
+    "respuesta": "r49-final-01-respuesta.md",
+    "sha256": "32e6d4c1591108081249f5f4c81e892fddac6e1ab1d7127e2b1c629d4f05b83d",
+    "palabras": 233,
+    "limite_250_cumplido": true,
+    "calificacion_manual": {
+      "C1": {
+        "puntos": 1,
+        "razon": "«No hereda aceptación para r2»; exige S/r2 con cierre forzado/reapertura y corrupción."
+      },
+      "C2": {
+        "puntos": 1,
+        "razon": "«No demuestran comprensión ni diversión»; cero sesiones humanas y programa pruebas."
+      },
+      "C3": {
+        "puntos": 1,
+        "razon": "«instrumento inválido»; detiene rondas hasta diagnosticar/recalibrar con controles."
+      },
+      "C4": {
+        "puntos": 1,
+        "razon": "«la entrega aceptada sigue bloqueada»; conserva 80/100."
+      },
+      "C5": {
+        "puntos": 1,
+        "razon": "«hipótesis local»; exige controles, repetición, casos independientes y revisión."
+      },
+      "C6": {
+        "puntos": 1,
+        "razon": "Actualiza trazabilidad y prepara casos sobre copias recuperables; no cambia modelos."
+      }
+    },
+    "total": 6,
+    "estados": {
+      "R1/r2": "incompleto o pendiente",
+      "R2": "sin validación humana",
+      "R3": "no acreditado"
+    },
+    "fallos_observados": [],
+    "lecturas_declaradas_y_contrastadas": [
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+        "relativa": "SKILL.md",
+        "bytes": 7256,
+        "sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md",
+        "relativa": "references/contratos-y-aprendizaje.md",
+        "bytes": 7153,
+        "sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+        "relativa": "references/desarrollo-y-evidencia.md",
+        "bytes": 8021,
+        "sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+        "relativa": "references/entorno-y-fuentes.md",
+        "bytes": 7665,
+        "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+        "relativa": "references/qa-y-entrega.md",
+        "bytes": 10449,
+        "sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3"
+      }
+    ],
+    "mensaje_lecturas": "r49-final-01-lecturas.txt",
+    "limite_lectura": "Declaración operativa del agente contrastada por huellas; no es medición de comprensión de cada línea."
+  },
+  {
+    "muestra": "r49-final-02",
+    "agente": "/root/ensayos_skill/r49_final_02",
+    "respuesta": "r49-final-02-respuesta.md",
+    "sha256": "665a3bf03a6a69c2f8e05b93737d139b329bce926f7d53de2ec2da0a08c2c585",
+    "palabras": 226,
+    "limite_250_cumplido": true,
+    "calificacion_manual": {
+      "C1": {
+        "puntos": 1,
+        "razon": "«solo acredita S/r1»; exige cierre/reapertura y corrupción/recuperación."
+      },
+      "C2": {
+        "puntos": 1,
+        "razon": "«hay cero sesiones humanas»; necesita observación de diez minutos."
+      },
+      "C3": {
+        "puntos": 1,
+        "razon": "«invalida la medición»; rechaza cinco 74 como aceptación y recalibra."
+      },
+      "C4": {
+        "puntos": 1,
+        "razon": "«Hoy no apruebo la entrega»; mantiene spec y umbral."
+      },
+      "C5": {
+        "puntos": 1,
+        "razon": "«hipótesis local»; exige controles, repetición y casos independientes."
+      },
+      "C6": {
+        "puntos": 1,
+        "razon": "Corrige recuperación con partidas recuperables y registra casos; no finge ejecución ni cambia modelos."
+      }
+    },
+    "total": 6,
+    "estados": {
+      "R1/r2": "incompleto o pendiente",
+      "R2": "sin validación humana",
+      "R3": "no acreditado"
+    },
+    "fallos_observados": [],
+    "lecturas_declaradas_y_contrastadas": [
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+        "relativa": "SKILL.md",
+        "bytes": 7256,
+        "sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md",
+        "relativa": "references/contratos-y-aprendizaje.md",
+        "bytes": 7153,
+        "sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+        "relativa": "references/desarrollo-y-evidencia.md",
+        "bytes": 8021,
+        "sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+        "relativa": "references/entorno-y-fuentes.md",
+        "bytes": 7665,
+        "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+        "relativa": "references/qa-y-entrega.md",
+        "bytes": 10449,
+        "sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3"
+      }
+    ],
+    "mensaje_lecturas": "r49-final-02-lecturas.txt",
+    "limite_lectura": "Declaración operativa del agente contrastada por huellas; no es medición de comprensión de cada línea."
+  },
+  {
+    "muestra": "r49-final-03",
+    "agente": "/root/ensayos_skill/r49_final_03",
+    "respuesta": "r49-final-03-respuesta.md",
+    "sha256": "c5cf7eac8a0573f3690a4d38f0f618b85efe439f504009d269eb56d67b0d9e26",
+    "palabras": 232,
+    "limite_250_cumplido": true,
+    "calificacion_manual": {
+      "C1": {
+        "puntos": 1,
+        "razon": "«R1/r1 quedó sustituido»; exige S/r2 cierre/reapertura/corrupción con control sin guardar."
+      },
+      "C2": {
+        "puntos": 1,
+        "razon": "«cero sesiones humanas observadas»; experiencia sin validar."
+      },
+      "C3": {
+        "puntos": 1,
+        "razon": "«invalida la calibración y las mediciones afectadas»; diagnostica/versiona corrección."
+      },
+      "C4": {
+        "puntos": 1,
+        "razon": "«No declaro cumplida la especificación»; umbral permanece en 80."
+      },
+      "C5": {
+        "puntos": 1,
+        "razon": "«observación local» e hipótesis pendiente de reproducción, controles, contraejemplos y revisión."
+      },
+      "C6": {
+        "puntos": 1,
+        "razon": "Diagnostica medidor y prepara pruebas integradas; no cambia modelos."
+      }
+    },
+    "total": 6,
+    "estados": {
+      "R1/r2": "incompleto o pendiente",
+      "R2": "sin validación humana",
+      "R3": "no acreditado"
+    },
+    "fallos_observados": [],
+    "lecturas_declaradas_y_contrastadas": [
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+        "relativa": "SKILL.md",
+        "bytes": 7256,
+        "sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md",
+        "relativa": "references/contratos-y-aprendizaje.md",
+        "bytes": 7153,
+        "sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+        "relativa": "references/desarrollo-y-evidencia.md",
+        "bytes": 8021,
+        "sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+        "relativa": "references/entorno-y-fuentes.md",
+        "bytes": 7665,
+        "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+        "relativa": "references/qa-y-entrega.md",
+        "bytes": 10449,
+        "sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3"
+      }
+    ],
+    "mensaje_lecturas": "r49-final-03-lecturas.txt",
+    "limite_lectura": "Declaración operativa del agente contrastada por huellas; no es medición de comprensión de cada línea."
+  },
+  {
+    "muestra": "r49-final-04",
+    "agente": "/root/ensayos_skill/r49_final_04",
+    "respuesta": "r49-final-04-respuesta.md",
+    "sha256": "7f5823d9cc7b0ee0f06adc8a6f1f7c87256bb59e327449ae3c68a1b9df92a262",
+    "palabras": 231,
+    "limite_250_cumplido": true,
+    "calificacion_manual": {
+      "C1": {
+        "puntos": 1,
+        "razon": "«Ninguno hereda aprobación»; prepara cierre/reapertura/corrupción sobre copias recuperables."
+      },
+      "C2": {
+        "puntos": 1,
+        "razon": "«cero sesiones humanas»; bot aporta solo evidencia técnica y exige observación humana."
+      },
+      "C3": {
+        "puntos": 1,
+        "razon": "«Invalido esas mediciones»; corrige/calibra antes de puntuar."
+      },
+      "C4": {
+        "puntos": 1,
+        "razon": "«eso no sustituye la entrega acordada»; mantiene spec y 80."
+      },
+      "C5": {
+        "puntos": 1,
+        "razon": "«hipótesis local»; exige repeticiones, controles, contraejemplos y humanos."
+      },
+      "C6": {
+        "puntos": 1,
+        "razon": "Actualiza trazabilidad y prioriza recuperación; no cambia modelos."
+      }
+    },
+    "total": 6,
+    "estados": {
+      "R1/r2": "incompleto o pendiente",
+      "R2": "sin validación humana",
+      "R3": "no acreditado"
+    },
+    "fallos_observados": [],
+    "lecturas_declaradas_y_contrastadas": [
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+        "relativa": "SKILL.md",
+        "bytes": 7256,
+        "sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md",
+        "relativa": "references/contratos-y-aprendizaje.md",
+        "bytes": 7153,
+        "sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+        "relativa": "references/desarrollo-y-evidencia.md",
+        "bytes": 8021,
+        "sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+        "relativa": "references/entorno-y-fuentes.md",
+        "bytes": 7665,
+        "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+        "relativa": "references/qa-y-entrega.md",
+        "bytes": 10449,
+        "sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3"
+      }
+    ],
+    "mensaje_lecturas": "r49-final-04-lecturas.txt",
+    "limite_lectura": "Declaración operativa del agente contrastada por huellas; no es medición de comprensión de cada línea."
+  },
+  {
+    "muestra": "r49-final-05",
+    "agente": "/root/ensayos_skill/r49_final_05",
+    "respuesta": "r49-final-05-respuesta.md",
+    "sha256": "bae4c288578d9cfddfe555efe6beecdb3dd06ea8083704f9bdcfb9b74a223883",
+    "palabras": 234,
+    "limite_250_cumplido": true,
+    "calificacion_manual": {
+      "C1": {
+        "puntos": 1,
+        "razon": "«No heredo el verde»; identifica tres casos sin verificar y exige probarlos tras recuperación."
+      },
+      "C2": {
+        "puntos": 1,
+        "razon": "«pendiente de validación humana»; bot no demuestra comprensión/diversión."
+      },
+      "C3": {
+        "puntos": 1,
+        "razon": "«medición inválida»; diagnostica antes de otra ronda y recalibra con controles."
+      },
+      "C4": {
+        "puntos": 1,
+        "razon": "«No acepto la demo como conforme»; mantiene 80."
+      },
+      "C5": {
+        "puntos": 1,
+        "razon": "«hipótesis local» pendiente de controles, repeticiones, casos independientes y revisión."
+      },
+      "C6": {
+        "puntos": 1,
+        "razon": "Registra estados y vincula requisito/revisión/evidencia; no cambia modelos."
+      }
+    },
+    "total": 6,
+    "estados": {
+      "R1/r2": "incompleto o pendiente",
+      "R2": "sin validación humana",
+      "R3": "no acreditado"
+    },
+    "fallos_observados": [],
+    "lecturas_declaradas_y_contrastadas": [
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+        "relativa": "SKILL.md",
+        "bytes": 7256,
+        "sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md",
+        "relativa": "references/contratos-y-aprendizaje.md",
+        "bytes": 7153,
+        "sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+        "relativa": "references/desarrollo-y-evidencia.md",
+        "bytes": 8021,
+        "sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+        "relativa": "references/entorno-y-fuentes.md",
+        "bytes": 7665,
+        "sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074"
+      },
+      {
+        "ruta": "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md",
+        "relativa": "references/qa-y-entrega.md",
+        "bytes": 10449,
+        "sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3"
+      }
+    ],
+    "mensaje_lecturas": "r49-final-05-lecturas.txt",
+    "limite_lectura": "Declaración operativa del agente contrastada por huellas; no es medición de comprensión de cada línea."
+  }
+]

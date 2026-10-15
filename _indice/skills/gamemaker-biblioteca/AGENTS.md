@@ -2,33 +2,41 @@
 
 > **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**
 > **`SKILL.md`. No lo edites a mano:** se reescribe en cada `python3 _indice/actualizar.py`
-> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz
+>. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz
 > de un proyecto y no tienen un directorio de skills en formato `SKILL.md`.
 > Si ya existe un `AGENTS.md`, integra estas directrices sin sobrescribir sus reglas.
 > Si no existe, puedes copiar o enlazar este archivo en la raíz del proyecto.
 > Si tu CLI sí lee skills, usa directamente la carpeta
 > `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.
 
-**Cuándo aplica esto:** Úsala para GameMaker/GML, .yyp/.yy/.gml, gm-cli, «hazme un juego», «no compila», errores, diseño, assets, QA y publicación; también para desarrollo con IA, crítica, evidencia, continuidad y búsqueda semántica en proyectos GameMaker.
+**Cuándo aplica esto:** Úsala para «quiero hacer un juego con GameMaker» o «Game Maker», GML, .yyp/.yy/.gml, gm-cli, «hazme un juego» y «no compila»; errores, diseño, assets, QA, publicación, desarrollo con IA y búsqueda semántica.
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r48 · 2026-10-11 -->
-`r48 · 2026-10-11`. Biblioteca local en español; referencia histórica LTS 2026.0
+<!-- SKILL-VERSION: r50 · 2026-10-15 -->
+`r50 · 2026-10-15`. Biblioteca local en español; referencia histórica LTS 2026.0
 (IDE 2026.0.0.16 · GMS2 2026.0.0.23). **Manda la versión real del proyecto.**
 
 ## Antes de actuar
 
-1. Identifica el checkout y lee sus reglas, especificación, glosario, dirección visual,
-   estado, revisión, WIP y pausa. Reutiliza sistemas existentes. Una lectura o una medición
-   solicitada no autoriza reanudar procesos pausados, cambiar modelos ni publicar.
-2. Una vez por sesión, lee `$BIB/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md`:
-   sondeo Bash/zsh **o PowerShell**, biblioteca/índice/CLI realmente disponibles y fallback.
+1. Actívala por la intención GameMaker del usuario, sin exigir que nombre la skill.
+   Sitúa la tarea: consulta, aprendizaje, nuevo juego, continuación/cambio o verificación.
+   En un proyecto, comprueba checkout, reglas, spec, glosario, diseño, WIP y pausa; reutiliza
+   lo existente. Una lectura no autoriza reanudar procesos, cambiar modelos ni publicar.
+2. Antes de recomendar API, escribir GML u operar el motor, lee una vez por entorno
+   `$BIB/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md`: sondeo Bash/zsh
+   **o PowerShell**, biblioteca/índice/CLI disponibles y fallback. Refresca si cambia el entorno.
    Comprueba engine/runtime/target del proyecto y compáralos con `meta.runtime` del índice.
    `GM_BIBLIOTECA_RUNTIME` selecciona la fuente: un valor explícito inválido es error, sin
    fallback silencioso. La caché de máquina y la etiqueta LTS de esta skill no cambian el proyecto.
-3. Selecciona las referencias de la tabla siguiente por la tarea y léelas antes de aplicar
-   sus procedimientos. No cargues todos los documentos para una consulta puntual.
+3. Lee solo las referencias de la fase actual. Requisitos o método sin API ni operación
+   no requieren sondear biblioteca/CLI. Al iniciar un juego, ante una decisión costosa o
+   estancamiento, aplica automáticamente [`asesor y activación`](references/asesor-y-activacion.md):
+   **Invoca un subagente asesor de solo lectura antes de cerrar la definición inicial o
+   decidir el enfoque**; encargo autónomo breve, sin delegación en cascada, modelos/roles
+   vigentes y resultado contrastado. Esto autoriza esa delegación dentro del encargo.
+   Si falta herramienta, permiso o cuota, declara el fallback de autorrevisión y su causa.
+   Leer el protocolo no acredita haber consultado. Una duda puntual no lo exige.
 
 `BIB` es la raíz comprobada de la biblioteca. Las rutas `NN/MM` abrevian
 `$BIB/NN - <carpeta>/MM - <archivo>.md`; las referencias del paquete viajan con SKILL.md.
@@ -43,6 +51,8 @@ los documentos o herramientas ausentes.
 | Verificar o recomendar API; escribir/revisar GML, firma, obsolescencia, structs o convenciones | `$BIB/_indice/skills/gamemaker-biblioteca/references/consulta-api.md` |
 | Init, recursos, eventos, CLI/MCP/IDE, compilar, ejecutar o empaquetar | `$BIB/_indice/skills/gamemaker-biblioteca/references/operar-gamemaker.md`: trampas y límites del entorno documentado |
 | Crear/continuar un juego, diseñar sistemas, coordinar agentes o rondas de crítica | `$BIB/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md`: spec, arquitectura, propiedad y cinco puertas de IA |
+| Iniciar un juego, decidir algo costoso de revertir o salir de un atasco | `$BIB/_indice/skills/gamemaker-biblioteca/references/asesor-y-activacion.md`: asesor disponible, brief, contraste, límites y traza real |
+| Cambiar requisitos, revisar reglas del gauntlet, incorporar aprendizajes o evaluar la skill | `$BIB/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md`: trazabilidad, invalidación y promoción |
 | Probar, medir, revisar, declarar verde/aceptación/terminado o preparar entrega | `$BIB/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md`: instrumentos, denominadores, checklist y límites |
 | Arte, audio, fuentes, atlas, assets propios/libres, traducción o generación que cuesta dinero | `$BIB/_indice/skills/gamemaker-biblioteca/references/assets-y-texto.md` |
 | Buscar por significado, clasificar/deduplicar, ahorrar contexto o integrar embeddings/RAG | `$BIB/_indice/skills/gamemaker-biblioteca/references/contexto-y-recursos.md`: consumidor existente, privacidad, reserva y medición |
@@ -50,7 +60,7 @@ los documentos o herramientas ausentes.
 | Diseño por disciplina y orden de lectura | `$BIB/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md` |
 | Localizar el título/ruta exactos de un documento | `$BIB/_indice/skills/gamemaker-biblioteca/references/indice-documentos.md`. Las rutas abreviadas de este documento (`13/28`, `04/00`, `12/09`…) siguen el mismo patrón: `$BIB/NN - <carpeta>/MM - <archivo>.md` — primero la carpeta por su número, luego el archivo dentro de ella por el suyo. |
 
-Un desarrollo completo combina desarrollo → API/operación y assets según los sistemas → QA.
+Un desarrollo completo combina desarrollo/asesor → API/operación y assets según los sistemas → QA.
 Proyecto largo, varios agentes, gauntlet, crítica o cambio de harness: abre `13/29` completo
 si la biblioteca está disponible. Enseñanza continuada: abre `RUTA.md` y sitúa el nivel por
 lo que el usuario sabe hacer; ofrece material de ese nivel y el siguiente.

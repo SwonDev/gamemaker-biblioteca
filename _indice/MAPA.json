@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 267 documentos con su título",
+    "_indice/documentos.json": "los 268 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -1389,11 +1389,15 @@
           "titulo": "Desarrollo con IA — orquestación, crítica y evidencia"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md",
+          "titulo": "30 · Especificación viva y mejora del método"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 30
+      "n_documentos": 31
     },
     {
       "titulo": "Un juego completo, montado y funcionando",
@@ -1537,7 +1541,7 @@
       ]
     }
   },
-  "total_documentos": 267,
+  "total_documentos": 268,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

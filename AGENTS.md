@@ -232,6 +232,10 @@ vieja. Por eso el aviso sale siempre, incluso al decir que algo no existe.
 contratos, crítica aislada, evidencia por revisión, recursos y continuidad. Recupera la pausa
 y el WIP antes de actuar; una auditoría de lectura no autoriza reanudar el juego.
 
+**Si cambian requisitos o rúbricas, o se mejora la propia skill**, continúa con
+[13 · 30 — Especificación viva y mejora del método](<./13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md>):
+trazabilidad, invalidación de evidencia y promoción contrastada de aprendizajes.
+
 0. **Especificación primero.** «Hazme un juego de X» **es** un encargo que incluye diseñar,
    aunque no lo diga con esas palabras: si no trae ya una especificación (un GDD, una ficha de
    sistema, o las respuestas a las preguntas de arranque), pregúntalas en un único turno y

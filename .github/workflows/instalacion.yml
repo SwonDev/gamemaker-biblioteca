@@ -1,0 +1,40 @@
+name: Instalación portable
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'instalar*'
+      - '_indice/harnesses.py'
+      - '_indice/skills/**'
+      - '_indice/pruebas/probar-*.py'
+      - '.github/workflows/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  instalar:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.10', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Comprobar sin dependencias adicionales
+        run: python instalar.py --comprobar
+      - name: Regresiones de instalación
+        run: python _indice/pruebas/probar-instalacion.py
+      - name: Regresiones de descarga y extracción
+        run: python _indice/pruebas/probar-bootstrap.py
+      - name: Localizar biblioteca desde las instrucciones distribuidas
+        run: python _indice/pruebas/probar-ruta-biblioteca.py
+      - name: Instalar la revisión publicada dos veces
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: python _indice/pruebas/probar-distribucion.py --revision "${{ github.sha }}"

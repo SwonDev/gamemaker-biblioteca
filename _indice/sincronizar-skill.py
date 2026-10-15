@@ -18,10 +18,10 @@ agente sigue una pista falsa sin enterarse. Este script lo impide:
      ~/.qwen/skills, ~/.kimi-code/skills y ~/.config/opencode/skills apuntan a esta carpeta
      (informativo: no falla, pero lo dice).
 
-Lo llama actualizar.py e instalar.sh (antes de copiar la skill, para que la copia ya incluya
-el AGENTS.md al día). Sale con 0 si no hay rutas rotas.
+Lo llama actualizar.py. La instalación comprueba el manifiesto generado sin necesitar
+dependencias de mantenimiento ni reescribir el checkout. Sale con 0 si no hay rutas rotas.
 """
-import os, re, sys, json
+import os, re, sys, json, hashlib
 from pathlib import Path
 
 # Windows: en cuanto la salida no es una consola interactiva (pipes, «> archivo», o el
@@ -227,7 +227,7 @@ def generar_agents_md():
         "> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**\n"
         "> **`SKILL.md`. No lo edites a mano:** se reescribe en cada "
         "`python3 _indice/actualizar.py`\n"
-        "> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz\n"
+        ">. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz\n"
         "> de un proyecto y no tienen un directorio de skills en formato `SKILL.md`.\n"
         "> Si ya existe un `AGENTS.md`, integra estas directrices sin sobrescribir sus reglas.\n"
         "> Si no existe, puedes copiar o enlazar este archivo en la raíz del proyecto.\n"
@@ -304,6 +304,19 @@ def contenido_paquete(ruta):
     return contenido
 
 
+def generar_manifiesto():
+    """Sella el paquete validado para instalarlo sin dependencias de mantenimiento."""
+    archivos = contenido_paquete(SKILL)
+    archivos.pop("manifest.json", None)
+    datos = {"schema": 1, "name": "gamemaker-biblioteca",
+             "version": _version_de(os.path.join(SKILL, "SKILL.md")),
+             "files": {n.replace(os.sep, "/"): hashlib.sha256(b).hexdigest()
+                       for n, b in sorted(archivos.items())}}
+    Path(SKILL, "manifest.json").write_text(
+        json.dumps(datos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return datos
+
+
 def estado_enlaces():
     """¿Qué CLI ven esta skill ahora mismo? Solo informa (ver instalar.sh para la instalación)."""
     sitios = {
@@ -333,7 +346,9 @@ def estado_enlaces():
     }
     from harnesses import destinos
     nativos = destinos(os.path.expanduser("~/"))
-    codex_skills = nativos["codex"][1]
+    for clave, etiqueta in (("claude", "Claude Code"), ("opencode", "opencode")):
+        sitios[etiqueta] = str(nativos[clave][1]/"gamemaker-biblioteca")
+    codex_skills = Path(os.environ.get("CODEX_HOME") or os.path.expanduser("~/.codex"))/"skills"
     sitios["Codex (pool)"] = str(codex_skills.parent/"skills-pool/gamemaker-biblioteca")
     sitios["Codex (ruta legacy, opcional)"] = str(codex_skills/"gamemaker-biblioteca")
     for clave, etiqueta in (("pi", "Pi"), ("omp", "OMP"), ("minimax", "MiniMax Code"),
@@ -380,17 +395,21 @@ def estado_enlaces():
         if not os.path.isfile(skill_md):
             lineas.append(f"  ⚠ {nombre}: {ruta} existe pero no tiene SKILL.md")
             continue
-        # Symlink → identidad de ruta. Copia (cp -R) → mismo contenido. Ambas cuentan como
-        # "al día"; solo se avisa si de verdad es otra cosa (una skill distinta con ese nombre).
+        # Un enlace puede apuntar a una copia compartida entre harnesses. Su destino
+        # se coteja completo igual que una copia directa; no exige reemplazar el enlace.
         es_symlink = os.path.islink(ruta)
         try:
-            al_dia = os.path.samefile(real, SKILL) if es_symlink else (
-                contenido_paquete(real) == paquete_propio)
+            mismo_origen = os.path.samefile(real, SKILL)
+            al_dia = mismo_origen or contenido_paquete(real) == paquete_propio
         except OSError:
             al_dia = False
         if al_dia:
-            modo = "enlace →" if es_symlink else "copia al día,"
-            lineas.append(f"  ✓ {nombre}: {ruta} ({modo} esta carpeta)")
+            if es_symlink:
+                destino = "esta carpeta" if mismo_origen else f"copia al día, {real}"
+                modo = f"enlace → {destino}"
+            else:
+                modo = "copia al día, esta carpeta"
+            lineas.append(f"  ✓ {nombre}: {ruta} ({modo})")
         else:
             # No basta con decir «no coincide»: eso no dice si la copia va una coma por
             # detrás o seis meses. La etiqueta de versión sí lo dice, y es lo que decide
@@ -514,6 +533,9 @@ def main():
             print(f"    {doc}\n        → {r}")
     else:
         print("Todas las rutas que cita la skill existen.")
+    if not (rotas or desfasadas or not agents):
+        datos = generar_manifiesto()
+        print(f"Manifiesto generado: {len(datos['files'])} archivos verificados.")
     for l in estado_enlaces():
         print(l)
     return 1 if (rotas or desfasadas or not agents) else 0

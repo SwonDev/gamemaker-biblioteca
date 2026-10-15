@@ -4,6 +4,10 @@ Lee al medir, probar, revisar o declarar verde, aceptación, terminado o publica
 
 Contenido: instrumentos y alcance · cierre de un juego · límites de portabilidad.
 
+Al cambiar criterio/rúbrica o evaluar la propia skill, lee
+[`contratos-y-aprendizaje.md`](contratos-y-aprendizaje.md): una prueba de comportamiento,
+un juicio de fidelidad y una hipótesis de experiencia tienen evidencias distintas.
+
 ## Instrumentos y alcance
 
 | Necesito | Comando o contrato |

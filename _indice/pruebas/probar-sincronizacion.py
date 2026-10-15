@@ -4,6 +4,7 @@ import importlib.util
 import contextlib
 import io
 import json
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -93,6 +94,38 @@ class Sincronizacion(unittest.TestCase):
         self.copiar()
         self.assertIn("copia al día", self.estado_generico())
 
+    def test_enlace_a_copia_completa_se_reconoce_sin_sustituirlo(self):
+        self.copiar()
+        compartida = self.base / "copia-compartida"
+        self.destino.rename(compartida)
+        self.destino.symlink_to(compartida, target_is_directory=True)
+        estado = self.estado_generico()
+        self.assertIn("✓", estado)
+        self.assertIn("enlace → copia al día", estado)
+        self.assertTrue(self.destino.is_symlink())
+        self.assertEqual(self.destino.readlink(), compartida)
+
+    def test_enlace_a_copia_modificada_con_misma_version_no_esta_al_dia(self):
+        self.copiar()
+        compartida = self.base / "copia-compartida"
+        self.destino.rename(compartida)
+        self.destino.symlink_to(compartida, target_is_directory=True)
+        (compartida / "references/indice-documentos.md").write_text("Índice desfasado\n", encoding="utf-8")
+        self.assertNotIn("✓", self.estado_generico())
+
+    def test_enlace_a_copia_incompleta_no_esta_al_dia(self):
+        self.copiar()
+        compartida = self.base / "copia-compartida"
+        self.destino.rename(compartida)
+        self.destino.symlink_to(compartida, target_is_directory=True)
+        (compartida / "AGENTS.md").unlink()
+        self.assertNotIn("✓", self.estado_generico())
+
+    def test_enlace_colgante_no_esta_al_dia(self):
+        self.destino.parent.mkdir(parents=True)
+        self.destino.symlink_to(self.base / "ausente", target_is_directory=True)
+        self.assertNotIn("✓", self.estado_generico())
+
     def test_referencia_modificada_no_esta_al_dia(self):
         self.copiar()
         (self.destino / "references/indice-documentos.md").write_text('Documento antiguo\n', encoding="utf-8")
@@ -123,6 +156,36 @@ class Sincronizacion(unittest.TestCase):
             lineas = [l for l in mod.estado_enlaces() if "Codex (" in l]
         self.assertTrue(any(str(destino) in l and "copia al día" in l for l in lineas), lineas)
         self.assertFalse(any(str(self.base/"usuario/.codex/skills/gamemaker-biblioteca") in l for l in lineas), lineas)
+
+    def test_manifiesto_cubre_paquete_sin_incluirse_a_si_mismo(self):
+        self.copiar()
+        datos = mod.generar_manifiesto()
+        self.assertEqual(datos["schema"], 1)
+        self.assertEqual(datos["version"], "r1")
+        self.assertNotIn("manifest.json", datos["files"])
+        for nombre, huella in datos["files"].items():
+            self.assertEqual(huella, hashlib.sha256((self.skill/nombre).read_bytes()).hexdigest())
+        self.assertEqual(datos, mod.generar_manifiesto())
+
+    def test_estados_respetan_overrides_claude_y_opencode(self):
+        self.copiar()
+        for variable, etiqueta in (("CLAUDE_CONFIG_DIR", "Claude Code"), ("OPENCODE_CONFIG_DIR", "opencode")):
+            with self.subTest(variable=variable):
+                base = self.base/variable
+                copia = base/"skills/gamemaker-biblioteca"
+                copia.parent.mkdir(parents=True)
+                shutil.copytree(self.skill, copia)
+                with patch.dict(os.environ, {variable: str(base)}):
+                    lineas = [l for l in mod.estado_enlaces() if f"{etiqueta}:" in l]
+                self.assertTrue(any(str(copia) in l and "copia al día" in l for l in lineas), lineas)
+
+    def test_validacion_fallida_no_reemplaza_manifiesto(self):
+        self.copiar()
+        mod.generar_manifiesto()
+        anterior = (self.skill/"manifest.json").read_bytes()
+        (self.skill/"SKILL.md").write_text("# Metadatos rotos\n", encoding="utf-8")
+        self.assertNotEqual(mod.main(), 0)
+        self.assertEqual(anterior, (self.skill/"manifest.json").read_bytes())
 
 
 if __name__ == "__main__":

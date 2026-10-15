@@ -10,24 +10,22 @@ Una **biblioteca en español** para aprender y consultar GML, y una **skill** qu
 
 ## Empieza aquí
 
-Necesitas **Git, Python 3.10 o posterior y Bash**. En Windows, usa Git Bash. Puedes instalar la skill antes de instalar GameMaker.
+Necesitas **Python 3.10 o posterior**. Copia un comando en la terminal; no necesitas Git ni Bash para instalar.
 
-```bash
-git clone https://github.com/SwonDev/gamemaker-biblioteca.git
-cd gamemaker-biblioteca
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r _indice/requirements.txt
-./instalar.sh
+**macOS y Linux:**
+
+```sh
+python3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='585fec194d4768d30437cbbf4133670eeb134ef0057a3f7211cea23c6937faf1' else exit('Descarga no válida')"
 ```
 
-En Git Bash, activa el entorno con `source .venv/Scripts/activate`; si tu equipo usa `python` en lugar de `python3`, usa ese nombre. [Instalación paso a paso y ayuda](INSTALACION.md).
+**Windows (PowerShell):** usa el mismo comando cambiando `python3` por `py -3`.
+[Otras formas de instalar, actualizar o elegir agentes](INSTALACION.md).
 
-Abre tu agente en el proyecto de GameMaker y pídele, por ejemplo:
+Abre tu agente en la carpeta del juego y escribe con normalidad:
 
-> Usa gamemaker-biblioteca. Quiero un juego de plataformas 2D para ordenador. Ayúdame a definirlo, escribe la especificación y construye una primera parte jugable con pruebas y revisión.
+> Quiero hacer un juego con GameMaker. Será de plataformas 2D para ordenador.
 
-El instalador conserva las copias anteriores. Para comprobar firmas de GML contra **tu runtime**, instala GameMaker y genera los índices: [activar las herramientas](INSTALACION.md#activar-las-herramientas-de-gml).
+La skill selecciona las referencias necesarias y consulta un asesor al definir el juego o tomar decisiones costosas. Una duda puntual carga solo su ruta. El instalador registra la biblioteca, prepara los destinos compatibles y conserva las copias anteriores. Para ejecutar y verificar juegos necesitas GameMaker y su runtime; [activar las herramientas](INSTALACION.md#activar-las-herramientas-de-gml).
 
 ## <img src="assets/readme/iconos/biblioteca.svg" width="32" height="32" alt=""> Biblioteca + skill
 
@@ -39,7 +37,7 @@ El instalador conserva las copias anteriores. Para comprobar firmas de GML contr
 
 **[Cómo funciona: guía visual del método](<Método visual.md>)**
 
-Compatible con agentes que leen **Agent Skills** o **AGENTS.md**: Claude Code, Codex, OpenCode, Pi, OMP, MiniMax Code, DeepSeek Harness (`dsh`), Hermes Agent y gentle-shell, entre otros. Puedes elegir un destino con `./instalar.sh --harness dsh`. [Destinos, pruebas y límites](INSTALACION.md#qué-cli-de-ia-están-soportados) · [Ver la skill](./_indice/skills/gamemaker-biblioteca/SKILL.md).
+Compatible con agentes que leen **Agent Skills** o **AGENTS.md**: Claude Code, Codex, OpenCode, Pi, OMP, MiniMax Code, DeepSeek Harness (`dsh`), Hermes Agent y gentle-shell, entre otros. Puedes elegir un destino con `python3 instalar.py --harness dsh`. [Destinos, pruebas y límites](INSTALACION.md#qué-cli-de-ia-están-soportados) · [Ver la skill](./_indice/skills/gamemaker-biblioteca/SKILL.md).
 
 ## <img src="assets/readme/iconos/metodo.svg" width="32" height="32" alt=""> Del encargo al juego comprobado
 
@@ -53,6 +51,10 @@ Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rend
 
 **[Método completo de desarrollo con IA](<13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)**
 
+[Especificación viva y mejora del método](<13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md>)
+conecta cambios de requisito, tareas, pruebas y evidencia; incluye promoción de aprendizajes
+y evaluación de la propia skill, con aportes contrastados de Matt, Gentle AI y ECC.
+
 ## <img src="assets/readme/iconos/busqueda.svg" width="32" height="32" alt=""> Encuentra lo que necesitas
 
 - **Quiero aprender:** [ruta por nivel](RUTA.md) y [fundamentos](<01 - Fundamentos>).
@@ -62,7 +64,7 @@ Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rend
 
 ## Conocimiento que se puede comprobar
 
-Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Pruebas y límites de esta revisión](./_indice/auditorias/r23-validacion.md) · [Método y material visual incorporados](./_indice/auditorias/r22-publicacion.md).
+Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Activación, instalación y pruebas r50](./_indice/auditorias/r25-validacion.md) · [Método r49](./_indice/auditorias/r24-validacion.md) · [Contratos HTTP y versiones r48](./_indice/auditorias/r23-validacion.md) · [Método y material visual incorporados](./_indice/auditorias/r22-publicacion.md).
 
 **Referencia documental:** GameMaker LTS 2026.0. El manual oficial y el código de terceros se reconstruyen aparte, con sus licencias. La instalación de la skill no instala GameMaker, EmbeddingGemma ni cambia tu modelo. [Qué se distribuye](PUBLICAR.md).
 

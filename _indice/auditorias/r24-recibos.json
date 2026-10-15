@@ -1,0 +1,152 @@
+{
+  "fecha": "2026-10-15",
+  "revision_skill": "r49",
+  "python": "3.12.14",
+  "host": "Darwin arm64",
+  "mantenimiento": {
+    "comando": "python3.12 -u _indice/actualizar.py",
+    "salida": 0,
+    "rutas_internas": 2325,
+    "anclas_internas": 1640,
+    "tareas_descubrimiento_estatico": 80,
+    "bloques_gml_compilados": 3477,
+    "bloques_excluidos": 306,
+    "segundos_compilacion": 27.6,
+    "autopruebas_herramientas": 23,
+    "paginas_manual_comparadas": 3119
+  },
+  "sincronizador": {
+    "rojo": {
+      "salida": 1,
+      "pruebas": 13,
+      "fallos": 1
+    },
+    "verde": {
+      "salida": 0,
+      "pruebas": 16,
+      "fallos": 0
+    }
+  },
+  "paquete": {
+    "archivos": 13,
+    "sha256": {
+      "SKILL.md": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5",
+      "AGENTS.md": "d459bdd503a6bf72a56ae105338348bc04fde08ec0267fdde6031249d9b5a768",
+      "references/consulta-api.md": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+      "references/assets-y-texto.md": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+      "references/indice-documentos.md": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
+      "references/rutas-de-consulta.md": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34",
+      "references/entorno-y-fuentes.md": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074",
+      "references/qa-y-entrega.md": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3",
+      "references/mapa-disciplinas.md": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+      "references/contratos-y-aprendizaje.md": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765",
+      "references/contexto-y-recursos.md": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+      "references/operar-gamemaker.md": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+      "references/desarrollo-y-evidencia.md": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8"
+    },
+    "instalacion_aislada_identica": true,
+    "destinos_locales_verificados": 12,
+    "copias_fisicas_actualizadas": 8,
+    "enlaces_conservados": 4
+  },
+  "ensayos": {
+    "fecha": "2026-10-15",
+    "resultado": "APTO para coherencia de artefactos; no acredita juego ni eficacia causal",
+    "grupos": [
+      {
+        "grupo": "control",
+        "muestras": 5,
+        "conformes": 5,
+        "criterios_calificados": 30,
+        "palabras": [
+          228,
+          227,
+          233,
+          222,
+          236
+        ]
+      },
+      {
+        "grupo": "r49-preliminar",
+        "muestras": 5,
+        "conformes": 5,
+        "criterios_calificados": 30,
+        "palabras": [
+          240,
+          234,
+          241,
+          233,
+          234
+        ]
+      },
+      {
+        "grupo": "r49-final",
+        "muestras": 5,
+        "conformes": 5,
+        "criterios_calificados": 30,
+        "palabras": [
+          233,
+          226,
+          232,
+          231,
+          234
+        ]
+      }
+    ],
+    "contextos_distintos": 15,
+    "manifiestos": {
+      "preliminar_archivos": 13,
+      "final_archivos": 13,
+      "copias_completas_contrastadas": true,
+      "final_inicial_igual_cierre": true,
+      "final_coincide_con_integrador": true,
+      "cambios_fuente_final_al_verificar": []
+    },
+    "rubrica_y_escenario_conservados": true,
+    "calificacion": "manual; seis criterios prefijados; sin evaluación ciega",
+    "limites": "Un escenario, cinco muestras por grupo, un evaluador; no significancia estadística ni mejora causal demostrada.",
+    "vistas_publicas": {
+      "tipo": "Vistas anonimizadas; resultados de agentes sin cambios",
+      "manifiesto": "vistas-para-publicar.json",
+      "huellas_originales": "huellas-originales.json",
+      "custodia_raw": "<CUSTODIA_PRIVADA>/r24-ensayos",
+      "archivos_datos_originales": 69,
+      "informe_original": 1,
+      "archivos_con_prefijos_sustituidos": 12,
+      "prompts_original_y_vista_separados": true,
+      "escenario_rubrica_respuestas_y_paquetes_sin_cambios": true,
+      "calificaciones_sin_cambios_salvo_prefijos_de_rutas": true,
+      "rutas_personales_restantes": 0,
+      "contraste_publico": "APTO",
+      "contraste_raw_privado": "APTO; copia íntegra verificada; resultado de ejecución conservado en custodia privada",
+      "verificador": "verificar-vistas.py",
+      "huella_del_manifiesto": "Se conserva por separado para evitar dependencia circular con este control."
+    }
+  },
+  "preservacion_relicwild": {
+    "fuentes_textuales_comparadas": 47956,
+    "alteradas_o_ausentes": [],
+    "marca_pausa_presente": true,
+    "limite": "Mismo conjunto textual seleccionado al inicio; excluye binarios, modelos, imágenes, caché del motor y otras salidas pesadas. No se ejecutó el juego."
+  },
+  "logs_en_custodia_privada": {
+    "actualizar-r49.log": "616be81a990a6d2a7a92d747d3a5e555a9bbc73c817ce40947a0512b0156fa17",
+    "actualizar-final.log": "6af9423ab976524653bdfb7cde7a18454834f14841667da2ade8e7354a7df7a9",
+    "actualizar-con-sincronizador-corregido.log": "35f76b1c887ff2a650dbbaba399ae96c86bf19b5984766aec88ec8c8ccb63c12",
+    "sincronizacion-rojo.log": "349c20b91009e0effd25dc795c77a419e619bbea38e7bb4e6a42da894bdca58e",
+    "sincronizacion-verde-inicial.log": "f75d1978a0d851d86a170af3056cb01e159063c6f3217020e33b2c329262b41c",
+    "sincronizacion-verde.log": "cd8641da723041f18ca705c119416c58c9cfdd564dd88b5aa41054927d7878e4",
+    "instalacion-aislada.log": "b3eee8f1c1bb8f9f5a0a3b7973439fc57153c331b048c7b7f6d445cba0bd897d"
+  },
+  "limites": [
+    "Compilación documental de sintaxis, no ejecución de cada receta.",
+    "Cobertura del corpus local completo; no extrapolar al clon público sin fuentes opcionales.",
+    "Ensayos textuales en un escenario, sin mejora causal observada ni garantía universal.",
+    "No se ejecutó Relicwild ni los frameworks externos estudiados."
+  ],
+  "vistas_publicas_ensayos": {
+    "control-de-datos.json": "9ff7c35264f388402d41285cc56ad900a895d19c6d9d8c1339a97173dda7abd4",
+    "vistas-para-publicar.json": "5d6f12cf1fcc0747a298c2903b7fa78a9f669ee7878177596a6563932471e400",
+    "huellas-originales.json": "b75cc26a3acc1ee0b3060e4752e2753332b59f73f08234193089566ee207bfc7"
+  }
+}
