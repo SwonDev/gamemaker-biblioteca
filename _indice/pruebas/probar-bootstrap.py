@@ -16,9 +16,10 @@ mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
 
-def archivo(entradas):
+def archivo(entradas, commit="a"*40):
     flujo = io.BytesIO()
     with ZipFile(flujo, "w") as z:
+        z.comment = commit.encode("ascii")
         for nombre, datos in entradas:
             z.writestr(nombre, datos)
     return flujo.getvalue()
@@ -41,7 +42,7 @@ class Bootstrap(unittest.TestCase):
         self.addCleanup(self.silencio.close)
 
     def ejecutar(self, *args):
-        with patch.object(mod, "descargar", side_effect=[json.dumps({"sha": self.commit}).encode(), self.zip]):
+        with patch.object(mod, "descargar", return_value=self.zip):
             return mod.main(["--home", str(self.usuario), "--biblioteca", str(self.lib), *args])
 
     def test_descarga_promueve_y_conserva_wip_anterior(self):
@@ -70,8 +71,12 @@ class Bootstrap(unittest.TestCase):
         red.assert_not_called()
 
     def test_sha_no_identificable_no_promueve(self):
-        with patch.object(mod, "descargar", return_value=b'{"sha":"main"}'):
+        with patch.object(mod, "descargar", return_value=archivo([("repo/instalar.py", "")], commit="no-es-sha")):
             self.assertEqual(mod.main(["--biblioteca", str(self.lib)]), 1)
+        self.assertFalse(self.lib.exists())
+
+    def test_sha_solicitado_no_coincide_no_promueve(self):
+        self.assertEqual(self.ejecutar("--revision", "b"*40), 1)
         self.assertFalse(self.lib.exists())
 
     def test_paquete_corrupto_conserva_biblioteca(self):
@@ -113,7 +118,7 @@ class Bootstrap(unittest.TestCase):
         enlace = self.usuario/".agents/skills/gamemaker-biblioteca"
         self.assertTrue(enlace.is_symlink())
         self.commit = "b"*40
-        self.zip = archivo(entradas+[("repo/README.md", "Nueva revisión\n")])
+        self.zip = archivo(entradas+[("repo/README.md", "Nueva revisión\n")], commit=self.commit)
         self.assertEqual(self.ejecutar("--harness", "codex", "--enlace"), 0)
         self.assertTrue(enlace.is_symlink())
         self.assertEqual(enlace.resolve(), (self.lib/"_indice/skills/gamemaker-biblioteca").resolve())

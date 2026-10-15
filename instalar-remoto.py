@@ -94,12 +94,18 @@ def main(argv=None):
         p.error("La biblioteca de destino es un enlace; elige su ubicación real explícitamente.")
     comprobar = any(opcion in resto for opcion in ("--comprobar", "--comprobar-paquete"))
     try:
-        datos_commit = json.loads(descargar(f"https://api.github.com/repos/{REPO}/commits/{opciones.revision}"))
-        commit = datos_commit.get("sha", "")
+        es_sha = bool(re.fullmatch(r"[0-9a-f]{40}", opciones.revision))
+        referencia = opciones.revision if es_sha else "refs/tags/" + opciones.revision
+        paquete = descargar(f"https://codeload.github.com/{REPO}/zip/{referencia}")
+        # git archive conserva el commit en el comentario ZIP. Se contrasta también
+        # con el SHA solicitado; no necesita cuenta ni cuota de la API de GitHub.
+        with ZipFile(io.BytesIO(paquete)) as zip_descargado:
+            commit = zip_descargado.comment.decode("ascii")
         if not re.fullmatch(r"[0-9a-f]{40}", commit):
-            raise ValueError("GitHub no devolvió una revisión identificable.")
+            raise ValueError("La distribución no declara un commit identificable.")
+        if es_sha and commit != opciones.revision:
+            raise ValueError("La distribución no corresponde al SHA solicitado.")
         print(f"GameMaker · revisión {opciones.revision}: {commit}", flush=True)
-        paquete = descargar(f"https://api.github.com/repos/{REPO}/zipball/{commit}")
         # Se prepara en el mismo volumen; la copia anterior se conserva completa.
         padre = biblioteca.parent if not comprobar else Path(tempfile.gettempdir())
         padre.mkdir(parents=True, exist_ok=True)

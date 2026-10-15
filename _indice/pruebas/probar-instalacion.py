@@ -283,12 +283,14 @@ class Instalador(unittest.TestCase):
             alias.parent.mkdir(parents=True)
             alias.symlink_to(claude, target_is_directory=True)
             aliases.append(alias)
+        targets_antes = {alias: alias.readlink() for alias in aliases}
         resultado = self.ejecutar()
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
         self.assertTrue((claude / "SKILL.md").is_file())
         for alias in aliases:
             self.assertTrue(alias.is_symlink())
-            self.assertEqual(alias.readlink(), claude)
+            self.assertEqual(alias.readlink(), targets_antes[alias])
+            self.assertEqual(alias.resolve(), claude.resolve())
             self.assertEqual((alias.parent / ".gamemaker-biblioteca-ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
         self.assertEqual(len(list(self.home.rglob(".gamemaker-biblioteca-backups/copia.*/gamemaker-biblioteca/nota.txt"))), 1)
 
@@ -322,11 +324,13 @@ class Instalador(unittest.TestCase):
         self.dest.mkdir()
         alias = self.dest / "gamemaker-biblioteca"
         alias.symlink_to(compartida, target_is_directory=True)
+        target_antes = alias.readlink()
         resultado = self.ejecutar("--enlace", "--destino", str(self.dest))
         self.assertEqual(resultado.returncode, 0, resultado.stderr)
         self.assertTrue(alias.is_symlink())
         self.assertFalse(compartida.is_symlink())
-        self.assertEqual(alias.readlink(), compartida)
+        self.assertEqual(alias.readlink(), target_antes)
+        self.assertEqual(alias.resolve(), compartida.resolve())
 
     def test_destino_anidado_rechazado_antes_de_crear(self):
         destino = self.paquete / "subcarpeta"
