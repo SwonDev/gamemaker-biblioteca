@@ -15,6 +15,20 @@ import unittest
 from unittest.mock import patch
 
 RAIZ = Path(__file__).resolve().parents[2]
+
+
+def admite_enlaces():
+    try:
+        with tempfile.TemporaryDirectory(prefix="gm-permiso-enlace-") as temporal:
+            base = Path(temporal)
+            (base/"real").mkdir()
+            (base/"alias").symlink_to(base/"real", target_is_directory=True)
+            return (base/"alias").is_dir()
+    except OSError:
+        return False
+
+
+ENLACES_DISPONIBLES = admite_enlaces()
 VARIABLES_RAIZ = ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME",
                   "PI_CODING_AGENT_DIR", "PI_CONFIG_DIR", "OMP_PROFILE", "PI_PROFILE",
                   "MINIMAX_DATA_DIR", "MAVIS_DATA_DIR", "DSH_HOME", "HERMES_HOME",
@@ -178,7 +192,7 @@ class Instalador(unittest.TestCase):
         self.assertEqual(antes, despues)
         self.assertFalse(self.home.exists())
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_comprobar_paquete_omite_alias_externo_pero_comprobar_plan_lo_rechaza(self):
         estable = self.base / "biblioteca-estable"
         estable.mkdir()
@@ -258,7 +272,7 @@ class Instalador(unittest.TestCase):
         self.assertFalse(self.dest.exists())
         self.assertFalse(self.home.exists())
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_alias_preexistentes_conservados_y_copia_compartida_actualizada(self):
         claude = self.home / ".claude/skills/gamemaker-biblioteca"
         claude.mkdir(parents=True)
@@ -278,7 +292,7 @@ class Instalador(unittest.TestCase):
             self.assertEqual((alias.parent / ".gamemaker-biblioteca-ruta").read_text(encoding="utf-8"), str(self.bib.resolve()))
         self.assertEqual(len(list(self.home.rglob(".gamemaker-biblioteca-backups/copia.*/gamemaker-biblioteca/nota.txt"))), 1)
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_alias_aislado_fuera_del_plan_no_rompe_enlace_ni_destino(self):
         compartida = self.base / "compartida"
         compartida.mkdir()
@@ -291,7 +305,7 @@ class Instalador(unittest.TestCase):
         self.assertTrue(alias.is_symlink())
         self.assertEqual((compartida / "nota.txt").read_text(encoding="utf-8"), "Conservar")
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_enlace_canonico_conservado(self):
         self.assertEqual(self.ejecutar("--enlace", "--destino", str(self.dest)).returncode, 0)
         alias = self.dest / "gamemaker-biblioteca"
@@ -301,7 +315,7 @@ class Instalador(unittest.TestCase):
         self.assertTrue(alias.is_symlink())
         self.assertFalse((self.dest / ".gamemaker-biblioteca-backups").exists())
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_alias_identico_no_modifica_referente_aunque_se_pida_enlace(self):
         compartida = self.base / "compartida"
         shutil.copytree(self.paquete, compartida)
@@ -344,7 +358,7 @@ class Instalador(unittest.TestCase):
         self.assertFalse(externa.exists())
         self.assertFalse(self.home.exists())
 
-    @unittest.skipIf(os.name == "nt", "El enlace nativo requiere permiso específico en Windows.")
+    @unittest.skipUnless(ENLACES_DISPONIBLES, "El sistema no permite crear enlaces simbólicos.")
     def test_home_explicito_no_registra_fuera_por_enlace(self):
         externa = self.base / "configuracion-ajena"
         externa.mkdir()
