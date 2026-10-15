@@ -20,7 +20,7 @@ PyYAML 6.0.3 y Pillow 12.2.0. GameMaker CLI 2.4.0, GMS2 2026.0.0.23. No se actua
 | Puerta | Resultado |
 |---|---|
 | Instalación stdlib, incluso `-I -S` | 32/32 regresiones; paquete real cotejado sin dependencias adicionales |
-| Bootstrap | 11/11, incluye actualización de enlace con contenido distinto, fallo de plan y restauración |
+| Bootstrap | 12/12, incluye actualización de enlace con contenido distinto, fallo de plan y restauración |
 | Resolución de biblioteca | 3/3 sobre bloques distribuidos: copia, override y alias lógico |
 | Sincronizador | 19/19 con el intérprete de mantenimiento; YAML estricto y manifiesto |
 | Mantenimiento completo local | Exit 0; 23 instrumentos, 80 tareas estáticas, 3.213/3.213 símbolos localizables |
@@ -62,8 +62,10 @@ ensayos nativos omiten reglas personales, texto cifrado, credenciales y rutas de
 Corpus, juegos, conversaciones y logs completos quedan fuera. La comparación contra la
 instantánea inicial comprueba que el resto del WIP no se alteró.
 
-La publicación del candidato, los runners Windows/Linux y la instalación remota se registran
-en el recibo de publicación posterior. No se presentan aquí como pruebas ya ejecutadas.
+La [publicación y matriz multiplataforma](r25-publicacion.md) incorporan los recibos de
+Windows/Linux/macOS y la instalación remota real. La distribución sin corpus opcional pasa
+su mantenimiento con 2.362/3.213 símbolos localizables (73 %); no hereda el 100 % del corpus
+completo de esta máquina.
 
 ## Límites
 

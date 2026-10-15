@@ -63,3 +63,5 @@ Una respuesta que dice «consulté» no habría bastado sin la llamada, el hijo 
 
 Fuente del comportamiento de eventos: [spawn V2 del CLI fijado](https://github.com/openai/codex/blob/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs),
 [selección de backend](https://github.com/openai/codex/blob/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/codex-rs/core/src/config/mod.rs).
+
+La entrada, desarrollo y política asesora del candidato público coinciden byte a byte con el fixture ensayado. Después se corrigió el localizador de biblioteca y se regeneró el índice para el corpus público; esos cambios tienen pruebas propias y no se atribuyen al ensayo asesor anterior.

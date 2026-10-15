@@ -1,0 +1,74 @@
+{
+  "fecha": "2026-10-15",
+  "commit_codigo": "5f7bef857cbe3869edbe1944901a243f11215953",
+  "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502",
+  "resultado": "success",
+  "jobs": [
+    {
+      "nombre": "instalar (macos-latest, 3.14)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556317324",
+      "detalles": [
+        "Ran 32 tests in 6.953s",
+        "Ran 12 tests in 1.013s",
+        "Ran 3 tests in 0.062s",
+        "{\"plataforma\": \"darwin\", \"python\": \"3.14.7\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    },
+    {
+      "nombre": "instalar (macos-latest, 3.10)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556317869",
+      "detalles": [
+        "Ran 32 tests in 4.959s",
+        "Ran 12 tests in 1.229s",
+        "Ran 3 tests in 0.135s",
+        "{\"plataforma\": \"darwin\", \"python\": \"3.10.11\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    },
+    {
+      "nombre": "instalar (ubuntu-latest, 3.14)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556318032",
+      "detalles": [
+        "Ran 32 tests in 4.096s",
+        "Ran 12 tests in 0.628s",
+        "Ran 3 tests in 0.016s",
+        "{\"plataforma\": \"linux\", \"python\": \"3.14.8\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    },
+    {
+      "nombre": "instalar (windows-latest, 3.14)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556318111",
+      "detalles": [
+        "Ran 32 tests in 6.555s",
+        "Ran 12 tests in 1.099s",
+        "Ran 3 tests in 2.405s",
+        "{\"plataforma\": \"win32\", \"python\": \"3.14.8\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    },
+    {
+      "nombre": "instalar (ubuntu-latest, 3.10)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556318112",
+      "detalles": [
+        "Ran 32 tests in 3.416s",
+        "Ran 12 tests in 0.547s",
+        "Ran 3 tests in 0.018s",
+        "{\"plataforma\": \"linux\", \"python\": \"3.10.22\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    },
+    {
+      "nombre": "instalar (windows-latest, 3.10)",
+      "resultado": "success",
+      "url": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502/job/116556318361",
+      "detalles": [
+        "Ran 32 tests in 4.961s",
+        "Ran 12 tests in 1.224s",
+        "Ran 3 tests in 1.901s",
+        "{\"plataforma\": \"win32\", \"python\": \"3.10.11\", \"distribucion\": {\"revision\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"commit\": \"5f7bef857cbe3869edbe1944901a243f11215953\", \"archivo_sha256\": \"070865c37c195a54417d050ec93190aede8a11b9a6f2a42f2089b2486b61dcaf\"}, \"skill_version\": \"r50 · 2026-10-15\", \"archivos\": 14, \"destinos_unicos\": 15, \"segunda_instalacion\": \"sin cambios ni backups\", \"registro\": true, \"resultado\": \"APTO\", \"limite\": \"Instalación real; no acredita selección por un modelo.\"}"
+      ]
+    }
+  ]
+}

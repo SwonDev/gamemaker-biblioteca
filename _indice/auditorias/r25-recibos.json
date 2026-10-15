@@ -1,0 +1,114 @@
+{
+  "fecha": "2026-10-15",
+  "revision": "r50",
+  "commit_codigo_ci": "5f7bef857cbe3869edbe1944901a243f11215953",
+  "ci": "https://github.com/SwonDev/gamemaker-biblioteca/actions/runs/38773860502",
+  "paquete_publico": {
+    "schema": 1,
+    "name": "gamemaker-biblioteca",
+    "version": "r50 · 2026-10-15",
+    "files": {
+      "AGENTS.md": "7806e92dd1135a396c990007228e2af21a7331af23a1899f7b560e9b76d55803",
+      "SKILL.md": "cb6f375473cd617fee3c586a1af140bb7af37d34113ff60fcd22c06454e7ebb5",
+      "references/asesor-y-activacion.md": "648403cc6ffc83483dc9e894b7e63ebb088fa1edad27a2fa923150bc4f13f76f",
+      "references/assets-y-texto.md": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+      "references/consulta-api.md": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+      "references/contexto-y-recursos.md": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+      "references/contratos-y-aprendizaje.md": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765",
+      "references/desarrollo-y-evidencia.md": "89218babb107c811c890fb69fecf5a6812344bbea1a571442037396291fa308e",
+      "references/entorno-y-fuentes.md": "5285337a56156cd49bf908bb08f23afcd4e7210a52e459ae0522c0f59ea051a8",
+      "references/indice-documentos.md": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
+      "references/mapa-disciplinas.md": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+      "references/operar-gamemaker.md": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+      "references/qa-y-entrega.md": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3",
+      "references/rutas-de-consulta.md": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34"
+    }
+  },
+  "instalacion_local": {
+    "resultado": "APTO",
+    "selectores": 16,
+    "rutas_logicas_unicas": 15,
+    "copias_fisicas_unicas": 12,
+    "archivos_por_paquete": 15,
+    "configuraciones_comprobadas_sin_cambios": 4
+  },
+  "gamemaker": [
+    {
+      "prueba": "validar-compilacion",
+      "exit": 0,
+      "segundos": 54.78
+    },
+    {
+      "prueba": "validar-ejecucion",
+      "exit": 0,
+      "segundos": 107.42
+    },
+    {
+      "prueba": "verificar-trampas",
+      "exit": 0,
+      "segundos": 25.98
+    }
+  ],
+  "mantenimiento_publico": {
+    "exit": 0,
+    "segundos": 45.26
+  },
+  "preservacion": {
+    "baseline": 592,
+    "changed": [
+      ".gitignore",
+      "CONTRIBUTING.md",
+      "INSTALACION.md",
+      "PUBLICAR.md",
+      "README.md",
+      "_indice/harnesses.py",
+      "_indice/pruebas/probar-instalacion.py",
+      "_indice/pruebas/probar-sincronizacion.py",
+      "_indice/sincronizar-skill.py",
+      "_indice/skills/gamemaker-biblioteca/AGENTS.md",
+      "_indice/skills/gamemaker-biblioteca/SKILL.md",
+      "_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+      "_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+      "instalar.sh"
+    ],
+    "resto_sin_cambios": 578
+  },
+  "logs_privados_sha256": {
+    "validar-ejecucion.log": "f883b95bd0d80cba3cb0f60f5fecdac2ffa0310e94fee8b775378bfe5ff45db4",
+    "utf8-probar-bootstrap.py.log": "bcc4b08083826bdaae2f2c66f1944664cced120bb878df2e13059fab66622964",
+    "sincronizar.log": "d36dda2811afd91c9e3b31fb45ff55f1a968948ad8fbc4a5ef8592bf1a21fa7a",
+    "ci-116552394749.log": "5800078d405d29867b85d504c32b3f3e34d33d80b8a934f97db62e929c01e9b1",
+    "ci-116552395452.log": "6e767bea8ecc3de903a49cedabe0b955a24d538e734f52b83a9885734ed6a8bf",
+    "ci-116552394957.log": "36aaf75a1615c5dadc9aa06847fe0e1155044dede3a38f18109a5cd5cf128496",
+    "verificar-trampas.log": "2a654a0d84aa2112ca989c955d2303941adc577431779d6a1b610c1b506f1d11",
+    "ci-116556317869.log": "826b0da7afc2caca79af568f3498986e3e10dde53cdeda2e0bd7d435e403fde3",
+    "ci-116552394688.log": "ae30c46456c9adb152c05ba6c0b6dd9b27394a1ef3ced60140c2915b9a7807e6",
+    "utf8-probar-instalacion.py.log": "43446d44085e53f93c11cc963bb54520631dd118e09193679c021b4ae0e245ae",
+    "ci-116556318032.log": "0945a0d7c67645cdb422907b56afc862e1680a048eb0dc222bd51c28b33676eb",
+    "instalar-local-final.log": "1655d9ab1b727ee0fbb5fdc783f18ed73da37337429bd10349bc16460fc8885f",
+    "publico-probar-instalacion.py.log": "30a1099d8ef3786b75ade0d215af3175ee186a651137f49aef550fbdd3b407c2",
+    "ci-116554563931.log": "6c4331257f8eaa7174ae2243edd4f2aba100541a0ef29e99812dc6922aa7ac86",
+    "codeload-probar-bootstrap.py.log": "f966d946764efd49028a9be45a635644fae7e180ab1b5d946a69b1433af81e75",
+    "sincronizar-final.log": "d36dda2811afd91c9e3b31fb45ff55f1a968948ad8fbc4a5ef8592bf1a21fa7a",
+    "ci-116554563490.log": "36306a44bdeea9075d9a53f78e14b2f27e65da898ccb229e0e27ef8b30ca3041",
+    "ci-116552394871.log": "8070fceebc68d248d05f9e400b25ab9170091f3ddb6929092a43351d61d5c87e",
+    "ci-116552394290.log": "9a9f1a2e923f328079a416c1b6a2842503eab52dda4f67c93cbe457d2a703316",
+    "ci-116554563929.log": "5d337b5846deef25bf9d796add72f67a930f7c6bf75518d946bb32d9b4fa2cc7",
+    "publico-probar-ruta-biblioteca.py.log": "9771705cfe1dc62020554567f57560d79be1cfa1a8fbf9380b61bbfd38bdefca",
+    "publico-probar-bootstrap.py.log": "3104e95af188ea85e6fbdfd482e88c4048bb1493476907544e6e6f5a8465bf9f",
+    "ci-116556318361.log": "038ab48d954dcdfc7f76548465775ba7978d41d3cdb70d10e8b58fd716c70234",
+    "ci-116556317324.log": "97ab982ae3f6541b7d47f99354ea08128f23f893a8aa1bce61d4465fe819caca",
+    "sincronizar-publico.log": "fe32210fad296038513a652c61520b7d76941d4a736a1ad5ab9028f404c02d98",
+    "codeload-probar-instalacion.py.log": "7e2f44248c43d183934d1d23e9eba187630d5d491af281a21a027de3a8fd82c9",
+    "actualizar-local.log": "4e9d08e1e06c5068d07ab8a6aa7afe693aa0ee5c05a7effe7dac3cd9a6d5af60",
+    "ci-116556318112.log": "5dcbeb2765f8bfde2caea2419472f94fa0c573b0a84c0614b09552528e5a4dbd",
+    "ci-116556318111.log": "d17e45f88b036b1cfaf2fb563403c16df2f5dc8247e7a8eaf7f0ab19c781899b",
+    "actualizar-publico.log": "1d20d81bf7921c04a2aca3a31c6370101ef4f23294f53e83799c1549e98690fa",
+    "validar-compilacion.log": "fef2a98eec8f2484ad43e649191d03dfbf8658434ffca8f740a257419cb2d462"
+  },
+  "limites": [
+    "Instalación nativa en runners no equivale a autoactivación de todos los modelos.",
+    "El consumo de contexto no demuestra ahorro causal.",
+    "El corpus público opcional tiene cobertura distinta del completo local."
+  ]
+}

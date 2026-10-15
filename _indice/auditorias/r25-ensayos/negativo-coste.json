@@ -63,5 +63,10 @@
   "diferencias_posteriores_al_paquete_ensayado": [
     "manifest.json",
     "references/entorno-y-fuentes.md"
+  ],
+  "diferencias_del_publicable": [
+    "manifest.json",
+    "references/entorno-y-fuentes.md",
+    "references/indice-documentos.md"
   ]
 }
