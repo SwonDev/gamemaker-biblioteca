@@ -10,13 +10,13 @@ Necesitas [Python 3.10 o posterior](https://www.python.org/downloads/). En macOS
 copia este comando en tu terminal:
 
 ```sh
-python3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='6462b55526ca8bd9be784c7f123280e7f07e12d207f9000407a5d6b1e634f10d' else exit('Descarga no válida')"
+python3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='177009c52b83e0d39039ab490061d9d347ece57671711642e7393c9f2178087f' else exit('Descarga no válida')"
 ```
 
 En **Windows, PowerShell**:
 
 ```powershell
-py -3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='6462b55526ca8bd9be784c7f123280e7f07e12d207f9000407a5d6b1e634f10d' else exit('Descarga no válida')"
+py -3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='177009c52b83e0d39039ab490061d9d347ece57671711642e7393c9f2178087f' else exit('Descarga no válida')"
 ```
 
 Si tu Python se llama `python`, usa ese nombre. La descarga está fijada a **r50** y el comando
