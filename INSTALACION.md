@@ -140,6 +140,8 @@ El instalador respeta `CLAUDE_CONFIG_DIR`, `OPENCODE_CONFIG_DIR`, `PI_CODING_AGE
 
 Hermes usa en Windows `%LOCALAPPDATA%/hermes/skills` (sin esa variable, `~/AppData/Local/hermes/skills`); respeta además `HERMES_DATA_DIR_SUFFIX`. Para OMP, `PI_CONFIG_DIR` es relativo al home: una ruta absoluta o con `~` se rechaza y requiere un `PI_CODING_AGENT_DIR` absoluto o `--destino`. Los wrappers pueden seleccionar otro home al arrancar: confirma la ubicación efectiva en el catálogo.
 
+La [matriz de instalación r50](./_indice/auditorias/r25-ci.json) ejecuta Windows, Linux y macOS con Python 3.10/3.14: incluye PowerShell nativo, descarga remota y segunda instalación. Las omisiones de cada runner constan en el recibo.
+
 **Copiado, descubierto y utilizado son estados distintos.** Pi/OMP pueden condicionar skills de proyecto a confianza; MiniMax puede desactivar fuentes externas; Hermes requiere confianza para fuentes de proyecto; `dsh` necesita su proveedor filesystem y consumidor de skills activos. Las pruebas de cargadores usan el código instalado en macOS, sin peticiones a modelos. No certifican todos los CLI, proveedores o instalaciones Windows/Linux. Consulta los recibos en `_indice/auditorias/` y confirma el catálogo de tu agente.
 
 `dsh` es DeepSeek Harness. `codex-deepseek` conserva la carga de skills de Codex; usar un modelo DeepSeek dentro de otro agente no lo convierte en `dsh`.
