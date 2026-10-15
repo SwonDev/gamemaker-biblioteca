@@ -10,7 +10,16 @@ Una **biblioteca en español** para aprender y consultar GML, y una **skill** qu
 
 ## Empieza aquí
 
-Necesitas **Python 3.10 o posterior**. Copia un comando en la terminal; no necesitas Git ni Bash para instalar.
+Instala la skill con el [instalador habitual de Agent Skills](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add SwonDev/gamemaker-biblioteca --skill gamemaker-biblioteca -g
+```
+
+Con pnpm: `pnpm dlx skills add SwonDev/gamemaker-biblioteca --skill gamemaker-biblioteca -g`.
+`-g` la deja disponible en todos tus proyectos; puedes elegir los agentes de destino.
+Se instalan la skill y sus referencias. Para disponer también de los documentos, buscadores
+y validadores locales, instala la **biblioteca completa** con **Python 3.10 o posterior**:
 
 **macOS y Linux:**
 
@@ -25,7 +34,7 @@ Abre tu agente en la carpeta del juego y escribe con normalidad:
 
 > Quiero hacer un juego con GameMaker. Será de plataformas 2D para ordenador.
 
-La skill selecciona las referencias necesarias y consulta un asesor al definir el juego o tomar decisiones costosas. Una duda puntual carga solo su ruta. El instalador registra la biblioteca, prepara los destinos compatibles y conserva las copias anteriores. Para ejecutar y verificar juegos necesitas GameMaker y su runtime; [activar las herramientas](INSTALACION.md#activar-las-herramientas-de-gml).
+La skill selecciona las referencias necesarias y consulta un asesor al definir el juego o tomar decisiones costosas. Una duda puntual carga solo su ruta. El instalador de la biblioteca completa registra su ubicación, prepara los destinos compatibles y conserva las copias anteriores. Para ejecutar y verificar juegos necesitas GameMaker y su runtime; [activar las herramientas](INSTALACION.md#activar-las-herramientas-de-gml).
 
 ## <img src="assets/readme/iconos/biblioteca.svg" width="32" height="32" alt=""> Biblioteca + skill
 
