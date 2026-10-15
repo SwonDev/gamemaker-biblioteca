@@ -19,6 +19,12 @@ REPO = "SwonDev/gamemaker-biblioteca"
 REVISION = "r50"
 MAX_BYTES = 100 * 1024 * 1024
 
+for flujo in (sys.stdout, sys.stderr):
+    try:
+        flujo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 def contenido(raiz):
     return {p.relative_to(raiz).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()

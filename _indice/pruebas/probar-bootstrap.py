@@ -51,8 +51,8 @@ class Bootstrap(unittest.TestCase):
         self.assertTrue((self.lib/"instalar.py").is_file())
         copia = list(self.lib.parent.glob("gamemaker-biblioteca-anterior-*/biblioteca/mi-nota.md"))
         self.assertEqual(len(copia), 1)
-        self.assertEqual(copia[0].read_text(), "Conservar")
-        self.assertEqual(json.loads((self.lib/".gamemaker-distribucion.json").read_text())["commit"], self.commit)
+        self.assertEqual(copia[0].read_text(encoding="utf-8"), "Conservar")
+        self.assertEqual(json.loads((self.lib/".gamemaker-distribucion.json").read_text(encoding="utf-8"))["commit"], self.commit)
 
     def test_repeticion_identica_no_crea_backup(self):
         self.assertEqual(self.ejecutar(), 0)
@@ -79,21 +79,21 @@ class Bootstrap(unittest.TestCase):
         (self.lib/"nota").write_text("Conservar")
         self.zip = b"no es zip"
         self.assertEqual(self.ejecutar(), 1)
-        self.assertEqual((self.lib/"nota").read_text(), "Conservar")
+        self.assertEqual((self.lib/"nota").read_text(encoding="utf-8"), "Conservar")
 
     def test_validacion_fallida_no_reemplaza(self):
         self.lib.mkdir(parents=True)
         (self.lib/"nota").write_text("Conservar")
         self.zip = archivo([("repo/instalar.py", "raise SystemExit(7)\n")])
         self.assertEqual(self.ejecutar(), 1)
-        self.assertEqual((self.lib/"nota").read_text(), "Conservar")
+        self.assertEqual((self.lib/"nota").read_text(encoding="utf-8"), "Conservar")
 
     def test_fallo_del_plan_restaura_biblioteca_antes_de_instalar(self):
         self.lib.mkdir(parents=True)
         (self.lib/"nota").write_text("Conservar")
         self.zip = archivo([("repo/instalar.py", "import sys\nraise SystemExit(7 if '--comprobar' in sys.argv else 0)\n")])
         self.assertEqual(self.ejecutar(), 1)
-        self.assertEqual((self.lib/"nota").read_text(), "Conservar")
+        self.assertEqual((self.lib/"nota").read_text(encoding="utf-8"), "Conservar")
 
     def test_actualizacion_real_con_enlace_a_biblioteca_estable(self):
         entradas = [("repo/instalar.py", (RAIZ/"instalar.py").read_bytes()),
@@ -117,7 +117,7 @@ class Bootstrap(unittest.TestCase):
         self.assertEqual(self.ejecutar("--harness", "codex", "--enlace"), 0)
         self.assertTrue(enlace.is_symlink())
         self.assertEqual(enlace.resolve(), (self.lib/"_indice/skills/gamemaker-biblioteca").resolve())
-        self.assertEqual((self.lib/"README.md").read_text(), "Nueva revisión\n")
+        self.assertEqual((self.lib/"README.md").read_text(encoding="utf-8"), "Nueva revisión\n")
 
     def test_extraccion_rechaza_escapes_y_nombres_incompatibles(self):
         for nombre in ["repo/../../fuera", "/fuera", "repo/C:/fuera", "repo/a\\b", "repo/CON.txt", "repo/a."]:

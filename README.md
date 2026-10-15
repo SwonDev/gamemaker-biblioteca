@@ -15,7 +15,7 @@ Necesitas **Python 3.10 o posterior**. Copia un comando en la terminal; no neces
 **macOS y Linux:**
 
 ```sh
-python3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='585fec194d4768d30437cbbf4133670eeb134ef0057a3f7211cea23c6937faf1' else exit('Descarga no válida')"
+python3 -c "import hashlib,urllib.request; b=urllib.request.urlopen('https://raw.githubusercontent.com/SwonDev/gamemaker-biblioteca/r50/instalar-remoto.py').read(); exec(compile(b,'instalar-remoto.py','exec')) if hashlib.sha256(b).hexdigest()=='6462b55526ca8bd9be784c7f123280e7f07e12d207f9000407a5d6b1e634f10d' else exit('Descarga no válida')"
 ```
 
 **Windows (PowerShell):** usa el mismo comando cambiando `python3` por `py -3`.
