@@ -1,0 +1,74 @@
+{
+  "fecha": "2026-10-15",
+  "resultado": "APTO para coherencia de artefactos; no acredita juego ni eficacia causal",
+  "grupos": [
+    {
+      "grupo": "control",
+      "muestras": 5,
+      "conformes": 5,
+      "criterios_calificados": 30,
+      "palabras": [
+        228,
+        227,
+        233,
+        222,
+        236
+      ]
+    },
+    {
+      "grupo": "r49-preliminar",
+      "muestras": 5,
+      "conformes": 5,
+      "criterios_calificados": 30,
+      "palabras": [
+        240,
+        234,
+        241,
+        233,
+        234
+      ]
+    },
+    {
+      "grupo": "r49-final",
+      "muestras": 5,
+      "conformes": 5,
+      "criterios_calificados": 30,
+      "palabras": [
+        233,
+        226,
+        232,
+        231,
+        234
+      ]
+    }
+  ],
+  "contextos_distintos": 15,
+  "manifiestos": {
+    "preliminar_archivos": 13,
+    "final_archivos": 13,
+    "copias_completas_contrastadas": true,
+    "final_inicial_igual_cierre": true,
+    "final_coincide_con_integrador": true,
+    "cambios_fuente_final_al_verificar": []
+  },
+  "rubrica_y_escenario_conservados": true,
+  "calificacion": "manual; seis criterios prefijados; sin evaluación ciega",
+  "limites": "Un escenario, cinco muestras por grupo, un evaluador; no significancia estadística ni mejora causal demostrada.",
+  "vistas_publicas": {
+    "tipo": "Vistas anonimizadas; resultados de agentes sin cambios",
+    "manifiesto": "vistas-para-publicar.json",
+    "huellas_originales": "huellas-originales.json",
+    "custodia_raw": "<CUSTODIA_PRIVADA>/r24-ensayos",
+    "archivos_datos_originales": 69,
+    "informe_original": 1,
+    "archivos_con_prefijos_sustituidos": 12,
+    "prompts_original_y_vista_separados": true,
+    "escenario_rubrica_respuestas_y_paquetes_sin_cambios": true,
+    "calificaciones_sin_cambios_salvo_prefijos_de_rutas": true,
+    "rutas_personales_restantes": 0,
+    "contraste_publico": "APTO",
+    "contraste_raw_privado": "APTO; copia íntegra verificada; resultado de ejecución conservado en custodia privada",
+    "verificador": "verificar-vistas.py",
+    "huella_del_manifiesto": "Se conserva por separado para evitar dependencia circular con este control."
+  }
+}

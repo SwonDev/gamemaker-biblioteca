@@ -40,6 +40,7 @@ _indice/ultimo-fallo-compilacion.txt
 
 # Entorno local de mantenimiento: se reconstruye desde _indice/requirements.txt.
 .venv/
+/.gamemaker-distribucion.json
 
 # ─── Basura ──────────────────────────────────────────────────────────────────
 __pycache__/

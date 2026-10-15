@@ -1,0 +1,26 @@
+{
+  "fecha": "2026-10-15",
+  "variante": "r49-preliminar",
+  "muestras_previstas": 5,
+  "contexto": "fork_turns=none; lectura local del paquete permitido",
+  "modelo": "heredado; sin override",
+  "prompt_sha256": "7011d14a8ce25da5463951a13729cce3eded0ab9787cb26821c4f23cf53c144d",
+  "rubrica_sha256": "df110396d4b5095b7a21e9e3082b3c19b9cfc512bc08d26f2ec9de7146ef9772",
+  "lecturas_esperadas": [
+    "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/SKILL.md",
+    "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md",
+    "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md",
+    "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/metodo-y-aprendizaje.md",
+    "<RAIZ_BIBLIOTECA>/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md"
+  ],
+  "estado": "completo; sustituido antes de entrega por corrección del paquete",
+  "muestras_observadas": 5,
+  "muestras_conformes": 5,
+  "vista_publica": {
+    "tipo": "Vista anonimizada; no sustituye el bruto leído",
+    "prompt_archivo": "prompt-r49.txt",
+    "prompt_sha256_describe": "Huella del prompt bruto realmente utilizado, anterior a anonimización",
+    "prompt_vista_sha256": "a3f70e52f7ba91c57fb81c6b6e0d93acad317b032647e69664b0806124eae6a1",
+    "prompt_original_privado": "<CUSTODIA_PRIVADA>/r24-ensayos/prompt-r49.txt"
+  }
+}

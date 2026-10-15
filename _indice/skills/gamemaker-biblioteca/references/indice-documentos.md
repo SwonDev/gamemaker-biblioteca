@@ -420,6 +420,7 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/27 - Formatos de producción especiales.md` — 27 · Formatos de producción especiales
 - `13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md` — 28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente
 - `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` — Desarrollo con IA — orquestación, crítica y evidencia
+- `13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md` — 30 · Especificación viva y mejora del método
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice
 
 

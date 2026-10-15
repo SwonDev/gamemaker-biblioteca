@@ -15,12 +15,14 @@ Busca lo existente, lee [AGENTS.md](AGENTS.md) y conserva las fuentes y licencia
 La prosa va en español; los símbolos de la API conservan su nombre real. Evita
 recuentos escritos a mano cuando se puedan derivar del índice.
 
-Prepara el entorno de [instalación](INSTALACION.md). Para cambios de herramientas,
+Prepara el entorno de [mantenimiento](INSTALACION.md#mantenimiento-de-la-biblioteca-opcional). Para cambios de herramientas,
 reproduce primero el fallo con un caso mínimo y añade una regresión en la frontera
 que fallaba. Comprueba el paquete completo:
 
 ```bash
 python _indice/pruebas/probar-instalacion.py
+python _indice/pruebas/probar-bootstrap.py
+python _indice/pruebas/probar-ruta-biblioteca.py
 python _indice/pruebas/probar-sincronizacion.py
 python _indice/actualizar.py
 ```

@@ -79,6 +79,10 @@ antes de despachar trabajo. Recupera contratos, revisión, WIP y pausa. Allí es
 crítica aislada, las dos puertas de aceptación, la vigencia de evidencia, los recursos y
 la continuidad entre harnesses; enlaza a los procedimientos de CLI y QA existentes.
 
+Si cambian requisitos o rúbricas, quieres incorporar un aprendizaje o evaluar la skill,
+continúa en [`13 · 30 — Especificación viva y mejora del método`](<../13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md>).
+Allí están el registro de cambio, la cadena tarea/caso/evidencia y la promoción contrastada.
+
 ### B bis · «Hazme un juego COMPLETO de principio a fin»
 
 Empieza **siempre** por [`04 - Recetas por género/00 - Anatomía de un juego completo.md`](../04%20-%20Recetas%20por%20género/00%20-%20Anatomía%20de%20un%20juego%20completo.md).

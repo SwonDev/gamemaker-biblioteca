@@ -1,0 +1,114 @@
+# Desarrollo y evidencia
+
+Lee al crear o continuar un proyecto, diseñar sistemas o coordinar agentes y revisiones.
+
+## Flujo para un desarrollo real
+
+**Proyecto existente o continuación:** antes del paso 0, lee reglas, especificación, glosario,
+dirección visual, estado y pausa; comprueba checkout, revisión y WIP. No recrees sistemas ni
+retomes procesos pausados sin autorización. Si hay varios agentes, un bucle de calidad o un
+cambio de harness, carga `13/29` completo: contratos, propiedad, recursos y evidencia.
+
+**Método general, para cualquier género y target (`13/29 §2.1–2.2`):** recupera contexto →
+aclara lo pendiente (`grill-with-docs`) → spec (`to-spec`) → tareas verticales y dependencias
+(`to-tickets`) → implementación/prueba (`implement`, `tdd`) → integración → revisión
+(`mp-code-review`) → evidencia y aceptación. Reutiliza spec y tareas existentes; una corrección
+pequeña no exige rehacer el GDD. El usuario no tiene que invocar skills: selecciónalas por
+fase, léelas y aplica su procedimiento, conservando la precedencia de reglas/modelos/permisos.
+Los nombres externos no se distribuyen con este paquete; si faltan, declara el límite y usa
+los contratos documentados, sin inventar pruebas, descargar otros modelos ni publicar por defecto.
+
+**Cambio de requisito, gobierno del gauntlet o aprendizaje:** lee
+[`metodo-y-aprendizaje.md`](metodo-y-aprendizaje.md). Concreta la cadena requisito versionado →
+tarea → caso → evidencia → decisión y su invalidación. Con biblioteca, `13/30` amplía ejemplos
+y procedencia; no sustituye el protocolo inicial ni obliga a instalar métodos externos.
+
+**Cinco puertas del trabajo con IA (`13/29`):**
+
+- Evidencia vigente: commit + huellas del WIP/entradas, runtime, target, configuración y escenario.
+  Una batería anterior es histórica; compilar ahora no la refresca. Registra modo, aserciones,
+  medidas informativas, omisiones y denominadores: cero fallos no certifica todos los presupuestos.
+- Crítica fresca: clave fuera del paquete accesible, sin explicación del constructor antes del
+  juicio, controles negativos e idénticos válidos. Contaminación → nueva ronda.
+- Mejora integrable y aceptación final son estados distintos. Una preferencia visual no
+  autoriza una identidad incorrecta ni bajar el umbral del usuario.
+- Propiedad de archivos y un escritor de recursos; exclusión `.gmcache`, guardado y recursos
+  pesados. Orden de bloqueo consistente, FIFO y propietario verificable, sin limpieza por nombre.
+- Continuidad: conserva modelos, permisos, WIP, recibos y pausa entre harnesses. Un cambio de
+  cuota no autoriza reanudar ni sustituir modelos.
+
+0. **Especificación**: si el encargo es «hazme un juego» y no trae ya género, alcance y
+   plataforma decididos, pregúntalos en un único turno (nunca un interrogatorio secuencial) y
+   completa con los valores por defecto lo que el usuario no conteste — preguntas, criterio de
+   parada, defaults y plantilla en `13/28`. Escribe la especificación y **enséñasela al usuario
+   antes de crear el proyecto**: no hay paso 2 sin este documento escrito primero.
+   **Si el encargo llegó cerrado y no tienes canal de vuelta** (tarea de fondo, *issue*, otro
+   agente): no preguntes al vacío — aplica los defaults, escribe la especificación igual,
+   marca cada valor asumido con `[DEFAULT]` y **entrégala con el juego**, diciendo en el mensaje
+   final qué asumiste y por qué. Es el único cambio de orden permitido, y está en `13/28 §2.2 bis`.
+1. **Plano**: `04/00 - Anatomía` + receta del género + `13/01 - Diseño de juego` (core loop) +
+   `13/14 - El documento de diseño` (el GDD que un agente puede implementar) + `13/11 - Producción`
+   (alcance, vertical slice) — el material que alimenta la especificación del paso 0.
+2. **Proyecto**: `gm-cli init` (o el `.yyp` existente; `gm-mcp-setup .` si falta el MCP).
+3. **Arquitectura**: `13/06` (gestores, escenas, datos) + convenciones `05/04`.
+3 bis. **Las cuatro decisiones que cuestan REESCRIBIR si las tomas tarde.** Las cuatro parecen
+   detalles de pulido y las cuatro son arquitectura. Todas se descubrieron cayendo en ellas al
+   construir «Enjambre» (`_indice/auditorias/r18-prueba-visual.md`) **con esta skill delante**:
+   documentar una trampa no basta si el flujo no obliga a esquivarla antes de que muerda.
+
+   **a · La fuente, antes de la primera línea de interfaz.** `draw_set_font(-1)` compila limpio
+   y **se come las tildes en silencio**: «Créditos» sale «Crditos» (trampa 12). La salida buena
+   para un agente es una fuente de sprite:
+
+   ```sh
+   python3 "$BIB/_indice/pruebas/generar_glifos.py" <carpeta>   # 89 PNG + mapa.txt
+   ```
+   ```gml
+   global.fnt = font_add_sprite_ext(spr_glifos, "<el contenido de mapa.txt>", true, 1);
+   draw_set_font(global.fnt);   // y NUNCA draw_set_font(-1) en un juego en español
+   ```
+
+   Y lo mismo vale para **los símbolos que no son letras**: el marcador de vidas usaba «▮», que
+   tampoco está en la hoja, y salió vacío. Para iconos, dibuja un sprite.
+
+   **b · La resolución y la escala de cámara.** Una sala del tamaño de la ventana —1366×768—
+   con naves de 24 px produce un juego que **parece vacío**: se ven motas de color. Decidirlo
+   después de dibujar los sprites significa rehacerlos.
+
+   ```gml
+   // sala de 683×384 en ventana de 1366×768 = cada píxel del mundo ocupa cuatro
+   var _cam = camera_create_view(0, 0, room_width, room_height, 0, noone, -1, -1, 0, 0);
+   view_set_camera(0, _cam); view_set_visible(0, true); view_enabled = true;
+   ```
+
+   El HUD **no** se escala con eso —vive en Draw GUI, en coordenadas de pantalla— y es justo lo
+   que se quiere. Detalle en `13/03` y `04/24`.
+
+   **c · El texto, por clave desde el primer `draw_text`.** Escribir `draw_text(x, y, "Puntos")`
+   y traducir después significa tocar cada llamada de dibujo del juego. Con una función
+   `txt("puntos")` desde el principio, el segundo idioma cuesta una tabla y cero refactor —
+   y `auditar-juego-completo.py` lo comprueba, porque es un fallo que se repite.
+
+   **d · La entrada, en UNA función.** `keyboard_check` esparcido por diez objetos convierte
+   «que funcione con mando» en una reescritura. Una sola `entrada_leer()` que devuelva un
+   struct con las acciones —no con las teclas— lo hace gratis. **Y hay un segundo beneficio que
+   no es obvio**: con la entrada en un solo sitio, el juego se puede **conducir solo** para
+   probarlo. La prueba visual de `r18` —siete pantallas recorridas y fotografiadas— existe
+   porque había una única puerta por la que inyectar la entrada simulada; con diez, no habría
+   sido viable.
+
+4. **Sistemas**: antes de escribir uno, `11 - Código descargado/_CATALOGO.md`. Entrada, texto,
+   diálogos, audio, guardado y UI ya están resueltos por terceros.
+5. **GML**: índice compatible o manual oficial por símbolo mientras escribes;
+   `validar-proyecto.py --todo` al terminar, si está disponible con sus fuentes.
+   Revisa también **COLISIÓN GLOBAL**: un flag con nombre de función puede ocultarla (`13/29`).
+   El análisis léxico no cubre todos los ámbitos ni accesos dinámicos: confirma en runtime.
+6. **Compila**: `gm-cli compile`; corrige hasta salida limpia; repórtala. Recuerda que
+   compilar limpio **no** significa que el código sea correcto (trampa 4).
+
+
+## Ejemplos que se copian
+
+| Necesito | Contrato |
+|---|---|
+| **Escribir código que otros van a copiar** | **Un ejemplo que ya hace lo correcto vale más que la nota que lo explica: la nota se salta, el código de al lado se copia.** Medido en esta biblioteca: `scr_ui_confirmar.gml` leía el teclado a pelo y rompía la doctrina de «toda la entrada por UNA función» en cuanto lo pegabas — un defecto del script, no del proyecto. Antes de escribir una regla, mira si puedes hacer que **el ejemplo más cercano ya la cumpla**; y si no se puede, que al menos **no la contradiga**. Criterio en `06 · README` |

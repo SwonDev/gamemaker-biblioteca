@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "name": "gamemaker-biblioteca",
+  "version": "r50 · 2026-10-15",
+  "files": {
+    "AGENTS.md": "7806e92dd1135a396c990007228e2af21a7331af23a1899f7b560e9b76d55803",
+    "SKILL.md": "cb6f375473cd617fee3c586a1af140bb7af37d34113ff60fcd22c06454e7ebb5",
+    "references/asesor-y-activacion.md": "648403cc6ffc83483dc9e894b7e63ebb088fa1edad27a2fa923150bc4f13f76f",
+    "references/assets-y-texto.md": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+    "references/consulta-api.md": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+    "references/contexto-y-recursos.md": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+    "references/contratos-y-aprendizaje.md": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765",
+    "references/desarrollo-y-evidencia.md": "89218babb107c811c890fb69fecf5a6812344bbea1a571442037396291fa308e",
+    "references/entorno-y-fuentes.md": "5285337a56156cd49bf908bb08f23afcd4e7210a52e459ae0522c0f59ea051a8",
+    "references/indice-documentos.md": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
+    "references/mapa-disciplinas.md": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+    "references/operar-gamemaker.md": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+    "references/qa-y-entrega.md": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3",
+    "references/rutas-de-consulta.md": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34"
+  }
+}

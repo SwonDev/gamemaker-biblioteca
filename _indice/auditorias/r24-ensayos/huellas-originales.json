@@ -1,0 +1,427 @@
+{
+  "version": 1,
+  "tipo": "Huellas de originales privados anteriores a anonimización; no son huellas de las vistas",
+  "custodia": "<CUSTODIA_PRIVADA>",
+  "archivos": [
+    {
+      "archivo": "calificaciones-control.json",
+      "original_sha256": "c6f9ffe56add835aa39a9d015af8b391392b48822565e841847579d59f82dabb",
+      "bytes_original": 6790,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/calificaciones-control.json"
+    },
+    {
+      "archivo": "calificaciones-r49-final.json",
+      "original_sha256": "2490eaf75f46797b9f792bec5151f25a51ced12a5ef6e4fff43f79dd64321701",
+      "bytes_original": 15845,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/calificaciones-r49-final.json"
+    },
+    {
+      "archivo": "calificaciones-r49-preliminar.json",
+      "original_sha256": "86437d7c444390cb3483be5ca0eec53e304de31677cd6b05298383fc27f1dcef",
+      "bytes_original": 15669,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/calificaciones-r49-preliminar.json"
+    },
+    {
+      "archivo": "control-01-respuesta.md",
+      "original_sha256": "e6ff9304d0a8b420aff4e6a724a4724d680392037a2f6705e04e6c395a352bf2",
+      "bytes_original": 1561,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-01-respuesta.md"
+    },
+    {
+      "archivo": "control-02-respuesta.md",
+      "original_sha256": "27c23dd1980b1bb0c22aa8d947d0d4334519d99bad25d806a142926ae176ea5e",
+      "bytes_original": 1570,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-02-respuesta.md"
+    },
+    {
+      "archivo": "control-03-respuesta.md",
+      "original_sha256": "5ba5db633b637972320fe0071e8c14d368db86dccd00c0b5d472c077f135f708",
+      "bytes_original": 1556,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-03-respuesta.md"
+    },
+    {
+      "archivo": "control-04-respuesta.md",
+      "original_sha256": "d7b396cfeba201a1fccc3f35bb85ce6a6d9a50929b412c9b4367c10e27fe99d7",
+      "bytes_original": 1553,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-04-respuesta.md"
+    },
+    {
+      "archivo": "control-05-respuesta.md",
+      "original_sha256": "07bb2db30dd74f7e14007cdc4a12cc5c62a874c3201d86dfb5712906043e23d5",
+      "bytes_original": 1617,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-05-respuesta.md"
+    },
+    {
+      "archivo": "control-de-datos.json",
+      "original_sha256": "75c71f8744ed4ff8234dc01ccd39ea9f1c45b92b002eeb2076f4e56b4cb6c605",
+      "bytes_original": 1303,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/control-de-datos.json"
+    },
+    {
+      "archivo": "escenario.md",
+      "original_sha256": "590fccf091a322083b1208560505225f448763d3b5664b55edc885f46ae58716",
+      "bytes_original": 1708,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/escenario.md"
+    },
+    {
+      "archivo": "manifiesto-final-del-integrador.json",
+      "original_sha256": "91d729c4c10fbb2da81a3997ab936ba3f7717eb300f38c644ce15c9dc8b49a77",
+      "bytes_original": 1321,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/manifiesto-final-del-integrador.json"
+    },
+    {
+      "archivo": "manifiesto-r49-final-cierre.json",
+      "original_sha256": "b8bfb7298a9a4d929e433b2b0d35eecbc4fac79ac36cdb0159aa3e71fde30c2b",
+      "bytes_original": 4065,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/manifiesto-r49-final-cierre.json"
+    },
+    {
+      "archivo": "manifiesto-r49-final-inicial.json",
+      "original_sha256": "b8bfb7298a9a4d929e433b2b0d35eecbc4fac79ac36cdb0159aa3e71fde30c2b",
+      "bytes_original": 4065,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/manifiesto-r49-final-inicial.json"
+    },
+    {
+      "archivo": "manifiesto-r49-inicial.json",
+      "original_sha256": "22f3e3c4278012e339b9a8af95260a5c5ba997962248d319ebd8e0ac10dad93e",
+      "bytes_original": 4044,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/manifiesto-r49-inicial.json"
+    },
+    {
+      "archivo": "metadata-control.json",
+      "original_sha256": "97f3d32b797f4b59d1a05d9ff5c5d716c25a26eb5a98f9a1d99ee98b4e5d5323",
+      "bytes_original": 456,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/metadata-control.json"
+    },
+    {
+      "archivo": "metadata-r49-final.json",
+      "original_sha256": "353e499a494512954a70fd4aaafafc6279267d45d7493f22ae955f47489c6668",
+      "bytes_original": 1127,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/metadata-r49-final.json"
+    },
+    {
+      "archivo": "metadata-r49.json",
+      "original_sha256": "b30989b79f78ef3d2d85fd444f7990e5647ce4d380c25bcc6eade48a2be7ca0f",
+      "bytes_original": 1186,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/metadata-r49.json"
+    },
+    {
+      "archivo": "orden-control.txt",
+      "original_sha256": "2ddbee5f52ff259e3fd26c298af7267e4d71f46950aea43b00b787a4a0b7020b",
+      "bytes_original": 213,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/orden-control.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/AGENTS.md.txt",
+      "original_sha256": "d459bdd503a6bf72a56ae105338348bc04fde08ec0267fdde6031249d9b5a768",
+      "bytes_original": 8208,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/AGENTS.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/SKILL.md.txt",
+      "original_sha256": "bb3abb386385259e918d0c4768025f8bbe8ea57d677cf6edddc44b1cefc3ebf5",
+      "bytes_original": 7256,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/SKILL.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/assets-y-texto.md.txt",
+      "original_sha256": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+      "bytes_original": 6761,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/assets-y-texto.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/consulta-api.md.txt",
+      "original_sha256": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+      "bytes_original": 9289,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/consulta-api.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/contexto-y-recursos.md.txt",
+      "original_sha256": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+      "bytes_original": 1955,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/contexto-y-recursos.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/contratos-y-aprendizaje.md.txt",
+      "original_sha256": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765",
+      "bytes_original": 7153,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/contratos-y-aprendizaje.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/desarrollo-y-evidencia.md.txt",
+      "original_sha256": "f0816f0ff7d7e8ffbb4e45a3409cb21a15bdea81bb835fe9304033ea51afe1d8",
+      "bytes_original": 8021,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/desarrollo-y-evidencia.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/entorno-y-fuentes.md.txt",
+      "original_sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074",
+      "bytes_original": 7665,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/entorno-y-fuentes.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/indice-documentos.md.txt",
+      "original_sha256": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
+      "bytes_original": 45580,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/indice-documentos.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/mapa-disciplinas.md.txt",
+      "original_sha256": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+      "bytes_original": 15454,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/mapa-disciplinas.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/operar-gamemaker.md.txt",
+      "original_sha256": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+      "bytes_original": 18927,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/operar-gamemaker.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/qa-y-entrega.md.txt",
+      "original_sha256": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3",
+      "bytes_original": 10449,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/qa-y-entrega.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-final/references/rutas-de-consulta.md.txt",
+      "original_sha256": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34",
+      "bytes_original": 5474,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-final/references/rutas-de-consulta.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/AGENTS.md.txt",
+      "original_sha256": "29987d2869680184ca7ea805f918fca618da33ca1b03afe3fb33931c24a47655",
+      "bytes_original": 8205,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/AGENTS.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/SKILL.md.txt",
+      "original_sha256": "8e42b1b73ced7d736f98623d8883151de3441eecb5990b6f652f795dd48fec59",
+      "bytes_original": 7250,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/SKILL.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/assets-y-texto.md.txt",
+      "original_sha256": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+      "bytes_original": 6761,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/assets-y-texto.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/consulta-api.md.txt",
+      "original_sha256": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
+      "bytes_original": 9289,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/consulta-api.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/contexto-y-recursos.md.txt",
+      "original_sha256": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
+      "bytes_original": 1955,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/contexto-y-recursos.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/desarrollo-y-evidencia.md.txt",
+      "original_sha256": "89168b90c08a5b248b149edc1cec358bdc3e65ae6deb35a39a4dc6a8c5047873",
+      "bytes_original": 8015,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/desarrollo-y-evidencia.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/entorno-y-fuentes.md.txt",
+      "original_sha256": "1d23afa4ea2c1b8def26c1a50cfbd2e186f4db4e964a21d4775dbb153dce2074",
+      "bytes_original": 7665,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/entorno-y-fuentes.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/indice-documentos.md.txt",
+      "original_sha256": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
+      "bytes_original": 45580,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/indice-documentos.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/mapa-disciplinas.md.txt",
+      "original_sha256": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+      "bytes_original": 15454,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/mapa-disciplinas.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/metodo-y-aprendizaje.md.txt",
+      "original_sha256": "95f86aa8811f79ff6a68031232492802f34dfc4bfcfd86c995b86122bc8c292b",
+      "bytes_original": 5822,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/metodo-y-aprendizaje.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/operar-gamemaker.md.txt",
+      "original_sha256": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
+      "bytes_original": 18927,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/operar-gamemaker.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/qa-y-entrega.md.txt",
+      "original_sha256": "240e909fe4b074bb7dda435a025dc03c27b84b1d37d0c5903c516e4e88c4cd20",
+      "bytes_original": 10443,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/qa-y-entrega.md.txt"
+    },
+    {
+      "archivo": "paquete-r49-preliminar/references/rutas-de-consulta.md.txt",
+      "original_sha256": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34",
+      "bytes_original": 5474,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/paquete-r49-preliminar/references/rutas-de-consulta.md.txt"
+    },
+    {
+      "archivo": "prompt-control.txt",
+      "original_sha256": "7b4ed6925e3dce514af7e044164ee5240de9d8c53ca7999da50d6cae0b58c2f6",
+      "bytes_original": 1902,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/prompt-control.txt"
+    },
+    {
+      "archivo": "prompt-r49-final.txt",
+      "original_sha256": "a7c074eba9582a88a7cf19f80ab7e79480f712d9f9e6d5ced2fa1704abed9e81",
+      "bytes_original": 3197,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/prompt-r49-final.txt"
+    },
+    {
+      "archivo": "prompt-r49.txt",
+      "original_sha256": "7011d14a8ce25da5463951a13729cce3eded0ab9787cb26821c4f23cf53c144d",
+      "bytes_original": 3182,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/prompt-r49.txt"
+    },
+    {
+      "archivo": "protocolo.md",
+      "original_sha256": "df110396d4b5095b7a21e9e3082b3c19b9cfc512bc08d26f2ec9de7146ef9772",
+      "bytes_original": 3546,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/protocolo.md"
+    },
+    {
+      "archivo": "r49-01-lecturas.txt",
+      "original_sha256": "a6b4b82339ce8cc61d892dc1b57ca58b79a4c2969ec5c7f52eaa8508fed16b82",
+      "bytes_original": 861,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-01-lecturas.txt"
+    },
+    {
+      "archivo": "r49-01-respuesta.md",
+      "original_sha256": "5bf2ba381d1f77cf6d45afd053bee097391e8ade9b08b722bf2bc238ff04191e",
+      "bytes_original": 1673,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-01-respuesta.md"
+    },
+    {
+      "archivo": "r49-02-lecturas.txt",
+      "original_sha256": "8a14ca29fb27adb633efacff477506e7e91ce9703f1c3d97c070a3445500d230",
+      "bytes_original": 699,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-02-lecturas.txt"
+    },
+    {
+      "archivo": "r49-02-respuesta.md",
+      "original_sha256": "bb83aaffe24fdda634bb230cf6d736c063b1998bdc228360ae1ea8eed6e66dc7",
+      "bytes_original": 1654,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-02-respuesta.md"
+    },
+    {
+      "archivo": "r49-03-lecturas.txt",
+      "original_sha256": "30fab403dccf6f16fac09f72c362041bda1317646cb541e20876490668282e8e",
+      "bytes_original": 749,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-03-lecturas.txt"
+    },
+    {
+      "archivo": "r49-03-respuesta.md",
+      "original_sha256": "26d7b77e328f06b2a890fbd461c203b6c07fdb890673edcf6b96d6a58fe1a4d8",
+      "bytes_original": 1659,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-03-respuesta.md"
+    },
+    {
+      "archivo": "r49-04-lecturas.txt",
+      "original_sha256": "40be8d7d204008778755cf008ad0fa3fbf472aead1c98e478e5561d6eff2135d",
+      "bytes_original": 706,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-04-lecturas.txt"
+    },
+    {
+      "archivo": "r49-04-respuesta.md",
+      "original_sha256": "e7a95bae54d9012815bec7466725482c0dff98748fcd8915c2e3e070c5227b8a",
+      "bytes_original": 1601,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-04-respuesta.md"
+    },
+    {
+      "archivo": "r49-05-lecturas.txt",
+      "original_sha256": "12b59ca85f074760f1553b5c6810b30ece4c6ae273d33a8bf0c406ff360ee169",
+      "bytes_original": 912,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-05-lecturas.txt"
+    },
+    {
+      "archivo": "r49-05-respuesta.md",
+      "original_sha256": "9ff360824fa94c3421505af8ff3b2346695df3f4e71db94662835fadf0c3c831",
+      "bytes_original": 1668,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-05-respuesta.md"
+    },
+    {
+      "archivo": "r49-final-01-lecturas.txt",
+      "original_sha256": "ae4bc51e568a86c607f3c1a414dae421edc36bd85969051bf2bd3e01547fe743",
+      "bytes_original": 1157,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-01-lecturas.txt"
+    },
+    {
+      "archivo": "r49-final-01-respuesta.md",
+      "original_sha256": "32e6d4c1591108081249f5f4c81e892fddac6e1ab1d7127e2b1c629d4f05b83d",
+      "bytes_original": 1675,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-01-respuesta.md"
+    },
+    {
+      "archivo": "r49-final-02-lecturas.txt",
+      "original_sha256": "f3abd974d4185fd325daaabf45e1438b58cbe6367a72fcc11df918d4e421878c",
+      "bytes_original": 761,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-02-lecturas.txt"
+    },
+    {
+      "archivo": "r49-final-02-respuesta.md",
+      "original_sha256": "665a3bf03a6a69c2f8e05b93737d139b329bce926f7d53de2ec2da0a08c2c585",
+      "bytes_original": 1657,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-02-respuesta.md"
+    },
+    {
+      "archivo": "r49-final-03-lecturas.txt",
+      "original_sha256": "d24aee57f03f282c05386ee26005e9a092fdc589b0c4c2df95de83efbadf9839",
+      "bytes_original": 682,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-03-lecturas.txt"
+    },
+    {
+      "archivo": "r49-final-03-respuesta.md",
+      "original_sha256": "c5cf7eac8a0573f3690a4d38f0f618b85efe439f504009d269eb56d67b0d9e26",
+      "bytes_original": 1671,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-03-respuesta.md"
+    },
+    {
+      "archivo": "r49-final-04-lecturas.txt",
+      "original_sha256": "0c9b9d38a145235db433b17ef16274c30bcc259a6f17ef1b87de2627fb7cf862",
+      "bytes_original": 709,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-04-lecturas.txt"
+    },
+    {
+      "archivo": "r49-final-04-respuesta.md",
+      "original_sha256": "7f5823d9cc7b0ee0f06adc8a6f1f7c87256bb59e327449ae3c68a1b9df92a262",
+      "bytes_original": 1628,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-04-respuesta.md"
+    },
+    {
+      "archivo": "r49-final-05-lecturas.txt",
+      "original_sha256": "cfc807c5ec4110e14b82745b8f9d09291e2093b9000f4e10587a7b9e364558b5",
+      "bytes_original": 769,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-05-lecturas.txt"
+    },
+    {
+      "archivo": "r49-final-05-respuesta.md",
+      "original_sha256": "bae4c288578d9cfddfe555efe6beecdb3dd06ea8083704f9bdcfb9b74a223883",
+      "bytes_original": 1648,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/r49-final-05-respuesta.md"
+    },
+    {
+      "archivo": "variante-final.md",
+      "original_sha256": "2fda0a0521af1e3faaa221973cc0845a6fc060c3f9939e1dc25d15a54531966c",
+      "bytes_original": 1777,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos/variante-final.md"
+    },
+    {
+      "archivo": "../r24-ensayos-skill.md",
+      "original_sha256": "e3eca5dc5bef5fd9a54b93951f4b45300f5eb9c2aad936f313aa90d9056e92de",
+      "bytes_original": 9403,
+      "bruto": "<CUSTODIA_PRIVADA>/r24-ensayos-skill.md"
+    }
+  ]
+}

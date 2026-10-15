@@ -23,11 +23,16 @@ un nombre parecido al de una carpeta de la biblioteca.
 
 ## Qué escribe el instalador
 
-El instalador valida y regenera los derivados de la skill dentro del checkout. En el modo
-normal instala copias en los destinos detectados, conserva las anteriores y registra la
-ruta local en `~/.config/gamemaker-biblioteca/ruta`. Con `--destino` escribe solo en el
-destino indicado y no registra rutas globales. `--comprobar` no instala ni registra rutas.
+El instalador Python comprueba el manifiesto SHA-256 del paquete, sin regenerar derivados
+ni requerir dependencias de mantenimiento. En modo normal prepara todos los destinos
+compatibles, conserva las copias anteriores y registra la biblioteca junto a cada destino, con fallback en
+`~/.config/gamemaker-biblioteca/ruta`. `--harness` registra también esa ruta; `--destino`
+solo cambia el fallback global con `--registrar`. `--comprobar` valida sin escrituras.
 [CLI compatibles y límites](INSTALACION.md#qué-cli-de-ia-están-soportados).
+
+El bootstrap descarga solo una revisión identificada de esta distribución pública. Conserva
+la biblioteca previa al actualizar y registra el commit descargado. El comando publicado
+fija el bootstrap mediante SHA-256; la autenticidad se apoya en HTTPS y el repositorio oficial.
 
 No instala el motor, un LLM ni un servicio de embeddings. No modifica modelos, claves o
 proveedores. La skill aporta instrucciones; cada agente controla cuándo las carga.

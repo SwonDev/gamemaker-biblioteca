@@ -15,6 +15,7 @@ actualizar este mapa.
 3. `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — escritor único de recursos, exclusión de caché y operación verificada
 4. `13 - Diseño y producción de videojuegos/10 - Testing y QA.md` — herramientas, runtime y aceptación; captura y guardado
 5. `13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md` — alcance, hitos y publicación
+6. `13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md` — cambios de requisito, evidencia histórica, aprendizajes y evaluación de la skill; al evolucionar contratos o método
 
 ## Diseño de juego (mecánicas, core loop, balance, dificultad, GDD)
 

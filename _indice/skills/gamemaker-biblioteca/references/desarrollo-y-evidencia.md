@@ -2,6 +2,11 @@
 
 Lee al crear o continuar un proyecto, diseñar sistemas o coordinar agentes y revisiones.
 
+Al iniciar un juego, antes de comprometer una decisión costosa o ante estancamiento,
+aplica [`asesor y activación`](asesor-y-activacion.md): consulta automática acotada con
+los roles/modelos vigentes, brief, resultado real y contraste. Una continuación rutinaria
+no repite la consulta. Este asesoramiento inicial permanece separado de la crítica ciega.
+
 ## Flujo para un desarrollo real
 
 **Proyecto existente o continuación:** antes del paso 0, lee reglas, especificación, glosario,
@@ -17,6 +22,11 @@ pequeña no exige rehacer el GDD. El usuario no tiene que invocar skills: selecc
 fase, léelas y aplica su procedimiento, conservando la precedencia de reglas/modelos/permisos.
 Los nombres externos no se distribuyen con este paquete; si faltan, declara el límite y usa
 los contratos documentados, sin inventar pruebas, descargar otros modelos ni publicar por defecto.
+
+**Cambio de requisito, gobierno del gauntlet o aprendizaje:** lee
+[`contratos-y-aprendizaje.md`](contratos-y-aprendizaje.md). Concreta la cadena requisito versionado →
+tarea → caso → evidencia → decisión y su invalidación. Con biblioteca, `13/30` amplía ejemplos
+y procedencia; no sustituye el protocolo inicial ni obliga a instalar métodos externos.
 
 **Cinco puertas del trabajo con IA (`13/29`):**
 

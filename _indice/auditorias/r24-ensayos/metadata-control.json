@@ -1,0 +1,20 @@
+{
+  "fecha": "2026-10-15",
+  "variante": "control",
+  "muestras_previstas": 5,
+  "contexto": "fork_turns=none",
+  "modelo": "heredado; sin override",
+  "herramientas_muestras": "prohibidas en prompt",
+  "prompt_sha256": "7b4ed6925e3dce514af7e044164ee5240de9d8c53ca7999da50d6cae0b58c2f6",
+  "rubrica_sha256": "df110396d4b5095b7a21e9e3082b3c19b9cfc512bc08d26f2ec9de7146ef9772",
+  "estado": "completo",
+  "muestras_observadas": 5,
+  "muestras_conformes": 5,
+  "vista_publica": {
+    "tipo": "Vista anonimizada; no sustituye el bruto leído",
+    "prompt_archivo": "prompt-control.txt",
+    "prompt_sha256_describe": "Huella del prompt bruto realmente utilizado, anterior a anonimización",
+    "prompt_vista_sha256": "7b4ed6925e3dce514af7e044164ee5240de9d8c53ca7999da50d6cae0b58c2f6",
+    "prompt_original_privado": "<CUSTODIA_PRIVADA>/r24-ensayos/prompt-control.txt"
+  }
+}

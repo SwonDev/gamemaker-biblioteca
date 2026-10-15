@@ -30,7 +30,13 @@ def destinos(home, entorno=None, validar_omp=False):
     e = os.environ if entorno is None else entorno
     h = Path(home)
     def base(variable, defecto):
-        return Path(e.get(variable) or str(h/defecto)).expanduser()
+        valor = e.get(variable)
+        if not valor:
+            return h/defecto
+        # --home también ancla un tilde literal sin redefinir HOME del proceso.
+        if valor == "~" or valor.startswith(("~/", "~\\")):
+            return h/valor[2:] if len(valor) > 1 else h
+        return Path(valor)
     omp_config = e.get("PI_CONFIG_DIR") or ".omp"
     omp = h/omp_config.lstrip("/\\")
     try:
@@ -54,14 +60,14 @@ def destinos(home, entorno=None, validar_omp=False):
     hermes = Path(os.path.expandvars(hermes_home)).expanduser() if hermes_home else hermes_default
     return {
         "agents": ((), h/".agents/skills"),
-        "claude": (("claude",), h/".claude/skills"),
-        "codex": (("codex", "codex-deepseek"), base("CODEX_HOME", ".codex")/"skills"),
-        "opencode": (("opencode",), h/".config/opencode/skills"),
+        "claude": (("claude",), base("CLAUDE_CONFIG_DIR", ".claude")/"skills"),
+        "codex": (("codex", "codex-deepseek"), h/".agents/skills"),
+        "opencode": (("opencode",), base("OPENCODE_CONFIG_DIR", ".config/opencode")/"skills"),
         "qwen": (("qwen",), h/".qwen/skills"),
         "kimi": (("kimi",), h/".kimi-code/skills"),
         "gemini": (("gemini",), h/".gemini/skills"),
         "copilot": (("copilot",), h/".copilot/skills"),
-        "cursor": (("cursor-agent", "agent"), h/".cursor/skills"),
+        "cursor": (("cursor-agent", "cursor"), h/".cursor/skills"),
         "cline": (("cline",), h/".cline/skills"),
         "pi": (("pi",), base("PI_CODING_AGENT_DIR", ".pi/agent")/"skills"),
         "omp": (("omp",), omp_agent/"skills"),

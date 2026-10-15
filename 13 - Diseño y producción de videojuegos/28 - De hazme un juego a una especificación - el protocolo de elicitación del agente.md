@@ -437,6 +437,7 @@ en el sitio donde ya vive el resto de la especificación, no en un archivo apart
 
 ## Ver también
 
+- [13 · 30 — Especificación viva y mejora del método](<30 - Especificación viva y mejora del método.md>) — conectar cambios de requisito con tareas, casos y evidencia; promover aprendizajes y evaluar la skill
 - [13 · 01 §8](./01%20-%20Diseño%20de%20juego%20-%20core%20loop,%20mecánicas,%20balance%20y%20dificultad.md#8--el-documento-de-diseño-ligero) — el GDD de una página y la ficha por sistema que el bloque 1-2 de la plantilla de este documento rellena, sin repetir
 - [13 · 14 §1.1](./14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md#11--cuándo-el-one-pager-no-basta) — cuándo el one-pager de arriba no basta y hace falta el GDD completo, incluida la señal 4 («un LLM va a implementar veinte sistemas»), que es justo el caso de uso de este documento
 - [13 · 14 §6](./14%20-%20El%20documento%20de%20diseño%20-%20del%20one-pager%20al%20GDD%20completo.md#6--la-versión-para-llm-qué-necesita-un-agente-para-implementar-sin-inventar) — la versión de una ficha de sistema que un agente puede implementar sin inventar, con el ejemplo completo de §6.3 que reutiliza este documento en §3.2

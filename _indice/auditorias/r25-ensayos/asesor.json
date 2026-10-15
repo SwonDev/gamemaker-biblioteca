@@ -1,0 +1,30 @@
+{
+  "id": "01a1406a-2776-7cc0-8b3f-5674fea4ca5e",
+  "parent_thread_id": "01a14069-5999-7ee1-a6cb-a291284367df",
+  "source": {
+    "subagent": {
+      "thread_spawn": {
+        "parent_thread_id": "01a14069-5999-7ee1-a6cb-a291284367df",
+        "depth": 1,
+        "agent_path": "/root/asesor_definicion",
+        "agent_nickname": "Noether",
+        "agent_role": "default"
+      }
+    }
+  },
+  "model": "gpt-6.1-sol",
+  "effort": "xhigh",
+  "multi_agent_version": "v2",
+  "spawn_count": 0,
+  "herramientas_ejecutadas": 0,
+  "uso": {
+    "input_tokens": 40006,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 963,
+    "reasoning_output_tokens": 484,
+    "total_tokens": 40969
+  },
+  "rollout_privado_sha256": "eef08ba3ca694db5490a735c6df4b2d8defee731300af653cc53a57d29558b26",
+  "limite": "El brief se almacena cifrado por el host; no se descifra ni se publica. La respuesta es observable; el modelo quedó verificado externamente en turn_context."
+}

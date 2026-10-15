@@ -1,0 +1,95 @@
+# AGENTS.md — Biblioteca GameMaker (generado desde la skill)
+
+> **Generado por `_indice/sincronizar-skill.py` a partir del cuerpo real de**
+> **`SKILL.md`. No lo edites a mano:** se reescribe en cada `python3 _indice/actualizar.py`
+> o `./instalar.sh`. Existe para los CLI de IA que solo leen `AGENTS.md` en la raíz
+> de un proyecto y no tienen un directorio de skills en formato `SKILL.md`.
+> Si ya existe un `AGENTS.md`, integra estas directrices sin sobrescribir sus reglas.
+> Si no existe, puedes copiar o enlazar este archivo en la raíz del proyecto.
+> Si tu CLI sí lee skills, usa directamente la carpeta
+> `_indice/skills/gamemaker-biblioteca/` — no hace falta este archivo.
+
+**Cuándo aplica esto:** Úsala para GameMaker/GML, .yyp/.yy/.gml, gm-cli, «hazme un juego», «no compila», errores, diseño, assets, QA y publicación; también para desarrollo con IA, crítica, evidencia, continuidad y búsqueda semántica en proyectos GameMaker.
+
+# GameMaker · biblioteca fidedigna
+
+<!-- SKILL-VERSION: r49 · 2026-10-15 -->
+`r49 · 2026-10-15`. Biblioteca local en español; referencia histórica LTS 2026.0
+(IDE 2026.0.0.16 · GMS2 2026.0.0.23). **Manda la versión real del proyecto.**
+
+## Antes de actuar
+
+1. Identifica el checkout y lee sus reglas, especificación, glosario, dirección visual,
+   estado, revisión, WIP y pausa. Reutiliza sistemas existentes. Una lectura o una medición
+   solicitada no autoriza reanudar procesos pausados, cambiar modelos ni publicar.
+2. Una vez por sesión, lee `$BIB/_indice/skills/gamemaker-biblioteca/references/entorno-y-fuentes.md`:
+   sondeo Bash/zsh **o PowerShell**, biblioteca/índice/CLI realmente disponibles y fallback.
+   Comprueba engine/runtime/target del proyecto y compáralos con `meta.runtime` del índice.
+   `GM_BIBLIOTECA_RUNTIME` selecciona la fuente: un valor explícito inválido es error, sin
+   fallback silencioso. La caché de máquina y la etiqueta LTS de esta skill no cambian el proyecto.
+3. Selecciona las referencias de la tabla siguiente por la tarea y léelas antes de aplicar
+   sus procedimientos. No cargues todos los documentos para una consulta puntual.
+
+`BIB` es la raíz comprobada de la biblioteca. Las rutas `NN/MM` abrevian
+`$BIB/NN - <carpeta>/MM - <archivo>.md`; las referencias del paquete viajan con SKILL.md.
+El AGENTS.md de este paquete es una derivación para harnesses sin skills: no necesitas
+releer esa copia si ya leíste esta misma revisión. Si solo tienes el paquete, conserva sus contratos y declara
+los documentos o herramientas ausentes.
+
+## Qué leer según el trabajo
+
+| Necesitas | Lee antes de actuar |
+|---|---|
+| Verificar o recomendar API; escribir/revisar GML, firma, obsolescencia, structs o convenciones | `$BIB/_indice/skills/gamemaker-biblioteca/references/consulta-api.md` |
+| Init, recursos, eventos, CLI/MCP/IDE, compilar, ejecutar o empaquetar | `$BIB/_indice/skills/gamemaker-biblioteca/references/operar-gamemaker.md`: trampas y límites del entorno documentado |
+| Crear/continuar un juego, diseñar sistemas, coordinar agentes o rondas de crítica | `$BIB/_indice/skills/gamemaker-biblioteca/references/desarrollo-y-evidencia.md`: spec, arquitectura, propiedad y cinco puertas de IA |
+| Cambiar requisitos, revisar reglas del gauntlet, incorporar aprendizajes o evaluar la skill | `$BIB/_indice/skills/gamemaker-biblioteca/references/contratos-y-aprendizaje.md`: trazabilidad, invalidación y promoción |
+| Probar, medir, revisar, declarar verde/aceptación/terminado o preparar entrega | `$BIB/_indice/skills/gamemaker-biblioteca/references/qa-y-entrega.md`: instrumentos, denominadores, checklist y límites |
+| Arte, audio, fuentes, atlas, assets propios/libres, traducción o generación que cuesta dinero | `$BIB/_indice/skills/gamemaker-biblioteca/references/assets-y-texto.md` |
+| Buscar por significado, clasificar/deduplicar, ahorrar contexto o integrar embeddings/RAG | `$BIB/_indice/skills/gamemaker-biblioteca/references/contexto-y-recursos.md`: consumidor existente, privacidad, reserva y medición |
+| Elegir género, disciplina, tutorial o nivel de aprendizaje | `$BIB/_indice/skills/gamemaker-biblioteca/references/rutas-de-consulta.md` |
+| Diseño por disciplina y orden de lectura | `$BIB/_indice/skills/gamemaker-biblioteca/references/mapa-disciplinas.md` |
+| Localizar el título/ruta exactos de un documento | `$BIB/_indice/skills/gamemaker-biblioteca/references/indice-documentos.md`. Las rutas abreviadas de este documento (`13/28`, `04/00`, `12/09`…) siguen el mismo patrón: `$BIB/NN - <carpeta>/MM - <archivo>.md` — primero la carpeta por su número, luego el archivo dentro de ella por el suyo. |
+
+Un desarrollo completo combina desarrollo → API/operación y assets según los sistemas → QA.
+Proyecto largo, varios agentes, gauntlet, crítica o cambio de harness: abre `13/29` completo
+si la biblioteca está disponible. Enseñanza continuada: abre `RUTA.md` y sitúa el nivel por
+lo que el usuario sabe hacer; ofrece material de ese nivel y el siguiente.
+
+## Contratos que siempre se conservan
+
+- **Verifica cada símbolo y la firma completa antes de recomendarlo**, también en prosa.
+  Índice compatible → manual oficial aplicable → notas oficiales por versión; nunca memoria.
+  Sin índice o sin CLI, usa el manual oficial web, con rama/versión, URL y fecha. Si la fuente
+  no cubre el target, di «no verificado». No inventes funciones ni argumentos.
+- Una ausencia solo describe la versión/cobertura consultadas. Revisa `fnames`, structs,
+  enumeraciones, plataformas, extensiones y funciones propias. `SOLO EN fnames` es existencia
+  sin autocompletado de Feather, no invención. Evita lo obsoleto según la ficha aplicable.
+- GML propio: identificadores ASCII, `snake_case`, locales con `_`, prefijos por recurso;
+  API en inglés, comentarios y texto visible en español correcto. Desde 2026, los IDs de assets
+  son handles; verifica este cambio cuando trabajes con una versión anterior.
+- Recursos `.yy`/`.yyp` por ResourceTool/MCP o IDE; `.gml` sí se edita normalmente.
+  **Un escritor por proyecto**: ResourceTool guarda incluso con `HELP`; compile/run/package
+  comparten `.gmcache`. Verificar leyendo archivos evita otra escritura concurrente.
+- Salida «Success» o exit 0 no acredita el efecto. Verifica comando → archivo → juego real.
+  `validar-proyecto.py <proyecto> --todo` antes de compilar, si sus fuentes están disponibles;
+  el análisis léxico no sustituye runtime. Compilación final también sin `--errors-only`.
+- Verde vigente requiere revisión y huellas del WIP/entradas, engine/runtime, target,
+  configuración, escenario, aserciones, medidas, omisiones y denominadores. Una batería
+  previa es histórica; compilar ahora no la refresca ni certifica p99 o todos los presupuestos.
+- Crítica fresca: clave fuera del paquete accesible, sin instrucciones/explicación del
+  constructor antes del juicio y con controles negativos e idénticos válidos. Contaminación
+  exige nueva ronda. Preferencia visual, mejora integrable y aceptación final son estados distintos.
+- Preserva identidad canónica, umbral del usuario, modelos, permisos, recibos y pausa.
+  Coordina recursos pesados, orden de bloqueo, FIFO y propiedad verificable; no limpies por nombre.
+- No copies código de juegos comerciales. Licencia, estilo y encaje antes de integrar assets;
+  usar en el juego y redistribuir la fuente requieren comprobaciones distintas.
+  Un rectángulo o PNG de color plano como personaje no acredita arte de producción.
+- «Terminado» exige spec y envoltura completas, compilación y comportamiento demostrado,
+  checklist `04/00` **y** listas enlazadas `04/41 §4`, `13/05 §4`, `05/02 §4.4`.
+  Si no puedes ejecutar, usa maqueta y revisión de lectura con sus límites; declara lo pendiente
+  y cada recorte. Publicar, cuentas, gastos y cambios compartidos mantienen sus permisos.
+
+Selecciona el método por fase: contexto → requisitos pendientes → spec → tareas verticales →
+implementación/prueba → integración → revisión → evidencia/aceptación. Reutiliza lo existente;
+una corrección pequeña no exige rehacer el GDD. El método detallado está en desarrollo.

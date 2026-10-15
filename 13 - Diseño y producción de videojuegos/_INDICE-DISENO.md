@@ -60,6 +60,11 @@ conecta contratos, constructores e integrador, crítica aislada, evidencias por 
 colas y disco, guardado, rendimiento, datos y assets derivados, y continuidad Claude/Codex.
 Lee este documento al retomar un proyecto o iniciar un bucle con varios agentes.
 
+[30 · Especificación viva y mejora del método](<30 - Especificación viva y mejora del método.md>)
+concreta el cambio de requisito, su efecto en tareas y pruebas, la diferencia entre
+funcionamiento y experiencia, y la promoción de aprendizajes con evaluación de la skill.
+Se consulta al evolucionar la especificación o el proceso existente.
+
 ## Orden sugerido para un juego nuevo
 
 ```
