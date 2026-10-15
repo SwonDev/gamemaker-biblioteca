@@ -2,9 +2,34 @@
 
 [Portada](README.md) · [Biblioteca](GUIA.md)
 
-Una **skill** es una carpeta de instrucciones que tu agente carga al trabajar con GameMaker. La biblioteca contiene la documentación y las herramientas que consulta. Necesitas ambas en tu equipo.
+Una **skill** es una carpeta de instrucciones que tu agente carga al trabajar con GameMaker.
+Puedes instalarla con sus referencias y consultar las fuentes oficiales. La biblioteca completa
+añade los documentos, buscadores y validadores locales.
 
-## Instala con un comando
+## Instala la skill con npx o pnpm
+
+Con [Node.js](https://nodejs.org/) y [Git](https://git-scm.com/) disponibles, usa el
+[instalador de Agent Skills](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add SwonDev/gamemaker-biblioteca --skill gamemaker-biblioteca -g
+```
+
+Si usas pnpm, el equivalente es:
+
+```sh
+pnpm dlx skills add SwonDev/gamemaker-biblioteca --skill gamemaker-biblioteca -g
+```
+
+`-g` instala para todos tus proyectos. Elige los agentes de destino; para Codex sin preguntas,
+añade `--agent codex --yes`. Para instalar solo en el proyecto actual, omite `-g`.
+
+Esta vía instala **la skill y todas sus referencias**, sin ejecutar nuestro instalador Python.
+No descarga una biblioteca persistente ni registra su ruta. Si ya tienes la biblioteca
+registrada, la skill la encuentra; si no, utiliza sus referencias y las fuentes oficiales.
+Los buscadores y validadores locales requieren el paso siguiente.
+
+## Instala también la biblioteca completa
 
 Necesitas [Python 3.10 o posterior](https://www.python.org/downloads/). En macOS/Linux,
 copia este comando en tu terminal:
