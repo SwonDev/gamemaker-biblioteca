@@ -140,7 +140,22 @@ No se inventaron URLs; las que aparecen son las del anexo contrastado.
 
 ## 6 · Publicación
 
-Rama de feature: `docs/relicwild-r51`, creada desde `origin/main` para no arrastrar WIP ajeno.
-Commits por unidad: método/research-first, técnica, audio/licencias y esta auditoría. El SHA del
-push y la comparación local/remoto se registran en el commit de publicación posterior; no se
-reescribe la aprobación previa del revisor.
+Rama de feature: `docs/relicwild-r51`, creada desde `origin/main` (`SHA retirado`) para no arrastrar
+WIP ajeno. Push no forzado al remoto `SwonDev/gamemaker-biblioteca`; sin PR ni merge.
+
+| Orden | Commit | Unidad |
+|---|---|---|
+| 1 | `SHA retirado` | método/research-first |
+| 2 | `SHA retirado` | técnica: presupuestos, 3D, procgen y animación |
+| 3 | `SHA retirado` | audio: YuE2, Suno, Idol y licencias |
+| 4 | `SHA retirado` | auditoría r26 |
+| 5 | `SHA retirado` | índices y paquete de skill |
+
+El SHA remoto comprobado tras el push de contenido coincide con `SHA retirado`; el commit de
+publicación que añade esta tabla es el siguiente y su SHA se informa en el mensaje de cierre.
+`gh run list --branch docs/relicwild-r51` devolvió una lista vacía: **no se activó ningún
+workflow**. No se afirma CI verde; no hay ejecuciones.
+
+**RDD:** el ciclo nativo no está disponible para Command Code (solo Claude Code, Codex, OpenCode
+y Pi). No se invocó otro modelo ni se inventó un recibo; se reutilizan las dos revisiones
+independientes DeepSeek ya registradas. La aprobación previa del revisor no se reescribe.
