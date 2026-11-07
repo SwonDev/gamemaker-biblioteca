@@ -1,7 +1,6 @@
 # r26 · Integración de aprendizajes de Relicwild en biblioteca y skill
 
-Fecha: **07-11-2026**. La autorización de publicación se registra en el registro privado; este informe público contiene solo hechos técnicos.
-hacer command code con deepseek para que tú no gastes tokens, hay que integrarlo todo en la
+Fecha: **07-11-2026**. La autorización de publicación se conserva en el registro privado; este informe público contiene solo hechos técnicos.
 biblioteca, en la skill y actualizar el repositorio con todo lo nuevo, etc.».
 Ámbito: biblioteca `GameMaker_Aprendizaje` y skill `gamemaker-biblioteca`. El proyecto
 `Relicwild_World` se usó como fuente de solo lectura; no se modificó, no se ejecutó su juego y
