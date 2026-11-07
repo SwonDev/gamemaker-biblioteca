@@ -11,11 +11,12 @@ actualizar este mapa.
 ## Metodología general, spec, contexto, orquestación y continuidad
 
 1. `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` — spec guiada por decisiones, tareas verticales, router de skills y ciclo; antes de iniciar agentes o retomar
-2. `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md` — localizar/clasificar código, documentos y recursos, contexto acotado y coste medido
-3. `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — escritor único de recursos, exclusión de caché y operación verificada
-4. `13 - Diseño y producción de videojuegos/10 - Testing y QA.md` — herramientas, runtime y aceptación; captura y guardado
-5. `13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md` — alcance, hitos y publicación
-6. `13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md` — cambios de requisito, evidencia histórica, aprendizajes y evaluación de la skill; al evolucionar contratos o método
+2. `13 - Diseño y producción de videojuegos/31 - Investigación previa y reutilización antes de construir.md` — pregunta/decisión, candidatos, licencia de código/pesos/assets, compatibilidad, coste y prueba discriminante; antes de motor, formato o asset caro
+3. `12 - Utilidades e integraciones/11 - Búsqueda multimodal con EmbeddingGemma 2 - contexto y recursos para agentes.md` — localizar/clasificar código, documentos y recursos, contexto acotado y coste medido
+4. `12 - Utilidades e integraciones/09 - Manual del agente de IA - operar GameMaker con gm-cli.md` — escritor único de recursos, exclusión de caché y operación verificada
+5. `13 - Diseño y producción de videojuegos/10 - Testing y QA.md` — herramientas, runtime y aceptación; captura y guardado
+6. `13 - Diseño y producción de videojuegos/11 - Producción, alcance y lanzamiento.md` — alcance, hitos y publicación
+7. `13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md` — cambios de requisito, evidencia histórica, aprendizajes y evaluación de la skill; al evolucionar contratos o método
 
 ## Diseño de juego (mecánicas, core loop, balance, dificultad, GDD)
 

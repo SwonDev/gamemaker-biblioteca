@@ -135,6 +135,22 @@ skill: modelos, autorizaciones, pausa, alcance, WIP y credenciales. Un paso de s
 requisitos ya acordados y continúa lo autorizado; pide solo la decisión o permiso que falta.
 No hagas una ceremonia de aprobación para cada paso rutinario ni reduzcas pruebas para seguir.
 
+### 2.3 · Investigación previa antes de comprometer una decisión
+
+Antes de elegir motor, arquitectura, formato, librería, técnica o un asset caro de revertir, abre
+una ficha de investigación: pregunta/decisión, criterios, candidatos (repos, motores, técnicas,
+optimizaciones, referencias y assets), versión, licencia de código y de pesos/assets,
+compatibilidad, coste, prueba discriminante y cierre con riesgos. La ficha no es un GDD ni un
+tracker; vive junto al encargo y se cierra cuando la decisión queda registrada. El
+procedimiento completo está en [13 · 31](<31 - Investigación previa y reutilización antes de construir.md>)
+y en la referencia `research-first` de la skill.
+
+Dos reglas evitan los extremos: **no reabras un motor ya fijado** por el usuario o por una ADR
+vigente, y **no conviertas una investigación de solo lectura en una prohibición universal de
+experimentar**. Un experimento futuro puede ejecutarse si está autorizado y aislado; nunca
+altera WIP, permisos, modelos ni recursos compartidos. Distingue referencia para aprender de
+asset distribuible: un decompilado o una captura sirven para medir reglas, no para copiar bytes.
+
 ## 3 · El ciclo: una hipótesis y una diferencia observable
 
 1. Localiza el bloqueo que impide el siguiente requisito, con evidencia vigente.
@@ -218,6 +234,18 @@ fuente correcta; la preferencia del crítico no autoriza conservar un error fact
 Una imagen convincente tampoco prueba entrada, sonido, legibilidad en movimiento o sensación
 al jugar. Esas puertas necesitan evidencia del juego y, para juicio sensorial, del usuario.
 
+### 5.1 · Crítica de cierre no es crítica ciega
+
+- La **primera crítica** recibe contexto fresco, clave separada y no el historial de
+  aprobaciones del constructor.
+- La **revisión de cierre** puede recibir la lista de defectos previos para comprobar uno a
+  uno. Entonces es verificación de defectos, no una crítica ciega: nómbrala así y no la
+  presentes como independiente.
+- El crítico puede ejecutar el recinto y producir su propia captura. Su evidencia propia pesa
+  más que la del constructor, siempre que no edite el producto.
+- Si la cuota obliga a que el crítico sea de la misma familia de modelo que el autor, declara
+  **independencia débil** y no lo cuentes como puerta completa.
+
 ## 6 · Evidencia que pertenece a una revisión
 
 Cada recibo debe identificar qué se ejecutó y qué observó, incluyendo WIP. Una revisión de
@@ -268,6 +296,15 @@ Un resultado histórico favorable no refresca una batería posterior incompleta.
 revisión actual. Las tres capas de QA —herramientas, juego instrumentado y juicio del producto—
 están desarrolladas en [Testing y QA](<10 - Testing y QA.md>).
 
+### 6.1 · Corrida rota, paquete exportado y omisión
+
+La aceptación se mide en el paquete que juega el usuario; una corrida con error, sin carga o sin
+foco es roja; una prueba omitida cuenta `NO_EVALUADO` y no es verde. El procedimiento, el
+autofallo de ventana y la comprobación de que los dos modos no son el mismo están en
+[Testing y QA §8.6 quinquies](<10 - Testing y QA.md>). Esta sección solo fija la regla de método:
+no se declara un hito con una corrida rota, una omisión silenciosa o una medida tomada en el
+runner de desarrollo.
+
 ## 7 · Máquina compartida y colas con propietario
 
 Haz un inventario de recursos escasos: CPU, RAM, GPU, runner, Blender, disco, `.yyp`, `.gmcache`
@@ -307,6 +344,14 @@ Al pausar: deja de despachar, permite que la operación autorizada alcance un pu
 registra lo pendiente y confirma procesos/colas propios. No reinicies al perder una sesión ni
 conviertas un marcador de parada en una tarea pendiente que el supervisor deba «arreglar».
 
+### 7.1 · Propiedad y persistencia por sesión
+
+Registra para cada proceso la herramienta, la sesión, el PID, la hora de inicio, el recurso y
+qué sobrevive al cierre. No afirmes que el host es dueño universal de los procesos: la
+propiedad y la persistencia se comprueban por herramienta y sesión. El cierre de un IDE que
+mata carriles es un incidente histórico, no una ley universal. Verifica el cierre solo en un
+entorno aislado y autorizado; nunca cierres la sesión del usuario como experimento.
+
 ## 8 · Disco: un worktree no es una copia de la máquina
 
 Antes de generar ramas y copias, calcula qué incluye cada una. Excluye cachés regenerables de
@@ -322,6 +367,15 @@ Si no puedes conservar atributos requeridos, la copia no sustituye todavía al o
 En sistemas con clones o compresión, el tamaño lógico de carpetas no mide el espacio físico
 recuperado. Comprueba el sistema de archivos antes/después. Ni un backup autorizado permite
 borrar otra ruta, ni haber desarrollado en local autoriza acceso remoto o publicación.
+
+### 8.1 · Manifiesto de integración
+
+La fusión de un carril se comprueba con un **manifiesto completo**: creados, modificados,
+borrados y enlaces, con hash y dueño. La ausencia de un archivo en el carril no se interpreta
+como borrado; el binario modificado viaja con su hash; un enlace no sustituye al lanzador de la
+base. Después de integrar, ejecuta una prueba del consumidor real y un smoke del paquete
+exportado. Un merge limpio no acredita compatibilidad semántica: una firma compartida puede
+cambiar y el consumidor fallar en runtime.
 
 ## 9 · Pruebas que respetan el guardado y los procesos
 
@@ -552,9 +606,13 @@ Bloqueo siguiente / acción autorizada siguiente:
 ### 14.3 Comprobar antes de declarar el hito
 
 - [ ] Requisitos cotejados con el juego completo; recortes y sentidos pendientes declarados.
+- [ ] Investigación previa cerrada o declarada no necesaria para la decisión costosa.
 - [ ] Pruebas de herramientas separadas de las del juego y de aceptación del usuario.
 - [ ] Resultados completos ligados a entradas actuales; históricos identificados.
 - [ ] Crítica con clave separada, controles válidos y contexto sin contaminar.
+- [ ] Manifiesto de integración cotejado; prueba del consumidor y smoke del paquete.
+- [ ] Corrida rota descartada; medida sobre el paquete; omisiones `NO_EVALUADO`.
+- [ ] Regla escrita y guardarraíl que falla al retirar el arreglo.
 - [ ] Datos y assets derivados coherentes; migraciones y runtime realmente probados.
 - [ ] Rendimiento comparable con intervalo y población completos, sin seleccionar verdes.
 - [ ] Recursos, procesos y guardado propios recuperados y cotejados.

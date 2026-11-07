@@ -58,6 +58,11 @@ El método cubre el desarrollo guiado por especificación (*spec-driven*), tarea
 
 Para aspirar a calidad AAA, exige criterios de arte, sonido, accesibilidad, rendimiento y juego completo. La skill guía ese trabajo; la calidad final se demuestra en cada proyecto y plataforma.
 
+Antes de comprometer motor, arquitectura, formato o un asset caro de revertir, la
+**[investigación previa y reutilización](<13 - Diseño y producción de videojuegos/31 - Investigación previa y reutilización antes de construir.md>)**
+convierte la elección en una comparación con candidatos, licencia de código/pesos/assets,
+compatibilidad, coste y prueba discriminante. No sustituye la especificación: la alimenta.
+
 **[Método completo de desarrollo con IA](<13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md>)**
 
 [Especificación viva y mejora del método](<13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md>)
@@ -73,7 +78,7 @@ y evaluación de la propia skill, con aportes contrastados de Matt, Gentle AI y 
 
 ## Conocimiento que se puede comprobar
 
-Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Activación, instalación y pruebas r50](./_indice/auditorias/r25-validacion.md) · [Método r49](./_indice/auditorias/r24-validacion.md) · [Contratos HTTP y versiones r48](./_indice/auditorias/r23-validacion.md) · [Método y material visual incorporados](./_indice/auditorias/r22-publicacion.md).
+Los símbolos se extraen del runtime seleccionado; compara su versión con la del proyecto. Un comando verifica enlaces, ejemplos, descubrimiento e integridad de la skill: `python _indice/actualizar.py`. [Activación, instalación y pruebas r50](./_indice/auditorias/r25-validacion.md) · [Integración Relicwild r26](./_indice/auditorias/r26-integracion-relicwild.md) · [Método r49](./_indice/auditorias/r24-validacion.md) · [Contratos HTTP y versiones r48](./_indice/auditorias/r23-validacion.md) · [Método y material visual incorporados](./_indice/auditorias/r22-publicacion.md).
 
 **Referencia documental:** GameMaker LTS 2026.0. El manual oficial y el código de terceros se reconstruyen aparte, con sus licencias. La instalación de la skill no instala GameMaker, EmbeddingGemma ni cambia tu modelo. [Qué se distribuye](PUBLICAR.md).
 

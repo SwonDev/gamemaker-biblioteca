@@ -82,6 +82,7 @@ Un tutorial de YouTube **nunca** gana a `simbolos.json`.
 | Saber qué cambió en 2026 y qué me va a romper | `02 - Novedades 2026/` |
 | Aprender siguiendo un curso | `03 - Cursos (YouTube)/` · `10 - Cursos en español/` |
 | Construir un juego de un género concreto | `04 - Recetas por género/` |
+| Investigar antes de construir: comparar repos, motores, técnicas, licencias y experimento discriminante | `13 - Diseño y producción de videojuegos/31` y la referencia `research-first` de la skill |
 | Consulta rápida: glosario, estilo, publicación | `05 - Referencia/` |
 | Código listo para copiar, escrito para esta biblioteca | `06 - Assets y Scripts/` |
 | Qué librería/extensión existe para X | `07 - Ecosistema/` · `11 - Código descargado/_CATALOGO.md` |
@@ -243,6 +244,13 @@ trazabilidad, invalidación de evidencia y promoción contrastada de aprendizaje
    defecto y plantilla en
    [`13 - Diseño y producción de videojuegos/28`](./13%20-%20Diseño%20y%20producción%20de%20videojuegos/28%20-%20De%20hazme%20un%20juego%20a%20una%20especificación%20-%20el%20protocolo%20de%20elicitación%20del%20agente.md).
    No se crea el proyecto (paso 3) sin ese documento escrito y enseñado al usuario.
+0 bis. **Investiga antes de comprometer una decisión costosa.** Si hay que elegir motor,
+   arquitectura, formato, librería o un asset caro de revertir, abre la ficha de
+   [`13 · 31 — Investigación previa y reutilización`](./13%20-%20Diseño%20y%20producción%20de%20videojuegos/31%20-%20Investigación%20previa%20y%20reutilización%20antes%20de%20construir.md):
+   pregunta/decisión, candidatos con versión y licencia de código/pesos/assets, compatibilidad,
+   coste, prueba discriminante y cierre con riesgos. No migres un motor ya fijado por iniciativa
+   propia, no instales/ejecutes sin autorización y no confundas una referencia para aprender con
+   un asset distribuible. La ficha no sustituye la especificación: la alimenta.
 1. **Lee la receta del género** en `04 - Recetas por género/`. Te dice qué sistemas construir
    y en qué orden. Si el encargo incluye diseñar (mecánicas, niveles, arte, UI, sonido,
    historia) o producir (alcance, hitos, lanzamiento), pasa antes por
@@ -366,3 +374,7 @@ la API real y traducirlos rompería el código.
 
 Cuando generes código, los **comentarios van en español** y los identificadores propios del
 proyecto también, salvo que el usuario indique otra cosa.
+
+<!-- seguridad-reanudacion:inicio -->
+Antes de ejecutar este proyecto o continuar funcionalidades, lee `SEGURIDAD_REANUDACION.md` y completa su revisión de dependencias, runtimes y credenciales. Actualiza a la última estable compatible, aplica la auditoría correspondiente y verifica el funcionamiento. Conserva WIP, datos, modelos y las decisiones de continuidad; la inspección y remediación siguen permitidas.
+<!-- seguridad-reanudacion:fin -->

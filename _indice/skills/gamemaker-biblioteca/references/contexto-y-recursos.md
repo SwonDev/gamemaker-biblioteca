@@ -23,3 +23,9 @@ evalúa recuperación por separado. Declara contaminación si las preguntas esta
 Mide latencia con denominador, distribución, concurrencia y estado frío/caliente registrados;
 unas pocas medidas calientes bajo un umbral no acreditan p99 ni rendimiento de extremo a extremo.
 Conserva puerto, procesos y dueños verificables; medir no autoriza arrancar una pausa vigente.
+
+**Propiedad y persistencia de procesos por sesión.** Registra herramienta, sesión, PID, inicio,
+recurso y qué sobrevive al cierre. No afirmes que el host es dueño universal de los procesos:
+la propiedad se comprueba por herramienta y sesión. Un cierre de IDE que mata carriles es un
+incidente histórico, no una ley. La prueba de cierre se hace en un entorno aislado y autorizado;
+nunca cierres la sesión del usuario como experimento.

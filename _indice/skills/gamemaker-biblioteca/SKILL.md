@@ -5,8 +5,8 @@ description: "Úsala para «quiero hacer un juego con GameMaker» o «Game Maker
 
 # GameMaker · biblioteca fidedigna
 
-<!-- SKILL-VERSION: r50 · 2026-10-15 -->
-`r50 · 2026-10-15`. Biblioteca local en español; referencia histórica LTS 2026.0
+<!-- SKILL-VERSION: r51 · 2026-11-07 -->
+`r51 · 2026-11-07`. Biblioteca local en español; referencia histórica LTS 2026.0
 (IDE 2026.0.0.16 · GMS2 2026.0.0.23). **Manda la versión real del proyecto.**
 
 ## Antes de actuar
@@ -45,6 +45,7 @@ los documentos o herramientas ausentes.
 | Crear/continuar un juego, diseñar sistemas, coordinar agentes o rondas de crítica | [`references/desarrollo-y-evidencia.md`](references/desarrollo-y-evidencia.md): spec, arquitectura, propiedad y cinco puertas de IA |
 | Iniciar un juego, decidir algo costoso de revertir o salir de un atasco | [`references/asesor-y-activacion.md`](references/asesor-y-activacion.md): asesor disponible, brief, contraste, límites y traza real |
 | Cambiar requisitos, revisar reglas del gauntlet, incorporar aprendizajes o evaluar la skill | [`references/contratos-y-aprendizaje.md`](references/contratos-y-aprendizaje.md): trazabilidad, invalidación y promoción |
+| Investigar antes de construir, comparar repos/motores/técnicas/assets, licencias y experimento discriminante | [`references/research-first.md`](references/research-first.md): ficha, candidatos, cierre y límites |
 | Probar, medir, revisar, declarar verde/aceptación/terminado o preparar entrega | [`references/qa-y-entrega.md`](references/qa-y-entrega.md): instrumentos, denominadores, checklist y límites |
 | Arte, audio, fuentes, atlas, assets propios/libres, traducción o generación que cuesta dinero | [`references/assets-y-texto.md`](references/assets-y-texto.md) |
 | Buscar por significado, clasificar/deduplicar, ahorrar contexto o integrar embeddings/RAG | [`references/contexto-y-recursos.md`](references/contexto-y-recursos.md): consumidor existente, privacidad, reserva y medición |
@@ -52,7 +53,7 @@ los documentos o herramientas ausentes.
 | Diseño por disciplina y orden de lectura | [`references/mapa-disciplinas.md`](references/mapa-disciplinas.md) |
 | Localizar el título/ruta exactos de un documento | [`references/indice-documentos.md`](references/indice-documentos.md). |
 
-Un desarrollo completo combina desarrollo/asesor → API/operación y assets según los sistemas → QA.
+Un desarrollo completo combina research-first → desarrollo/asesor → API/operación y assets según los sistemas → QA.
 Proyecto largo, varios agentes, gauntlet, crítica o cambio de harness: abre `13/29` completo
 si la biblioteca está disponible. Enseñanza continuada: abre `RUTA.md` y sitúa el nivel por
 lo que el usuario sabe hacer; ofrece material de ese nivel y el siguiente.
@@ -66,6 +67,10 @@ lo que el usuario sabe hacer; ofrece material de ese nivel y el siguiente.
 - Una ausencia solo describe la versión/cobertura consultadas. Revisa `fnames`, structs,
   enumeraciones, plataformas, extensiones y funciones propias. `SOLO EN fnames` es existencia
   sin autocompletado de Feather, no invención. Evita lo obsoleto según la ficha aplicable.
+- Antes de una decisión cara de revertir, aplica `research-first`: pregunta/decisión, candidatos,
+  licencia de código/pesos/assets, compatibilidad, coste, prueba discriminante y cierre. No
+  migres el motor fijado ni instales/ejecutes sin autorización; una referencia para aprender no
+  es un asset distribuible.
 - GML propio: identificadores ASCII, `snake_case`, locales con `_`, prefijos por recurso;
   API en inglés, comentarios y texto visible en español correcto. Desde 2026, los IDs de assets
   son handles; verifica este cambio cuando trabajes con una versión anterior.
