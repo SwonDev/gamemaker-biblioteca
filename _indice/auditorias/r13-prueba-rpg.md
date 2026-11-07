@@ -448,7 +448,7 @@ hueco con una frase («fuentes OFL recomendadas: …») o, mejor, trayendo la fu
 - **Me salté el paso 0 en su forma normal** (escribir la especificación y enseñarla **antes** de
 La petición de origen se registra en el registro privado; el requisito técnico se conserva en la prueba.
   canal de vuelta». Pero aquí **sí hay canal**: lo que no hay es permiso para gastarlo en un
-  plan, porque el encargo decía literalmente requisito técnico registrado en el registro privado.
+La petición de origen se registra en el registro privado; el requisito técnico se conserva en la prueba.
   **§2.2 bis no cubre ese caso** —canal existente, planificación explícitamente vetada— y tuve
   que estirar su criterio para justificar lo que hice. La especificación está escrita y entregada
   con el juego (`ESPECIFICACION.md`), con sus quince `[DEFAULT]` marcados.
