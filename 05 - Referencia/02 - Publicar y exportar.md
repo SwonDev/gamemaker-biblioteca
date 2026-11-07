@@ -176,6 +176,39 @@ Fuente: <https://gamemaker.io/en/get>
 - Claves de acceso para el CLI: <https://gamemaker.io/en/account/access-keys>
 - Descargas (LTS, Beta, Ubuntu): <https://gamemaker.io/en/download>
 
+### 2 bis · Licencias transitivas y contenido generado
+
+La licencia del producto no cubre todo lo que el producto contiene. Antes de publicar:
+
+- **Audita el árbol transitivo**, no solo la raíz. Un SDK puede traer binarios sin los avisos de
+  sus dependencias; un wrapper permisivo no relicencia el binario incluido. Conserva el
+  manifiesto de avisos y enlázalo desde la documentación del paquete.
+- **Separa código, pesos y salidas.** En un modelo generativo, la licencia del código, la de los
+  pesos y la de lo generado pueden ser distintas. La etiqueta del catálogo no relicencia los
+  checkpoints.
+- **Distingue creador individual y empresa.** Una licencia puede permitir a un creador
+  individual generar, publicar, vender y licenciar salidas sin canon, y exigir a una empresa una
+  licencia aparte. No lo conviertas en prohibición ni en permiso universal.
+- **Registra la confirmación del titular** cuando el usuario autorice el uso de música o arte
+  generado. «Lo generé» no es una cadena de derechos.
+- **Referencia para aprender no es asset distribuible.** Un decompilado, una captura o un vídeo
+  sirven para medir reglas; no autorizan copiar bytes, modelos ni audio.
+
+Para YuE2, archiva la licencia de los pesos, la licencia del modelo y la revisión usada:
+[MODEL_LICENSE (rev 1647252d)](https://github.com/multimodal-art-projection/YuE/blob/1647252d68b70cbead046ffd3f7caf036dde47ee/MODEL_LICENSE),
+[LICENSE YuE2-3B](https://huggingface.co/m-a-p/YuE2-3B/blob/8f24312f187763b9854adeec87e437e2b03bbff1/LICENSE)
+y [LICENSE YuE2-Vae](https://huggingface.co/m-a-p/YuE2-Vae/blob/152733a19ad43aa67e367f9b5503ef8075bb5126/LICENSE).
+Para Suno, captura el plan y las condiciones de creación/descarga
+([9601665](https://help.suno.com/en/articles/9601665),
+[13876865](https://help.suno.com/en/articles/13876865),
+[2425729](https://help.suno.com/en/articles/2425729)); no supongas retroactividad automática.
+Para Idol, verifica el formato y las dependencias antes de reutilizar: los proyectos
+[Speridlabs](https://speridlabs.com/research/idol) y
+[idol-sdk](https://github.com/speridlabs/idol-sdk) son imagen a 3D Gaussian splat, no malla/vox/rig;
+el [fork MPS](https://github.com/DeanBeanBEER-WARE/idol) no acredita una instalación concreta;
+[yiyuzhuang/IDOL](https://github.com/yiyuzhuang/IDOL) es SMPL-X humano, distinto. El código
+Apache no acredita por sí solo la licencia de dependencias como DINOv3 o FLUX2-VAE.
+
 ---
 
 ## 3. Plataforma por plataforma

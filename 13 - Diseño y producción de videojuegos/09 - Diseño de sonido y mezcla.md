@@ -492,6 +492,39 @@ total antes del sonido de muerte marcan el corte; y dejar la música fuera un pa
 zonas, tras media hora de juego, reinicia el oído. Sincronizar acciones con el compás está en
 [04 · 19 — Programación rítmica](../04%20-%20Recetas%20por%20género/19%20-%20Programación%20rítmica%20%28juegos%20de%20ritmo%29.md).
 
+## 6 bis · Música generada localmente: YuE2, Suno e Idol
+
+Una alternativa práctica a la biblioteca de música grabada es generar localmente con **YuE2**
+sobre MLX, sin tarifa de API. La lección operativa del caso Relicwild (2026) es que **el texto
+solo no basta para controlar tonalidad y tempo**: una petición en texto puede salir en otra
+tonalidad. El control mejora cuando el compositor es propio y entrega una **partitura ABC** como
+plan; el modelo hace de intérprete y productor. Aun así, la duración puede acortarse y las voces
+residuales solo se detectan escuchando.
+
+El resultado se procesa: rejilla de pulsos, bucle con corte exacto, fundido de cola sobre cabeza
+y **capas derivadas por procesado** (grave, melodía, ritmo), no stems instrumentales nativos. El
+motor puede subir y bajar esas capas para pasar de exploración a combate sin cortar la pieza.
+
+La norma de derechos —código, pesos y salidas por separado; creador individual frente a empresa;
+confirmación del titular— vive en [05 · 02 §2 bis](../05%20-%20Referencia/02%20-%20Publicar%20y%20exportar.md).
+Aquí se aplica al audio: archiva la licencia de los pesos, `MODEL_LICENSE` y la revisión usada,
+y registra la confirmación del titular. No la dupliques en este capítulo.
+
+**Suno** es una alternativa hospedada: sus condiciones dependen del plan y de la creación o
+descarga concreta. Captura el plan y los términos aplicables; no supongas retroactividad
+automática.
+
+**Idol** es otra familia de herramientas y aquí hay que distinguir homónimos: los proyectos
+Speridlabs de imagen a **3D Gaussian splat** (`.ply`) no son una malla, un vóxel ni un rig; el
+fork MPS existe, pero no se atribuye a una instalación del usuario sin prueba; el proyecto
+`yiyuzhuang/IDOL` es un modelo humano SMPL-X, distinto. Antes de reutilizar, verifica formato,
+conversión, coste, colisión y licencias de las dependencias. No ejecutes generación ni cambies
+modelos por iniciativa propia.
+
+El límite documental importa: una ficha puede decir «medida, no escuchada» en una fecha
+concreta. Eso no acredita el estado actual ni contradice que el usuario confirme que la calidad
+local funciona. Separa siempre **histórico documentado** de **observación actual del usuario**.
+
 ---
 
 ## 7 · Formatos y ajustes de importación
@@ -818,6 +851,24 @@ gm-cli resourcetool eval "sound setfile name=snd_moneda path=snd_moneda.wav"
 > de qué se sintetiza razonablemente bien y qué no aplica aquí tal cual): esta receta cambia
 > *dónde vive* el sonido, no *qué tipo* de sonido es capaz de producir la síntesis. Para foley,
 > voz o música real, sigue haciendo falta un archivo grabado — `07 · 09 §5` y §8.
+
+### 8 quinquies · Router de skills de audio
+
+No todas las skills de audio resuelven lo mismo. Elige por capacidad y declara la ausencia si no
+está disponible en tu harness:
+
+| Skill | Qué aporta | Límite |
+|---|---|---|
+| **earshot** | Banco, *forge* procedural y evaluación de sonido | No sustituye la escucha humana ni la mezcla del juego |
+| **real-sound** | Grabaciones licenciadas y mezcla | No es un sintetizador; verifica derechos de cada grabación |
+| **threejs-audio-generator** | SFX, ambientes, TTS y *voice change* con ElevenLabs y Web Audio | Requiere proveedor y clave; su runtime es Web Audio, **no GML**; no está en todos los harnesses |
+| **media-use** | Manejo e integración de medios | Producción de vídeo, no un sistema de audio de juego |
+| **hyperframes-audio** | Audio para vídeo/motion | No impongas el LUFS de cine al juego |
+
+La ruta real de `threejs-audio-generator` en este entorno es
+`~/.codex/skills-pool/threejs-audio-generator/SKILL.md`, pero su disponibilidad no acredita que
+esté en todos los harnesses. No instales ni actives skills ajenas para “completar” el router.
+Si una herramienta falta, se declara y se sigue con la escalera de §8 bis.
 
 ---
 
