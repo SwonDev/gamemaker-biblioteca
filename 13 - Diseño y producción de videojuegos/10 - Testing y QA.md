@@ -1064,6 +1064,26 @@ probar("generar un nivel entero cabe en un frame", function()
 > cargada. Ponlo generoso (2× o 3× de lo que mides en tu máquina) y trátalo como detector de
 > regresiones gordas, no de milisegundos.
 
+#### 6.3.1 · Crédito, deuda y unidad indivisible
+
+Un tope por frame comprobado **antes** de empezar no impide que la unidad que empieza cueste
+mucho más que el tope. El presupuesto útil se comporta como un cubo de fichas: se abona cada
+frame, cada unidad publicada **descuenta su coste real medido**, se limita el crédito acumulado
+y la deuda pendiente se paga en los frames siguientes. Si la deuda no tiene tope, una ráfaga
+puede encadenar tirones; si el tope es demasiado bajo, el streaming se queda corto y pierde
+cobertura.
+
+Tres reglas acompañan al cubo:
+
+- **Mide la unidad, no solo la pasada.** Si una operación es indivisible (crear varias
+  superficies, reconstruir un BVH, empaquetar un chunk), trocéala o llévala a un trabajador;
+  comprobar el presupuesto antes de la unidad no reparte su coste.
+- **Valida con el peor caso y por tipo de publicación**, no solo con un piloto largo. Un cupo
+  de bytes por frame puede recortar publicaciones gruesas y hacer que la cobertura caiga sin
+  que el p99 global lo delate.
+- **Un p99 favorable no acredita el 1 % bajo.** Reporta p99,9, 1 % low, histograma, unidades y
+  ventana; no sumes percentiles de sistemas distintos como si fueran muestras del mismo frame.
+
 ### 6.4 Mide en YYC, no en VM
 
 `gm-cli run` y `gm-cli compile` usan **VM por defecto** (`--runtime vm`). El código compilado
@@ -2104,6 +2124,23 @@ medición independiente, sí.**
 
 **Y aun así, el veredicto de una maqueta no cierra nada.** Sigue siendo el peldaño 2 con muy
 buena pinta: reproduce tu lectura del código, no el código. Lo que decide es el juego corriendo.
+
+### 8.6 quinquies · Corrida rota, paquete exportado y autofallo
+
+Una corrida con ventana solo cuenta si su registro no tiene errores, el contenido está cargado
+alrededor del jugador y la ventana tuvo foco. Si algo falla, es **roja siempre**: se investiga
+como fallo del producto hasta demostrar que es del instrumento; si es del instrumento, se
+arregla el instrumento y se repite. No se usa una corrida rota como medida ni se enseña.
+
+La aceptación se mide en el **paquete exportado**, no en el runner de desarrollo. Antes de
+exportar, comprueba que todos los scripts cargan; exporta a un nombre temporal y renombra al
+terminar; verifica que el paquete contiene los recursos esperados y que se abre. Un paquete
+extraído a medias no se lanza.
+
+Una corrida con ventana se **corta sola en rojo** si el jugador no avanza, si queda atascado
+dentro de un sólido o si la partida no empieza en el plazo previsto. Un temporizador largo no
+sustituye el avance observado. Y una prueba omitida no es verde: cuenta `NO_EVALUADO` y el
+veredicto no es verde salvo permiso explícito.
 
 ---
 

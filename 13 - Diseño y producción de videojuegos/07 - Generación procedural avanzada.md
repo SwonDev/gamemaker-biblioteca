@@ -998,7 +998,9 @@ function es_lago(_alt, _relleno, _i)
 En un mapa de 192×128 sobre el runtime 2026.0.0.23, el reparto es aproximadamente: el ruido fBm
 domina, el *priority-flood* añade un `ds_priority` de 24 576 entradas, y la ordenación para la
 acumulación es el otro término. **Todo esto se hace una vez por mundo**, en el Create o —mejor—
-troceado con el patrón retomable de §14. Nada de esto va en un evento Step.
+troceado con el patrón retomable de §14 **solo para las pasadas que §14.1 demuestra retomables**.
+El *priority-flood* y la acumulación D8 no están demostrados como retomables en este capítulo;
+no se presentan como tales. Nada de esto va en un evento Step.
 
 Tres casos en los que **no** merece la pena:
 
@@ -1010,6 +1012,15 @@ Tres casos en los que **no** merece la pena:
   drenaje.
 - **Mapas menores de ~64×64.** La red no tiene espacio para ramificarse y sale un único
   chorretón. Dibuja el río a mano y ahórrate las tres pasadas.
+
+**Cauce por columna con puerta precalculada.** En un mundo por zonas finitas se puede invertir
+el orden: el río se traza como una curva autoritaria y el terreno se adapta a su paso. El cauce
+se excava por columna usando la puerta y la profundidad de agua que ya preparó el productor,
+sin remuestrear clima ni relieve. Es más barato y evita costuras entre trozos, pero **no
+sustituye al tratamiento de mapa entero** que exige el régimen infinito: allí se traza una curva
+autoritaria y el terreno se adapta, porque el agua necesita el mapa entero para saber por dónde
+escapa. Declara cuál de los dos regímenes usa tu generador y prueba la continuidad del cauce en
+los bordes de zona.
 
 ---
 ## 3 · Autómatas celulares: cuevas
@@ -3970,6 +3981,32 @@ function alcanzable_saltando(_desde, _hasta)
 
 ---
 
+## 10 bis · Detectores geométricos y vocación del asentamiento
+
+Un generador no se valida solo con métricas de mapa. Para arquitectura y asentamientos, conviene
+convertir cada defecto repetido en una condición medible:
+
+| Defecto | Comprobación |
+|---|---|
+| Hueco que no es vano | Toda abertura tiene puerta o ventana declarada |
+| Z-fighting coplanar | Caras del mismo plano con materiales distintos |
+| Pieza empotrada | Mueble o pieza que cruza un muro |
+| Mueble fuera del interior | Mueble sin celda interior válida |
+| Cimiento al aire | Base sin apoyo bajo ella |
+| Pieza suelta | Pieza sin conexión con la estructura |
+
+Cada detector necesita un **rojo provocado**: un caso artificial que debe fallar si el detector
+funciona. Informa numerador, denominador y defectos restantes; no declares «cero defectos
+global» si quedan casos abiertos. Un detector que solo mira una aldea tampoco acredita el mundo.
+
+La **vocación** de un asentamiento se deriva de rasgos medidos de su propio terreno: rango de
+altura, distancia al agua, oficios de paso y celdas de labor. Se puntúa y se elige una vocación;
+la misma semilla y el mismo DTO deben dar la misma elección. La taxonomía ribereña, ladera,
+agrícola y de paso es un **ejemplo del caso Relicwild (2026)**, no una lista universal: los
+rasgos medidos son el principio transferible y las etiquetas se instancian por proyecto. No es
+una lista común de elementos para todos los pueblos: es una regla que responde a quién vive ahí
+y a qué ofrece el sitio.
+
 ## 11 · Herramientas para depurar un generador
 
 **Un generador que no puedes mirar no lo puedes arreglar.** Dos utilidades que cuestan media
@@ -4361,10 +4398,20 @@ if (!wfc_listo)
 
 Repartir la generación tiene un coste de complejidad — un objeto con estado en vez de una función
 pura, una pantalla de carga que dibujar. Si `get_timer()` (§2.9) mide que tu generador entero tarda
-menos de 1-2 ms, no lo repartas: es una solución para un problema que todavía no tienes. El
-umbral operativo: si el presupuesto por frame razonable (2-4 ms, dejando el resto a juego y
-render) no le basta a `avanzar()` para completar la generación en un solo `Step`, es cuando toca
-partirlo.
+muy poco **en tu target y con la ventana declarada**, no lo repartas: es una solución para un
+problema que todavía no tienes. Los valores de 1-2 ms y 2-4 ms son **ilustrativos, no un umbral
+universal**: mide en YYC, en el paquete exportado y con p99,9 (13/10 §6 y 01/15 §6). El criterio
+no es que el presupuesto comprobado antes de `avanzar()` «no baste», sino el coste real por
+unidad y la deuda que deja; una unidad indivisible puede costar más que el presupuesto aunque el
+tope se compruebe antes.
+
+**Límite del ejemplo de §14.1.** El generador retomable demuestra que la **pasada celular** se
+puede cortar y reanudar, pero la inicialización del array, la copia de buffers y la finalización
+del mundo se hacen enteras fuera del presupuesto. Una versión completamente incremental debe
+incluir también la inicialización, la copia y la finalización como pasos medidos, o declarar
+explícitamente que quedan fuera del frame. No se añade aquí una versión nueva sin verificar sus
+símbolos y compilarla; el límite es parte de la lección: **retomable no es lo mismo que
+totalmente incremental**.
 
 ---
 
