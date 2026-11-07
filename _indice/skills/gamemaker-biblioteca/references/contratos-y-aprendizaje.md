@@ -15,6 +15,12 @@ La trazabilidad usa ID y versión de requisito → tarea → casos → recibos �
 Distingue revisión del requisito de revisión del producto/WIP. Cuenta casos previstos,
 ejecutados, fallidos, omitidos e inválidos; un caso favorable no cierra los demás.
 
+**Investigación previa:** antes de una decisión cara de revertir (motor, formato, librería,
+asset), usa [`research-first.md`](research-first.md): candidatos con versión y licencia de
+código/pesos/assets, compatibilidad, coste, prueba discriminante y cierre con riesgos. No
+migres el motor fijado ni instales/ejecutes sin autorización; una referencia para aprender no
+es un asset distribuible.
+
 | Criterio | Qué necesita demostrar |
 |---|---|
 | Comportamiento | Acción/estado en runtime; persistencia exige cerrar y reabrir |
@@ -72,6 +78,11 @@ Antes de iterar fija criterio, referencia, regresiones y presupuesto autorizado.
 fallos, empates, controles inválidos y cancelaciones. Mejora integrable y aceptación final
 siguen puertas distintas. Sin progreso válido, diagnostica otra hipótesis; agotar intentos
 no autoriza promover un rechazo, bajar umbrales o sustituir modelos.
+
+Un arreglo no está cerrado hasta que deja **regla escrita y guardarraíl** que falla si se
+retira el arreglo. Si una norma cita una prueba o un guardarraíl, ese archivo debe existir y
+fallar en rojo cuando se quita la corrección. Si la técnica se descartó, marca la norma como
+sustituida en el mismo cambio; una norma más vieja que el código es sospechosa.
 
 Pausa o cuota agotada bloquean despachos y reintentos afectados, también después de esperas
 y en descendientes desacoplados. Atribuye procesos y recursos antes de cerrar o declarar

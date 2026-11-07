@@ -462,6 +462,22 @@ Abre el **Debug Overlay** y mira la ventana **FPS** con **Stacked** activado. Te
 | **Text** | Sequences | Texto en secuencias |
 | **Scroll** | Fondos con scroll | Fondos grandes con scroll |
 
+#### Presupuesto por unidad y medida que no engaña
+
+Un presupuesto por frame es el punto de partida, no la solución. Si una unidad de trabajo
+—publicar un chunk, reconstruir una malla, empaquetar un guardado— es indivisible, comprobar el
+presupuesto antes de empezarla no reparte su coste. Usa un modelo de crédito y deuda: abona el
+presupuesto cada frame, descuenta el coste real medido de cada unidad, limita el crédito
+acumulado y paga la deuda en los frames siguientes. Sin tope de deuda, una ráfaga encadena
+tirones; con un tope demasiado bajo, el trabajo se queda corto y pierde cobertura.
+
+Mide con una ventana y una población declaradas. Un p99 favorable no acredita el 1 % bajo:
+reporta p99,9, 1 % low, histograma y unidades. No sumes percentiles de sistemas distintos como
+si fueran muestras del mismo frame. Haz A/A con la misma versión para estimar el ruido, alterna
+A/B con las mismas entradas y conserva la pasada desfavorable. La medida de aceptación se toma
+en el paquete exportado y en YYC, no en el runner de desarrollo; la instrumentación puede
+cambiar el coste y sirve para diagnosticar, no para aceptar.
+
 ### Paso 2: los sospechosos habituales
 
 #### Demasiadas instancias activas

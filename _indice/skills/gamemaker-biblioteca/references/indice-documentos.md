@@ -385,7 +385,7 @@ Herramientas de flujo de trabajo, extensiones nativas, integraciones con servici
 
 ## `13 - Diseño y producción de videojuegos` — Diseño y producción de videojuegos
 
-El oficio que va antes y alrededor del código, en 24 documentos: diseño de juego, niveles, pixel art, animación, UI/UX, arquitectura, generación procedural, físicas y fluidos, sonido, testing, producción, narrativa, matemáticas, el documento de diseño (GDD), teoría del diseño, progresión, puzzles, combate y jefes, cámaras, negocio y ética, balance por simulación, mundo y exploración, patrones en GML, y voz y localización de audio.
+El oficio que va antes y alrededor del código: diseño de juego, niveles, pixel art, animación, UI/UX, arquitectura, generación procedural, físicas y fluidos, sonido, testing, producción, narrativa, matemáticas, el documento de diseño (GDD), teoría del diseño, progresión, puzzles, combate y jefes, cámaras, negocio y ética, balance por simulación, mundo y exploración, patrones en GML, y voz y localización de audio.
 
 **Usar cuando:** me piden diseñar o planificar un juego, no solo programarlo · cómo se diseña un nivel / se equilibra una mecánica / se escribe un diálogo · qué resolución y paleta uso para pixel art · cómo estructuro el proyecto para que crezca · ruido, autómatas celulares, WFC, Poisson · muelles, Verlet, agua, fluidos sin Box2D · cómo pruebo el juego y cómo lo lanzo · qué matemáticas necesito para X · escribir el GDD o un documento que un agente pueda implementar · el canon teórico del diseño · árboles de habilidades y meta-progresión · diseñar puzzles y validarlos por búsqueda · decidir el combate y los jefes · qué cámara pide mi juego · cómo se paga el juego y con qué ética · comprobar el balance sin gastar playtests · diseñar el mundo y la exploración · traducir un patrón conocido a GML · grabar y localizar voces
 
@@ -421,6 +421,7 @@ El oficio que va antes y alrededor del código, en 24 documentos: diseño de jue
 - `13 - Diseño y producción de videojuegos/28 - De hazme un juego a una especificación - el protocolo de elicitación del agente.md` — 28 · De «hazme un juego» a una especificación — el protocolo de elicitación del agente
 - `13 - Diseño y producción de videojuegos/29 - Desarrollo con IA - orquestación, crítica y evidencia.md` — Desarrollo con IA — orquestación, crítica y evidencia
 - `13 - Diseño y producción de videojuegos/30 - Especificación viva y mejora del método.md` — 30 · Especificación viva y mejora del método
+- `13 - Diseño y producción de videojuegos/31 - Investigación previa y reutilización antes de construir.md` — 31 · Investigación previa y reutilización antes de construir
 - `13 - Diseño y producción de videojuegos/_INDICE-DISENO.md` — Diseño y producción de videojuegos — índice
 
 

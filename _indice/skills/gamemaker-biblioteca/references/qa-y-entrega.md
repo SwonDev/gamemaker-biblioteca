@@ -30,6 +30,20 @@ un juicio de fidelidad y una hipótesis de experiencia tienen evidencias distint
 - No declares un juego «terminado» sin compararlo punto por punto con el checklist maestro de
   `04/00`. Si algo falta o no aplica, dilo; el silencio no vale.
 
+### Verde que no vale: omisión, corrida rota y paquete
+
+- **Una prueba omitida no es verde.** Cuenta `NO_EVALUADO`; si el filtro incluye casos que no
+  se pudieron ejecutar, el veredicto no es verde salvo permiso explícito y por escrito.
+- **Una corrida con error, sin carga o sin foco es roja siempre.** Se investiga como fallo del
+  producto hasta demostrar que es del instrumento; si es del instrumento, se arregla y se repite.
+- **La aceptación se mide en el paquete exportado**, no en el runner de desarrollo. Antes de
+  exportar, comprueba que todos los scripts cargan; exporta a un nombre temporal y renombra;
+  verifica que el paquete contiene los recursos esperados y que se abre.
+- **Una corrida con ventana se corta sola en rojo** si el jugador no avanza, queda atascado o
+  la partida no empieza. Un temporizador largo no sustituye el avance observado.
+- **Un p99 favorable no acredita el 1 % bajo.** Reporta p99,9, 1 % low, histograma, unidades y
+  ventana; no sumes percentiles de sistemas distintos.
+
 ## Cierre de un desarrollo
 
 7. **Antes de decir «terminado»**, en este orden:

@@ -201,6 +201,19 @@ La promoción modifica documentación o comprobaciones dentro del encargo. Insta
 cambiar modelos, escribir memorias globales, ejecutar código ajeno o publicar mantiene sus
 permisos propios. El aprendizaje no necesita esas acciones para ser útil y revisable.
 
+### 6.1 · Norma vigente y guardarraíl
+
+- Todo arreglo **mecánico** deja una **regla escrita** y una **prueba o puerta que falla** si se
+  retira el arreglo. Un arreglo de **juicio** deja regla y un ejemplo/control verificable (A/A,
+  defecto conocido o revisión por zonas); no se le exige un test automático que no puede existir.
+  Un arreglo sin guardarraíl verificable no está cerrado.
+- Si una norma cita un guardarraíl o un archivo de prueba, ese archivo debe existir y fallar en
+  rojo cuando se quita el arreglo. Una norma que cita una prueba inexistente describe una
+  técnica descartada como si estuviera vigente.
+- Si una técnica se descarta, la norma se marca **sustituida** en el mismo cambio. Una norma
+  más vieja que el código es sospechosa: lee el código actual antes de aplicarla y no
+  conviertas un límite histórico en regla universal.
+
 ## 7 · Evaluar la skill además de validar sus archivos
 
 Enlaces, YAML, índices y compilación prueban propiedades necesarias del paquete y del
@@ -234,6 +247,14 @@ una prueba de ejecución aislada y autorizada.
 Para cada repositorio conserva URL/revisión, archivo, licencia aplicable, capacidad, evidencia
 leída/ejecutada, diferencia con la biblioteca y decisión de adopción. La licencia de un archivo
 puede diferir de la raíz. Los nombres de comandos y hooks de otro harness no son API de GameMaker.
+
+### 8.1 · Candidatos y reutilización
+
+Antes de adoptar un repo, motor, técnica o asset, registra URL/revisión, licencia de código y
+de pesos/assets, compatibilidad con el target, coste de adaptación y mantenimiento, y una
+prueba discriminante. Un wrapper permisivo no relicencia el binario incluido; la licencia de un
+archivo puede diferir de la raíz y la de los pesos de la del código. La ficha completa está en
+[13 · 31](<31 - Investigación previa y reutilización antes de construir.md>).
 
 De Matt se reutilizan requisitos, tareas verticales, pruebas y revisión; de Gentle, contratos
 y revisiones pertinentes; de ECC, ideas de evaluación y aprendizaje que superen el contraste.

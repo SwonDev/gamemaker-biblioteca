@@ -998,6 +998,55 @@ matrix_set(matrix_world, matrix_build_identity());
 
 ---
 
+## 9 bis · Qué transfiere un motor de vóxeles a GML
+
+Un motor de vóxeles con núcleo nativo y un runtime GML no ofrecen las mismas piezas. Antes de
+copiar una técnica, separa **principio** de **implementación**.
+
+### Lo que sí transfiere
+
+- **Congelar la geometría estática**: `vertex_freeze` sobre buffers que no cambian.
+- **Un buffer por malla, dibujado muchas veces** con `matrix_world` distinta, en lugar de un
+  buffer por objeto.
+- **Culling barato**: `sphere_is_visible`, `gpu_set_cullmode`, niebla y plano lejano corto.
+- **Presupuesto por fotograma con orden de publicación**: qué se publica antes, qué se difiere
+  y qué se puede trocear. Es una regla de orden, no de paralelismo.
+- **Medición con `get_timer()`** y una ventana declarada; el resto es instrumentación propia.
+
+### Lo que no transfiere
+
+El índice del runtime **2026.0.0.23** expone familias `vertex_*`, `gpu_set_*` y `matrix_*`, pero
+no muestra símbolos de hilos, *instancing* de GPU, *multi-draw*, índice de índices ni extracción
+de planos o jerarquía de frustum. `sphere_is_visible` sigue siendo una prueba de visibilidad
+barata, no un sistema de frustum. Eso describe **ese índice**, no una imposibilidad universal de
+GameMaker: una extensión nativa o una versión distinta pueden ofrecer otra cosa. Lo que no se
+puede hacer es prometer paralelismo o *instancing* sin verificarlo contra el runtime real del
+proyecto.
+
+Consecuencias prácticas:
+
+- En GML, cada quad se escribe con sus vértices; no hay un índice de índices que reutilice
+  esquinas como en Godot. Los cuatro vértices indexados de un motor moderno **no** son el mismo
+  contrato que un `vertex_buffer` de GML.
+- Sin hilo de mallado, el mallado pesado se reparte por fotogramas, se trocea o se precalcula;
+  no se traduce `std::thread` a GML.
+- El *greedy meshing* solo es seguro si la clave de fusión incluye material, color, AO, luz,
+  normal y transparencia. Si el color y el AO van por vértice de esquina, fusionar exige un
+  atlas de atributos o renunciar a la discontinuidad.
+- El LOD por reducción muestrea columnas; **no** prometas que el coste total cae a una fracción
+  concreta sin medirlo. La reducción de muestras y el coste de frame no son lo mismo.
+- Un oclusor con toda la geometría y un BVH reconstruido al mover el origen puede costar más de
+  lo que ahorra. Mídelo con A/B en campo abierto y en zona cerrada.
+- La animación por instancia (VAT) de una microfauna en Godot es una referencia de patrón. En el
+  índice consultado no aparece *instancing* directo de GPU; no lo presentes como hecho hasta
+  probarlo en el runtime del proyecto. Se puede estudiar con buffers o sprites, pero la multitud
+  no se declara resuelta sin medirla.
+
+El límite de esta sección es deliberado: **no convierte un principio de presupuesto en una
+arquitectura de mundo abierto**. Un streaming de terreno con LOD y culling jerárquico no está
+resuelto por este capítulo; si el target lo exige, se investiga como decisión propia y se
+declara el límite.
+
 ## 10 · Lo que ya tienes descargado para estudiar
 
 No empieces de cero: los proyectos de referencia ya están clonados en

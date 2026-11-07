@@ -1296,6 +1296,39 @@ devuelve 0 mientras el juego está congelado, así que el sprite se queda clavad
 impacto: exactamente lo que hace que un golpe se sienta. Para las Sequences, lo mismo con
 `layer_sequence_speedscale()`.
 
+## 8 bis · Rig de piezas rígidas y fase ligada al desplazamiento
+
+No todo personaje 3D necesita un esqueleto con skinning. Un rig de **piezas rígidas** puede ser
+más legible y más barato: cada pieza es un nodo con su malla, su pivote está en la articulación
+y la pose se resuelve transformando piezas, no deformando vértices. Es el patrón de un personaje
+voxel por piezas; no lo confundas con un esqueleto óseo ni con un rig de huesos con pesos.
+
+La locomoción de un cuadrúpedo se puede describir con fisiología, no con intuición:
+
+- **Paso lateral a cuatro tiempos**: cada pata apoya en un cuarto distinto del ciclo.
+- **Trote en diagonales**: las patas opuestas se mueven juntas.
+- **Galope transverso con suspensión**: las patas traseras inician, las delanteras siguen y hay
+  un instante sin apoyo.
+- **Barrido calculado**: la amplitud del paso se deriva de la velocidad real para que el pie
+  apoyado no patine. El deslizamiento se mide y se mantiene dentro de una tolerancia.
+- **Fase atada al desplazamiento**, no al reloj: si el personaje acelera, la fase avanza; si se
+  detiene, se detiene. La histéresis evita parpadeos entre andar y correr; el fundido entre
+  clips conserva la fase común.
+- **Salto por velocidad vertical real**, no por un temporizador fijo.
+
+Los números concretos —retícula, número de piezas, proporciones, fracciones de apoyo— son del
+arquetipo y del caso Relicwild (2026), no constantes universales. Un cuadrúpedo de montura y un
+humanoide no comparten escala ni presupuesto. El método de criaturas vigente de ese caso
+(documentado en 2026) se separa del método escultor histórico anterior: no mezcles sus reglas ni
+eleves un valor de un caso a norma. Contexto y límites en
+[`r26`](../_indice/auditorias/r26-integracion-relicwild.md) y
+[`r24`](../_indice/auditorias/r24-aprendizajes-relicwild.md).
+
+El QA de animación va en orden: números y láminas de CPU, luego el motor con vértices reales de
+apoyo, después vídeo en partida y crítica por zonas. Un render de CPU no prueba el juego; en
+headless con driver Dummy, una transformación de instancia puede devolver identidad y la sonda
+«pasar» sin mover nada. La transformación dibujada se verifica en render real.
+
 ---
 
 ## 9 · Checklist de calidad

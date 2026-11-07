@@ -1,21 +1,22 @@
 {
   "schema": 1,
   "name": "gamemaker-biblioteca",
-  "version": "r50 · 2026-10-15",
+  "version": "r51 · 2026-11-07",
   "files": {
-    "AGENTS.md": "7806e92dd1135a396c990007228e2af21a7331af23a1899f7b560e9b76d55803",
-    "SKILL.md": "cb6f375473cd617fee3c586a1af140bb7af37d34113ff60fcd22c06454e7ebb5",
+    "AGENTS.md": "442b5159cd4caff74b9fe80ff87255ba763c74e6b715d3ec854580e60dd44d1f",
+    "SKILL.md": "a25293b2c856218171a2efb4063ca3a516eea49db55bda4db382b174eb8f3d06",
     "references/asesor-y-activacion.md": "648403cc6ffc83483dc9e894b7e63ebb088fa1edad27a2fa923150bc4f13f76f",
-    "references/assets-y-texto.md": "749ef55847b06fdcc7f135dd4c8e1cc8ac397022a11735ef94a24d773ace7934",
+    "references/assets-y-texto.md": "59cebf75ada46ec19dcf92a231a4e5828fcee05ac6fe3d82320e728868802572",
     "references/consulta-api.md": "c43b4868f23a34f2bcaa587a387adfdbdcad4c5e9275343e695eb36898dc0918",
-    "references/contexto-y-recursos.md": "badef9b9b53f448acb315bd1fc047ebdb3e7d87ab62c38e7dd42d664c5371e6e",
-    "references/contratos-y-aprendizaje.md": "dd085b6404ecfb2d840896af46caac2463711b4b136851082b60d92a1ae73765",
-    "references/desarrollo-y-evidencia.md": "89218babb107c811c890fb69fecf5a6812344bbea1a571442037396291fa308e",
+    "references/contexto-y-recursos.md": "b8f908d990aaace4cd345bea4195f7087987c7208e20f30d314cd1fe5ddd3b00",
+    "references/contratos-y-aprendizaje.md": "f1f2774f815475ebf49a26fbfa8710cee576bedb15343e10c8fb4cc5d2977b6a",
+    "references/desarrollo-y-evidencia.md": "8d275d3e0ebd717120d1494f2a1cfd8c08a3b3620b112279f982247fdfa31351",
     "references/entorno-y-fuentes.md": "5285337a56156cd49bf908bb08f23afcd4e7210a52e459ae0522c0f59ea051a8",
-    "references/indice-documentos.md": "546947c4148b1237687d25d440490ee362fd8b61120823d331d301da196f53e5",
-    "references/mapa-disciplinas.md": "a44deb74809020d39de9a4bdc3ef97e3b60e8bc4e7d5462fdccf089b91770e24",
+    "references/indice-documentos.md": "cc78fbabe2dda78c2fc1cc62d9490bc868dd492aa998d8572447182d87cf3c62",
+    "references/mapa-disciplinas.md": "301733fb4948436a19dbe4072ea84bc461d6048cf96219b34572523aff1cf643",
     "references/operar-gamemaker.md": "1f3544e2268d35ddf077ff135149fe75ec95a5477267ec2f0e21684f4efea6a8",
-    "references/qa-y-entrega.md": "d38edbbcea9f51cec398e4771f67656379ae06ea3ab1cb533b55b2fbad401be3",
+    "references/qa-y-entrega.md": "281baa6bc4cc697f3a1069ba1f791671ecf14c7653e59c79b6b1343f7c12dfa4",
+    "references/research-first.md": "622959b13966ccbc73790000ac0a9376a9e9e6dd1f4b9646be7a3f40d5261f27",
     "references/rutas-de-consulta.md": "8bf6d76ade1bfca38c9faa5529f72de3a11bcb898c79cb2e467c247cb7aaca34"
   }
 }

@@ -64,7 +64,7 @@
   },
   "ficheros_indice": {
     "_indice/simbolos.json": "3486 símbolos de GML cruzados con manual, documentación y código real",
-    "_indice/documentos.json": "los 268 documentos con su título",
+    "_indice/documentos.json": "los 269 documentos con su título",
     "08 - Referencia GML completa/_API del runtime/gml-api.json": "la API completa del runtime, machine-readable",
     "11 - Código descargado/_RUTAS.json": "nombre de repositorio → ruta"
   },
@@ -1243,7 +1243,7 @@
     },
     {
       "titulo": "Diseño y producción de videojuegos",
-      "proposito": "El oficio que va antes y alrededor del código, en 24 documentos: diseño de juego, niveles, pixel art, animación, UI/UX, arquitectura, generación procedural, físicas y fluidos, sonido, testing, producción, narrativa, matemáticas, el documento de diseño (GDD), teoría del diseño, progresión, puzzles, combate y jefes, cámaras, negocio y ética, balance por simulación, mundo y exploración, patrones en GML, y voz y localización de audio.",
+      "proposito": "El oficio que va antes y alrededor del código: diseño de juego, niveles, pixel art, animación, UI/UX, arquitectura, generación procedural, físicas y fluidos, sonido, testing, producción, narrativa, matemáticas, el documento de diseño (GDD), teoría del diseño, progresión, puzzles, combate y jefes, cámaras, negocio y ética, balance por simulación, mundo y exploración, patrones en GML, y voz y localización de audio.",
       "usar_cuando": [
         "me piden diseñar o planificar un juego, no solo programarlo",
         "cómo se diseña un nivel / se equilibra una mecánica / se escribe un diálogo",
@@ -1393,11 +1393,15 @@
           "titulo": "30 · Especificación viva y mejora del método"
         },
         {
+          "ruta": "13 - Diseño y producción de videojuegos/31 - Investigación previa y reutilización antes de construir.md",
+          "titulo": "31 · Investigación previa y reutilización antes de construir"
+        },
+        {
           "ruta": "13 - Diseño y producción de videojuegos/_INDICE-DISENO.md",
           "titulo": "Diseño y producción de videojuegos — índice"
         }
       ],
-      "n_documentos": 31
+      "n_documentos": 32
     },
     {
       "titulo": "Un juego completo, montado y funcionando",
@@ -1541,7 +1545,7 @@
       ]
     }
   },
-  "total_documentos": 268,
+  "total_documentos": 269,
   "mantenimiento": {
     "comando": "python3 _indice/actualizar.py",
     "que_se_deduce_del_disco": [

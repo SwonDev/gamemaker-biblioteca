@@ -65,11 +65,17 @@ concreta el cambio de requisito, su efecto en tareas y pruebas, la diferencia en
 funcionamiento y experiencia, y la promoción de aprendizajes con evaluación de la skill.
 Se consulta al evolucionar la especificación o el proceso existente.
 
+[31 · Investigación previa y reutilización antes de construir](<31 - Investigación previa y reutilización antes de construir.md>)
+convierte una decisión cara de revertir en una comparación con candidatos, versión y licencia
+de código/pesos/assets, compatibilidad, coste y prueba discriminante. Se consulta antes de
+comprometer motor, arquitectura, formato, librería o un asset costoso; no sustituye la
+especificación.
+
 ## Orden sugerido para un juego nuevo
 
 ```
-28 Elicitación (si el encargo es una frase suelta)  →  11 Producción (alcance)
-      →  01 Diseño de juego (core loop, GDD)  →  06 Arquitectura
+31 Investigación previa (si hay una decisión costosa)  →  28 Elicitación (si el encargo es una frase suelta)
+      →  11 Producción (alcance)  →  01 Diseño de juego (core loop, GDD)  →  06 Arquitectura
       →  02 Niveles · 03 Pixel art · 04 Animación · 05 UI · 09 Sonido · 12 Narrativa (según el juego)
       →  07 Procedural · 08 Físicas · 13 Matemáticas (cuando el sistema lo pida)
       →  10 Testing y QA  →  11 Producción (lanzamiento)

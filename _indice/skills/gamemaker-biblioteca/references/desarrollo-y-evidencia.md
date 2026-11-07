@@ -7,6 +7,12 @@ aplica [`asesor y activación`](asesor-y-activacion.md): consulta automática ac
 los roles/modelos vigentes, brief, resultado real y contraste. Una continuación rutinaria
 no repite la consulta. Este asesoramiento inicial permanece separado de la crítica ciega.
 
+**Antes de elegir motor, arquitectura, formato, librería o asset caro de revertir**, lee
+[`research-first.md`](research-first.md): pregunta/decisión, candidatos, licencia de
+código/pesos/assets, compatibilidad, coste, prueba discriminante y cierre. No migres el motor
+fijado ni instales/ejecutes sin autorización; una referencia para aprender no es un asset
+distribuible.
+
 ## Flujo para un desarrollo real
 
 **Proyecto existente o continuación:** antes del paso 0, lee reglas, especificación, glosario,
@@ -33,14 +39,23 @@ y procedencia; no sustituye el protocolo inicial ni obliga a instalar métodos e
 - Evidencia vigente: commit + huellas del WIP/entradas, runtime, target, configuración y escenario.
   Una batería anterior es histórica; compilar ahora no la refresca. Registra modo, aserciones,
   medidas informativas, omisiones y denominadores: cero fallos no certifica todos los presupuestos.
+  Una corrida con error, sin carga o sin foco es roja; la aceptación se mide en el paquete
+  exportado, no en el runner de desarrollo.
 - Crítica fresca: clave fuera del paquete accesible, sin explicación del constructor antes del
-  juicio, controles negativos e idénticos válidos. Contaminación → nueva ronda.
+  juicio, controles negativos e idénticos válidos. Contaminación → nueva ronda. Una revisión de
+  cierre que recibe defectos previos no es ciega: nómbrala como verificación.
 - Mejora integrable y aceptación final son estados distintos. Una preferencia visual no
   autoriza una identidad incorrecta ni bajar el umbral del usuario.
+- Integración: manifiesto de creados/modificados/borrados/enlaces y prueba del consumidor; un
+  merge limpio no acredita compatibilidad semántica.
 - Propiedad de archivos y un escritor de recursos; exclusión `.gmcache`, guardado y recursos
   pesados. Orden de bloqueo consistente, FIFO y propietario verificable, sin limpieza por nombre.
+  Registra propiedad y persistencia por herramienta/sesión; no cierres la sesión del usuario
+  como experimento.
 - Continuidad: conserva modelos, permisos, WIP, recibos y pausa entre harnesses. Un cambio de
   cuota no autoriza reanudar ni sustituir modelos.
+- Cierre: regla escrita y guardarraíl que falla si se retira el arreglo. Un arreglo sin esa
+  prueba no está cerrado.
 
 0. **Especificación**: si el encargo es «hazme un juego» y no trae ya género, alcance y
    plataforma decididos, pregúntalos en un único turno (nunca un interrogatorio secuencial) y

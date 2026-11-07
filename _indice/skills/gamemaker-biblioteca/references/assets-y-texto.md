@@ -24,6 +24,31 @@ iniciar servicios pausados, gastar o publicar. Separa uso privado y redistribuci
   código con paleta coherente, assets libres, o generación por IA— y para el sonido está
   `13/09 §8 bis`. **Baja un peldaño antes de rendirte, nunca entregues el rectángulo.**
 
+## Audio y música generada
+
+Elige la herramienta por capacidad, no por nombre:
+
+| Necesito | Herramienta | Límite |
+|---|---|---|
+| SFX procedurales, banco y evaluación | `earshot` | No sustituye la escucha humana ni la mezcla del juego |
+| Grabaciones licenciadas y mezcla | `real-sound` | No es un sintetizador; verifica derechos por grabación |
+| SFX/ambientes/TTS con proveedor | `threejs-audio-generator` | ElevenLabs + Web Audio; requiere proveedor y no es GML; no está en todos los harnesses |
+| Medios para vídeo | `media-use`, `hyperframes-audio` | Producción de vídeo; no impongas el LUFS de cine al juego |
+
+**Música local:** YuE2 sobre MLX es una alternativa sin tarifa de API. El texto solo no controla
+tonalidad/tempo; una partitura ABC propia como plan mejora el control. Las capas grave/melodía/
+ritmo son derivadas por procesado, no stems nativos, y las voces residuales se comprueban
+escuchando. Suno es una alternativa hospedada: captura plan y condiciones de creación/descarga,
+sin suponer retroactividad.
+
+**Derechos:** código, pesos y salidas pueden tener licencias distintas. Una licencia puede
+permitir a creadores individuales generar, publicar, vender y licenciar salidas sin canon, y
+exigir a una empresa una licencia aparte. Archiva la licencia de pesos, `MODEL_LICENSE` y la
+revisión usada; registra la confirmación del titular. No conviertas una excepción en permiso ni
+en prohibición universal. Para Idol, distingue Speridlabs imagen→3D Gaussian splat (`.ply`), el
+fork MPS y el proyecto humano SMPL-X; verifica formato, conversión y dependencias antes de
+reutilizar. No ejecutes generación ni cambies modelos por iniciativa propia.
+
 ## Biblioteca personal de assets
 
 **Si el usuario te dice dónde tiene SUS assets, hay un método y no es «buscar
