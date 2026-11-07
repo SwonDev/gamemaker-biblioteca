@@ -101,6 +101,8 @@ Comprobaciones de la pasada vigente:
   se modifica el texto para silenciar el escáner.
 - Copias instaladas en otros harnesses siguen en r50 y el repositorio va por r51: **H4, fuera del
   alcance de esta integración**. No se instalaron ni actualizaron; el aviso es esperado.
+- El merge en `main` (`SHA retirado`) conserva exactamente el árbol de la rama; la pasada del clon
+  limpio sigue siendo la evidencia vigente del contenido publicado.
 
 ### Smoke consolidado (H2)
 
@@ -141,7 +143,9 @@ No se inventaron URLs; las que aparecen son las del anexo contrastado.
 ## 6 · Publicación
 
 Rama de feature: `docs/relicwild-r51`, creada desde `origin/main` (`SHA retirado`) para no arrastrar
-WIP ajeno. Push no forzado al remoto `SwonDev/gamemaker-biblioteca`; sin PR ni merge.
+WIP ajeno. Push no forzado al remoto `SwonDev/gamemaker-biblioteca`. Integrada en `main` con
+el PR de la rama (`el PR de la rama`), merge commit `SHA retirado`, sin
+squash y sin borrar la rama. El árbol de `main` es idéntico al de la rama.
 
 | Orden | Commit | Unidad |
 |---|---|---|
@@ -150,11 +154,12 @@ WIP ajeno. Push no forzado al remoto `SwonDev/gamemaker-biblioteca`; sin PR ni m
 | 3 | `SHA retirado` | audio: YuE2, Suno, Idol y licencias |
 | 4 | `SHA retirado` | auditoría r26 |
 | 5 | `SHA retirado` | índices y paquete de skill |
+| 6 | `SHA retirado` | merge de el PR de la rama en `main` |
 
-El SHA remoto comprobado tras el push de contenido coincide con `SHA retirado`; el commit de
-publicación que añade esta tabla es el siguiente y su SHA se informa en el mensaje de cierre.
-`gh run list --branch docs/relicwild-r51` devolvió una lista vacía: **no se activó ningún
-workflow**. No se afirma CI verde; no hay ejecuciones.
+El push inicial de la rama no activó workflows. El PR activó `Instalación portable`; sus seis
+jobs pasaron (run `run retirado`, `success`). El run de `main` sobre `SHA retirado` volvió a pasar
+(`success`). No se afirma nada sobre otros workflows. Este párrafo de cierre se publica en un
+commit documental posterior; su SHA se informa en el mensaje final.
 
 **RDD:** el ciclo nativo no está disponible para Command Code (solo Claude Code, Codex, OpenCode
 y Pi). No se invocó otro modelo ni se inventó un recibo; se reutilizan las dos revisiones
